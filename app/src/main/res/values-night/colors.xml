@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Night mode overrides - only colors that differ from day mode -->
+    <color name="fitness_background">#ff494949</color>
+    <color name="fitness_card_background">#ff1e1e1e</color>
+    <color name="fitness_text_primary">#ffffffff</color>
+    <color name="fitness_text_secondary">#ffcccccc</color>
+    <!-- Darker versions for colored card backgrounds, lighter for text visibility -->
+    <color name="fitness_primary">#ff66bb6a</color>
+    <color name="fitness_primary_dark">#ff4caf50</color>
+    <color name="fitness_accent">#ffffb74d</color>
+</resources>

@@ -1,0 +1,22 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Theme.Fitness" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Primary brand color. -->
+        <item name="colorPrimary">@color/fitness_primary</item>
+        <item name="colorPrimaryVariant">@color/fitness_primary_dark</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <!-- Secondary brand color. -->
+        <item name="colorSecondary">@color/fitness_accent</item>
+        <item name="colorSecondaryVariant">@color/fitness_accent</item>
+        <item name="colorOnSecondary">@color/white</item>
+        <!-- Background colors. -->
+        <item name="android:windowBackground">@color/fitness_background</item>
+        <item name="colorSurface">@color/fitness_card_background</item>
+        <!-- Text colors. -->
+        <item name="android:textColorPrimary">@color/fitness_text_primary</item>
+        <item name="android:textColorSecondary">@color/fitness_text_secondary</item>
+        <!-- Status bar color. -->
+        <item name="android:statusBarColor">@color/fitness_background</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>

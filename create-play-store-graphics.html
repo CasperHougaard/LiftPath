@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LilFitness - Play Store Graphics Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #4CAF50;
+            text-align: center;
+        }
+        .preview {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .icon-preview {
+            width: 512px;
+            height: 512px;
+            margin: 20px auto;
+            background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%);
+            border-radius: 20%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .icon-content {
+            font-size: 200px;
+            color: white;
+            font-weight: bold;
+        }
+        .feature-preview {
+            width: 1024px;
+            height: 500px;
+            margin: 20px auto;
+            background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%);
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            padding: 40px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .feature-left {
+            flex: 1;
+            text-align: center;
+        }
+        .feature-icon {
+            font-size: 150px;
+            color: white;
+            margin-bottom: 20px;
+        }
+        .feature-right {
+            flex: 1;
+            color: white;
+            padding-left: 40px;
+        }
+        .feature-title {
+            font-size: 48px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .feature-list {
+            font-size: 24px;
+            line-height: 1.8;
+        }
+        .download-btn {
+            background: #FF9800;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        .download-btn:hover {
+            background: #F57C00;
+        }
+        .instructions {
+            background: #E8F5E9;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .instructions h3 {
+            color: #388E3C;
+            margin-top: 0;
+        }
+        .instructions ol {
+            line-height: 1.8;
+        }
+        canvas {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏋️ LilFitness - Play Store Graphics</h1>
+        
+        <div class="instructions">
+            <h3>How to Use:</h3>
+            <ol>
+                <li>Right-click on the previews below</li>
+                <li>Select "Inspect" or "Inspect Element"</li>
+                <li>Use browser's screenshot tool or a screen capture app</li>
+                <li>Alternatively, use the download buttons (requires canvas export)</li>
+            </ol>
+            <p><strong>Note:</strong> For best results, use a design tool like Canva or Figma with these as reference.</p>
+        </div>
+
+        <div class="preview">
+            <h2>App Icon Preview (512x512)</h2>
+            <div class="icon-preview" id="iconPreview">
+                <div class="icon-content">🏋️</div>
+            </div>
+            <p>This is a preview. For production, create a high-quality version with your actual dumbbell icon.</p>
+            <button class="download-btn" onclick="downloadIcon()">Download Icon Template</button>
+        </div>
+
+        <div class="preview">
+            <h2>Feature Graphic Preview (1024x500)</h2>
+            <div class="feature-preview" id="featurePreview">
+                <div class="feature-left">
+                    <div class="feature-icon">🏋️</div>
+                </div>
+                <div class="feature-right">
+                    <div class="feature-title">LilFitness</div>
+                    <div class="feature-list">
+                        ✓ Track Workouts<br>
+                        ✓ Log Exercises<br>
+                        ✓ View Progress<br>
+                        ✓ Build Habits
+                    </div>
+                </div>
+            </div>
+            <p>Feature graphic for Google Play Store banner.</p>
+            <button class="download-btn" onclick="downloadFeature()">Download Feature Graphic Template</button>
+        </div>
+
+        <div class="instructions">
+            <h3>Next Steps:</h3>
+            <ol>
+                <li>Take screenshots of your app running on a device or emulator</li>
+                <li>Use these previews as reference to create final graphics in Canva/Figma</li>
+                <li>Ensure all graphics meet Google Play Store requirements</li>
+                <li>Upload to Google Play Console</li>
+            </ol>
+        </div>
+    </div>
+
+    <canvas id="iconCanvas" width="512" height="512"></canvas>
+    <canvas id="featureCanvas" width="1024" height="500"></canvas>
+
+    <script>
+        function downloadIcon() {
+            const canvas = document.getElementById('iconCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Create gradient background
+            const gradient = ctx.createLinearGradient(0, 0, 512, 512);
+            gradient.addColorStop(0, '#4CAF50');
+            gradient.addColorStop(1, '#388E3C');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 512, 512);
+            
+            // Add text/icon (simplified - use actual icon in design tool)
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 200px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('🏋️', 256, 256);
+            
+            // Download
+            const link = document.createElement('a');
+            link.download = 'lilfitness-icon-512x512.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+
+        function downloadFeature() {
+            const canvas = document.getElementById('featureCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Create gradient background
+            const gradient = ctx.createLinearGradient(0, 0, 1024, 500);
+            gradient.addColorStop(0, '#4CAF50');
+            gradient.addColorStop(1, '#388E3C');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 1024, 500);
+            
+            // Add icon on left
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 150px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('🏋️', 200, 250);
+            
+            // Add text on right
+            ctx.font = 'bold 48px Arial';
+            ctx.fillText('LilFitness', 700, 200);
+            ctx.font = '32px Arial';
+            ctx.fillText('Track Workouts • Log Exercises', 700, 280);
+            ctx.fillText('View Progress • Build Habits', 700, 320);
+            
+            // Download
+            const link = document.createElement('a');
+            link.download = 'lilfitness-feature-1024x500.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FFBB86FC</color>
+    <color name="purple_700">#FF9A67FB</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF03DAC5</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="fitness_primary">#ff4caf50</color>
+    <color name="fitness_primary_dark">#ff388e3c</color>
+    <color name="fitness_accent">#ffff9800</color>
+    <color name="fitness_background">#fff0f0f0</color>
+    <color name="fitness_card_background">#ffffffff</color>
+    <color name="fitness_text_primary">#ff212121</color>
+    <color name="fitness_text_secondary">#ff757575</color>
+    <color name="fitness_info_banner_background">#FF1A237E</color>
+    <color name="fitness_info_banner_border">#FF5C6BC0</color>
+    <color name="fitness_warning_background">#FF6D4C00</color>
+    <color name="fitness_warning_border">#FFFFB74D</color>
+    <color name="fitness_highlight_background">#FF1B5E20</color>
+    <color name="fitness_highlight_border">#FF66BB6A</color>
+    <color name="fitness_badge_blue">#FF5C6BC0</color>
+</resources>

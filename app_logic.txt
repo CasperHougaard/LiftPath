@@ -1,0 +1,201 @@
+### app_logic.txt
+
+#### 1. App Overview
+This repository contains a **personal training tracker** implemented as a classic Android app (XML layouts + ViewBinding, no Compose).  
+The app targets API 34 by default (Pixel-class devices) and runs entirely offline.  
+
+Core value props today:
+- Local-only persistence through a single JSON file (survives app updates if data is kept).
+- Fast workflow for logging sets during an ongoing workout.
+- Lightweight tools to review history, edit past sets, and wipe/reset data on demand.
+- A progress screen with multiple chart modes driven by MPAndroidChart.
+
+Not yet available (previously listed but still TODO): any export/import workflow or cloud sync.
+
+---
+
+#### 2. Core Modules
+
+- **UI Layer (Activities + ViewBinding)**
+  - `MainActivity`: dashboard with workout count + entry points to all flows.
+  - `ActiveTrainingActivity`: live session builder (add exercises, log/duplicate/delete sets, change session date, finish/save workout).
+  - `LogSetActivity`: numeric+note input plus a 1–5 rating tile picker (rating stored but not yet visualized).
+  - `ExercisesActivity` + `EditExerciseActivity` + `SelectDefaultExerciseActivity`: manage the exercise library, create/edit/delete entries, or bulk-add predefined lifts.
+  - `SelectExerciseActivity`: picker/creator surfaced when adding an exercise during an active session.
+  - `HistoryActivity` + `TrainingDetailActivity` + `EditSetActivity`: read-only history list, per-session drill-down, edit or delete historical entries.
+  - `ProgressActivity`: spinner to choose an exercise + tabbed charts (Weight, Volume, 1RM, Avg Weight) powered by MPAndroidChart.
+  - `SettingsActivity`: currently limited to a “Reset Data” action (no other preferences).
+  - A legacy `ExerciseStatsActivity` + `ExerciseStatsAdapter` remain in the codebase but are not launched anywhere.
+
+- **Data Layer**
+  - `JsonHelper` wraps all persistence. It reads/writes `TrainingData` as JSON via Gson and backs up corrupted files before resetting.
+  - Storage file: `training_data.json` in `context.filesDir`.
+  - No Room/SQL, no remote APIs, and no export/import hooks at present.
+
+- **Logic Layer**
+  - Sessions receive an auto-incrementing `trainingNumber` and a GUID (`UUID.randomUUID()`).
+  - Exercise CRUD cascades into past sessions (renames propagate, deletions remove matching sets).
+  - Progress/stat logic groups sets per exercise + per date, computes volume/1RM/averages, and normalizes chart axes for readability.
+
+---
+
+#### 3. Data Flow
+1. App launch (`MainActivity`)
+   - `JsonHelper.readTrainingData()` loads or initializes `TrainingData`.
+   - If the exercise library is empty, seed five defaults (Deadlift, Squat, Bench Press, Biceps Curl, Triceps Pushdown).
+   - Dashboard stats refresh (currently only total workout count is meaningful; minutes/calories placeholders show 0).
+2. Active session
+   - User taps “Start Workout” → `ActiveTrainingActivity`.
+   - Selecting exercises launches `SelectExerciseActivity` (which can also create a new exercise inline).
+   - Logging a set launches `LogSetActivity`, prefilled with the last logged values for that exercise; returns an `ExerciseEntry`.
+   - Sets aggregate per exercise in-memory (`GroupedExercise`) and can be duplicated or removed before saving.
+   - User can change the workout date via a `DatePickerDialog`.
+3. Saving a workout
+   - `finishWorkout()` composes a `TrainingSession` with GUID, next `trainingNumber`, date, and the recorded sets.
+   - Session is appended to `trainingData.trainings` and flushed to disk.
+4. History & editing
+   - `HistoryActivity` shows workouts (newest first); selecting one opens `TrainingDetailActivity`.
+   - Users can edit individual sets (`EditSetActivity`) or delete entire sessions.
+5. Statistics
+   - `ProgressActivity` loads all sessions, filters by spinner-selected exercise, computes stats, and renders the chosen chart type.
+   - (Legacy) `ExerciseStatsActivity` performs similar per-exercise calculations but is no longer referenced.
+6. Settings
+   - “Reset Data” replaces the JSON file with an empty `TrainingData()` object.
+
+---
+
+#### 4. Data Models
+
+```kotlin
+@Parcelize
+data class ExerciseLibraryItem(
+    val id: Int,
+    val name: String,
+    val category: String? = null
+)
+
+@Parcelize
+data class ExerciseEntry(
+    val exerciseId: Int,
+    var exerciseName: String,
+    val setNumber: Int,
+    val kg: Float,
+    val reps: Int,
+    val note: String? = null,
+    val rating: Int? = null
+)
+
+@Parcelize
+data class TrainingSession(
+    val id: String = UUID.randomUUID().toString(),
+    val trainingNumber: Int,
+    val date: String, // yyyy/MM/dd
+    val exercises: MutableList<ExerciseEntry>
+)
+
+@Parcelize
+data class TrainingData(
+    val exerciseLibrary: MutableList<ExerciseLibraryItem> = mutableListOf(),
+    val trainings: MutableList<TrainingSession> = mutableListOf()
+)
+
+data class GroupedExercise(
+    val exerciseId: Int,
+    val exerciseName: String,
+    val sets: List<ExerciseEntry>
+)
+
+data class ExerciseSet(
+    val date: String,
+    val setNumber: Int,
+    val kg: Float,
+    val reps: Int
+)
+```
+
+---
+
+#### 5. Storage Structure
+- **File:** `context.filesDir/training_data.json`
+- **Format:** Entire `TrainingData` serialized via Gson (UTF-8 text).
+- **Lifecycle:** File created lazily; on parse failure the old file is renamed to `training_data.json.bak.<timestamp>` before a clean slate is written.
+- **Export/import:** Not implemented yet (no file picker hooks).
+
+Example (trimmed):
+```json
+{
+  "exerciseLibrary": [
+    { "id": 1, "name": "Deadlift" },
+    { "id": 2, "name": "Squat" },
+    { "id": 3, "name": "Bench Press" }
+  ],
+  "trainings": [
+    {
+      "id": "b122a9de-47fd-4c93-8177-54038a5f4a7c",
+      "trainingNumber": 5,
+      "date": "2025/11/13",
+      "exercises": [
+        {
+          "exerciseId": 3,
+          "exerciseName": "Bench Press",
+          "setNumber": 1,
+          "kg": 82.5,
+          "reps": 8,
+          "note": "Good energy",
+          "rating": 5
+        }
+      ]
+    }
+  ]
+}
+```
+
+---
+
+#### 6. Feature Logic
+
+- **Exercise Library (`ExercisesActivity`)**
+  - Lists all stored exercises (no categories yet).
+  - “Add” launches `EditExerciseActivity` in create mode; IDs auto-increment.
+  - “Add from default” opens `SelectDefaultExerciseActivity` with a checklist of seeded lifts; adds only those not already present.
+  - Editing updates names in both the library and every historical `ExerciseEntry`. Deleting removes the exercise and strips matching sets from all sessions.
+  - Exercises can also be created inline from `SelectExerciseActivity` while starting a workout.
+
+- **Active Training**
+  - Each selected exercise renders as a card (`ActiveExercisesAdapter`) showing its sets textually plus buttons to add, duplicate, or delete.
+  - `LogSetActivity` pre-fills fields from the most recent set logged for that exercise across all history; includes optional note + rating tiles.
+  - Duplicating a set copies the previous `kg/reps` but clears rating/note and increments the set number.
+  - Workouts can be cancelled (with confirmation if any data exists) or saved; saving writes immediately with no background sync.
+
+- **History & Editing**
+  - `HistoryActivity` simply reverses the `trainings` list (newest first) and shows `trainingNumber`, date, and volume approximation.
+  - Tapping a workout opens `TrainingDetailActivity`, which groups sets visually; each set has an edit button launching `EditSetActivity`.
+  - From details you can delete the entire training (with confirmation).
+
+- **Progress / Charts**
+  - Spinner lists distinct exercise names (derived from actual logged sets, not the library).
+  - Stats at the top show Max Volume (per session), Max Weight, Avg Weight, and Total Reps.
+  - TabLayout switches the line chart between Weight, Volume, 1RM (via Epley), and Avg Weight. Each mode groups data per session date, sorts chronologically, and formats axes + legend for clarity.
+  - Chart interactivity (zoom, pinch, drag) is enabled; axis scaling auto-expands with a “nice” max value.
+  - `ExerciseStatsActivity` duplicates some calculations but is currently unused and can be considered carryover code.
+
+- **Settings**
+  - Single action: reset data (clears both exercises and trainings). No theme, account, or export controls.
+
+---
+
+#### 7. Data Safety and Compatibility
+- `JsonHelper` wraps every read/write, logs failures, and backs up corrupt JSON before resetting.
+- Exercise rename/delete operations mutate historical entries to avoid orphaned IDs.
+- `SettingsActivity` provides a manual “Reset Data” to recover from user-caused inconsistencies.
+- All data stays under app-internal storage, so scoped-storage restrictions are satisfied by default.
+- No migrations exist yet; schema changes must remain backward compatible or include manual transforms before serialization.
+
+---
+
+#### 8. Future Expansion
+- Re-introduce an export/import surface (CSV or JSON) for backups and sharing.
+- Surface the stored 1–5 ratings in history/progress (currently collected but unused).
+- Add exercise categories/tags and filtering in both the library and progress screens.
+- Hook `ExerciseStatsActivity` (or delete it) to avoid dead code.
+- Expand dashboard metrics (minutes, calories) or remove placeholders.

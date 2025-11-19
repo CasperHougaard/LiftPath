@@ -1,0 +1,63 @@
+LILFITNESS - GOOGLE PLAY STORE GRAPHICS SPECIFICATIONS
+=======================================================
+
+APP ICON
+--------
+Size: 512 x 512 pixels
+Format: PNG (32-bit, no transparency)
+Background: Solid color required (no transparency)
+Design: Use your dumbbell/weight icon on gradient background
+Colors: Primary green (#4CAF50) to dark green (#388E3C) gradient
+
+FEATURE GRAPHIC
+---------------
+Size: 1024 x 500 pixels
+Format: PNG or JPG
+No text overlay (Google adds app name)
+Design: Show app features visually
+Colors: Match your brand (green/orange theme)
+
+SCREENSHOTS
+-----------
+Phone Screenshots:
+- Minimum: 320px height
+- Maximum: 3840px height
+- Aspect ratio: 16:9 or 9:16
+- Quantity: 2-8 screenshots recommended
+
+Tablet Screenshots (Optional):
+- 7" tablet: 1024 x 600 or 600 x 1024
+- 10" tablet: 1280 x 800 or 800 x 1280
+
+RECOMMENDED SCREENSHOTS TO TAKE:
+1. Main screen / Home screen
+2. Active workout screen
+3. Exercise library
+4. Progress/Stats view
+5. Workout history
+6. Settings screen
+
+COLOR PALETTE
+-------------
+Primary Green: #4CAF50
+Primary Dark: #388E3C
+Accent Orange: #FF9800
+Background: #F0F0F0
+Text Primary: #212121
+Text Secondary: #757575
+
+QUICK DESIGN TIPS
+-----------------
+1. Keep it simple and clean
+2. Use high contrast for readability
+3. Show key features visually
+4. Match your app's actual design
+5. Test how icons look at small sizes
+
+TOOLS TO USE
+------------
+- Canva (canva.com) - Easy templates
+- Figma (figma.com) - Professional design
+- GIMP (gimp.org) - Free image editor
+- Android Studio - For taking screenshots
+
