@@ -29,6 +29,7 @@ class LogSetActivity : AppCompatActivity() {
     private var exerciseName: String = ""
     private var setNumber: Int = 1
     private var workoutType: String = "heavy"
+    private var previousSetReps: Int? = null
 
     companion object {
         const val EXTRA_EXERCISE_ID = "extra_exercise_id"
@@ -36,6 +37,7 @@ class LogSetActivity : AppCompatActivity() {
         const val EXTRA_SET_NUMBER = "extra_set_number"
         const val EXTRA_LOGGED_SET = "extra_logged_set"
         const val EXTRA_WORKOUT_TYPE = "extra_workout_type"
+        const val EXTRA_PREVIOUS_SET_REPS = "extra_previous_set_reps"
         
         private const val REQUEST_NOTIFICATION_PERMISSION = 1001
     }
@@ -50,6 +52,7 @@ class LogSetActivity : AppCompatActivity() {
         exerciseName = intent.getStringExtra(EXTRA_EXERCISE_NAME) ?: "Exercise"
         setNumber = intent.getIntExtra(EXTRA_SET_NUMBER, 1)
         workoutType = intent.getStringExtra(EXTRA_WORKOUT_TYPE) ?: "heavy"
+        previousSetReps = intent.getIntExtra(EXTRA_PREVIOUS_SET_REPS, -1).takeIf { it > 0 }
         binding.textLogSetTitle.text = "Log Set for $exerciseName (${formatTypeLabel(workoutType)})"
 
         // Setup RPE help button
@@ -59,6 +62,7 @@ class LogSetActivity : AppCompatActivity() {
 
         showWeightSuggestion()
         prefillLastSetFallback()
+        prefillRepsFromPreviousSet()
 
         binding.buttonSaveSet.setOnClickListener {
             saveSet()
@@ -93,6 +97,12 @@ class LogSetActivity : AppCompatActivity() {
         }
     }
 
+    private fun prefillRepsFromPreviousSet() {
+        if (setNumber <= 1) return
+        val reps = previousSetReps ?: return
+        binding.editTextReps.setText(reps.toString())
+    }
+
     private fun showWeightSuggestion() {
         val trainingData = jsonHelper.readTrainingData()
         val settingsManager = ProgressionSettingsManager(this)
@@ -116,6 +126,12 @@ class LogSetActivity : AppCompatActivity() {
                     binding.editTextKg.setText(suggestedWeight.toString())
                 }
                 
+                val suggestedReps = when (workoutType) {
+                    "heavy" -> userSettings.heavyReps
+                    "light" -> userSettings.lightReps
+                    else -> null
+                }
+
                 // Build hint text with badge and recommended sets/reps
                 val hintText = buildString {
                     append("💡 Suggested: ${suggestedWeight}kg")
@@ -132,6 +148,10 @@ class LogSetActivity : AppCompatActivity() {
                 }
                 
                 binding.tvSuggestionHint.text = hintText
+
+                if (binding.editTextReps.text.isNullOrBlank() && suggestedReps != null && suggestedReps > 0) {
+                    binding.editTextReps.setText(suggestedReps.toString())
+                }
                 
                 // Change background color for warnings
                 if (suggestion.isDeloadWeek || suggestion.badge?.contains("⚠️") == true) {

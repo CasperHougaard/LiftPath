@@ -28,7 +28,7 @@
     <string name="abc_shareactionprovider_share_with_application">Share with %s</string>
     <string name="abc_toolbar_collapse_description">Collapse</string>
     <string name="androidx_startup">androidx.startup</string>
-    <string name="app_name">LilFitness</string>
+    <string name="app_name">LiftPath</string>
     <string name="appbar_scrolling_view_behavior">com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior</string>
     <string name="bottom_sheet_behavior">com.google.android.material.bottomsheet.BottomSheetBehavior</string>
     <string name="bottomsheet_action_collapse">Collapse the bottom sheet</string>
@@ -181,7 +181,7 @@
     <string name="total_minutes">Total Minutes</string>
     <string name="view_history">View History</string>
     <string name="view_progress">View Progress</string>
-    <string name="welcome_subtitle">Your little fitness companion</string>
-    <string name="welcome_title">Welcome to LilFitness</string>
+    <string name="welcome_subtitle">Your fitness journey companion</string>
+    <string name="welcome_title">Welcome to LiftPath</string>
     <string name="workouts_completed">Workouts Completed</string>
 </resources>

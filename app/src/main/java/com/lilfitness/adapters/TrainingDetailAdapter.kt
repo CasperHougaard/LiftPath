@@ -19,7 +19,8 @@ class TrainingDetailAdapter(
     private val groupedExercises: List<GroupedExercise>,
     private val sessionDefaultType: String?,
     private val onEditSetClicked: (ExerciseEntry) -> Unit,
-    private val onChangeTypeClicked: (GroupedExercise) -> Unit
+    private val onChangeTypeClicked: (GroupedExercise) -> Unit,
+    private val onEditActivityClicked: (GroupedExercise) -> Unit
 ) : RecyclerView.Adapter<TrainingDetailAdapter.ViewHolder>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -32,6 +33,9 @@ class TrainingDetailAdapter(
         holder.binding.textExerciseName.text = groupedExercise.exerciseName
         val exerciseType = groupedExercise.sets.firstOrNull()?.workoutType ?: sessionDefaultType
         holder.binding.textExerciseType.text = "Type: ${WorkoutTypeFormatter.label(exerciseType)}"
+        holder.binding.buttonEditActivity.setOnClickListener {
+            onEditActivityClicked(groupedExercise)
+        }
         holder.binding.buttonChangeType.setOnClickListener {
             onChangeTypeClicked(groupedExercise)
         }

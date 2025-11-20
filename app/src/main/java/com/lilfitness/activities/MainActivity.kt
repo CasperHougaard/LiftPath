@@ -4,8 +4,14 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.graphics.Color
+import android.graphics.drawable.Animatable
 import android.os.Bundle
+import android.view.View
+import android.view.animation.AnimationUtils
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.lilfitness.databinding.ActivityMainBinding
@@ -44,14 +50,71 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // Enable Edge-to-Edge
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // Apply Window Insets to Root View
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, windowInsets ->
+            val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
+            view.setPadding(insets.left, insets.top, insets.right, insets.bottom)
+            WindowInsetsCompat.CONSUMED
+        }
+
         jsonHelper = JsonHelper(this)
         prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
         setupDefaultExercises()
         setupClickListeners()
+        setupBackgroundAnimation()
+        runEntranceAnimations()
         updateStats()
+    }
+
+    private fun setupBackgroundAnimation() {
+        val drawable = binding.imageBgAnimation.drawable
+        if (drawable is Animatable) {
+            drawable.start()
+        }
+    }
+
+    private fun runEntranceAnimations() {
+        // 1. Header Elements (Title, Subtitle, Settings)
+        val fadeDown = AnimationUtils.loadAnimation(this, com.lilfitness.R.anim.fade_in_up)
+        binding.textWelcomeTitle.startAnimation(fadeDown)
+        binding.textWelcomeSubtitle.startAnimation(fadeDown)
+        binding.cardSettings.startAnimation(fadeDown)
+
+        // 2. Main Hero Card (Pop In)
+        val popIn = AnimationUtils.loadAnimation(this, com.lilfitness.R.anim.pop_in)
+        popIn.startOffset = 200
+        binding.cardStartWorkout.startAnimation(popIn)
+
+        // 3. Grid Items (Fade Up Staggered)
+        val fadeUp1 = AnimationUtils.loadAnimation(this, com.lilfitness.R.anim.fade_in_up)
+        fadeUp1.startOffset = 300
+        binding.cardViewProgress.startAnimation(fadeUp1)
+        binding.cardViewHistory.startAnimation(fadeUp1)
+
+        val fadeUp2 = AnimationUtils.loadAnimation(this, com.lilfitness.R.anim.fade_in_up)
+        fadeUp2.startOffset = 400
+        binding.cardExercises.startAnimation(fadeUp2)
+        binding.cardPlans.startAnimation(fadeUp2)
+
+        // 4. Stats Section (Fade Up)
+        val fadeUpStats = AnimationUtils.loadAnimation(this, com.lilfitness.R.anim.fade_in_up)
+        fadeUpStats.startOffset = 500
+        binding.textTodayStats.startAnimation(fadeUpStats)
+        binding.cardBenchPress.startAnimation(fadeUpStats)
+        binding.cardSquat.startAnimation(fadeUpStats)
+        binding.cardDaysSince.startAnimation(fadeUpStats)
+
+        // 5. Chart (Fade Up Last)
+        val fadeUpChart = AnimationUtils.loadAnimation(this, com.lilfitness.R.anim.fade_in_up)
+        fadeUpChart.startOffset = 600
+        binding.cardVolumeChart.startAnimation(fadeUpChart)
     }
 
     private fun setupDefaultExercises() {
@@ -144,6 +207,10 @@ class MainActivity : AppCompatActivity() {
         // Update card labels
         binding.textLeftExerciseName.text = leftExercise
         binding.textRightExerciseName.text = rightExercise
+        
+        // Enable marquee scrolling for long exercise names
+        enableMarqueeScrolling(binding.textLeftExerciseName)
+        enableMarqueeScrolling(binding.textRightExerciseName)
         
         // Calculate and display left exercise 1RM
         val leftExercise1RM = calculateCurrent1RM(leftExercise, trainingData)
@@ -445,6 +512,13 @@ class MainActivity : AppCompatActivity() {
                 ((paddedValue / 500).toInt() * 500 + 500).toFloat().coerceAtLeast(5000f)
             }
         }
+    }
+    
+    private fun enableMarqueeScrolling(textView: android.widget.TextView) {
+        textView.isSelected = true
+        textView.isSingleLine = true
+        textView.ellipsize = android.text.TextUtils.TruncateAt.MARQUEE
+        textView.marqueeRepeatLimit = -1 // Infinite scrolling
     }
 }
 

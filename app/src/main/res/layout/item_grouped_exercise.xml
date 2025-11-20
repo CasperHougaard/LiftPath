@@ -27,6 +27,14 @@
             android:textColor="@color/fitness_text_secondary" />
 
         <Button
+            android:id="@+id/button_edit_activity"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:text="Edit" />
+
+        <Button
             android:id="@+id/button_change_type"
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
             android:layout_width="wrap_content"

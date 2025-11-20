@@ -98,11 +98,29 @@ class ActiveTrainingActivity : AppCompatActivity() {
         updateDateDisplay()
     }
 
+    private val editActivityLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val updatedSets = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                result.data?.getParcelableArrayListExtra(EditActivityActivity.EXTRA_UPDATED_SETS, ExerciseEntry::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                result.data?.getParcelableArrayListExtra(EditActivityActivity.EXTRA_UPDATED_SETS)
+            }
+            
+            if (updatedSets != null) {
+                updateSetsFromEditActivity(updatedSets)
+            }
+        }
+    }
+
     private fun setupRecyclerView() {
         adapter = ActiveExercisesAdapter(
             groupedExercises,
             onAddSetClicked = { exerciseId, exerciseName ->
                 launchLogSetActivity(exerciseId, exerciseName)
+            },
+            onEditActivityClicked = { groupedExercise ->
+                launchEditActivityForActiveWorkout(groupedExercise)
             },
             onDuplicateSetClicked = { exerciseId ->
                 duplicateLastSet(exerciseId)
@@ -185,13 +203,19 @@ class ActiveTrainingActivity : AppCompatActivity() {
 
     private fun launchLogSetActivity(exerciseId: Int, exerciseName: String) {
         try {
-            val setNumber = (currentExerciseEntries.filter { it.exerciseId == exerciseId }.maxOfOrNull { it.setNumber } ?: 0) + 1
+            val previousSet = currentExerciseEntries
+                .filter { it.exerciseId == exerciseId }
+                .maxByOrNull { it.setNumber }
+            val setNumber = (previousSet?.setNumber ?: 0) + 1
             val setWorkoutType = exerciseWorkoutTypes[exerciseId] ?: workoutType
             val intent = Intent(this, com.lilfitness.activities.LogSetActivity::class.java).apply {
                 putExtra(com.lilfitness.activities.LogSetActivity.EXTRA_EXERCISE_ID, exerciseId)
                 putExtra(com.lilfitness.activities.LogSetActivity.EXTRA_EXERCISE_NAME, exerciseName)
                 putExtra(com.lilfitness.activities.LogSetActivity.EXTRA_SET_NUMBER, setNumber)
                 putExtra(com.lilfitness.activities.LogSetActivity.EXTRA_WORKOUT_TYPE, setWorkoutType)
+                previousSet?.let {
+                    putExtra(com.lilfitness.activities.LogSetActivity.EXTRA_PREVIOUS_SET_REPS, it.reps)
+                }
             }
             logSetLauncher.launch(intent)
         } catch (e: Exception) {
@@ -229,6 +253,37 @@ class ActiveTrainingActivity : AppCompatActivity() {
             currentExerciseEntries.removeAll { it.exerciseId == exerciseId }
             exerciseWorkoutTypes.remove(exerciseId)
             adapter.notifyItemRemoved(groupIndex)
+        }
+    }
+
+    private fun launchEditActivityForActiveWorkout(groupedExercise: GroupedExercise) {
+        val intent = Intent(this, EditActivityActivity::class.java).apply {
+            putExtra(EditActivityActivity.EXTRA_IS_ACTIVE_WORKOUT, true)
+            putExtra(EditActivityActivity.EXTRA_EXERCISE_ID, groupedExercise.exerciseId)
+            putExtra(EditActivityActivity.EXTRA_EXERCISE_NAME, groupedExercise.exerciseName)
+            putParcelableArrayListExtra(EditActivityActivity.EXTRA_SETS, ArrayList(groupedExercise.sets))
+        }
+        editActivityLauncher.launch(intent)
+    }
+
+    private fun updateSetsFromEditActivity(updatedSets: ArrayList<ExerciseEntry>) {
+        if (updatedSets.isEmpty()) return
+        
+        val exerciseId = updatedSets.first().exerciseId
+        
+        // Remove old sets for this exercise
+        currentExerciseEntries.removeAll { it.exerciseId == exerciseId }
+        
+        // Add updated sets
+        currentExerciseEntries.addAll(updatedSets)
+        
+        // Update the grouped exercise
+        val groupIndex = groupedExercises.indexOfFirst { it.exerciseId == exerciseId }
+        if (groupIndex != -1) {
+            val sortedSets = updatedSets.sortedBy { it.setNumber }
+            val updatedGroup = GroupedExercise(exerciseId, updatedSets.first().exerciseName, sortedSets)
+            groupedExercises[groupIndex] = updatedGroup
+            adapter.notifyItemChanged(groupIndex)
         }
     }
 

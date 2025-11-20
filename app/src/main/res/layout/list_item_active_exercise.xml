@@ -33,6 +33,14 @@
             android:text="Add Set" />
 
         <Button
+            android:id="@+id/button_edit_activity"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="Edit" />
+
+        <Button
             android:id="@+id/button_duplicate_set"
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
             android:layout_width="wrap_content"

@@ -13,6 +13,7 @@ import com.lilfitness.models.GroupedExercise
 class ActiveExercisesAdapter(
     private val groupedExercises: List<GroupedExercise>,
     private val onAddSetClicked: (exerciseId: Int, exerciseName: String) -> Unit,
+    private val onEditActivityClicked: (GroupedExercise) -> Unit,
     private val onDuplicateSetClicked: (exerciseId: Int) -> Unit,
     private val onDeleteExerciseClicked: (exerciseId: Int) -> Unit
 ) : RecyclerView.Adapter<ActiveExercisesAdapter.GroupedExerciseViewHolder>() {
@@ -21,6 +22,7 @@ class ActiveExercisesAdapter(
         val exerciseName: TextView = view.findViewById(R.id.text_exercise_name)
         val setsSummary: TextView = view.findViewById(R.id.text_sets_summary)
         val addSetButton: Button = view.findViewById(R.id.button_add_set)
+        val editActivityButton: Button = view.findViewById(R.id.button_edit_activity)
         val duplicateSetButton: Button = view.findViewById(R.id.button_duplicate_set)
         val deleteExerciseButton: Button = view.findViewById(R.id.button_delete_exercise)
     }
@@ -40,8 +42,17 @@ class ActiveExercisesAdapter(
         }
         holder.setsSummary.text = setsText.ifEmpty { "No sets logged yet." }
 
+        // Show/hide Edit button based on whether there are sets
+        val hasSets = groupedExercise.sets.isNotEmpty()
+        holder.editActivityButton.visibility = if (hasSets) View.VISIBLE else View.GONE
+        holder.duplicateSetButton.visibility = if (hasSets) View.VISIBLE else View.GONE
+
         holder.addSetButton.setOnClickListener {
             onAddSetClicked(groupedExercise.exerciseId, groupedExercise.exerciseName)
+        }
+
+        holder.editActivityButton.setOnClickListener {
+            onEditActivityClicked(groupedExercise)
         }
 
         holder.duplicateSetButton.setOnClickListener {

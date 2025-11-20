@@ -1,0 +1,76 @@
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt">
+    <aapt:attr name="android:drawable">
+        <vector
+            android:width="400dp"
+            android:height="800dp"
+            android:viewportWidth="100"
+            android:viewportHeight="200">
+
+            <!-- Background Wave 1 (Primary) -->
+            <group android:name="wave1">
+                <path
+                    android:pathData="M-100,100 Q-75,80 -50,100 Q-25,120 0,100 Q25,80 50,100 Q75,120 100,100 Q125,80 150,100 Q175,120 200,100 V200 H-100 Z"
+                    android:fillColor="@color/fitness_primary"
+                    android:fillAlpha="0.05"/>
+            </group>
+
+            <!-- Background Wave 2 (Accent) -->
+            <group android:name="wave2">
+                <path
+                    android:pathData="M-100,130 Q-75,150 -50,130 Q-25,110 0,130 Q25,150 50,130 Q75,110 100,130 Q125,150 150,130 Q175,110 200,130 V200 H-100 Z"
+                    android:fillColor="@color/fitness_accent"
+                    android:fillAlpha="0.05"/>
+            </group>
+
+            <!-- Background Wave 3 (Dark/Secondary) -->
+            <group android:name="wave3">
+                <path
+                    android:pathData="M-100,160 Q-75,140 -50,160 Q-25,180 0,160 Q25,140 50,160 Q75,180 100,160 Q125,140 150,160 Q175,180 200,160 V200 H-100 Z"
+                    android:fillColor="@color/fitness_primary_dark"
+                    android:fillAlpha="0.03"/>
+            </group>
+
+        </vector>
+    </aapt:attr>
+
+    <target android:name="wave1">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="translateX"
+                android:valueFrom="0"
+                android:valueTo="100"
+                android:duration="12000"
+                android:repeatCount="infinite"
+                android:repeatMode="restart"
+                android:interpolator="@android:anim/linear_interpolator"/>
+        </aapt:attr>
+    </target>
+
+    <target android:name="wave2">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="translateX"
+                android:valueFrom="0"
+                android:valueTo="100"
+                android:duration="15000"
+                android:repeatCount="infinite"
+                android:repeatMode="restart"
+                android:interpolator="@android:anim/linear_interpolator"/>
+        </aapt:attr>
+    </target>
+
+    <target android:name="wave3">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="translateX"
+                android:valueFrom="0"
+                android:valueTo="100"
+                android:duration="18000"
+                android:repeatCount="infinite"
+                android:repeatMode="restart"
+                android:interpolator="@android:anim/linear_interpolator"/>
+        </aapt:attr>
+    </target>
+
+</animated-vector>

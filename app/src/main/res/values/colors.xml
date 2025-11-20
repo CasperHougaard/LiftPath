@@ -1,24 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="purple_200">#FFBB86FC</color>
-    <color name="purple_500">#FFBB86FC</color>
-    <color name="purple_700">#FF9A67FB</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
     <color name="teal_200">#FF03DAC5</color>
-    <color name="teal_700">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="fitness_primary">#ff4caf50</color>
-    <color name="fitness_primary_dark">#ff388e3c</color>
-    <color name="fitness_accent">#ffff9800</color>
-    <color name="fitness_background">#fff0f0f0</color>
-    <color name="fitness_card_background">#ffffffff</color>
-    <color name="fitness_text_primary">#ff212121</color>
-    <color name="fitness_text_secondary">#ff757575</color>
-    <color name="fitness_info_banner_background">#FF1A237E</color>
-    <color name="fitness_info_banner_border">#FF5C6BC0</color>
-    <color name="fitness_warning_background">#FF6D4C00</color>
-    <color name="fitness_warning_border">#FFFFB74D</color>
-    <color name="fitness_highlight_background">#FF1B5E20</color>
-    <color name="fitness_highlight_border">#FF66BB6A</color>
-    <color name="fitness_badge_blue">#FF5C6BC0</color>
+    
+    <!-- Modern Palette - Day -->
+    <color name="fitness_primary">#2563EB</color> <!-- Royal Blue -->
+    <color name="fitness_primary_dark">#1E40AF</color>
+    <color name="fitness_accent">#F59E0B</color> <!-- Amber -->
+    <color name="fitness_background">#F3F4F6</color> <!-- Cool Gray 100 -->
+    <color name="fitness_card_background">#FFFFFF</color>
+    <color name="fitness_text_primary">#111827</color> <!-- Cool Gray 900 -->
+    <color name="fitness_text_secondary">#6B7280</color> <!-- Cool Gray 500 -->
+    
+    <color name="fitness_info_banner_background">#E0E7FF</color>
+    <color name="fitness_info_banner_border">#6366F1</color>
+    <color name="fitness_warning_background">#FEF3C7</color>
+    <color name="fitness_warning_border">#F59E0B</color>
+    <color name="fitness_highlight_background">#D1FAE5</color>
+    <color name="fitness_highlight_border">#10B981</color>
+    <color name="fitness_badge_blue">#3B82F6</color>
+    
+    <!-- Mesh Animation Color (visible in both light and dark) -->
+    <color name="mesh_color">#50000000</color> <!-- Semi-transparent black - works on light bg -->
 </resources>

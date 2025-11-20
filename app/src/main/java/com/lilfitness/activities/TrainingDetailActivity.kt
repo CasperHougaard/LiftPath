@@ -41,6 +41,18 @@ class TrainingDetailActivity : AppCompatActivity() {
         }
     }
 
+    private val editActivityLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            // Reload the training session and refresh the view
+            val trainingData = jsonHelper.readTrainingData()
+            val updatedSession = trainingData.trainings.find { it.id == trainingSession.id }
+            if (updatedSession != null) {
+                trainingSession = updatedSession
+                setupRecyclerView()
+            }
+        }
+    }
+
     companion object {
         const val EXTRA_TRAINING_SESSION = "extra_training_session"
     }
@@ -112,6 +124,14 @@ class TrainingDetailActivity : AppCompatActivity() {
             },
             onChangeTypeClicked = { groupedExercise ->
                 showExerciseTypeDialog(groupedExercise)
+            },
+            onEditActivityClicked = { groupedExercise ->
+                val intent = Intent(this, com.lilfitness.activities.EditActivityActivity::class.java).apply {
+                    putExtra(com.lilfitness.activities.EditActivityActivity.EXTRA_TRAINING_SESSION_ID, trainingSession.id)
+                    putExtra(com.lilfitness.activities.EditActivityActivity.EXTRA_EXERCISE_ID, groupedExercise.exerciseId)
+                    putExtra(com.lilfitness.activities.EditActivityActivity.EXTRA_EXERCISE_NAME, groupedExercise.exerciseName)
+                }
+                editActivityLauncher.launch(intent)
             }
         )
     }

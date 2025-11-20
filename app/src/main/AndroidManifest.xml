@@ -15,6 +15,7 @@
         <activity android:exported="false" android:name="com.lilfitness.activities.TrainingDetailActivity"/>
         <activity android:exported="false" android:name="com.lilfitness.activities.HistoryActivity"/>
         <activity android:exported="false" android:name="com.lilfitness.activities.ProgressActivity"/>
+        <activity android:exported="false" android:name="com.lilfitness.activities.EditActivityActivity"/>
         <activity android:exported="false" android:name="com.lilfitness.activities.EditExerciseActivity"/>
         <activity android:exported="false" android:name="com.lilfitness.activities.LogSetActivity"/>
         <activity android:exported="false" android:name="com.lilfitness.activities.SelectExerciseActivity"/>
