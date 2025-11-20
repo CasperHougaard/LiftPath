@@ -53,6 +53,14 @@ data class TrainingData(
     val workoutPlans: MutableList<WorkoutPlan> = mutableListOf() // NEW - List of workout plans
 ) : Parcelable
 
+data class ActiveWorkoutDraft(
+    val workoutType: String,
+    val date: String,
+    val appliedPlanId: String?,
+    val appliedPlanName: String?,
+    val entries: List<ExerciseEntry>
+)
+
 data class GroupedExercise(
     val exerciseId: Int,
     val exerciseName: String,

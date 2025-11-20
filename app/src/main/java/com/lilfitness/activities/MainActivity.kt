@@ -15,7 +15,9 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.lilfitness.databinding.ActivityMainBinding
+import com.lilfitness.helpers.ActiveWorkoutDraftManager
 import com.lilfitness.helpers.JsonHelper
+import com.lilfitness.models.ActiveWorkoutDraft
 import com.lilfitness.models.ExerciseLibraryItem
 import com.lilfitness.models.TrainingData
 import com.github.mikephil.charting.components.XAxis
@@ -32,6 +34,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var jsonHelper: JsonHelper
     private lateinit var prefs: SharedPreferences
+    private lateinit var draftManager: ActiveWorkoutDraftManager
     
     companion object {
         private const val PREFS_NAME = "main_activity_prefs"
@@ -64,6 +67,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         jsonHelper = JsonHelper(this)
+        draftManager = ActiveWorkoutDraftManager(this)
         prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
         setupDefaultExercises()
@@ -134,7 +138,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupClickListeners() {
         binding.cardStartWorkout.setOnClickListener {
-            showWorkoutTypeDialog()
+            handleStartWorkout()
         }
 
         binding.cardViewProgress.setOnClickListener {
@@ -172,6 +176,22 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun handleStartWorkout() {
+        val existingDraft = draftManager.loadDraft()
+        if (existingDraft == null) {
+            showWorkoutTypeDialog()
+            return
+        }
+
+        if (existingDraft.entries.isEmpty()) {
+            draftManager.clearDraft()
+            showWorkoutTypeDialog()
+            return
+        }
+
+        showDraftPromptBeforeWorkoutType(existingDraft)
+    }
+
     private fun showWorkoutTypeDialog() {
         val types = arrayOf("Heavy", "Light", "Custom")
 
@@ -184,15 +204,67 @@ class MainActivity : AppCompatActivity() {
                     2 -> "custom"
                     else -> "heavy"
                 }
-                startWorkoutWithType(selectedType)
+                startWorkoutWithType(selectedType, skipDraftPrompt = true)
             }
             .setNegativeButton("Cancel", null)
             .show()
     }
 
-    private fun startWorkoutWithType(workoutType: String) {
+    private fun startWorkoutWithType(workoutType: String, skipDraftPrompt: Boolean = false) {
+        if (!skipDraftPrompt) {
+            val existingDraft = draftManager.loadDraft()
+            if (existingDraft != null && existingDraft.entries.isNotEmpty()) {
+                showResumeDraftDialog(workoutType, existingDraft)
+                return
+            }
+        }
+        launchActiveWorkout(workoutType, resumeDraft = false)
+    }
+
+    private fun showDraftPromptBeforeWorkoutType(draft: ActiveWorkoutDraft) {
+        val message = buildString {
+            append("You have an unfinished ${draft.workoutType} workout from ${draft.date}.")
+            append(" Would you like to resume it?")
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Resume unfinished workout?")
+            .setMessage(message)
+            .setPositiveButton("Resume") { _, _ ->
+                launchActiveWorkout(draft.workoutType, resumeDraft = true)
+            }
+            .setNegativeButton("Start new") { _, _ ->
+                draftManager.clearDraft()
+                showWorkoutTypeDialog()
+            }
+            .setNeutralButton("Cancel", null)
+            .show()
+    }
+
+    private fun showResumeDraftDialog(requestedType: String, draft: ActiveWorkoutDraft) {
+        val message = buildString {
+            append("You have an unfinished ${draft.workoutType} workout from ${draft.date}.")
+            append(" Would you like to resume it?")
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Resume unfinished workout?")
+            .setMessage(message)
+            .setPositiveButton("Resume") { _, _ ->
+                launchActiveWorkout(draft.workoutType, resumeDraft = true)
+            }
+            .setNegativeButton("Discard") { _, _ ->
+                draftManager.clearDraft()
+                launchActiveWorkout(requestedType, resumeDraft = false)
+            }
+            .setNeutralButton("Cancel", null)
+            .show()
+    }
+
+    private fun launchActiveWorkout(workoutType: String, resumeDraft: Boolean) {
         val intent = Intent(this, ActiveTrainingActivity::class.java).apply {
             putExtra(ActiveTrainingActivity.EXTRA_WORKOUT_TYPE, workoutType)
+            putExtra(ActiveTrainingActivity.EXTRA_RESUME_DRAFT, resumeDraft)
         }
         startWorkoutForResult.launch(intent)
     }

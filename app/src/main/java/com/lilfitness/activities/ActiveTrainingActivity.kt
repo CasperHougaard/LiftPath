@@ -12,8 +12,10 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.lilfitness.databinding.ActivityActiveTrainingBinding
+import com.lilfitness.helpers.ActiveWorkoutDraftManager
 import com.lilfitness.helpers.JsonHelper
 import com.lilfitness.adapters.ActiveExercisesAdapter
+import com.lilfitness.models.ActiveWorkoutDraft
 import com.lilfitness.models.ExerciseEntry
 import com.lilfitness.models.GroupedExercise
 import com.lilfitness.models.TrainingSession
@@ -25,15 +27,18 @@ class ActiveTrainingActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityActiveTrainingBinding
     private lateinit var jsonHelper: JsonHelper
+    private lateinit var draftManager: ActiveWorkoutDraftManager
     private val currentExerciseEntries = mutableListOf<ExerciseEntry>()
     private val groupedExercises = mutableListOf<GroupedExercise>()
     private val exerciseWorkoutTypes = mutableMapOf<Int, String>()
     private lateinit var adapter: ActiveExercisesAdapter
     private val selectedDate = Calendar.getInstance()
+    private val sessionDateFormat = SimpleDateFormat("yyyy/MM/dd", Locale.getDefault())
     private val TAG = "ActiveTrainingActivity"
     private var workoutType: String = "heavy"
     private var appliedPlanId: String? = null
     private var appliedPlanName: String? = null
+    private var hasRestoredDraft = false
 
     private val logSetLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
@@ -89,13 +94,16 @@ class ActiveTrainingActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         jsonHelper = JsonHelper(this)
+        draftManager = ActiveWorkoutDraftManager(this)
         workoutType = intent.getStringExtra(EXTRA_WORKOUT_TYPE) ?: "heavy"
+        val resumeRequested = intent.getBooleanExtra(EXTRA_RESUME_DRAFT, false)
         binding.textActiveTrainingTitle.text = "Active Workout (${workoutType.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }})"
 
         setupRecyclerView()
         setupClickListeners()
         setupBackButtonInterceptor()
         updateDateDisplay()
+        maybeRestoreDraft(forceResume = resumeRequested || savedInstanceState != null)
     }
 
     private val editActivityLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -173,11 +181,11 @@ class ActiveTrainingActivity : AppCompatActivity() {
         if (currentExerciseEntries.isNotEmpty()) {
             AlertDialog.Builder(this)
                 .setTitle("Cancel Workout")
-                .setMessage("Are you sure you want to cancel this workout? All progress will be lost.")
-                .setPositiveButton("Yes") { _, _ ->
+                .setMessage("Are you sure you want to cancel this workout? Your progress will remain saved as a draft and can be resumed later.")
+                .setPositiveButton("Cancel Workout") { _, _ ->
                     finish()
                 }
-                .setNegativeButton("No", null)
+                .setNegativeButton("Continue", null)
                 .show()
         } else {
             finish()
@@ -235,6 +243,7 @@ class ActiveTrainingActivity : AppCompatActivity() {
             groupedExercises[groupIndex] = newGroup
             adapter.notifyItemChanged(groupIndex)
         }
+        persistDraft()
     }
 
     private fun duplicateLastSet(exerciseId: Int) {
@@ -253,6 +262,7 @@ class ActiveTrainingActivity : AppCompatActivity() {
             currentExerciseEntries.removeAll { it.exerciseId == exerciseId }
             exerciseWorkoutTypes.remove(exerciseId)
             adapter.notifyItemRemoved(groupIndex)
+            persistDraft()
         }
     }
 
@@ -285,11 +295,12 @@ class ActiveTrainingActivity : AppCompatActivity() {
             groupedExercises[groupIndex] = updatedGroup
             adapter.notifyItemChanged(groupIndex)
         }
+        persistDraft()
     }
 
     private fun updateDateDisplay() {
-        val sdf = SimpleDateFormat("yyyy/MM/dd", Locale.getDefault())
-        binding.textActiveTrainingDate.text = sdf.format(selectedDate.time)
+        binding.textActiveTrainingDate.text = sessionDateFormat.format(selectedDate.time)
+        persistDraftIfHasEntries()
     }
 
     private fun showPlanSelectionDialog() {
@@ -316,11 +327,13 @@ class ActiveTrainingActivity : AppCompatActivity() {
                 appliedPlanName = selectedPlan.name
                 dialog.dismiss()
                 updatePlanIndicator()
+                persistDraftIfHasEntries()
             }
             .setNeutralButton("Clear Plan") { _, _ ->
                 appliedPlanId = null
                 appliedPlanName = null
                 updatePlanIndicator()
+                persistDraftIfHasEntries()
             }
             .setNegativeButton("Cancel", null)
             .show()
@@ -339,7 +352,7 @@ class ActiveTrainingActivity : AppCompatActivity() {
             val newSession = TrainingSession(
                 trainingNumber = nextTrainingNumber,
                 date = binding.textActiveTrainingDate.text.toString(),
-                exercises = currentExerciseEntries,
+                exercises = currentExerciseEntries.toMutableList(),
                 defaultWorkoutType = workoutType,
                 planId = appliedPlanId,
                 planName = appliedPlanName
@@ -347,6 +360,7 @@ class ActiveTrainingActivity : AppCompatActivity() {
 
             trainingData.trainings.add(newSession)
             jsonHelper.writeTrainingData(trainingData)
+            draftManager.clearDraft()
 
             setResult(Activity.RESULT_OK)
             finish()
@@ -355,7 +369,105 @@ class ActiveTrainingActivity : AppCompatActivity() {
         }
     }
 
+    private fun maybeRestoreDraft(forceResume: Boolean) {
+        if (hasRestoredDraft || currentExerciseEntries.isNotEmpty()) return
+        val draft = draftManager.loadDraft() ?: return
+        if (draft.entries.isEmpty()) {
+            draftManager.clearDraft()
+            return
+        }
+
+        if (forceResume) {
+            applyDraft(draft)
+            return
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Resume unfinished workout?")
+            .setMessage("You have an unfinished ${draft.workoutType} workout from ${draft.date}. Resume or discard it?")
+            .setPositiveButton("Resume") { _, _ ->
+                applyDraft(draft)
+            }
+            .setNegativeButton("Discard") { _, _ ->
+                draftManager.clearDraft()
+            }
+            .setNeutralButton("Cancel") { _, _ ->
+                finish()
+            }
+            .show()
+    }
+
+    private fun applyDraft(draft: ActiveWorkoutDraft) {
+        hasRestoredDraft = true
+        workoutType = draft.workoutType
+        binding.textActiveTrainingTitle.text = "Active Workout (${workoutType.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }})"
+
+        try {
+            val parsedDate = sessionDateFormat.parse(draft.date)
+            if (parsedDate != null) {
+                selectedDate.time = parsedDate
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to parse draft date", e)
+        }
+        binding.textActiveTrainingDate.text = draft.date
+
+        appliedPlanId = draft.appliedPlanId
+        appliedPlanName = draft.appliedPlanName
+
+        currentExerciseEntries.clear()
+        currentExerciseEntries.addAll(draft.entries.map { it.copy() })
+
+        exerciseWorkoutTypes.clear()
+        currentExerciseEntries.forEach { entry ->
+            entry.workoutType?.let { exerciseWorkoutTypes[entry.exerciseId] = it }
+        }
+
+        rebuildGroupedExercisesFromEntries()
+    }
+
+    private fun rebuildGroupedExercisesFromEntries() {
+        groupedExercises.clear()
+        if (currentExerciseEntries.isEmpty()) {
+            adapter.notifyDataSetChanged()
+            return
+        }
+        val groupedByExercise = currentExerciseEntries.groupBy { it.exerciseId }
+        groupedByExercise.values.forEach { sets ->
+            val sortedSets = sets.sortedBy { it.setNumber }
+            val first = sortedSets.first()
+            groupedExercises.add(GroupedExercise(first.exerciseId, first.exerciseName, sortedSets))
+        }
+        adapter.notifyDataSetChanged()
+    }
+
+    private fun persistDraft() {
+        if (currentExerciseEntries.isEmpty()) {
+            draftManager.clearDraft()
+            return
+        }
+
+        val entriesCopy = currentExerciseEntries.map { it.copy() }
+
+        val draft = ActiveWorkoutDraft(
+            workoutType = workoutType,
+            date = binding.textActiveTrainingDate.text.toString(),
+            appliedPlanId = appliedPlanId,
+            appliedPlanName = appliedPlanName,
+            entries = entriesCopy
+        )
+
+        draftManager.saveDraft(draft)
+    }
+
+    private fun persistDraftIfHasEntries() {
+        if (currentExerciseEntries.isNotEmpty()) {
+            persistDraft()
+        }
+    }
+
     companion object {
         const val EXTRA_WORKOUT_TYPE = "WORKOUT_TYPE"
+        const val EXTRA_RESUME_DRAFT = "RESUME_DRAFT"
     }
 }
