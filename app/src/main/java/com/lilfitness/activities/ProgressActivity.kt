@@ -1,11 +1,13 @@
 package com.lilfitness.activities
 
 import android.graphics.Color
+import android.graphics.drawable.Animatable
 import android.os.Bundle
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import androidx.appcompat.app.AppCompatActivity
+import com.lilfitness.R
 import com.lilfitness.databinding.ActivityProgressBinding
 import com.lilfitness.helpers.JsonHelper
 import com.lilfitness.models.ExerciseSet
@@ -23,7 +25,8 @@ enum class ChartType {
     WEIGHT,
     VOLUME,
     ONE_RM,
-    AVG_WEIGHT
+    AVG_WEIGHT,
+    AVG_RPE
 }
 
 class ProgressActivity : AppCompatActivity() {
@@ -43,9 +46,17 @@ class ProgressActivity : AppCompatActivity() {
         jsonHelper = JsonHelper(this)
         dateFormat = SimpleDateFormat("yyyy/MM/dd", Locale.getDefault())
 
+        setupBackgroundAnimation()
         setupTabs()
         setupSpinner()
         setupClickListeners()
+    }
+
+    private fun setupBackgroundAnimation() {
+        val drawable = binding.imageBgAnimation.drawable
+        if (drawable is Animatable) {
+            drawable.start()
+        }
     }
 
     private fun setupClickListeners() {
@@ -59,6 +70,7 @@ class ProgressActivity : AppCompatActivity() {
         binding.tabChartType.addTab(binding.tabChartType.newTab().setText("Volume"))
         binding.tabChartType.addTab(binding.tabChartType.newTab().setText("1RM"))
         binding.tabChartType.addTab(binding.tabChartType.newTab().setText("Avg Weight"))
+        binding.tabChartType.addTab(binding.tabChartType.newTab().setText("Avg RPE"))
 
         binding.tabChartType.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab?) {
@@ -67,6 +79,7 @@ class ProgressActivity : AppCompatActivity() {
                     1 -> currentChartType = ChartType.VOLUME
                     2 -> currentChartType = ChartType.ONE_RM
                     3 -> currentChartType = ChartType.AVG_WEIGHT
+                    4 -> currentChartType = ChartType.AVG_RPE
                 }
                 if (currentExerciseSets.isNotEmpty()) {
                     setupChart(currentExerciseSets, dateFormat)
@@ -85,8 +98,12 @@ class ProgressActivity : AppCompatActivity() {
             .map { it.exerciseName }
             .distinct()
 
-        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, exerciseNames)
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        val adapter = ArrayAdapter(
+            this,
+            R.layout.item_progress_spinner_selected,
+            exerciseNames
+        )
+        adapter.setDropDownViewResource(R.layout.item_progress_spinner_dropdown)
         binding.spinnerExercise.adapter = adapter
 
         binding.spinnerExercise.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
@@ -109,7 +126,15 @@ class ProgressActivity : AppCompatActivity() {
         for (training in trainingData.trainings) {
             for (exercise in training.exercises) {
                 if (exercise.exerciseName == exerciseName) {
-                    allSets.add(ExerciseSet(training.date, exercise.setNumber, exercise.kg, exercise.reps))
+                    allSets.add(
+                        ExerciseSet(
+                            training.date,
+                            exercise.setNumber,
+                            exercise.kg,
+                            exercise.reps,
+                            exercise.rpe
+                        )
+                    )
                 }
             }
         }
@@ -129,10 +154,11 @@ class ProgressActivity : AppCompatActivity() {
 
     private fun calculateAndDisplayStats(sets: List<ExerciseSet>) {
         if (sets.isEmpty()) {
-            binding.textMaxVolume.text = "Max Volume: --"
-            binding.textMaxWeight.text = "Max Weight: --"
-            binding.textAvgWeight.text = "Avg Weight: --"
-            binding.textTotalReps.text = "Total Reps: --"
+            binding.textMaxVolume.text = "--"
+            binding.textMaxWeight.text = "--"
+            binding.textAvgWeight.text = "--"
+            binding.textAvgRpe.text = "--"
+            binding.textTotalReps.text = "--"
             return
         }
 
@@ -140,7 +166,7 @@ class ProgressActivity : AppCompatActivity() {
         val totalReps = sets.sumOf { it.reps }
         val totalVolume = sets.sumOf { (it.kg * it.reps).toDouble() }
         val avgWeight = if (totalReps > 0) totalVolume / totalReps else 0.0
-        
+
         // Calculate max volume per session
         val volumePerSession = sets.groupBy { it.date }
             .mapValues { (_, sessionSets) ->
@@ -148,10 +174,14 @@ class ProgressActivity : AppCompatActivity() {
             }
         val maxVolume = volumePerSession.values.maxOrNull() ?: 0.0
 
-        binding.textMaxVolume.text = String.format(Locale.US, "Max Volume: %.0fkg", maxVolume)
-        binding.textMaxWeight.text = String.format(Locale.US, "Max Weight: %.1fkg", maxWeight)
-        binding.textAvgWeight.text = String.format(Locale.US, "Avg Weight: %.1fkg", avgWeight)
-        binding.textTotalReps.text = "Total Reps: $totalReps"
+        val rpeValues = sets.mapNotNull { it.rpe?.toDouble() }
+        val avgRpe = if (rpeValues.isNotEmpty()) rpeValues.average() else null
+
+        binding.textMaxVolume.text = String.format(Locale.US, "%.0f kg", maxVolume)
+        binding.textMaxWeight.text = String.format(Locale.US, "%.1f kg", maxWeight)
+        binding.textAvgWeight.text = String.format(Locale.US, "%.1f kg", avgWeight)
+        binding.textAvgRpe.text = avgRpe?.let { String.format(Locale.US, "%.1f", it) } ?: "--"
+        binding.textTotalReps.text = totalReps.toString()
     }
 
     private fun calculateOneRM(weight: Float, reps: Int): Float {
@@ -200,18 +230,25 @@ class ProgressActivity : AppCompatActivity() {
     }
 
     private fun setupChart(sets: List<ExerciseSet>, dateFormat: SimpleDateFormat) {
+        if (sets.isEmpty()) {
+            binding.textEmptyState.text = getString(R.string.progress_empty_state)
+            binding.textEmptyState.visibility = View.VISIBLE
+            binding.chart.clear()
+            binding.chart.invalidate()
+            return
+        }
+
         val entries = mutableListOf<Entry>()
         val label: String
         val color: Int
 
         when (currentChartType) {
             ChartType.WEIGHT -> {
-                // Group by date and show max weight per session for better readability
                 val maxWeightPerSession = sets.groupBy { it.date }
                     .mapValues { (_, sessionSets) ->
                         sessionSets.maxOfOrNull { it.kg } ?: 0f
                     }
-                
+
                 maxWeightPerSession.forEach { (dateStr, maxWeight) ->
                     val date = try {
                         dateFormat.parse(dateStr)
@@ -226,12 +263,11 @@ class ProgressActivity : AppCompatActivity() {
                 color = Color.parseColor("#2196F3") // Blue
             }
             ChartType.VOLUME -> {
-                // Group by date and calculate total volume per session
                 val volumePerSession = sets.groupBy { it.date }
                     .mapValues { (_, sessionSets) ->
                         sessionSets.sumOf { (it.kg * it.reps).toDouble() }.toFloat()
                     }
-                
+
                 volumePerSession.forEach { (dateStr, volume) ->
                     val date = try {
                         dateFormat.parse(dateStr)
@@ -246,12 +282,11 @@ class ProgressActivity : AppCompatActivity() {
                 color = Color.parseColor("#4CAF50") // Green
             }
             ChartType.ONE_RM -> {
-                // Calculate 1RM for each set and take max per session
                 val oneRMPerSession = sets.groupBy { it.date }
                     .mapValues { (_, sessionSets) ->
                         sessionSets.maxOfOrNull { calculateOneRM(it.kg, it.reps) } ?: 0f
                     }
-                
+
                 oneRMPerSession.forEach { (dateStr, oneRM) ->
                     val date = try {
                         dateFormat.parse(dateStr)
@@ -266,14 +301,13 @@ class ProgressActivity : AppCompatActivity() {
                 color = Color.parseColor("#FF9800") // Orange
             }
             ChartType.AVG_WEIGHT -> {
-                // Calculate average weight per session
                 val avgWeightPerSession = sets.groupBy { it.date }
                     .mapValues { (_, sessionSets) ->
                         val totalVolume = sessionSets.sumOf { (it.kg * it.reps).toDouble() }
                         val totalReps = sessionSets.sumOf { it.reps }
                         if (totalReps > 0) (totalVolume / totalReps).toFloat() else 0f
                     }
-                
+
                 avgWeightPerSession.forEach { (dateStr, avgWeight) ->
                     val date = try {
                         dateFormat.parse(dateStr)
@@ -287,17 +321,50 @@ class ProgressActivity : AppCompatActivity() {
                 label = "Avg Weight (kg)"
                 color = Color.parseColor("#9C27B0") // Purple
             }
+            ChartType.AVG_RPE -> {
+                val avgRpePerSession = sets.groupBy { it.date }
+                    .mapValues { (_, sessionSets) ->
+                        val rpeValues = sessionSets.mapNotNull { it.rpe }
+                        if (rpeValues.isNotEmpty()) {
+                            rpeValues.average().toFloat()
+                        } else {
+                            null
+                        }
+                    }
+
+                avgRpePerSession.forEach { (dateStr, avgRpe) ->
+                    val date = try {
+                        dateFormat.parse(dateStr)
+                    } catch (e: Exception) {
+                        null
+                    }
+                    if (date != null && avgRpe != null) {
+                        entries.add(Entry(date.time.toFloat(), avgRpe))
+                    }
+                }
+                label = "Avg RPE"
+                color = Color.parseColor("#F59E0B") // Amber
+            }
         }
 
-        // Sort entries by date
+        if (entries.isEmpty()) {
+            val message = if (currentChartType == ChartType.AVG_RPE) {
+                getString(R.string.progress_empty_state_rpe)
+            } else {
+                getString(R.string.progress_empty_state)
+            }
+            binding.textEmptyState.text = message
+            binding.textEmptyState.visibility = View.VISIBLE
+            binding.chart.clear()
+            binding.chart.invalidate()
+            return
+        } else {
+            binding.textEmptyState.visibility = View.GONE
+        }
+
         entries.sortBy { it.x }
 
-        // Calculate maximum value and set Y-axis range
-        val maxEntryValue = if (entries.isNotEmpty()) {
-            entries.maxOfOrNull { it.y } ?: 0f
-        } else {
-            0f
-        }
+        val maxEntryValue = entries.maxOfOrNull { it.y } ?: 0f
         val niceMaximum = calculateNiceMaximum(maxEntryValue)
 
         val dataSet = LineDataSet(entries, label)
@@ -306,10 +373,10 @@ class ProgressActivity : AppCompatActivity() {
         dataSet.setCircleColor(color)
         dataSet.circleRadius = 6f
         dataSet.lineWidth = 3.5f
-        dataSet.setDrawValues(false) // Hide values on points for cleaner look
-        dataSet.mode = LineDataSet.Mode.CUBIC_BEZIER // Smooth curves
+        dataSet.setDrawValues(false)
+        dataSet.mode = LineDataSet.Mode.CUBIC_BEZIER
         dataSet.cubicIntensity = 0.2f
-        dataSet.setDrawFilled(true) // Fill area under line
+        dataSet.setDrawFilled(true)
         dataSet.fillColor = color
         dataSet.fillAlpha = 40
         dataSet.valueTextSize = 11f
@@ -319,13 +386,12 @@ class ProgressActivity : AppCompatActivity() {
         lineData.setValueTextSize(11f)
         binding.chart.data = lineData
 
-        // Configure X-axis for better readability
         val xAxis = binding.chart.xAxis
         xAxis.position = XAxis.XAxisPosition.BOTTOM
         xAxis.textSize = 12f
         xAxis.textColor = Color.parseColor("#616161")
         xAxis.yOffset = 8f
-        xAxis.setLabelCount(minOf(entries.size, 8), true) // Limit labels for readability
+        xAxis.setLabelCount(minOf(entries.size, 8), true)
         xAxis.valueFormatter = object : ValueFormatter() {
             override fun getFormattedValue(value: Float): String {
                 return try {
@@ -345,28 +411,26 @@ class ProgressActivity : AppCompatActivity() {
         xAxis.axisLineColor = Color.parseColor("#9E9E9E")
         xAxis.axisLineWidth = 1.5f
 
-        // Configure Y-axis for better readability
         val leftAxis = binding.chart.axisLeft
-        leftAxis.axisMinimum = 0f // Always start from 0
-        leftAxis.axisMaximum = niceMaximum // Set maximum to calculated nice value
+        leftAxis.axisMinimum = 0f
+        leftAxis.axisMaximum = niceMaximum
         leftAxis.textSize = 12f
         leftAxis.textColor = Color.parseColor("#616161")
         leftAxis.setDrawGridLines(true)
         leftAxis.gridColor = Color.parseColor("#E0E0E0")
         leftAxis.gridLineWidth = 1.5f
         leftAxis.enableGridDashedLine(12f, 8f, 0f)
-        leftAxis.setDrawZeroLine(true) // Show zero line since we start from 0
+        leftAxis.setDrawZeroLine(true)
         leftAxis.zeroLineColor = Color.parseColor("#9E9E9E")
         leftAxis.zeroLineWidth = 2f
-        leftAxis.setLabelCount(6, true) // Limit labels for readability
+        leftAxis.setLabelCount(6, true)
         leftAxis.setDrawAxisLine(true)
         leftAxis.axisLineColor = Color.parseColor("#9E9E9E")
         leftAxis.axisLineWidth = 1.5f
         leftAxis.setDrawLabels(true)
-        leftAxis.spaceTop = 5f // Less space needed since we control the max
-        leftAxis.spaceBottom = 0f // No space at bottom since we start at 0
-        
-        // Format Y-axis values
+        leftAxis.spaceTop = 5f
+        leftAxis.spaceBottom = 0f
+
         leftAxis.valueFormatter = object : ValueFormatter() {
             override fun getFormattedValue(value: Float): String {
                 return if (value >= 1000) {
@@ -381,14 +445,12 @@ class ProgressActivity : AppCompatActivity() {
 
         binding.chart.axisRight.isEnabled = false
 
-        // Configure chart appearance
         binding.chart.description.isEnabled = false
         binding.chart.setBackgroundColor(Color.WHITE)
         binding.chart.setDrawGridBackground(false)
         binding.chart.setBorderColor(Color.parseColor("#E0E0E0"))
         binding.chart.setBorderWidth(1f)
-        
-        // Configure legend for better readability
+
         val legend = binding.chart.legend
         legend.isEnabled = true
         legend.textSize = 13f
@@ -396,18 +458,14 @@ class ProgressActivity : AppCompatActivity() {
         legend.formSize = 12f
         legend.xEntrySpace = 15f
         legend.yEntrySpace = 8f
-        
-        // Enable interactions
+
         binding.chart.setTouchEnabled(true)
         binding.chart.setDragEnabled(true)
         binding.chart.setScaleEnabled(true)
         binding.chart.setPinchZoom(true)
         binding.chart.setDoubleTapToZoomEnabled(true)
-        
-        // Smooth animation
+
         binding.chart.animateX(800)
-        
-        // Refresh chart
         binding.chart.invalidate()
     }
 }

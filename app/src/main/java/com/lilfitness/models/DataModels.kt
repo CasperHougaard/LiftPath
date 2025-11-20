@@ -71,6 +71,7 @@ data class ExerciseSet(
     val date: String,
     val setNumber: Int,
     val kg: Float,
-    val reps: Int
+    val reps: Int,
+    val rpe: Float? = null
 )
 
