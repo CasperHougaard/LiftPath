@@ -3,15 +3,14 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Letter "L" with clean shadow -->
-    <!-- Shadow -->
-    <path
-        android:fillColor="#000000"
-        android:fillAlpha="0.2"
-        android:pathData="M37,31 H55 V67 H79 V85 H37 Z" />
-    
-    <!-- Letter "L" - Clean, bold, green -->
-    <path
-        android:fillColor="#4CAF50"
-        android:pathData="M33,27 H51 V63 H75 V81 H33 Z" />
+
+    <!-- Clean, bold "L" letter - centered and prominent like app store icon -->
+    <group
+        android:translateX="54"
+        android:translateY="54">
+        <!-- "L" letter - thicker and more prominent -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M-20,-24 H-8 V16 H12 V28 H-20 Z" />
+    </group>
 </vector>
