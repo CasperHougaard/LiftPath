@@ -1,625 +1,673 @@
 {
-    "exerciseLibrary": [
-      {
-        "id": 1,
-        "name": "Deadlift (Barbell)"
-      },
-      {
-        "id": 2,
-        "name": "Back Squat (Barbell)"
-      },
-      {
-        "id": 4,
-        "name": "Bicep Curl (Dumbbell)"
-      },
-      {
-        "id": 5,
-        "name": "Triceps Pushdown (Cable)"
-      },
-      {
-        "id": 7,
-        "name": "Bench Press (Barbell)"
-      },
-      {
-        "id": 8,
-        "name": "Split Squat (Barbell)"
-      },
-      {
-        "id": 9,
-        "name": "Calf Raise (Machine)"
-      },
-      {
-        "id": 10,
-        "name": "Decline Bench Press (Barbell)"
-      },
-      {
-        "id": 11,
-        "name": "Incline Dumbbell Press"
-      },
-      {
-        "id": 12,
-        "name": "Seated Cable Row"
-      },
-      {
-        "id": 13,
-        "name": "Triceps Extension (Single Arm)"
-      },
-      {
-        "id": 14,
-        "name": "Machine Shoulder Press"
-      },
-      {
-        "id": 15,
-        "name": "Dips (Bodyweight)"
-      },
-      {
-        "id": 16,
-        "name": "Abdominal Crunch (Machine)"
-      },
-      {
-        "id": 17,
-        "name": "Bench Press (Paused)"
-      },
-      {
-        "id": 18,
-        "name": "Leg Curl (Machine)"
-      }
-    ],
-    "trainings": [
-      {
-        "date": "2025/11/15",
-        "defaultWorkoutType": "light",
-        "exercises": [
-          {
-            "exerciseId": 7,
-            "exerciseName": "Bench Press (Barbell)",
-            "kg": 55.0,
-            "rating": 5,
-            "reps": 10,
-            "setNumber": 1,
-            "workoutType": "light"
-          },
-          {
-            "exerciseId": 7,
-            "exerciseName": "Bench Press (Barbell)",
-            "kg": 55.0,
-            "reps": 10,
-            "setNumber": 2,
-            "workoutType": "light"
-          },
-          {
-            "exerciseId": 7,
-            "exerciseName": "Bench Press (Barbell)",
-            "kg": 55.0,
-            "reps": 11,
-            "setNumber": 3,
-            "workoutType": "light"
-          },
-          {
-            "exerciseId": 7,
-            "exerciseName": "Bench Press (Barbell)",
-            "kg": 55.0,
-            "reps": 10,
-            "setNumber": 4,
-            "workoutType": "light"
-          },
-          {
-            "exerciseId": 7,
-            "exerciseName": "Bench Press (Barbell)",
-            "kg": 55.0,
-            "reps": 10,
-            "setNumber": 5,
-            "workoutType": "light"
-          },
-          {
-            "exerciseId": 8,
-            "exerciseName": "Split Squat (Barbell)",
-            "kg": 40.0,
-            "rating": 4,
-            "reps": 24,
-            "setNumber": 1,
-            "workoutType": "light"
-          },
-          {
-            "exerciseId": 2,
-            "exerciseName": "Back Squat (Barbell)",
-            "kg": 50.0,
-            "rating": 4,
-            "reps": 12,
-            "setNumber": 1,
-            "workoutType": "light"
-          },
-          {
-            "exerciseId": 8,
-            "exerciseName": "Split Squat (Barbell)",
-            "kg": 50.0,
-            "rating": 4,
-            "reps": 24,
-            "setNumber": 2,
-            "workoutType": "light"
-          },
-          {
-            "exerciseId": 9,
-            "exerciseName": "Calf Raise (Machine)",
-            "kg": 40.0,
-            "rating": 5,
-            "reps": 12,
-            "setNumber": 1,
-            "workoutType": "light"
-          },
-          {
-            "exerciseId": 2,
-            "exerciseName": "Back Squat (Barbell)",
-            "kg": 60.0,
-            "rating": 5,
-            "reps": 10,
-            "setNumber": 2,
-            "workoutType": "light"
-          },
-          {
-            "exerciseId": 9,
-            "exerciseName": "Calf Raise (Machine)",
-            "kg": 40.0,
-            "reps": 12,
-            "setNumber": 2,
-            "workoutType": "light"
-          },
-          {
-            "exerciseId": 10,
-            "exerciseName": "Decline Bench Press (Barbell)",
-            "kg": 40.0,
-            "rating": 5,
-            "reps": 20,
-            "setNumber": 1,
-            "workoutType": "light"
-          },
-          {
-            "exerciseId": 10,
-            "exerciseName": "Decline Bench Press (Barbell)",
-            "kg": 50.0,
-            "rating": 5,
-            "reps": 12,
-            "setNumber": 2,
-            "workoutType": "light"
-          },
-          {
-            "exerciseId": 4,
-            "exerciseName": "Bicep Curl (Dumbbell)",
-            "kg": 14.0,
-            "rating": 5,
-            "reps": 10,
-            "setNumber": 1,
-            "workoutType": "light"
-          },
-          {
-            "exerciseId": 11,
-            "exerciseName": "Incline Dumbbell Press",
-            "kg": 28.0,
-            "rating": 5,
-            "reps": 10,
-            "setNumber": 1,
-            "workoutType": "light"
-          },
-          {
-            "exerciseId": 4,
-            "exerciseName": "Bicep Curl (Dumbbell)",
-            "kg": 14.0,
-            "reps": 10,
-            "setNumber": 2,
-            "workoutType": "light"
-          },
-          {
-            "exerciseId": 11,
-            "exerciseName": "Incline Dumbbell Press",
-            "kg": 28.0,
-            "reps": 10,
-            "setNumber": 2,
-            "workoutType": "light"
-          },
-          {
-            "exerciseId": 12,
-            "exerciseName": "Seated Cable Row",
-            "kg": 35.0,
-            "rating": 5,
-            "reps": 18,
-            "setNumber": 1,
-            "workoutType": "light"
-          },
-          {
-            "exerciseId": 12,
-            "exerciseName": "Seated Cable Row",
-            "kg": 45.0,
-            "rating": 5,
-            "reps": 10,
-            "setNumber": 2,
-            "workoutType": "light"
-          },
-          {
-            "exerciseId": 12,
-            "exerciseName": "Seated Cable Row",
-            "kg": 40.0,
-            "rating": 5,
-            "reps": 10,
-            "setNumber": 3,
-            "workoutType": "light"
-          },
-          {
-            "exerciseId": 13,
-            "exerciseName": "Triceps Extension (Single Arm)",
-            "kg": 10.0,
-            "rating": 5,
-            "reps": 20,
-            "setNumber": 1,
-            "workoutType": "light"
-          },
-          {
-            "exerciseId": 13,
-            "exerciseName": "Triceps Extension (Single Arm)",
-            "kg": 10.0,
-            "reps": 20,
-            "setNumber": 2,
-            "workoutType": "light"
-          },
-          {
-            "exerciseId": 13,
-            "exerciseName": "Triceps Extension (Single Arm)",
-            "kg": 10.0,
-            "reps": 20,
-            "setNumber": 3,
-            "workoutType": "light"
-          }
-        ],
-        "id": "5a9368cd-8b8e-409b-9b13-aade63b930af",
-        "trainingNumber": 3
-      },
-      {
-        "date": "2025/11/18",
-        "defaultWorkoutType": "heavy",
-        "exercises": [
-          {
-            "completed": true,
-            "exerciseId": 2,
-            "exerciseName": "Back Squat (Barbell)",
-            "kg": 60.0,
-            "reps": 10,
-            "rpe": 6.0,
-            "setNumber": 1,
-            "workoutType": "heavy"
-          },
-          {
-            "completed": true,
-            "exerciseId": 2,
-            "exerciseName": "Back Squat (Barbell)",
-            "kg": 80.0,
-            "reps": 8,
-            "rpe": 8.0,
-            "setNumber": 2,
-            "workoutType": "heavy"
-          },
-          {
-            "completed": true,
-            "exerciseId": 2,
-            "exerciseName": "Back Squat (Barbell)",
-            "kg": 85.0,
-            "reps": 8,
-            "rpe": 9.0,
-            "setNumber": 3,
-            "workoutType": "heavy"
-          },
-          {
-            "completed": true,
-            "exerciseId": 2,
-            "exerciseName": "Back Squat (Barbell)",
-            "kg": 90.0,
-            "reps": 8,
-            "rpe": 9.5,
-            "setNumber": 4,
-            "workoutType": "heavy"
-          },
-          {
-            "completed": true,
-            "exerciseId": 7,
-            "exerciseName": "Bench Press (Barbell)",
-            "kg": 40.0,
-            "reps": 8,
-            "rpe": 6.0,
-            "setNumber": 1,
-            "workoutType": "heavy"
-          },
-          {
-            "completed": true,
-            "exerciseId": 7,
-            "exerciseName": "Bench Press (Barbell)",
-            "kg": 70.0,
-            "reps": 6,
-            "rpe": 9.5,
-            "setNumber": 2,
-            "workoutType": "heavy"
-          },
-          {
-            "completed": true,
-            "exerciseId": 7,
-            "exerciseName": "Bench Press (Barbell)",
-            "kg": 70.0,
-            "note": "Shoulder pain. Too high angle.",
-            "reps": 6,
-            "rpe": 9.5,
-            "setNumber": 3,
-            "workoutType": "heavy"
-          },
-          {
-            "completed": true,
-            "exerciseId": 7,
-            "exerciseName": "Bench Press (Barbell)",
-            "kg": 70.0,
-            "reps": 6,
-            "rpe": 9.5,
-            "setNumber": 4,
-            "workoutType": "heavy"
-          },
-          {
-            "completed": true,
-            "exerciseId": 7,
-            "exerciseName": "Bench Press (Barbell)",
-            "kg": 70.0,
-            "note": "Yes!",
-            "reps": 8,
-            "rpe": 9.5,
-            "setNumber": 5,
-            "workoutType": "heavy"
-          },
-          {
-            "completed": true,
-            "exerciseId": 9,
-            "exerciseName": "Calf Raise (Machine)",
-            "kg": 80.0,
-            "reps": 16,
-            "rpe": 6.0,
-            "setNumber": 1,
-            "workoutType": "heavy"
-          },
-          {
-            "completed": true,
-            "exerciseId": 9,
-            "exerciseName": "Calf Raise (Machine)",
-            "kg": 100.0,
-            "reps": 16,
-            "rpe": 8.0,
-            "setNumber": 2,
-            "workoutType": "heavy"
-          },
-          {
-            "completed": true,
-            "exerciseId": 9,
-            "exerciseName": "Calf Raise (Machine)",
-            "kg": 140.0,
-            "reps": 16,
-            "rpe": 8.0,
-            "setNumber": 3,
-            "workoutType": "heavy"
-          },
-          {
-            "completed": true,
-            "exerciseId": 14,
-            "exerciseName": "Machine Shoulder Press",
-            "kg": 40.0,
-            "reps": 12,
-            "rpe": 7.0,
-            "setNumber": 1,
-            "workoutType": "heavy"
-          },
-          {
-            "completed": true,
-            "exerciseId": 4,
-            "exerciseName": "Bicep Curl (Dumbbell)",
-            "kg": 14.0,
-            "reps": 10,
-            "rpe": 9.5,
-            "setNumber": 1,
-            "workoutType": "heavy"
-          },
-          {
-            "completed": true,
-            "exerciseId": 14,
-            "exerciseName": "Machine Shoulder Press",
-            "kg": 45.0,
-            "reps": 10,
-            "rpe": 9.0,
-            "setNumber": 2,
-            "workoutType": "heavy"
-          },
-          {
-            "completed": true,
-            "exerciseId": 4,
-            "exerciseName": "Bicep Curl (Dumbbell)",
-            "kg": 14.0,
-            "reps": 9,
-            "rpe": 10.0,
-            "setNumber": 2,
-            "workoutType": "heavy"
-          },
-          {
-            "completed": true,
-            "exerciseId": 14,
-            "exerciseName": "Machine Shoulder Press",
-            "kg": 50.0,
-            "reps": 10,
-            "rpe": 9.0,
-            "setNumber": 3,
-            "workoutType": "heavy"
-          },
-          {
-            "completed": true,
-            "exerciseId": 4,
-            "exerciseName": "Bicep Curl (Dumbbell)",
-            "kg": 14.0,
-            "reps": 9,
-            "rpe": 10.0,
-            "setNumber": 3,
-            "workoutType": "heavy"
-          },
-          {
-            "completed": true,
-            "exerciseId": 13,
-            "exerciseName": "Triceps Extension (Single Arm)",
-            "kg": 10.0,
-            "reps": 10,
-            "rpe": 8.0,
-            "setNumber": 1,
-            "workoutType": "heavy"
-          },
-          {
-            "completed": true,
-            "exerciseId": 13,
-            "exerciseName": "Triceps Extension (Single Arm)",
-            "kg": 12.5,
-            "reps": 7,
-            "rpe": 10.0,
-            "setNumber": 2,
-            "workoutType": "heavy"
-          },
-          {
-            "completed": true,
-            "exerciseId": 13,
-            "exerciseName": "Triceps Extension (Single Arm)",
-            "kg": 12.5,
-            "reps": 6,
-            "rpe": 9.5,
-            "setNumber": 3,
-            "workoutType": "heavy"
-          },
-          {
-            "completed": true,
-            "exerciseId": 16,
-            "exerciseName": "Abdominal Crunch (Machine)",
-            "kg": 80.0,
-            "reps": 10,
-            "rpe": 7.0,
-            "setNumber": 1,
-            "workoutType": "heavy"
-          },
-          {
-            "completed": true,
-            "exerciseId": 16,
-            "exerciseName": "Abdominal Crunch (Machine)",
-            "kg": 85.0,
-            "reps": 10,
-            "rpe": 8.0,
-            "setNumber": 2,
-            "workoutType": "heavy"
-          },
-          {
-            "completed": true,
-            "exerciseId": 16,
-            "exerciseName": "Abdominal Crunch (Machine)",
-            "kg": 95.0,
-            "reps": 5,
-            "rpe": 10.0,
-            "setNumber": 3,
-            "workoutType": "heavy"
-          },
-          {
-            "completed": true,
-            "exerciseId": 12,
-            "exerciseName": "Seated Cable Row",
-            "kg": 50.0,
-            "reps": 10,
-            "rpe": 9.0,
-            "setNumber": 1,
-            "workoutType": "heavy"
-          },
-          {
-            "completed": true,
-            "exerciseId": 12,
-            "exerciseName": "Seated Cable Row",
-            "kg": 50.0,
-            "reps": 10,
-            "rpe": 9.0,
-            "setNumber": 2,
-            "workoutType": "heavy"
-          },
-          {
-            "completed": true,
-            "exerciseId": 12,
-            "exerciseName": "Seated Cable Row",
-            "kg": 50.0,
-            "reps": 10,
-            "rpe": 9.0,
-            "setNumber": 3,
-            "workoutType": "heavy"
-          },
-          {
-            "completed": true,
-            "exerciseId": 17,
-            "exerciseName": "Bench Press (Paused)",
-            "kg": 60.0,
-            "reps": 6,
-            "rpe": 9.0,
-            "setNumber": 1,
-            "workoutType": "heavy"
-          },
-          {
-            "completed": true,
-            "exerciseId": 17,
-            "exerciseName": "Bench Press (Paused)",
-            "kg": 60.0,
-            "reps": 6,
-            "rpe": 9.0,
-            "setNumber": 2,
-            "workoutType": "heavy"
-          },
-          {
-            "completed": true,
-            "exerciseId": 17,
-            "exerciseName": "Bench Press (Paused)",
-            "kg": 60.0,
-            "reps": 6,
-            "rpe": 9.0,
-            "setNumber": 3,
-            "workoutType": "heavy"
-          },
-          {
-            "completed": true,
-            "exerciseId": 18,
-            "exerciseName": "Leg Curl (Machine)",
-            "kg": 70.0,
-            "reps": 8,
-            "rpe": 8.0,
-            "setNumber": 1,
-            "workoutType": "heavy"
-          },
-          {
-            "completed": true,
-            "exerciseId": 18,
-            "exerciseName": "Leg Curl (Machine)",
-            "kg": 70.0,
-            "reps": 8,
-            "rpe": 8.0,
-            "setNumber": 2,
-            "workoutType": "heavy"
-          }
-        ],
-        "id": "4c4ed006-8f8c-4f63-9ac6-944de58e7c43",
-        "planId": "9ae703df-2e47-4976-be9d-3c15f30e9c15",
-        "planName": "Heavy default",
-        "trainingNumber": 4
-      }
-    ],
-    "workoutPlans": [
-      {
-        "createdDate": "2025/11/18",
-        "exerciseIds": [
-          7,
-          4,
-          9,
-          1,
-          11,
-          2,
-          5
-        ],
-        "id": "9ae703df-2e47-4976-be9d-3c15f30e9c15",
-        "name": "Heavy default",
-        "workoutType": "heavy"
-      }
-    ]
-  }
+  "exerciseLibrary": [
+    {
+      "id": 1,
+      "name": "Deadlift (Barbell)",
+      "pattern": "HINGE",
+      "mechanics": "COMPOUND",
+      "tier": "TIER_1"
+    },
+    {
+      "id": 2,
+      "name": "Back Squat (Barbell)",
+      "pattern": "SQUAT",
+      "mechanics": "COMPOUND",
+      "tier": "TIER_1"
+    },
+    {
+      "id": 4,
+      "name": "Bicep Curl (Dumbbell)",
+      "pattern": "ISOLATION_ARMS",
+      "mechanics": "ISOLATION",
+      "tier": "TIER_3"
+    },
+    {
+      "id": 5,
+      "name": "Triceps Pushdown (Cable)",
+      "pattern": "ISOLATION_ARMS",
+      "mechanics": "ISOLATION",
+      "tier": "TIER_3"
+    },
+    {
+      "id": 7,
+      "name": "Bench Press (Barbell)",
+      "pattern": "PUSH_HORIZONTAL",
+      "mechanics": "COMPOUND",
+      "tier": "TIER_1"
+    },
+    {
+      "id": 8,
+      "name": "Split Squat (Barbell)",
+      "pattern": "LUNGE",
+      "mechanics": "COMPOUND",
+      "tier": "TIER_2"
+    },
+    {
+      "id": 9,
+      "name": "Calf Raise (Machine)",
+      "pattern": "OTHER",
+      "mechanics": "ISOLATION",
+      "tier": "TIER_3"
+    },
+    {
+      "id": 10,
+      "name": "Decline Bench Press (Barbell)",
+      "pattern": "PUSH_HORIZONTAL",
+      "mechanics": "COMPOUND",
+      "tier": "TIER_2"
+    },
+    {
+      "id": 11,
+      "name": "Incline Dumbbell Press",
+      "pattern": "PUSH_HORIZONTAL",
+      "mechanics": "COMPOUND",
+      "tier": "TIER_2"
+    },
+    {
+      "id": 12,
+      "name": "Seated Cable Row",
+      "pattern": "PULL_HORIZONTAL",
+      "mechanics": "COMPOUND",
+      "tier": "TIER_1"
+    },
+    {
+      "id": 13,
+      "name": "Triceps Extension (Single Arm)",
+      "pattern": "ISOLATION_ARMS",
+      "mechanics": "ISOLATION",
+      "tier": "TIER_3"
+    },
+    {
+      "id": 14,
+      "name": "Machine Shoulder Press",
+      "pattern": "PUSH_VERTICAL",
+      "mechanics": "COMPOUND",
+      "tier": "TIER_1"
+    },
+    {
+      "id": 15,
+      "name": "Dips (Bodyweight)",
+      "pattern": "PUSH_VERTICAL",
+      "mechanics": "COMPOUND",
+      "tier": "TIER_2"
+    },
+    {
+      "id": 16,
+      "name": "Abdominal Crunch (Machine)",
+      "pattern": "CORE",
+      "mechanics": "ISOLATION",
+      "tier": "TIER_3"
+    },
+    {
+      "id": 17,
+      "name": "Bench Press (Paused)",
+      "pattern": "PUSH_HORIZONTAL",
+      "mechanics": "COMPOUND",
+      "tier": "TIER_1"
+    },
+    {
+      "id": 18,
+      "name": "Leg Curl (Machine)",
+      "pattern": "HINGE",
+      "mechanics": "ISOLATION",
+      "tier": "TIER_3"
+    }
+  ],
+  "trainings": [
+    {
+      "date": "2025/11/15",
+      "defaultWorkoutType": "light",
+      "exercises": [
+        {
+          "exerciseId": 7,
+          "exerciseName": "Bench Press (Barbell)",
+          "kg": 55.0,
+          "rating": 5,
+          "reps": 10,
+          "setNumber": 1,
+          "workoutType": "light"
+        },
+        {
+          "exerciseId": 7,
+          "exerciseName": "Bench Press (Barbell)",
+          "kg": 55.0,
+          "reps": 10,
+          "setNumber": 2,
+          "workoutType": "light"
+        },
+        {
+          "exerciseId": 7,
+          "exerciseName": "Bench Press (Barbell)",
+          "kg": 55.0,
+          "reps": 11,
+          "setNumber": 3,
+          "workoutType": "light"
+        },
+        {
+          "exerciseId": 7,
+          "exerciseName": "Bench Press (Barbell)",
+          "kg": 55.0,
+          "reps": 10,
+          "setNumber": 4,
+          "workoutType": "light"
+        },
+        {
+          "exerciseId": 7,
+          "exerciseName": "Bench Press (Barbell)",
+          "kg": 55.0,
+          "reps": 10,
+          "setNumber": 5,
+          "workoutType": "light"
+        },
+        {
+          "exerciseId": 8,
+          "exerciseName": "Split Squat (Barbell)",
+          "kg": 40.0,
+          "rating": 4,
+          "reps": 24,
+          "setNumber": 1,
+          "workoutType": "light"
+        },
+        {
+          "exerciseId": 2,
+          "exerciseName": "Back Squat (Barbell)",
+          "kg": 50.0,
+          "rating": 4,
+          "reps": 12,
+          "setNumber": 1,
+          "workoutType": "light"
+        },
+        {
+          "exerciseId": 8,
+          "exerciseName": "Split Squat (Barbell)",
+          "kg": 50.0,
+          "rating": 4,
+          "reps": 24,
+          "setNumber": 2,
+          "workoutType": "light"
+        },
+        {
+          "exerciseId": 9,
+          "exerciseName": "Calf Raise (Machine)",
+          "kg": 40.0,
+          "rating": 5,
+          "reps": 12,
+          "setNumber": 1,
+          "workoutType": "light"
+        },
+        {
+          "exerciseId": 2,
+          "exerciseName": "Back Squat (Barbell)",
+          "kg": 60.0,
+          "rating": 5,
+          "reps": 10,
+          "setNumber": 2,
+          "workoutType": "light"
+        },
+        {
+          "exerciseId": 9,
+          "exerciseName": "Calf Raise (Machine)",
+          "kg": 40.0,
+          "reps": 12,
+          "setNumber": 2,
+          "workoutType": "light"
+        },
+        {
+          "exerciseId": 10,
+          "exerciseName": "Decline Bench Press (Barbell)",
+          "kg": 40.0,
+          "rating": 5,
+          "reps": 20,
+          "setNumber": 1,
+          "workoutType": "light"
+        },
+        {
+          "exerciseId": 10,
+          "exerciseName": "Decline Bench Press (Barbell)",
+          "kg": 50.0,
+          "rating": 5,
+          "reps": 12,
+          "setNumber": 2,
+          "workoutType": "light"
+        },
+        {
+          "exerciseId": 4,
+          "exerciseName": "Bicep Curl (Dumbbell)",
+          "kg": 14.0,
+          "rating": 5,
+          "reps": 10,
+          "setNumber": 1,
+          "workoutType": "light"
+        },
+        {
+          "exerciseId": 11,
+          "exerciseName": "Incline Dumbbell Press",
+          "kg": 28.0,
+          "rating": 5,
+          "reps": 10,
+          "setNumber": 1,
+          "workoutType": "light"
+        },
+        {
+          "exerciseId": 4,
+          "exerciseName": "Bicep Curl (Dumbbell)",
+          "kg": 14.0,
+          "reps": 10,
+          "setNumber": 2,
+          "workoutType": "light"
+        },
+        {
+          "exerciseId": 11,
+          "exerciseName": "Incline Dumbbell Press",
+          "kg": 28.0,
+          "reps": 10,
+          "setNumber": 2,
+          "workoutType": "light"
+        },
+        {
+          "exerciseId": 12,
+          "exerciseName": "Seated Cable Row",
+          "kg": 35.0,
+          "rating": 5,
+          "reps": 18,
+          "setNumber": 1,
+          "workoutType": "light"
+        },
+        {
+          "exerciseId": 12,
+          "exerciseName": "Seated Cable Row",
+          "kg": 45.0,
+          "rating": 5,
+          "reps": 10,
+          "setNumber": 2,
+          "workoutType": "light"
+        },
+        {
+          "exerciseId": 12,
+          "exerciseName": "Seated Cable Row",
+          "kg": 40.0,
+          "rating": 5,
+          "reps": 10,
+          "setNumber": 3,
+          "workoutType": "light"
+        },
+        {
+          "exerciseId": 13,
+          "exerciseName": "Triceps Extension (Single Arm)",
+          "kg": 10.0,
+          "rating": 5,
+          "reps": 20,
+          "setNumber": 1,
+          "workoutType": "light"
+        },
+        {
+          "exerciseId": 13,
+          "exerciseName": "Triceps Extension (Single Arm)",
+          "kg": 10.0,
+          "reps": 20,
+          "setNumber": 2,
+          "workoutType": "light"
+        },
+        {
+          "exerciseId": 13,
+          "exerciseName": "Triceps Extension (Single Arm)",
+          "kg": 10.0,
+          "reps": 20,
+          "setNumber": 3,
+          "workoutType": "light"
+        }
+      ],
+      "id": "5a9368cd-8b8e-409b-9b13-aade63b930af",
+      "trainingNumber": 3
+    },
+    {
+      "date": "2025/11/18",
+      "defaultWorkoutType": "heavy",
+      "exercises": [
+        {
+          "completed": true,
+          "exerciseId": 2,
+          "exerciseName": "Back Squat (Barbell)",
+          "kg": 60.0,
+          "reps": 10,
+          "rpe": 6.0,
+          "setNumber": 1,
+          "workoutType": "heavy"
+        },
+        {
+          "completed": true,
+          "exerciseId": 2,
+          "exerciseName": "Back Squat (Barbell)",
+          "kg": 80.0,
+          "reps": 8,
+          "rpe": 8.0,
+          "setNumber": 2,
+          "workoutType": "heavy"
+        },
+        {
+          "completed": true,
+          "exerciseId": 2,
+          "exerciseName": "Back Squat (Barbell)",
+          "kg": 85.0,
+          "reps": 8,
+          "rpe": 9.0,
+          "setNumber": 3,
+          "workoutType": "heavy"
+        },
+        {
+          "completed": true,
+          "exerciseId": 2,
+          "exerciseName": "Back Squat (Barbell)",
+          "kg": 90.0,
+          "reps": 8,
+          "rpe": 9.5,
+          "setNumber": 4,
+          "workoutType": "heavy"
+        },
+        {
+          "completed": true,
+          "exerciseId": 7,
+          "exerciseName": "Bench Press (Barbell)",
+          "kg": 40.0,
+          "reps": 8,
+          "rpe": 6.0,
+          "setNumber": 1,
+          "workoutType": "heavy"
+        },
+        {
+          "completed": true,
+          "exerciseId": 7,
+          "exerciseName": "Bench Press (Barbell)",
+          "kg": 70.0,
+          "reps": 6,
+          "rpe": 9.5,
+          "setNumber": 2,
+          "workoutType": "heavy"
+        },
+        {
+          "completed": true,
+          "exerciseId": 7,
+          "exerciseName": "Bench Press (Barbell)",
+          "kg": 70.0,
+          "note": "Shoulder pain. Too high angle.",
+          "reps": 6,
+          "rpe": 9.5,
+          "setNumber": 3,
+          "workoutType": "heavy"
+        },
+        {
+          "completed": true,
+          "exerciseId": 7,
+          "exerciseName": "Bench Press (Barbell)",
+          "kg": 70.0,
+          "reps": 6,
+          "rpe": 9.5,
+          "setNumber": 4,
+          "workoutType": "heavy"
+        },
+        {
+          "completed": true,
+          "exerciseId": 7,
+          "exerciseName": "Bench Press (Barbell)",
+          "kg": 70.0,
+          "note": "Yes!",
+          "reps": 8,
+          "rpe": 9.5,
+          "setNumber": 5,
+          "workoutType": "heavy"
+        },
+        {
+          "completed": true,
+          "exerciseId": 9,
+          "exerciseName": "Calf Raise (Machine)",
+          "kg": 80.0,
+          "reps": 16,
+          "rpe": 6.0,
+          "setNumber": 1,
+          "workoutType": "heavy"
+        },
+        {
+          "completed": true,
+          "exerciseId": 9,
+          "exerciseName": "Calf Raise (Machine)",
+          "kg": 100.0,
+          "reps": 16,
+          "rpe": 8.0,
+          "setNumber": 2,
+          "workoutType": "heavy"
+        },
+        {
+          "completed": true,
+          "exerciseId": 9,
+          "exerciseName": "Calf Raise (Machine)",
+          "kg": 140.0,
+          "reps": 16,
+          "rpe": 8.0,
+          "setNumber": 3,
+          "workoutType": "heavy"
+        },
+        {
+          "completed": true,
+          "exerciseId": 14,
+          "exerciseName": "Machine Shoulder Press",
+          "kg": 40.0,
+          "reps": 12,
+          "rpe": 7.0,
+          "setNumber": 1,
+          "workoutType": "heavy"
+        },
+        {
+          "completed": true,
+          "exerciseId": 4,
+          "exerciseName": "Bicep Curl (Dumbbell)",
+          "kg": 14.0,
+          "reps": 10,
+          "rpe": 9.5,
+          "setNumber": 1,
+          "workoutType": "heavy"
+        },
+        {
+          "completed": true,
+          "exerciseId": 14,
+          "exerciseName": "Machine Shoulder Press",
+          "kg": 45.0,
+          "reps": 10,
+          "rpe": 9.0,
+          "setNumber": 2,
+          "workoutType": "heavy"
+        },
+        {
+          "completed": true,
+          "exerciseId": 4,
+          "exerciseName": "Bicep Curl (Dumbbell)",
+          "kg": 14.0,
+          "reps": 9,
+          "rpe": 10.0,
+          "setNumber": 2,
+          "workoutType": "heavy"
+        },
+        {
+          "completed": true,
+          "exerciseId": 14,
+          "exerciseName": "Machine Shoulder Press",
+          "kg": 50.0,
+          "reps": 10,
+          "rpe": 9.0,
+          "setNumber": 3,
+          "workoutType": "heavy"
+        },
+        {
+          "completed": true,
+          "exerciseId": 4,
+          "exerciseName": "Bicep Curl (Dumbbell)",
+          "kg": 14.0,
+          "reps": 9,
+          "rpe": 10.0,
+          "setNumber": 3,
+          "workoutType": "heavy"
+        },
+        {
+          "completed": true,
+          "exerciseId": 13,
+          "exerciseName": "Triceps Extension (Single Arm)",
+          "kg": 10.0,
+          "reps": 10,
+          "rpe": 8.0,
+          "setNumber": 1,
+          "workoutType": "heavy"
+        },
+        {
+          "completed": true,
+          "exerciseId": 13,
+          "exerciseName": "Triceps Extension (Single Arm)",
+          "kg": 12.5,
+          "reps": 7,
+          "rpe": 10.0,
+          "setNumber": 2,
+          "workoutType": "heavy"
+        },
+        {
+          "completed": true,
+          "exerciseId": 13,
+          "exerciseName": "Triceps Extension (Single Arm)",
+          "kg": 12.5,
+          "reps": 6,
+          "rpe": 9.5,
+          "setNumber": 3,
+          "workoutType": "heavy"
+        },
+        {
+          "completed": true,
+          "exerciseId": 16,
+          "exerciseName": "Abdominal Crunch (Machine)",
+          "kg": 80.0,
+          "reps": 10,
+          "rpe": 7.0,
+          "setNumber": 1,
+          "workoutType": "heavy"
+        },
+        {
+          "completed": true,
+          "exerciseId": 16,
+          "exerciseName": "Abdominal Crunch (Machine)",
+          "kg": 85.0,
+          "reps": 10,
+          "rpe": 8.0,
+          "setNumber": 2,
+          "workoutType": "heavy"
+        },
+        {
+          "completed": true,
+          "exerciseId": 16,
+          "exerciseName": "Abdominal Crunch (Machine)",
+          "kg": 95.0,
+          "reps": 5,
+          "rpe": 10.0,
+          "setNumber": 3,
+          "workoutType": "heavy"
+        },
+        {
+          "completed": true,
+          "exerciseId": 12,
+          "exerciseName": "Seated Cable Row",
+          "kg": 50.0,
+          "reps": 10,
+          "rpe": 9.0,
+          "setNumber": 1,
+          "workoutType": "heavy"
+        },
+        {
+          "completed": true,
+          "exerciseId": 12,
+          "exerciseName": "Seated Cable Row",
+          "kg": 50.0,
+          "reps": 10,
+          "rpe": 9.0,
+          "setNumber": 2,
+          "workoutType": "heavy"
+        },
+        {
+          "completed": true,
+          "exerciseId": 12,
+          "exerciseName": "Seated Cable Row",
+          "kg": 50.0,
+          "reps": 10,
+          "rpe": 9.0,
+          "setNumber": 3,
+          "workoutType": "heavy"
+        },
+        {
+          "completed": true,
+          "exerciseId": 17,
+          "exerciseName": "Bench Press (Paused)",
+          "kg": 60.0,
+          "reps": 6,
+          "rpe": 9.0,
+          "setNumber": 1,
+          "workoutType": "heavy"
+        },
+        {
+          "completed": true,
+          "exerciseId": 17,
+          "exerciseName": "Bench Press (Paused)",
+          "kg": 60.0,
+          "reps": 6,
+          "rpe": 9.0,
+          "setNumber": 2,
+          "workoutType": "heavy"
+        },
+        {
+          "completed": true,
+          "exerciseId": 17,
+          "exerciseName": "Bench Press (Paused)",
+          "kg": 60.0,
+          "reps": 6,
+          "rpe": 9.0,
+          "setNumber": 3,
+          "workoutType": "heavy"
+        },
+        {
+          "completed": true,
+          "exerciseId": 18,
+          "exerciseName": "Leg Curl (Machine)",
+          "kg": 70.0,
+          "reps": 8,
+          "rpe": 8.0,
+          "setNumber": 1,
+          "workoutType": "heavy"
+        },
+        {
+          "completed": true,
+          "exerciseId": 18,
+          "exerciseName": "Leg Curl (Machine)",
+          "kg": 70.0,
+          "reps": 8,
+          "rpe": 8.0,
+          "setNumber": 2,
+          "workoutType": "heavy"
+        }
+      ],
+      "id": "4c4ed006-8f8c-4f63-9ac6-944de58e7c43",
+      "planId": "9ae703df-2e47-4976-be9d-3c15f30e9c15",
+      "planName": "Heavy default",
+      "trainingNumber": 4
+    }
+  ],
+  "workoutPlans": [
+    {
+      "createdDate": "2025/11/18",
+      "exerciseIds": [
+        7,
+        4,
+        9,
+        1,
+        11,
+        2,
+        5
+      ],
+      "id": "9ae703df-2e47-4976-be9d-3c15f30e9c15",
+      "name": "Heavy default",
+      "workoutType": "heavy"
+    }
+  ]
+}

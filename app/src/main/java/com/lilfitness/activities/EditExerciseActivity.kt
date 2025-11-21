@@ -5,14 +5,17 @@ import android.content.Intent
 import android.graphics.drawable.Animatable
 import android.os.Bundle
 import android.view.View
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.lilfitness.R
+import android.widget.ArrayAdapter
 import androidx.appcompat.app.AppCompatActivity
+import com.lilfitness.R
 import com.lilfitness.databinding.ActivityEditExerciseBinding
 import com.lilfitness.helpers.DialogHelper
 import com.lilfitness.helpers.JsonHelper
 import com.lilfitness.helpers.showWithTransparentWindow
 import com.lilfitness.models.ExerciseLibraryItem
+import com.lilfitness.models.Mechanics
+import com.lilfitness.models.MovementPattern
+import com.lilfitness.models.Tier
 
 class EditExerciseActivity : AppCompatActivity() {
 
@@ -33,19 +36,9 @@ class EditExerciseActivity : AppCompatActivity() {
         jsonHelper = JsonHelper(this)
         exerciseId = intent.getIntExtra(EXTRA_EXERCISE_ID, -1)
 
-        if (exerciseId != -1) {
-            // Edit mode
-            binding.textEditExerciseTitle.text = "Edit Exercise"
-            val exerciseName = intent.getStringExtra(EXTRA_EXERCISE_NAME)
-            binding.editTextExerciseName.setText(exerciseName)
-            binding.cardDelete.visibility = View.VISIBLE
-        } else {
-            // Create mode
-            binding.textEditExerciseTitle.text = "Create New Exercise"
-            binding.cardDelete.visibility = View.GONE
-        }
-
         setupBackgroundAnimation()
+        setupDropdowns()
+        loadExerciseData()
         setupClickListeners()
     }
 
@@ -56,31 +49,57 @@ class EditExerciseActivity : AppCompatActivity() {
         }
     }
 
+    private fun setupDropdowns() {
+        // 1. Movement Pattern (Show Human Name)
+        val patterns = MovementPattern.values().map { it.displayName }
+        val patternAdapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, patterns)
+        binding.dropdownPattern.setAdapter(patternAdapter)
+
+        // 2. Tier
+        val tiers = Tier.values().map { it.displayName }
+        val tierAdapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, tiers)
+        binding.dropdownTier.setAdapter(tierAdapter)
+
+        // 3. Mechanics
+        val mechanics = Mechanics.values().map { it.displayName }
+        val mechanicsAdapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, mechanics)
+        binding.dropdownMechanics.setAdapter(mechanicsAdapter)
+    }
+
+    private fun loadExerciseData() {
+        if (exerciseId != -1) {
+            binding.textEditExerciseTitle.text = "Edit Exercise"
+            binding.cardDelete.visibility = View.VISIBLE
+
+            val trainingData = jsonHelper.readTrainingData()
+            val exercise = trainingData.exerciseLibrary.find { it.id == exerciseId }
+
+            if (exercise != null) {
+                binding.editTextExerciseName.setText(exercise.name)
+
+                // Set Dropdown Values (Using displayName)
+                exercise.pattern?.let { binding.dropdownPattern.setText(it.displayName, false) }
+                exercise.tier?.let { binding.dropdownTier.setText(it.displayName, false) }
+                exercise.mechanics?.let { binding.dropdownMechanics.setText(it.displayName, false) }
+            }
+        } else {
+            binding.textEditExerciseTitle.text = "Create New Exercise"
+            binding.cardDelete.visibility = View.GONE
+        }
+    }
+
     private fun setupClickListeners() {
-        binding.buttonSaveExercise.setOnClickListener {
-            saveExercise()
-        }
-
-        binding.cardDelete.setOnClickListener {
-            showDeleteConfirmationDialog()
-        }
-
-        binding.buttonBack.setOnClickListener {
-            finish()
-        }
-
-        binding.buttonCancel.setOnClickListener {
-            finish()
-        }
+        binding.buttonSaveExercise.setOnClickListener { saveExercise() }
+        binding.cardDelete.setOnClickListener { showDeleteConfirmationDialog() }
+        binding.buttonBack.setOnClickListener { finish() }
+        binding.buttonCancel.setOnClickListener { finish() }
     }
 
     private fun showDeleteConfirmationDialog() {
         DialogHelper.createBuilder(this)
             .setTitle(getString(R.string.dialog_title_delete_exercise))
             .setMessage(getString(R.string.dialog_message_delete_exercise))
-            .setPositiveButton(getString(R.string.button_delete)) { _, _ ->
-                deleteExercise()
-            }
+            .setPositiveButton(getString(R.string.button_delete)) { _, _ -> deleteExercise() }
             .setNegativeButton(getString(R.string.button_cancel), null)
             .showWithTransparentWindow()
     }
@@ -92,7 +111,6 @@ class EditExerciseActivity : AppCompatActivity() {
             session.exercises.removeAll { it.exerciseId == exerciseId }
         }
         jsonHelper.writeTrainingData(trainingData)
-
         setResult(Activity.RESULT_OK)
         finish()
     }
@@ -104,33 +122,48 @@ class EditExerciseActivity : AppCompatActivity() {
             return
         }
 
+        // Get Display Strings
+        val patternStr = binding.dropdownPattern.text.toString()
+        val tierStr = binding.dropdownTier.text.toString()
+        val mechanicsStr = binding.dropdownMechanics.text.toString()
+
+        // Reverse Lookup: Find Enum by displayName
+        val selectedPattern = MovementPattern.values().find { it.displayName == patternStr }
+        val selectedTier = Tier.values().find { it.displayName == tierStr }
+        val selectedMechanics = Mechanics.values().find { it.displayName == mechanicsStr }
+
         val trainingData = jsonHelper.readTrainingData()
 
         if (exerciseId != -1) {
-            // Update existing exercise
             val existingExercise = trainingData.exerciseLibrary.find { it.id == exerciseId }
             if (existingExercise != null) {
-                // Update name in the library
                 val index = trainingData.exerciseLibrary.indexOf(existingExercise)
                 if (index != -1) {
-                    trainingData.exerciseLibrary[index] = existingExercise.copy(name = newName)
+                    trainingData.exerciseLibrary[index] = existingExercise.copy(
+                        name = newName,
+                        pattern = selectedPattern,
+                        tier = selectedTier,
+                        mechanics = selectedMechanics
+                    )
                 }
-
-                // Update name in all past training sessions for data integrity
+                // Legacy name update
                 trainingData.trainings.forEach { session ->
                     session.exercises.forEach { entry ->
-                        if (entry.exerciseId == exerciseId) {
-                            entry.exerciseName = newName
-                        }
+                        if (entry.exerciseId == exerciseId) entry.exerciseName = newName
                     }
                 }
             }
         } else {
-            // Create new exercise
             val nextId = (trainingData.exerciseLibrary.maxOfOrNull { it.id } ?: 0) + 1
-            val newExercise = ExerciseLibraryItem(id = nextId, name = newName)
+            val newExercise = ExerciseLibraryItem(
+                id = nextId,
+                name = newName,
+                pattern = selectedPattern,
+                tier = selectedTier,
+                mechanics = selectedMechanics
+            )
             trainingData.exerciseLibrary.add(newExercise)
-            exerciseId = nextId // So we can return it
+            exerciseId = nextId
         }
 
         jsonHelper.writeTrainingData(trainingData)

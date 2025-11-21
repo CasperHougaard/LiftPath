@@ -6,34 +6,38 @@ import java.util.UUID
 
 // --- NEW ENUMS (The "Vocabulary" for Smart Logic) ---
 
-enum class UserLevel {
-    NOVICE,       // Linear Progression (Default)
-    INTERMEDIATE  // Periodized (Heavy/Light rotation)
+// 1. User Level
+enum class UserLevel(val displayName: String) {
+    NOVICE("Novice (Linear Progression)"),
+    INTERMEDIATE("Intermediate (Periodized)")
 }
 
-enum class Tier {
-    TIER_1, // Main Lifts (Squat, Bench, Deadlift)
-    TIER_2, // Assistance (Leg Press, Incline Bench)
-    TIER_3  // Accessory (Curls, Abs)
+// 2. The Tier
+enum class Tier(val displayName: String) {
+    TIER_1("Tier 1 (Main Lift / Heavy)"),
+    TIER_2("Tier 2 (Assistance / Volume)"),
+    TIER_3("Tier 3 (Accessory / Isolation)")
 }
 
-enum class MovementPattern {
-    SQUAT,
-    HINGE,
-    LUNGE,
-    PUSH_HORIZONTAL,
-    PUSH_VERTICAL,
-    PULL_HORIZONTAL,
-    PULL_VERTICAL,
-    CARRY,
-    CORE,
-    ISOLATION_ARMS,
-    OTHER
+// 3. Movement Patterns
+enum class MovementPattern(val displayName: String) {
+    SQUAT("Squat (Knee Dominant)"),
+    HINGE("Hinge (Hip Dominant)"),
+    LUNGE("Lunge (Single Leg)"),
+    PUSH_HORIZONTAL("Horizontal Push (Chest)"),
+    PUSH_VERTICAL("Vertical Push (Shoulders)"),
+    PULL_HORIZONTAL("Horizontal Pull (Rows)"),
+    PULL_VERTICAL("Vertical Pull (Lats)"),
+    CARRY("Carry (Farmer's Walk)"),
+    CORE("Core (Abs/Obliques)"),
+    ISOLATION_ARMS("Arms (Bicep/Tricep)"),
+    OTHER("Other")
 }
 
-enum class Mechanics {
-    COMPOUND,
-    ISOLATION
+// 4. Mechanics
+enum class Mechanics(val displayName: String) {
+    COMPOUND("Compound (Multi-joint)"),
+    ISOLATION("Isolation (Single-joint)")
 }
 
 // --- UPDATED DATA MODELS ---

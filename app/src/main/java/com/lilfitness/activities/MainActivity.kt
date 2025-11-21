@@ -80,6 +80,12 @@ class MainActivity : AppCompatActivity() {
         updateStats()
     }
 
+    override fun onResume() {
+        super.onResume()
+        // Refresh stats when returning from other activities (e.g., after deleting a training session)
+        updateStats()
+    }
+
     private fun setupBackgroundAnimation() {
         val drawable = binding.imageBgAnimation.drawable
         if (drawable is Animatable) {

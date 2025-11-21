@@ -49,6 +49,25 @@ class SelectDefaultExerciseActivity : AppCompatActivity() {
         binding.listViewDefaultExercises.adapter = adapter
         binding.listViewDefaultExercises.choiceMode = ListView.CHOICE_MODE_MULTIPLE
 
+        // Calculate ListView height to enable proper scrolling in NestedScrollView
+        binding.listViewDefaultExercises.post {
+            var totalHeight = 0
+            val itemCount = adapter.count
+            for (i in 0 until itemCount) {
+                val itemView = adapter.getView(i, null, binding.listViewDefaultExercises)
+                itemView.measure(
+                    android.view.View.MeasureSpec.makeMeasureSpec(0, android.view.View.MeasureSpec.UNSPECIFIED),
+                    android.view.View.MeasureSpec.makeMeasureSpec(0, android.view.View.MeasureSpec.UNSPECIFIED)
+                )
+                totalHeight += itemView.measuredHeight
+            }
+            // Add divider heights (8dp each, converted to pixels)
+            val dividerHeight = (8 * resources.displayMetrics.density * itemCount).toInt()
+            val params = binding.listViewDefaultExercises.layoutParams
+            params.height = totalHeight + dividerHeight
+            binding.listViewDefaultExercises.layoutParams = params
+        }
+
         binding.listViewDefaultExercises.setOnItemClickListener { _, _, position, _ ->
             val exercise = availableExercises[position]
             if (selectedExercises.contains(exercise)) {
@@ -62,6 +81,10 @@ class SelectDefaultExerciseActivity : AppCompatActivity() {
     }
 
     private fun setupClickListeners() {
+        binding.buttonBack.setOnClickListener {
+            finish()
+        }
+        
         binding.buttonAddSelected.setOnClickListener {
             addSelectedExercises()
         }
