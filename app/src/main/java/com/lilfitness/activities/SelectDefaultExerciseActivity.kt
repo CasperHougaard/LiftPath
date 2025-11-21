@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.widget.ListView
 import androidx.appcompat.app.AppCompatActivity
 import com.lilfitness.databinding.ActivitySelectDefaultExerciseBinding
+import com.lilfitness.helpers.DefaultExercisesHelper // <--- Make sure this Import exists
 import com.lilfitness.helpers.JsonHelper
 import com.lilfitness.adapters.SelectDefaultExerciseAdapter
 import com.lilfitness.models.ExerciseLibraryItem
@@ -28,16 +29,21 @@ class SelectDefaultExerciseActivity : AppCompatActivity() {
     }
 
     private fun setupListView() {
-        val allDefaultExercises = listOf(
-            ExerciseLibraryItem(id = 1, name = "Deadlift"),
-            ExerciseLibraryItem(id = 2, name = "Squat"),
-            ExerciseLibraryItem(id = 3, name = "Bench Press"),
-            ExerciseLibraryItem(id = 4, name = "Biceps Curl"),
-            ExerciseLibraryItem(id = 5, name = "Triceps Pushdown")
-        )
+        // --- CHANGED HERE ---
+        // Old code: val allDefaultExercises = listOf(...)
+        // New code: Call the helper to get the 25 smart exercises
+        val allDefaultExercises = DefaultExercisesHelper.getPopularDefaults()
+        // --------------------
 
-        val currentExerciseNames = jsonHelper.readTrainingData().exerciseLibrary.map { it.name }
-        val availableExercises = allDefaultExercises.filter { it.name !in currentExerciseNames }
+        // Get existing exercises to prevent duplicates
+        val existingLibrary = jsonHelper.readTrainingData().exerciseLibrary
+        
+        // Filter: Only show exercises that match neither ID nor Name of existing ones
+        val availableExercises = allDefaultExercises.filter { defaultItem ->
+            val idExists = existingLibrary.any { it.id == defaultItem.id }
+            val nameExists = existingLibrary.any { it.name.equals(defaultItem.name, ignoreCase = true) }
+            !idExists && !nameExists
+        }
 
         val adapter = SelectDefaultExerciseAdapter(this, availableExercises, selectedExercises)
         binding.listViewDefaultExercises.adapter = adapter
@@ -50,6 +56,7 @@ class SelectDefaultExerciseActivity : AppCompatActivity() {
             } else {
                 selectedExercises.add(exercise)
             }
+            // Notify adapter to update checkboxes
             (binding.listViewDefaultExercises.adapter as SelectDefaultExerciseAdapter).notifyDataSetChanged()
         }
     }
@@ -63,14 +70,14 @@ class SelectDefaultExerciseActivity : AppCompatActivity() {
     private fun addSelectedExercises() {
         val trainingData = jsonHelper.readTrainingData()
         val existingExercises = trainingData.exerciseLibrary
-        val maxId = existingExercises.maxOfOrNull { it.id } ?: 0
 
-        var nextId = maxId + 1
+        // --- CHANGED HERE ---
+        // We do NOT generate new IDs (nextId++). 
+        // We use the ID coming from the helper (100+) so the logic engine knows what they are.
         selectedExercises.forEach { selected ->
-            if (existingExercises.none { it.name.equals(selected.name, ignoreCase = true) }) {
-                existingExercises.add(selected.copy(id = nextId++))
-            }
+            existingExercises.add(selected)
         }
+        // --------------------
 
         jsonHelper.writeTrainingData(trainingData)
         setResult(Activity.RESULT_OK)
