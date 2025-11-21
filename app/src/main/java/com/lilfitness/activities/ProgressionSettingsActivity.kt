@@ -1,9 +1,15 @@
 package com.lilfitness.activities
 
+import android.animation.ObjectAnimator
+import android.animation.ValueAnimator
 import android.os.Bundle
+import android.view.View
+import android.view.ViewGroup
+import android.view.animation.DecelerateInterpolator
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.animation.doOnEnd
 import com.lilfitness.databinding.ActivityProgressionSettingsBinding
 import com.lilfitness.helpers.ProgressionHelper
 import com.lilfitness.helpers.ProgressionSettingsManager
@@ -12,6 +18,9 @@ class ProgressionSettingsActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityProgressionSettingsBinding
     private lateinit var settingsManager: ProgressionSettingsManager
+    
+    // Track expanded state for each section
+    private val expandedSections = mutableSetOf<String>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -21,10 +30,34 @@ class ProgressionSettingsActivity : AppCompatActivity() {
         supportActionBar?.title = "Progression Settings"
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
+        // Setup background animation
+        setupBackgroundAnimation()
+
         settingsManager = ProgressionSettingsManager(this)
+
+        // Initialize all sections as collapsed by default
+        // Initialize icon rotations to match collapsed state (270 degrees = collapsed)
+        binding.iconExpandCore.rotation = 270f
+        binding.iconExpandRestTimer.rotation = 270f
+        binding.iconExpandDeload.rotation = 270f
+        binding.iconExpandPlateau.rotation = 270f
+        
+        // Set content views to collapsed initially
+        collapseViewImmediate(binding.contentCoreSettings)
+        collapseViewImmediate(binding.contentRestTimer)
+        collapseViewImmediate(binding.contentDeload)
+        collapseViewImmediate(binding.contentPlateau)
 
         loadSettings()
         setupListeners()
+        setupExpandCollapseListeners()
+    }
+    
+    private fun setupBackgroundAnimation() {
+        val drawable = binding.imageBgAnimation.drawable
+        if (drawable is android.graphics.drawable.Animatable) {
+            drawable.start()
+        }
     }
 
     private fun loadSettings() {
@@ -83,6 +116,99 @@ class ProgressionSettingsActivity : AppCompatActivity() {
         binding.switchRpeAdjustment.setOnCheckedChangeListener { _, isChecked ->
             binding.layoutRpeAdjustmentSettings.visibility = if (isChecked) android.view.View.VISIBLE else android.view.View.GONE
         }
+    }
+    
+    private fun setupExpandCollapseListeners() {
+        // Core Settings
+        binding.headerCoreSettings.setOnClickListener {
+            toggleSection("core", binding.contentCoreSettings, binding.iconExpandCore)
+        }
+        
+        // Rest Timer
+        binding.headerRestTimer.setOnClickListener {
+            toggleSection("rest_timer", binding.contentRestTimer, binding.iconExpandRestTimer)
+        }
+        
+        // Deload
+        binding.headerDeload.setOnClickListener {
+            toggleSection("deload", binding.contentDeload, binding.iconExpandDeload)
+        }
+        
+        // Plateau
+        binding.headerPlateau.setOnClickListener {
+            toggleSection("plateau", binding.contentPlateau, binding.iconExpandPlateau)
+        }
+    }
+    
+    private fun toggleSection(sectionId: String, contentView: ViewGroup, iconView: View) {
+        val isExpanded = expandedSections.contains(sectionId)
+        
+        if (isExpanded) {
+            // Collapse
+            collapseView(contentView, iconView)
+            expandedSections.remove(sectionId)
+        } else {
+            // Expand
+            expandView(contentView, iconView)
+            expandedSections.add(sectionId)
+        }
+    }
+    
+    private fun expandView(view: ViewGroup, iconView: View) {
+        view.measure(
+            View.MeasureSpec.makeMeasureSpec(view.width, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        )
+        val targetHeight = view.measuredHeight
+        
+        view.layoutParams.height = 0
+        view.visibility = View.VISIBLE
+        
+        val animator = ValueAnimator.ofInt(0, targetHeight)
+        animator.interpolator = DecelerateInterpolator()
+        animator.duration = 300
+        animator.addUpdateListener { animation ->
+            view.layoutParams.height = animation.animatedValue as Int
+            view.requestLayout()
+        }
+        animator.doOnEnd {
+            view.layoutParams.height = ViewGroup.LayoutParams.WRAP_CONTENT
+        }
+        animator.start()
+        
+        // Rotate icon
+        ObjectAnimator.ofFloat(iconView, "rotation", 270f, 90f).apply {
+            duration = 300
+            interpolator = DecelerateInterpolator()
+        }.start()
+    }
+    
+    private fun collapseView(view: ViewGroup, iconView: View) {
+        val initialHeight = view.height
+        
+        val animator = ValueAnimator.ofInt(initialHeight, 0)
+        animator.interpolator = DecelerateInterpolator()
+        animator.duration = 300
+        animator.addUpdateListener { animation ->
+            view.layoutParams.height = animation.animatedValue as Int
+            view.requestLayout()
+        }
+        animator.doOnEnd {
+            view.visibility = View.GONE
+            view.layoutParams.height = ViewGroup.LayoutParams.WRAP_CONTENT
+        }
+        animator.start()
+        
+        // Rotate icon
+        ObjectAnimator.ofFloat(iconView, "rotation", 90f, 270f).apply {
+            duration = 300
+            interpolator = DecelerateInterpolator()
+        }.start()
+    }
+    
+    private fun collapseViewImmediate(view: ViewGroup) {
+        view.visibility = View.GONE
+        view.layoutParams.height = ViewGroup.LayoutParams.WRAP_CONTENT
     }
 
     private fun saveSettings() {

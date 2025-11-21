@@ -44,15 +44,25 @@ class TrainingDetailAdapter(
 
         for (set in groupedExercise.sets) {
             val setBinding = ItemSetDetailBinding.inflate(LayoutInflater.from(holder.itemView.context))
-            setBinding.textSetDetails.text = formatSetInfo(set)
-            setBinding.buttonEditSet.setOnClickListener {
-                onEditSetClicked(set)
+            setBinding.textSetDetails.text = formatSetDetails(set)
+            
+            // Set note separately if it exists
+            set.note?.let { note ->
+                setBinding.textSetNote.text = note
+                setBinding.textSetNote.visibility = android.view.View.VISIBLE
+                // Enable marquee scrolling for note after view is added to parent
+                setBinding.root.post {
+                    setBinding.textSetNote.isSelected = true
+                }
+            } ?: run {
+                setBinding.textSetNote.visibility = android.view.View.GONE
             }
+            
             holder.binding.setsContainer.addView(setBinding.root)
         }
     }
 
-    private fun formatSetInfo(set: ExerciseEntry): SpannableString {
+    private fun formatSetDetails(set: ExerciseEntry): SpannableString {
         val text = buildString {
             append("Set ${set.setNumber}: ${set.kg}kg × ${set.reps} reps")
 
@@ -64,11 +74,6 @@ class TrainingDetailAdapter(
             // Show legacy rating if no RPE (old data)
             if (set.rpe == null && set.rating != null) {
                 append(" • Rating ${set.rating}/5")
-            }
-
-            // Show note if exists
-            set.note?.let {
-                append("\n   Note: $it")
             }
         }
 

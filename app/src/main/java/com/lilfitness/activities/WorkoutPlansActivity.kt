@@ -29,10 +29,20 @@ class WorkoutPlansActivity : AppCompatActivity() {
         binding = ActivityWorkoutPlansBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // Setup background animation
+        setupBackgroundAnimation()
+
         jsonHelper = JsonHelper(this)
         setupRecyclerView()
         setupClickListeners()
         loadPlans()
+    }
+    
+    private fun setupBackgroundAnimation() {
+        val drawable = binding.imageBgAnimation.drawable
+        if (drawable is android.graphics.drawable.Animatable) {
+            drawable.start()
+        }
     }
 
     private fun setupRecyclerView() {
@@ -58,6 +68,10 @@ class WorkoutPlansActivity : AppCompatActivity() {
     }
 
     private fun setupClickListeners() {
+        binding.buttonBack.setOnClickListener {
+            onBackPressed()
+        }
+        
         binding.fabCreatePlan.setOnClickListener {
             createNewPlan()
         }

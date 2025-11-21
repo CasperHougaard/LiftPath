@@ -8,46 +8,128 @@
     android:fitsSystemWindows="true"
     tools:context=".activities.SelectExercisesForPlanActivity">
 
-    <TextView
-        android:id="@+id/text_title"
+    <!-- Background Flow Animation -->
+    <ImageView
+        android:id="@+id/image_bg_animation"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:padding="16dp"
-        android:text="Select Exercises"
-        android:textColor="@color/fitness_text_primary"
-        android:textSize="20sp"
-        android:textStyle="bold"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:alpha="1.0"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@drawable/avd_background_flow" />
 
-    <TextView
-        android:id="@+id/text_selected_count"
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:paddingBottom="8dp"
-        android:text="0 selected"
-        android:textColor="@color/fitness_text_secondary"
-        android:textSize="14sp"
-        app:layout_constraintTop_toBottomOf="@id/text_title" />
+        android:layout_height="match_parent"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:padding="24dp">
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recycler_view_exercises"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:padding="8dp"
-        app:layout_constraintBottom_toTopOf="@id/button_done"
-        app:layout_constraintTop_toBottomOf="@id/text_selected_count" />
+        <!-- HEADER WITH BACK BUTTON -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/button_back"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground"
+            app:cardBackgroundColor="@color/fitness_card_background"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="0dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
 
-    <Button
-        android:id="@+id/button_done"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_margin="16dp"
-        android:text="Done"
-        android:textAllCaps="false"
-        android:textColor="@color/fitness_primary"
-        app:layout_constraintBottom_toBottomOf="parent" />
+            <ImageButton
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@android:color/transparent"
+                android:contentDescription="@string/progress_back_content_description"
+                android:padding="12dp"
+                android:src="@drawable/ic_arrow_back_24"
+                app:tint="@color/fitness_text_primary" />
+        </androidx.cardview.widget.CardView>
 
+        <LinearLayout
+            android:id="@+id/header_container"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:orientation="vertical"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/button_back"
+            app:layout_constraintTop_toTopOf="@id/button_back">
+
+            <TextView
+                android:id="@+id/text_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Select Exercises"
+                android:textColor="@color/fitness_text_primary"
+                android:textSize="28sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/text_selected_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="0 selected"
+                android:textColor="@color/fitness_text_secondary"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <!-- EXERCISES LIST CARD -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/card_exercises_list"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="12dp"
+            app:cardBackgroundColor="@color/fitness_card_background"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="4dp"
+            app:layout_constraintBottom_toTopOf="@id/button_done"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/header_container">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recycler_view_exercises"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="12dp"
+                android:clipToPadding="false"
+                android:clipChildren="false" />
+        </androidx.cardview.widget.CardView>
+
+        <!-- DONE BUTTON - FIXED AT BOTTOM -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/button_done"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_marginBottom="24dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground"
+            app:cardBackgroundColor="@color/fitness_primary"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="4dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="Done"
+                android:textColor="@color/white"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+        </androidx.cardview.widget.CardView>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>
-

@@ -1,11 +1,12 @@
 package com.lilfitness.adapters
 
+import android.graphics.drawable.ColorDrawable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
-import androidx.cardview.widget.CardView
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.lilfitness.R
 import com.lilfitness.models.ExerciseLibraryItem
@@ -16,8 +17,10 @@ class SelectExerciseWithPlanAdapter(
     private val onExerciseClicked: (ExerciseLibraryItem) -> Unit
 ) : RecyclerView.Adapter<SelectExerciseWithPlanAdapter.ExerciseViewHolder>() {
 
+    private var defaultBackground: android.graphics.drawable.Drawable? = null
+
     class ExerciseViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val cardView: CardView = view.findViewById(R.id.card_view_exercise_item)
+        val itemViewContainer: View = view.findViewById(R.id.card_view_exercise_item)
         val exerciseName: TextView = view.findViewById(R.id.text_exercise_name)
         val planBadge: ImageView = view.findViewById(R.id.image_plan_badge)
     }
@@ -25,7 +28,12 @@ class SelectExerciseWithPlanAdapter(
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ExerciseViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.list_item_select_exercise_with_badge, parent, false)
-        return ExerciseViewHolder(view)
+        val holder = ExerciseViewHolder(view)
+        // Save default background on first inflation
+        if (defaultBackground == null) {
+            defaultBackground = holder.itemViewContainer.background
+        }
+        return holder
     }
 
     override fun onBindViewHolder(holder: ExerciseViewHolder, position: Int) {
@@ -36,13 +44,14 @@ class SelectExerciseWithPlanAdapter(
         val isInPlan = planExerciseIds.contains(exercise.id)
         
         if (isInPlan) {
-            // Show badge and highlight background
+            // Show badge and highlight background with light green
             holder.planBadge.visibility = View.VISIBLE
-            holder.cardView.setCardBackgroundColor(0xFFE8F5E9.toInt()) // Light green
+            val lightGreen = 0xFFE8F5E9.toInt()
+            holder.itemViewContainer.background = ColorDrawable(lightGreen)
         } else {
-            // Hide badge and use default background
+            // Hide badge and restore default background
             holder.planBadge.visibility = View.GONE
-            holder.cardView.setCardBackgroundColor(0xFFFFFFFF.toInt()) // White
+            holder.itemViewContainer.background = defaultBackground?.constantState?.newDrawable()
         }
 
         holder.itemView.setOnClickListener {

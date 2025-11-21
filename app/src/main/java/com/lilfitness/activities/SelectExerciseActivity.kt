@@ -55,6 +55,9 @@ class SelectExerciseActivity : AppCompatActivity() {
         binding = ActivitySelectExerciseBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // Setup background animation
+        setupBackgroundAnimation()
+
         jsonHelper = JsonHelper(this)
         sessionWorkoutType = intent.getStringExtra(EXTRA_WORKOUT_TYPE) ?: "heavy"
         planId = intent.getStringExtra(EXTRA_PLAN_ID)
@@ -72,6 +75,13 @@ class SelectExerciseActivity : AppCompatActivity() {
 
         binding.buttonBack.setOnClickListener {
             onBackPressed()
+        }
+    }
+    
+    private fun setupBackgroundAnimation() {
+        val drawable = binding.imageBgAnimation.drawable
+        if (drawable is android.graphics.drawable.Animatable) {
+            drawable.start()
         }
     }
 

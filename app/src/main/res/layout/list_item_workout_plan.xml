@@ -3,17 +3,22 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="16dp"
+    android:layout_marginBottom="12dp"
+    android:layout_marginStart="4dp"
+    android:layout_marginEnd="4dp"
     app:cardBackgroundColor="@color/fitness_card_background"
-    app:cardCornerRadius="12dp"
-    app:cardElevation="4dp">
+    app:cardCornerRadius="16dp"
+    app:cardElevation="2dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:clipChildren="false"
+        android:clipToPadding="false"
         android:orientation="vertical"
         android:padding="16dp">
 
+        <!-- Header Row: Plan Name and Badge -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -24,6 +29,7 @@
                 android:id="@+id/text_plan_name"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_marginEnd="12dp"
                 android:layout_weight="1"
                 android:text="Plan Name"
                 android:textColor="@color/fitness_text_primary"
@@ -34,17 +40,19 @@
                 android:id="@+id/text_workout_type_badge"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:background="@drawable/badge_rounded_background"
                 android:backgroundTint="@color/fitness_primary"
-                android:paddingStart="8dp"
-                android:paddingEnd="8dp"
-                android:paddingTop="4dp"
-                android:paddingBottom="4dp"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp"
                 android:text="Heavy"
                 android:textColor="@color/white"
                 android:textSize="11sp"
                 android:textStyle="bold" />
         </LinearLayout>
 
+        <!-- Exercise Count -->
         <TextView
             android:id="@+id/text_exercise_count"
             android:layout_width="wrap_content"
@@ -54,41 +62,90 @@
             android:textColor="@color/fitness_text_secondary"
             android:textSize="14sp" />
 
+        <!-- Action Buttons Row -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
+            android:baselineAligned="false"
+            android:clipChildren="false"
+            android:clipToPadding="false"
             android:orientation="horizontal">
 
-            <Button
+            <!-- Use Plan Button (Primary) -->
+            <androidx.cardview.widget.CardView
                 android:id="@+id/button_use_plan"
-                style="@style/Widget.MaterialComponents.Button"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
+                android:layout_height="40dp"
+                android:layout_marginEnd="6dp"
                 android:layout_weight="1"
-                android:text="Use Plan"
-                android:textAllCaps="false" />
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground"
+                app:cardBackgroundColor="@color/fitness_primary"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp">
 
-            <Button
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text="Use Plan"
+                    android:textColor="@color/white"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+            </androidx.cardview.widget.CardView>
+
+            <!-- Edit Button (Outlined) -->
+            <androidx.cardview.widget.CardView
                 android:id="@+id/button_edit_plan"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
+                android:layout_height="40dp"
+                android:layout_marginEnd="6dp"
                 android:layout_weight="1"
-                android:text="Edit"
-                android:textAllCaps="false" />
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground"
+                app:cardBackgroundColor="@color/fitness_card_background"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/fitness_text_secondary"
+                app:strokeWidth="1dp">
 
-            <Button
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text="Edit"
+                    android:textColor="@color/fitness_text_primary"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+            </androidx.cardview.widget.CardView>
+
+            <!-- Delete Button (Text/Destructive) -->
+            <androidx.cardview.widget.CardView
                 android:id="@+id/button_delete_plan"
-                style="@style/Widget.MaterialComponents.Button.TextButton"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Delete"
-                android:textAllCaps="false"
-                android:textColor="@color/fitness_accent" />
+                android:layout_height="40dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground"
+                android:minWidth="60dp"
+                app:cardBackgroundColor="@color/fitness_card_background"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="0dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:text="Delete"
+                    android:textColor="@color/design_default_color_error"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+            </androidx.cardview.widget.CardView>
         </LinearLayout>
     </LinearLayout>
 </androidx.cardview.widget.CardView>
-

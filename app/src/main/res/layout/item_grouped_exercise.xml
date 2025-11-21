@@ -1,52 +1,108 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:padding="0dp">
-
-    <TextView
-        android:id="@+id/text_exercise_name"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Exercise Name"
-        android:textAppearance="@style/TextAppearance.AppCompat.Large" />
+    android:layout_marginBottom="12dp"
+    app:cardBackgroundColor="@color/fitness_card_background"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="2dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:orientation="horizontal">
+        android:orientation="vertical"
+        android:padding="16dp">
 
+        <!-- Title -->
+        <TextView
+            android:id="@+id/text_exercise_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Exercise Name"
+            android:textColor="@color/fitness_text_primary"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <!-- Type -->
         <TextView
             android:id="@+id/text_exercise_type"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
+            android:layout_marginTop="2dp"
             android:text="Type: Heavy"
-            android:textColor="@color/fitness_text_secondary" />
+            android:textColor="@color/fitness_text_secondary"
+            android:textSize="12sp" />
 
-        <Button
-            android:id="@+id/button_edit_activity"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-            android:layout_width="wrap_content"
+        <!-- Action Buttons Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="8dp"
-            android:text="Edit" />
+            android:layout_marginTop="10dp"
+            android:baselineAligned="false"
+            android:clipChildren="false"
+            android:clipToPadding="false"
+            android:orientation="horizontal">
 
-        <Button
-            android:id="@+id/button_change_type"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-            android:layout_width="wrap_content"
+            <!-- Edit Button -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/button_edit_activity"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_marginEnd="6dp"
+                android:layout_weight="1"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground"
+                app:cardBackgroundColor="@color/fitness_card_background"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/fitness_text_secondary"
+                app:strokeWidth="1dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text="Edit"
+                    android:textColor="@color/fitness_text_primary"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+            </androidx.cardview.widget.CardView>
+
+            <!-- Change Type Button -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/button_change_type"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="6dp"
+                android:layout_weight="1"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground"
+                app:cardBackgroundColor="@color/fitness_card_background"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/fitness_text_secondary"
+                app:strokeWidth="1dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text="Change Type"
+                    android:textColor="@color/fitness_text_primary"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+            </androidx.cardview.widget.CardView>
+        </LinearLayout>
+
+        <!-- Sets Container -->
+        <LinearLayout
+            android:id="@+id/sets_container"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Change Type" />
-
+            android:layout_marginTop="10dp"
+            android:orientation="vertical" />
     </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/sets_container"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical" />
-
-</LinearLayout>
+</androidx.cardview.widget.CardView>

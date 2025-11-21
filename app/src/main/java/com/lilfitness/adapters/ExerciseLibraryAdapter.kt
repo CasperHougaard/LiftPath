@@ -3,8 +3,8 @@ package com.lilfitness.adapters
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
 import android.widget.TextView
+import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.RecyclerView
 import com.lilfitness.R
 import com.lilfitness.models.ExerciseLibraryItem
@@ -16,7 +16,7 @@ class ExerciseLibraryAdapter(
 
     class ExerciseViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val exerciseName: TextView = view.findViewById(R.id.text_exercise_name)
-        val editButton: Button = view.findViewById(R.id.button_edit_exercise)
+        val editButton: CardView = view.findViewById(R.id.button_edit_exercise)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ExerciseViewHolder {

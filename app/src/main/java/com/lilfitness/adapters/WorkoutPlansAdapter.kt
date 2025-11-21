@@ -3,8 +3,8 @@ package com.lilfitness.adapters
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
 import android.widget.TextView
+import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.RecyclerView
 import com.lilfitness.R
 import com.lilfitness.models.WorkoutPlan
@@ -21,9 +21,9 @@ class WorkoutPlansAdapter(
         val planName: TextView = view.findViewById(R.id.text_plan_name)
         val workoutTypeBadge: TextView = view.findViewById(R.id.text_workout_type_badge)
         val exerciseCount: TextView = view.findViewById(R.id.text_exercise_count)
-        val usePlanButton: Button = view.findViewById(R.id.button_use_plan)
-        val editPlanButton: Button = view.findViewById(R.id.button_edit_plan)
-        val deletePlanButton: Button = view.findViewById(R.id.button_delete_plan)
+        val usePlanButton: CardView = view.findViewById(R.id.button_use_plan)
+        val editPlanButton: CardView = view.findViewById(R.id.button_edit_plan)
+        val deletePlanButton: CardView = view.findViewById(R.id.button_delete_plan)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PlanViewHolder {

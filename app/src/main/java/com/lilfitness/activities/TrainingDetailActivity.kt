@@ -62,6 +62,9 @@ class TrainingDetailActivity : AppCompatActivity() {
         binding = ActivityTrainingDetailBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // Setup background animation
+        setupBackgroundAnimation()
+
         jsonHelper = JsonHelper(this)
 
         val session = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -73,12 +76,20 @@ class TrainingDetailActivity : AppCompatActivity() {
 
         if (session != null) {
             trainingSession = session
-            title = "Training #${trainingSession.trainingNumber} - ${trainingSession.date}"
+            val titleText = "Training #${trainingSession.trainingNumber} - ${trainingSession.date}"
+            binding.textTitle.text = titleText
             setupSessionTypeControls()
             setupRecyclerView()
             setupClickListeners()
         } else {
-            title = "Training Details"
+            binding.textTitle.text = "Training Details"
+        }
+    }
+    
+    private fun setupBackgroundAnimation() {
+        val drawable = binding.imageBgAnimation.drawable
+        if (drawable is android.graphics.drawable.Animatable) {
+            drawable.start()
         }
     }
 

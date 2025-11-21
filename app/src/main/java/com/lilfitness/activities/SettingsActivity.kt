@@ -3,11 +3,12 @@ package com.lilfitness.activities
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
-import android.widget.Button
+import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import com.lilfitness.R
+import com.lilfitness.databinding.ActivitySettingsBinding
 import com.lilfitness.helpers.JsonHelper
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java.text.SimpleDateFormat
@@ -15,6 +16,7 @@ import java.util.Date
 import java.util.Locale
 
 class SettingsActivity : AppCompatActivity() {
+    private lateinit var binding: ActivitySettingsBinding
     private lateinit var jsonHelper: JsonHelper
 
     private val exportDocumentLauncher = registerForActivityResult(
@@ -49,31 +51,44 @@ class SettingsActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_settings)
+        binding = ActivitySettingsBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        // Setup background animation
+        setupBackgroundAnimation()
+
         jsonHelper = JsonHelper(this)
 
         setupClickListeners()
     }
+    
+    private fun setupBackgroundAnimation() {
+        val drawable = binding.imageBgAnimation.drawable
+        if (drawable is android.graphics.drawable.Animatable) {
+            drawable.start()
+        }
+    }
 
     private fun setupClickListeners() {
-        findViewById<Button>(R.id.button_reset_data).setOnClickListener {
+        binding.buttonResetData.setOnClickListener {
             showResetDataConfirmationDialog()
         }
 
-        findViewById<Button>(R.id.button_export_data).setOnClickListener {
+        binding.buttonExportData.setOnClickListener {
             exportDocumentLauncher.launch(defaultBackupFileName())
         }
 
-        findViewById<Button>(R.id.button_import_data).setOnClickListener {
+        binding.buttonImportData.setOnClickListener {
             importDocumentLauncher.launch(arrayOf("application/json"))
         }
 
-        findViewById<Button>(R.id.button_progression_settings).setOnClickListener {
+        binding.buttonProgressionSettings.setOnClickListener {
             val intent = Intent(this, com.lilfitness.activities.ProgressionSettingsActivity::class.java)
             startActivity(intent)
         }
 
-        findViewById<Button>(R.id.button_back).setOnClickListener {
+        // Header back button
+        binding.buttonBackHeader.setOnClickListener {
             onBackPressedDispatcher.onBackPressed()
         }
     }
