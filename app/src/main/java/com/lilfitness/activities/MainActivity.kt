@@ -134,11 +134,41 @@ class MainActivity : AppCompatActivity() {
         val trainingData = jsonHelper.readTrainingData()
         if (trainingData.exerciseLibrary.isEmpty()) {
             val defaultExercises = listOf(
-                ExerciseLibraryItem(id = 1, name = "Deadlift"),
-                ExerciseLibraryItem(id = 2, name = "Squat"),
-                ExerciseLibraryItem(id = 3, name = "Bench Press"),
-                ExerciseLibraryItem(id = 4, name = "Biceps Curl"),
-                ExerciseLibraryItem(id = 5, name = "Triceps Pushdown")
+                ExerciseLibraryItem(
+                    id = 1,
+                    name = "Deadlift",
+                    pattern = com.lilfitness.models.MovementPattern.HINGE,
+                    mechanics = com.lilfitness.models.Mechanics.COMPOUND,
+                    tier = com.lilfitness.models.Tier.TIER_1
+                ),
+                ExerciseLibraryItem(
+                    id = 2,
+                    name = "Squat",
+                    pattern = com.lilfitness.models.MovementPattern.SQUAT,
+                    mechanics = com.lilfitness.models.Mechanics.COMPOUND,
+                    tier = com.lilfitness.models.Tier.TIER_1
+                ),
+                ExerciseLibraryItem(
+                    id = 3,
+                    name = "Bench Press",
+                    pattern = com.lilfitness.models.MovementPattern.PUSH_HORIZONTAL,
+                    mechanics = com.lilfitness.models.Mechanics.COMPOUND,
+                    tier = com.lilfitness.models.Tier.TIER_1
+                ),
+                ExerciseLibraryItem(
+                    id = 4,
+                    name = "Biceps Curl",
+                    pattern = com.lilfitness.models.MovementPattern.ISOLATION_ARMS,
+                    mechanics = com.lilfitness.models.Mechanics.ISOLATION,
+                    tier = com.lilfitness.models.Tier.TIER_3
+                ),
+                ExerciseLibraryItem(
+                    id = 5,
+                    name = "Triceps Pushdown",
+                    pattern = com.lilfitness.models.MovementPattern.ISOLATION_ARMS,
+                    mechanics = com.lilfitness.models.Mechanics.ISOLATION,
+                    tier = com.lilfitness.models.Tier.TIER_3
+                )
             )
             trainingData.exerciseLibrary.addAll(defaultExercises)
             jsonHelper.writeTrainingData(trainingData)
@@ -188,46 +218,81 @@ class MainActivity : AppCompatActivity() {
     private fun handleStartWorkout() {
         val existingDraft = draftManager.loadDraft()
         if (existingDraft == null) {
-            showWorkoutTypeDialog()
+            showWorkoutModeDialog()
             return
         }
 
         if (existingDraft.entries.isEmpty()) {
             draftManager.clearDraft()
-            showWorkoutTypeDialog()
+            showWorkoutModeDialog()
             return
         }
 
         showDraftPromptBeforeWorkoutType(existingDraft)
     }
 
-    private fun showWorkoutTypeDialog() {
-        val types = arrayOf("Heavy", "Light", "Custom")
+    /**
+     * Detects the last registered workout type and determines the next type.
+     * Alternates between heavy and light for periodized progression.
+     * If last was heavy, next is light; if last was light, next is heavy.
+     * If no history exists, defaults to heavy.
+     */
+    private fun detectNextWorkoutType(): String {
+        val trainingData = jsonHelper.readTrainingData()
+        
+        // Find the most recent workout that has a workout type (heavy or light, not custom)
+        val lastWorkout = trainingData.trainings
+            .filter { session ->
+                val type = session.defaultWorkoutType
+                type == "heavy" || type == "light"
+            }
+            .maxByOrNull { it.date }
+        
+        if (lastWorkout == null) {
+            // No history, default to heavy
+            return "heavy"
+        }
+        
+        val lastType = lastWorkout.defaultWorkoutType ?: "heavy"
+        
+        // Alternate for periodized progression: if last was heavy, next is light; if last was light, next is heavy
+        return when (lastType) {
+            "heavy" -> "light"
+            "light" -> "heavy"
+            else -> "heavy"
+        }
+    }
 
+    private fun showWorkoutModeDialog() {
+        val detectedType = detectNextWorkoutType()
+        val typeLabel = detectedType.replaceFirstChar { 
+            if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() 
+        }
+        
         DialogHelper.createBuilder(this)
-            .setTitle(getString(R.string.dialog_title_select_workout_type))
-            .setItems(types) { _, which ->
-                val selectedType = when (which) {
-                    0 -> "heavy"
-                    1 -> "light"
-                    2 -> "custom"
-                    else -> "heavy"
-                }
-                startWorkoutWithType(selectedType, skipDraftPrompt = true)
+            .setTitle(getString(R.string.dialog_title_select_workout_mode))
+            .setMessage("Detected next workout: $typeLabel\n\nContinue with plan progression or create a custom workout?")
+            .setPositiveButton("Continue Plan") { _, _ ->
+                // Launch with auto-generate enabled for "Continue Plan"
+                launchActiveWorkout(detectedType, resumeDraft = false, autoGenerate = true)
+            }
+            .setNeutralButton("Custom") { _, _ ->
+                // Custom workouts don't auto-generate
+                launchActiveWorkout("custom", resumeDraft = false, autoGenerate = false)
             }
             .setNegativeButton(getString(R.string.button_cancel), null)
             .showWithTransparentWindow()
     }
 
-    private fun startWorkoutWithType(workoutType: String, skipDraftPrompt: Boolean = false) {
+    private fun startWorkoutWithType(workoutType: String, skipDraftPrompt: Boolean = false, autoGenerate: Boolean = false) {
         if (!skipDraftPrompt) {
             val existingDraft = draftManager.loadDraft()
             if (existingDraft != null && existingDraft.entries.isNotEmpty()) {
-                showResumeDraftDialog(workoutType, existingDraft)
+                showResumeDraftDialog(workoutType, existingDraft, autoGenerate)
                 return
             }
         }
-        launchActiveWorkout(workoutType, resumeDraft = false)
+        launchActiveWorkout(workoutType, resumeDraft = false, autoGenerate = autoGenerate)
     }
 
     private fun showDraftPromptBeforeWorkoutType(draft: ActiveWorkoutDraft) {
@@ -241,33 +306,34 @@ class MainActivity : AppCompatActivity() {
             }
             .setNegativeButton(getString(R.string.button_start_new)) { _, _ ->
                 draftManager.clearDraft()
-                showWorkoutTypeDialog()
+                showWorkoutModeDialog()
             }
             .setNeutralButton(getString(R.string.button_cancel), null)
             .showWithTransparentWindow()
     }
 
-    private fun showResumeDraftDialog(requestedType: String, draft: ActiveWorkoutDraft) {
+    private fun showResumeDraftDialog(requestedType: String, draft: ActiveWorkoutDraft, autoGenerate: Boolean = false) {
         val message = getString(R.string.dialog_message_resume_workout, draft.workoutType, draft.date)
 
         DialogHelper.createBuilder(this)
             .setTitle(getString(R.string.dialog_title_resume_workout))
             .setMessage(message)
             .setPositiveButton(getString(R.string.button_resume)) { _, _ ->
-                launchActiveWorkout(draft.workoutType, resumeDraft = true)
+                launchActiveWorkout(draft.workoutType, resumeDraft = true, autoGenerate = false)
             }
             .setNegativeButton(getString(R.string.button_discard)) { _, _ ->
                 draftManager.clearDraft()
-                launchActiveWorkout(requestedType, resumeDraft = false)
+                launchActiveWorkout(requestedType, resumeDraft = false, autoGenerate = autoGenerate)
             }
             .setNeutralButton(getString(R.string.button_cancel), null)
             .showWithTransparentWindow()
     }
 
-    private fun launchActiveWorkout(workoutType: String, resumeDraft: Boolean) {
+    private fun launchActiveWorkout(workoutType: String, resumeDraft: Boolean, autoGenerate: Boolean = false) {
         val intent = Intent(this, ActiveTrainingActivity::class.java).apply {
             putExtra(ActiveTrainingActivity.EXTRA_WORKOUT_TYPE, workoutType)
             putExtra(ActiveTrainingActivity.EXTRA_RESUME_DRAFT, resumeDraft)
+            putExtra(ActiveTrainingActivity.EXTRA_AUTO_GENERATE, autoGenerate)
         }
         startWorkoutForResult.launch(intent)
     }

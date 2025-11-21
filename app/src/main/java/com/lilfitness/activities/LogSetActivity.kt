@@ -90,9 +90,12 @@ class LogSetActivity : AppCompatActivity() {
             binding.editTextKg.setText(lastSet.kg.toString())
             binding.editTextReps.setText(lastSet.reps.toString())
             
-            // Pre-fill RPE if it exists
+            // Pre-fill RPE if it exists and field is blank
             lastSet.rpe?.let {
-                binding.editTextRpe.setText(it.toString())
+                if (binding.editTextRpe.text.isNullOrBlank()) {
+                    binding.editTextRpe.setText(it.toString())
+                    // Don't update hint for last set fallback - it's from previous session
+                }
             }
             
             // Pre-fill note if exists
@@ -116,7 +119,8 @@ class LogSetActivity : AppCompatActivity() {
             exerciseId = exerciseId,
             requestedType = workoutType,
             trainingData = trainingData,
-            settings = userSettings
+            settings = userSettings,
+            userLevel = userSettings.userLevel
         )
 
         if (!suggestion.isFirstTime) {
@@ -126,7 +130,8 @@ class LogSetActivity : AppCompatActivity() {
                 else -> null
             }
 
-            if (suggestedWeight != null && setNumber == 1) {
+            if (suggestedWeight != null) {
+                // Auto-fill weight for all sets if field is blank
                 if (binding.editTextKg.text.isNullOrBlank()) {
                     binding.editTextKg.setText(suggestedWeight.toString())
                 }
@@ -136,6 +141,9 @@ class LogSetActivity : AppCompatActivity() {
                     "light" -> userSettings.lightReps
                     else -> null
                 }
+
+                // Get suggested RPE based on user level and workout type
+                val suggestedRpe = ProgressionHelper.suggestRpe(userSettings.userLevel, workoutType)
 
                 // Build hint text with set number, total sets, and reps
                 val hintText = buildString {
@@ -158,6 +166,10 @@ class LogSetActivity : AppCompatActivity() {
                         append(" for Set $setNumber of $totalSets")
                     }
                     
+                    if (suggestedRpe != null) {
+                        append(" @ RPE $suggestedRpe")
+                    }
+                    
                     suggestion.badge?.let {
                         append(" $it")
                     }
@@ -165,15 +177,46 @@ class LogSetActivity : AppCompatActivity() {
                 
                 binding.textSuggestionContent.text = hintText
 
+                // Auto-fill reps for all sets if field is blank
                 if (binding.editTextReps.text.isNullOrBlank() && suggestedReps != null && suggestedReps > 0) {
                     binding.editTextReps.setText(suggestedReps.toString())
+                }
+                
+                // Auto-fill RPE for all sets if field is blank
+                if (suggestedRpe != null && binding.editTextRpe.text.isNullOrBlank()) {
+                    binding.editTextRpe.setText(suggestedRpe.toString())
+                    updateRpeHint(suggestedRpe)
                 }
                 
                 // The card now has a fixed accent color background, no need to change it
                 
                 binding.tvSuggestionHint.visibility = View.VISIBLE
             }
+        } else {
+            // First time - still suggest RPE if available
+            val suggestedRpe = ProgressionHelper.suggestRpe(userSettings.userLevel, workoutType)
+            if (suggestedRpe != null && binding.editTextRpe.text.isNullOrBlank()) {
+                binding.editTextRpe.setText(suggestedRpe.toString())
+                updateRpeHint(suggestedRpe)
+            }
         }
+    }
+    
+    private fun updateRpeHint(rpe: Float) {
+        val rpeDescription = when {
+            rpe <= 6.0f -> "Very easy - Could do 4+ more reps"
+            rpe <= 7.0f -> "Easy - Could do 3 more reps"
+            rpe <= 7.5f -> "Moderate - Could do 2-3 more reps"
+            rpe <= 8.0f -> "Moderate-Hard - Could do 2 more reps"
+            rpe <= 8.5f -> "Hard - Could do 1-2 more reps"
+            rpe <= 9.0f -> "Very Hard - Could do 1 more rep"
+            rpe <= 9.5f -> "Extremely Hard - Maybe 1 more rep"
+            else -> "Maximal - No reps left in tank"
+        }
+        
+        val hintText = "Suggested RPE $rpe: $rpeDescription"
+        binding.textRpeHint.text = hintText
+        binding.textRpeHint.visibility = View.VISIBLE
     }
 
     private fun showRpeHelpDialog() {
@@ -250,9 +293,27 @@ class LogSetActivity : AppCompatActivity() {
             else -> settings.customRestSeconds  // Default to custom for unknown types
         }
         
-        // Apply RPE adjustment if enabled
-        if (settings.rpeAdjustmentEnabled && rpe != null && rpe >= settings.rpeHighThreshold) {
-            restSeconds += settings.rpeHighBonusSeconds
+        // Apply RPE adjustments if RPE is provided
+        if (settings.rpeAdjustmentEnabled && rpe != null) {
+            // Original high RPE threshold logic
+            if (rpe >= settings.rpeHighThreshold) {
+                restSeconds += settings.rpeHighBonusSeconds
+            }
+            
+            // New RPE deviation adjustment: compare logged RPE to suggested RPE
+            val suggestedRpe = ProgressionHelper.suggestRpe(settings.userLevel, workoutType)
+            if (suggestedRpe != null) {
+                val rpeDifference = rpe - suggestedRpe
+                
+                // If logged RPE is threshold or more higher than suggested, add positive adjustment
+                if (rpeDifference >= settings.rpeDeviationThreshold) {
+                    restSeconds += settings.rpePositiveAdjustmentSeconds
+                }
+                // If logged RPE is threshold or more lower than suggested, subtract negative adjustment
+                else if (rpeDifference <= -settings.rpeDeviationThreshold) {
+                    restSeconds = maxOf(0, restSeconds - settings.rpeNegativeAdjustmentSeconds) // Don't go below 0
+                }
+            }
         }
         
         // Start the timer service without showing dialog (use permanent UI instead)

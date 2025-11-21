@@ -7,14 +7,11 @@ import android.os.Bundle
 import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.lilfitness.R
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.lilfitness.databinding.ActivityTrainingDetailBinding
-import com.lilfitness.helpers.DialogHelper
 import com.lilfitness.helpers.JsonHelper
-import com.lilfitness.helpers.showWithTransparentWindow
 import com.lilfitness.adapters.TrainingDetailAdapter
 import com.lilfitness.models.ExerciseEntry
 import com.lilfitness.models.GroupedExercise
@@ -29,19 +26,30 @@ class TrainingDetailActivity : AppCompatActivity() {
     private val workoutTypeKeys = listOf("heavy", "light", "custom")
     private val workoutTypeLabels = listOf("Heavy", "Light", "Custom")
 
-    private val editSetLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val updatedEntry = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                result.data?.getParcelableExtra(com.lilfitness.activities.EditSetActivity.EXTRA_EXERCISE_ENTRY, ExerciseEntry::class.java)
-            } else {
-                @Suppress("DEPRECATION")
-                result.data?.getParcelableExtra(com.lilfitness.activities.EditSetActivity.EXTRA_EXERCISE_ENTRY)
-            }
+    private var currentEditingEntry: ExerciseEntry? = null
 
-            if (updatedEntry != null) {
-                updateTrainingSession(updatedEntry)
+    private val editSetLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        when (result.resultCode) {
+            Activity.RESULT_OK -> {
+                val updatedEntry = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    result.data?.getParcelableExtra(EditSetActivity.EXTRA_EXERCISE_ENTRY, ExerciseEntry::class.java)
+                } else {
+                    @Suppress("DEPRECATION")
+                    result.data?.getParcelableExtra(EditSetActivity.EXTRA_EXERCISE_ENTRY)
+                }
+
+                if (updatedEntry != null) {
+                    updateTrainingSession(updatedEntry)
+                }
+            }
+            EditSetActivity.RESULT_DELETE -> {
+                // Delete the set
+                currentEditingEntry?.let { entryToDelete ->
+                    deleteSet(entryToDelete)
+                }
             }
         }
+        currentEditingEntry = null
     }
 
     private val editActivityLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -65,9 +73,6 @@ class TrainingDetailActivity : AppCompatActivity() {
         binding = ActivityTrainingDetailBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Setup background animation
-        setupBackgroundAnimation()
-
         jsonHelper = JsonHelper(this)
 
         val session = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -79,20 +84,12 @@ class TrainingDetailActivity : AppCompatActivity() {
 
         if (session != null) {
             trainingSession = session
-            val titleText = "Training #${trainingSession.trainingNumber} - ${trainingSession.date}"
-            binding.textTitle.text = titleText
+            title = "Training #${trainingSession.trainingNumber} - ${trainingSession.date}"
             setupSessionTypeControls()
             setupRecyclerView()
             setupClickListeners()
         } else {
-            binding.textTitle.text = "Training Details"
-        }
-    }
-    
-    private fun setupBackgroundAnimation() {
-        val drawable = binding.imageBgAnimation.drawable
-        if (drawable is android.graphics.drawable.Animatable) {
-            drawable.start()
+            title = "Training Details"
         }
     }
 
@@ -102,18 +99,18 @@ class TrainingDetailActivity : AppCompatActivity() {
         }
 
         binding.buttonDelete.setOnClickListener {
-            DialogHelper.createBuilder(this)
-                .setTitle(getString(R.string.dialog_title_delete_training))
-                .setMessage(getString(R.string.dialog_message_delete_training))
-                .setPositiveButton(getString(R.string.button_delete)) { _, _ ->
+            AlertDialog.Builder(this)
+                .setTitle("Delete Training")
+                .setMessage("Are you sure you want to delete this training permanently?")
+                .setPositiveButton("Delete") { _, _ ->
                     val trainingData = jsonHelper.readTrainingData()
                     val updatedTrainings = trainingData.trainings.toMutableList()
                     updatedTrainings.remove(trainingSession)
                     jsonHelper.writeTrainingData(trainingData.copy(trainings = updatedTrainings))
                     finish()
                 }
-                .setNegativeButton(getString(R.string.button_cancel), null)
-                .showWithTransparentWindow()
+                .setNegativeButton("Cancel", null)
+                .show()
         }
     }
 
@@ -131,8 +128,10 @@ class TrainingDetailActivity : AppCompatActivity() {
             groupedExercises,
             trainingSession.defaultWorkoutType,
             onEditSetClicked = {
-                val intent = Intent(this, com.lilfitness.activities.EditSetActivity::class.java).apply {
-                    putExtra(com.lilfitness.activities.EditSetActivity.EXTRA_EXERCISE_ENTRY, it)
+                currentEditingEntry = it
+                val intent = Intent(this, EditSetActivity::class.java).apply {
+                    putExtra(EditSetActivity.EXTRA_EXERCISE_ENTRY, it)
+                    putExtra(EditSetActivity.EXTRA_IS_EDIT_MODE, true)
                 }
                 editSetLauncher.launch(intent)
             },
@@ -159,6 +158,18 @@ class TrainingDetailActivity : AppCompatActivity() {
         }
     }
 
+    private fun deleteSet(entryToDelete: ExerciseEntry) {
+        val exerciseIndex = trainingSession.exercises.indexOfFirst { 
+            it.setNumber == entryToDelete.setNumber && it.exerciseId == entryToDelete.exerciseId 
+        }
+        if (exerciseIndex != -1) {
+            trainingSession.exercises.removeAt(exerciseIndex)
+            persistTrainingSession()
+            setupRecyclerView()
+            Toast.makeText(this, "Set deleted", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     private fun setupSessionTypeControls() {
         val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, workoutTypeLabels)
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
@@ -182,7 +193,7 @@ class TrainingDetailActivity : AppCompatActivity() {
         )
         persistTrainingSession()
         setupRecyclerView()
-        Toast.makeText(this, getString(R.string.toast_applied_type_to_all, WorkoutTypeFormatter.label(type)), Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "Applied ${WorkoutTypeFormatter.label(type)} to all exercises.", Toast.LENGTH_SHORT).show()
     }
 
     private fun showExerciseTypeDialog(groupedExercise: GroupedExercise) {
@@ -190,15 +201,15 @@ class TrainingDetailActivity : AppCompatActivity() {
         val normalized = WorkoutTypeFormatter.normalize(currentType)
         val currentIndex = workoutTypeKeys.indexOf(normalized).takeIf { it >= 0 } ?: 0
 
-        DialogHelper.createBuilder(this)
-            .setTitle(getString(R.string.dialog_title_set_type_for_exercise, groupedExercise.exerciseName))
+        AlertDialog.Builder(this)
+            .setTitle("Set type for ${groupedExercise.exerciseName}")
             .setSingleChoiceItems(workoutTypeLabels.toTypedArray(), currentIndex) { dialog, which ->
                 val selectedType = workoutTypeKeys[which]
                 dialog.dismiss()
                 applyTypeToExercise(groupedExercise.exerciseId, selectedType)
             }
-            .setNegativeButton(getString(R.string.button_cancel), null)
-            .showWithTransparentWindow()
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     private fun applyTypeToExercise(exerciseId: Int, type: String) {
@@ -208,7 +219,7 @@ class TrainingDetailActivity : AppCompatActivity() {
         trainingSession = trainingSession.copy(exercises = updatedExercises)
         persistTrainingSession()
         setupRecyclerView()
-        Toast.makeText(this, getString(R.string.toast_type_applied_to_exercise, WorkoutTypeFormatter.label(type)), Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "${WorkoutTypeFormatter.label(type)} applied to exercise.", Toast.LENGTH_SHORT).show()
     }
 
     private fun persistTrainingSession() {

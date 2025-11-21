@@ -258,6 +258,7 @@
     <string name="dialog_title_delete_plan">Delete Plan</string>
     <string name="dialog_title_delete_training">Delete Training</string>
     <string name="dialog_title_select_workout_type">Select Workout Type</string>
+    <string name="dialog_title_select_workout_mode">Start Workout</string>
     <string name="dialog_title_no_exercises">No Exercises</string>
     <string name="dialog_title_select_exercise">Select Exercise</string>
     <string name="dialog_title_use_plan">Use Plan</string>

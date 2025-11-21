@@ -2,6 +2,7 @@ package com.lilfitness.helpers
 
 import com.lilfitness.models.ExerciseEntry
 import com.lilfitness.models.TrainingData
+import com.lilfitness.models.UserLevel
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.Date
@@ -11,6 +12,7 @@ import kotlin.math.abs
 object ProgressionHelper {
 
     data class ProgressionSettings(
+        val userLevel: UserLevel = UserLevel.NOVICE,
         val lookbackCount: Int = 3,
         val roundTo: Float = 1.25f,
         val lightPercent: Float = 0.80f,
@@ -34,12 +36,16 @@ object ProgressionHelper {
         val lightReps: Int = 10,
         // Rest timer settings
         val restTimerEnabled: Boolean = true,
-        val heavyRestSeconds: Int = 180,   // 3 minutes
-        val lightRestSeconds: Int = 90,    // 90 seconds
+        val heavyRestSeconds: Int = 150,   // 2.5 minutes
+        val lightRestSeconds: Int = 60,    // 1 minute
         val customRestSeconds: Int = 120,  // 2 minutes
         val rpeAdjustmentEnabled: Boolean = true,
         val rpeHighThreshold: Float = 9.0f,  // RPE >= 9.0 adds extra rest
-        val rpeHighBonusSeconds: Int = 60    // Add 1 minute for high RPE
+        val rpeHighBonusSeconds: Int = 60,    // Add 1 minute for high RPE
+        // RPE deviation adjustment settings
+        val rpeDeviationThreshold: Float = 1.0f,  // RPE difference threshold to trigger adjustment
+        val rpePositiveAdjustmentSeconds: Int = 30,  // Add seconds when RPE is higher than suggested
+        val rpeNegativeAdjustmentSeconds: Int = 15   // Subtract seconds when RPE is lower than suggested
     )
 
     data class ProgressionSuggestion(
@@ -68,7 +74,8 @@ object ProgressionHelper {
         exerciseId: Int,
         requestedType: String,
         trainingData: TrainingData,
-        settings: ProgressionSettings = ProgressionSettings()
+        settings: ProgressionSettings = ProgressionSettings(),
+        userLevel: UserLevel = settings.userLevel
     ): ProgressionSuggestion {
 
         val exerciseName = trainingData.exerciseLibrary
@@ -208,10 +215,16 @@ object ProgressionHelper {
         )
 
         // Calculate proposed light weight
-        val proposedLight = roundToIncrement(
-            proposedHeavy * settings.lightPercent,
-            settings.roundTo
-        )
+        // IF NOVICE: Calculate 80% of heavy weight
+        // IF INTERMEDIATE: Return null (intermediates use different exercises for light days)
+        val proposedLight = if (userLevel == UserLevel.NOVICE) {
+            roundToIncrement(
+                proposedHeavy * settings.lightPercent,
+                settings.roundTo
+            )
+        } else {
+            null
+        }
 
         // Add confidence badge
         val confidenceBadge = when (confidence) {
@@ -270,7 +283,13 @@ object ProgressionHelper {
                     }
                 }
             }
-            "light" -> "Based on ${proposedHeavy}kg heavy weight. Suggesting ${proposedLight}kg for light day (80%). ${confidenceBadge}"
+            "light" -> {
+                if (userLevel == UserLevel.INTERMEDIATE) {
+                    "Check history for this specific variation. ${confidenceBadge}"
+                } else {
+                    "Based on ${proposedHeavy}kg heavy weight. Suggesting ${proposedLight}kg for light day (80%). ${confidenceBadge}"
+                }
+            }
             else -> "Custom workout - no suggestion."
         }
 
@@ -385,6 +404,31 @@ object ProgressionHelper {
 
     private fun roundToIncrement(value: Float, increment: Float): Float {
         return (value / increment).roundToInt() * increment
+    }
+
+    /**
+     * Suggests an RPE value based on user level and workout type.
+     * 
+     * @param userLevel The user's training level (NOVICE or INTERMEDIATE)
+     * @param workoutType The workout type ("heavy", "light", or "custom")
+     * @return Suggested RPE value (6.0-10.0), or null if custom workout
+     */
+    fun suggestRpe(userLevel: UserLevel, workoutType: String): Float? {
+        return when (workoutType) {
+            "heavy" -> {
+                when (userLevel) {
+                    UserLevel.NOVICE -> 8.0f      // Novice: RPE 8 (leaving 2 reps in tank)
+                    UserLevel.INTERMEDIATE -> 8.5f // Intermediate: RPE 8.5 (leaving 1-2 reps in tank)
+                }
+            }
+            "light" -> {
+                when (userLevel) {
+                    UserLevel.NOVICE -> 7.0f      // Novice: RPE 7 (leaving 3 reps in tank)
+                    UserLevel.INTERMEDIATE -> 7.5f // Intermediate: RPE 7.5 (leaving 2-3 reps in tank)
+                }
+            }
+            else -> null // Custom workout - no suggestion
+        }
     }
 
     private fun createFirstTimeSuggestion(

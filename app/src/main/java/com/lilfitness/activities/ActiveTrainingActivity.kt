@@ -20,9 +20,11 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.lilfitness.databinding.ActivityActiveTrainingBinding
 import com.lilfitness.helpers.ActiveWorkoutDraftManager
+import com.lilfitness.helpers.DefaultExercisesHelper
 import com.lilfitness.helpers.DialogHelper
 import com.lilfitness.helpers.JsonHelper
 import com.lilfitness.helpers.ProgressionSettingsManager
+import com.lilfitness.helpers.WorkoutGenerator
 import com.lilfitness.helpers.showWithTransparentWindow
 import com.lilfitness.adapters.ActiveExercisesAdapter
 import com.lilfitness.models.ActiveWorkoutDraft
@@ -112,6 +114,8 @@ class ActiveTrainingActivity : AppCompatActivity() {
         draftManager = ActiveWorkoutDraftManager(this)
         workoutType = intent.getStringExtra(EXTRA_WORKOUT_TYPE) ?: "heavy"
         val resumeRequested = intent.getBooleanExtra(EXTRA_RESUME_DRAFT, false)
+        val shouldAutoGenerate = intent.getBooleanExtra(EXTRA_AUTO_GENERATE, false)
+        val isCustomWorkout = workoutType == "custom"
         binding.textActiveTrainingTitle.text = "Active Workout (${workoutType.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }})"
 
         setupBackgroundAnimation()
@@ -121,6 +125,12 @@ class ActiveTrainingActivity : AppCompatActivity() {
         setupTimerUI()
         setupTimerReceiver()
         updateDateDisplay()
+        
+        // Auto-generate workout if "Continue Plan" was selected (not custom)
+        if (!isCustomWorkout && shouldAutoGenerate && !resumeRequested) {
+            autoGenerateWorkout()
+        }
+        
         maybeRestoreDraft(forceResume = resumeRequested || savedInstanceState != null)
     }
 
@@ -514,6 +524,72 @@ class ActiveTrainingActivity : AppCompatActivity() {
         adapter.notifyDataSetChanged()
     }
 
+    private fun autoGenerateWorkout() {
+        try {
+            val trainingData = jsonHelper.readTrainingData()
+            val settingsManager = ProgressionSettingsManager(this)
+            val settings = settingsManager.getSettings()
+            
+            // Get default exercises from DefaultExercisesHelper
+            val defaultExercises = DefaultExercisesHelper.getPopularDefaults()
+            
+            // Generate the workout - returns Pair(selected exercises, default exercises that were selected)
+            val (generatedExercises, defaultExercisesUsed) = WorkoutGenerator.generateFullWorkout(
+                userLevel = settings.userLevel,
+                sessionType = workoutType,
+                userExercises = trainingData.exerciseLibrary,
+                defaultExercises = defaultExercises,
+                settings = settings
+            )
+            
+            if (generatedExercises.isNotEmpty()) {
+                // Add default exercises to user's library if they were selected
+                if (defaultExercisesUsed.isNotEmpty()) {
+                    val updatedTrainingData = jsonHelper.readTrainingData()
+                    val existingIds = updatedTrainingData.exerciseLibrary.map { it.id }.toSet()
+                    val existingNames = updatedTrainingData.exerciseLibrary.map { it.name.lowercase() }.toSet()
+                    
+                    // Only add defaults that aren't already in library (by ID or name)
+                    defaultExercisesUsed.forEach { defaultExercise ->
+                        if (!existingIds.contains(defaultExercise.id) && 
+                            !existingNames.contains(defaultExercise.name.lowercase())) {
+                            updatedTrainingData.exerciseLibrary.add(defaultExercise)
+                        }
+                    }
+                    
+                    // Save updated library
+                    jsonHelper.writeTrainingData(updatedTrainingData)
+                }
+                
+                // Add exercises as GroupedExercise objects with empty sets
+                generatedExercises.forEach { exercise ->
+                    // Set workout type for this exercise
+                    exerciseWorkoutTypes[exercise.id] = workoutType
+                    
+                    // Create a grouped exercise with no sets
+                    val groupedExercise = GroupedExercise(
+                        exerciseId = exercise.id,
+                        exerciseName = exercise.name,
+                        sets = emptyList()
+                    )
+                    
+                    // Only add if not already present
+                    if (groupedExercises.none { it.exerciseId == exercise.id }) {
+                        groupedExercises.add(groupedExercise)
+                    }
+                }
+                
+                // Notify adapter of changes
+                adapter.notifyDataSetChanged()
+                
+                // Persist the draft
+                persistDraft()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error auto-generating workout", e)
+        }
+    }
+
     private fun persistDraft() {
         if (currentExerciseEntries.isEmpty()) {
             draftManager.clearDraft()
@@ -840,5 +916,6 @@ class ActiveTrainingActivity : AppCompatActivity() {
     companion object {
         const val EXTRA_WORKOUT_TYPE = "WORKOUT_TYPE"
         const val EXTRA_RESUME_DRAFT = "RESUME_DRAFT"
+        const val EXTRA_AUTO_GENERATE = "AUTO_GENERATE"
     }
 }

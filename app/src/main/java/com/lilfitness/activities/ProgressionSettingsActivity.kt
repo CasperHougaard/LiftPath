@@ -12,10 +12,13 @@ import androidx.core.animation.doOnEnd
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.lilfitness.R
 import com.lilfitness.databinding.ActivityProgressionSettingsBinding
+import android.widget.ArrayAdapter
+import android.widget.Spinner
 import com.lilfitness.helpers.DialogHelper
 import com.lilfitness.helpers.ProgressionHelper
 import com.lilfitness.helpers.ProgressionSettingsManager
 import com.lilfitness.helpers.showWithTransparentWindow
+import com.lilfitness.models.UserLevel
 
 class ProgressionSettingsActivity : AppCompatActivity() {
 
@@ -51,6 +54,7 @@ class ProgressionSettingsActivity : AppCompatActivity() {
         collapseViewImmediate(binding.contentDeload)
         collapseViewImmediate(binding.contentPlateau)
 
+        setupUserLevelSpinner()
         loadSettings()
         setupListeners()
         setupExpandCollapseListeners()
@@ -62,11 +66,91 @@ class ProgressionSettingsActivity : AppCompatActivity() {
             drawable.start()
         }
     }
+    
+    private fun setupUserLevelSpinner() {
+        val userLevels = UserLevel.values()
+        val displayNames = userLevels.map { it.displayName }.toTypedArray()
+        
+        val adapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            displayNames
+        )
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        binding.spinnerUserLevel.adapter = adapter
+        
+        // Update RPE suggestions when user level changes
+        binding.spinnerUserLevel.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: android.view.View?, position: Int, id: Long) {
+                updateRpeSuggestions(userLevels[position])
+            }
+            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
+        }
+    }
+    
+    private fun updateRpeSuggestions(userLevel: UserLevel) {
+        val settings = settingsManager.getSettings()
+        
+        val heavyRpe = when (userLevel) {
+            UserLevel.NOVICE -> "8.0"
+            UserLevel.INTERMEDIATE -> "8.5"
+        }
+        val lightRpe = when (userLevel) {
+            UserLevel.NOVICE -> "7.0"
+            UserLevel.INTERMEDIATE -> "7.5"
+        }
+        
+        val levelName = when (userLevel) {
+            UserLevel.NOVICE -> "Novice"
+            UserLevel.INTERMEDIATE -> "Intermediate"
+        }
+        
+        val text = "Suggested RPE values (for $levelName):\n" +
+                "• Heavy workouts: RPE $heavyRpe\n" +
+                "• Light workouts: RPE $lightRpe\n\n" +
+                "These are auto-filled when logging sets. Timer adjusts based on your logged RPE vs suggested."
+        
+        binding.textRpeSuggestions.text = text
+        
+        // Update timer calculation example
+        updateTimerCalculationInfo()
+    }
+    
+    private fun updateTimerCalculationInfo() {
+        try {
+            val settings = settingsManager.getSettings()
+            
+            // Get current values from fields (or use settings if fields are empty/invalid)
+            val highThreshold = binding.etRpeThreshold.text.toString().toFloatOrNull() ?: settings.rpeHighThreshold
+            val highBonus = binding.etRpeBonus.text.toString().toIntOrNull() ?: settings.rpeHighBonusSeconds
+            val deviationThreshold = binding.etRpeDeviationThreshold.text.toString().toFloatOrNull() ?: settings.rpeDeviationThreshold
+            val positiveAdjustment = binding.etRpePositiveAdjustment.text.toString().toIntOrNull() ?: settings.rpePositiveAdjustmentSeconds
+            val negativeAdjustment = binding.etRpeNegativeAdjustment.text.toString().toIntOrNull() ?: settings.rpeNegativeAdjustmentSeconds
+            
+            val calculationText = "1. Start with base rest time (Heavy/Light/Custom)\n" +
+                    "2. If RPE ≥ ${highThreshold}: +${highBonus}s\n" +
+                    "3. If logged RPE ≥ suggested+${deviationThreshold}: +${positiveAdjustment}s\n" +
+                    "4. If logged RPE ≤ suggested-${deviationThreshold}: -${negativeAdjustment}s"
+            
+            binding.textTimerCalculation.text = calculationText
+        } catch (e: Exception) {
+            // Ignore errors, keep default text
+        }
+    }
 
     private fun loadSettings() {
         val settings = settingsManager.getSettings()
 
         // Core settings
+        // Set user level spinner selection
+        val userLevels = UserLevel.values()
+        val selectedIndex = userLevels.indexOf(settings.userLevel)
+        if (selectedIndex >= 0) {
+            binding.spinnerUserLevel.setSelection(selectedIndex)
+            // Update RPE suggestions based on loaded level
+            updateRpeSuggestions(settings.userLevel)
+        }
+        
         binding.etLookbackCount.setText(settings.lookbackCount.toString())
         binding.etIncreaseStep.setText(settings.increaseStep.toString())
         binding.etSmallStep.setText(settings.smallStep.toString())
@@ -96,9 +180,17 @@ class ProgressionSettingsActivity : AppCompatActivity() {
         binding.etRpeThreshold.setText(settings.rpeHighThreshold.toString())
         binding.etRpeBonus.setText(settings.rpeHighBonusSeconds.toString())
         
+        // RPE deviation adjustment settings
+        binding.etRpeDeviationThreshold.setText(settings.rpeDeviationThreshold.toString())
+        binding.etRpePositiveAdjustment.setText(settings.rpePositiveAdjustmentSeconds.toString())
+        binding.etRpeNegativeAdjustment.setText(settings.rpeNegativeAdjustmentSeconds.toString())
+        
         // Show/hide rest timer settings based on toggle
         binding.layoutRestTimerSettings.visibility = if (settings.restTimerEnabled) android.view.View.VISIBLE else android.view.View.GONE
         binding.layoutRpeAdjustmentSettings.visibility = if (settings.rpeAdjustmentEnabled) android.view.View.VISIBLE else android.view.View.GONE
+        
+        // Update info card with loaded settings
+        updateTimerCalculationInfo()
     }
 
     private fun setupListeners() {
@@ -118,6 +210,33 @@ class ProgressionSettingsActivity : AppCompatActivity() {
         // Toggle RPE adjustment settings visibility
         binding.switchRpeAdjustment.setOnCheckedChangeListener { _, isChecked ->
             binding.layoutRpeAdjustmentSettings.visibility = if (isChecked) android.view.View.VISIBLE else android.view.View.GONE
+        }
+        
+        // Update info card when RPE deviation settings change
+        binding.etRpeDeviationThreshold.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus) {
+                updateTimerCalculationInfo()
+            }
+        }
+        binding.etRpePositiveAdjustment.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus) {
+                updateTimerCalculationInfo()
+            }
+        }
+        binding.etRpeNegativeAdjustment.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus) {
+                updateTimerCalculationInfo()
+            }
+        }
+        binding.etRpeThreshold.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus) {
+                updateTimerCalculationInfo()
+            }
+        }
+        binding.etRpeBonus.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus) {
+                updateTimerCalculationInfo()
+            }
         }
     }
     
@@ -216,7 +335,11 @@ class ProgressionSettingsActivity : AppCompatActivity() {
 
     private fun saveSettings() {
         try {
+            // Get selected user level from spinner
+            val selectedUserLevel = UserLevel.values()[binding.spinnerUserLevel.selectedItemPosition]
+            
             val settings = ProgressionHelper.ProgressionSettings(
+                userLevel = selectedUserLevel,
                 lookbackCount = binding.etLookbackCount.text.toString().toInt(),
                 increaseStep = binding.etIncreaseStep.text.toString().toFloat(),
                 smallStep = binding.etSmallStep.text.toString().toFloat(),
@@ -240,7 +363,10 @@ class ProgressionSettingsActivity : AppCompatActivity() {
                 customRestSeconds = binding.etCustomRest.text.toString().toInt(),
                 rpeAdjustmentEnabled = binding.switchRpeAdjustment.isChecked,
                 rpeHighThreshold = binding.etRpeThreshold.text.toString().toFloat(),
-                rpeHighBonusSeconds = binding.etRpeBonus.text.toString().toInt()
+                rpeHighBonusSeconds = binding.etRpeBonus.text.toString().toInt(),
+                rpeDeviationThreshold = binding.etRpeDeviationThreshold.text.toString().toFloat(),
+                rpePositiveAdjustmentSeconds = binding.etRpePositiveAdjustment.text.toString().toInt(),
+                rpeNegativeAdjustmentSeconds = binding.etRpeNegativeAdjustment.text.toString().toInt()
             )
 
             // Validate settings
@@ -331,6 +457,18 @@ class ProgressionSettingsActivity : AppCompatActivity() {
             }
             settings.rpeHighBonusSeconds < 0 || settings.rpeHighBonusSeconds > 300 -> {
                 Toast.makeText(this, getString(R.string.validation_rpe_bonus_rest), Toast.LENGTH_LONG).show()
+                return false
+            }
+            settings.rpeDeviationThreshold < 0.1f || settings.rpeDeviationThreshold > 5.0f -> {
+                Toast.makeText(this, "RPE deviation threshold must be between 0.1 and 5.0", Toast.LENGTH_LONG).show()
+                return false
+            }
+            settings.rpePositiveAdjustmentSeconds < 0 || settings.rpePositiveAdjustmentSeconds > 300 -> {
+                Toast.makeText(this, "Positive adjustment must be between 0 and 300 seconds", Toast.LENGTH_LONG).show()
+                return false
+            }
+            settings.rpeNegativeAdjustmentSeconds < 0 || settings.rpeNegativeAdjustmentSeconds > 300 -> {
+                Toast.makeText(this, "Negative adjustment must be between 0 and 300 seconds", Toast.LENGTH_LONG).show()
                 return false
             }
         }
