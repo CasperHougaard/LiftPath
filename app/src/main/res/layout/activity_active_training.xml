@@ -135,7 +135,7 @@
         app:cardBackgroundColor="@color/fitness_card_background"
         app:cardCornerRadius="24dp"
         app:cardElevation="4dp"
-        app:layout_constraintBottom_toTopOf="@id/button_add_exercise_to_session"
+        app:layout_constraintBottom_toTopOf="@id/card_timer_container"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/header_container">
@@ -161,6 +161,145 @@
                 android:layout_marginTop="12dp"
                 android:layout_weight="1"
                 android:scrollbars="vertical" />
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+    <!-- TIMER CARD - PERMANENT -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/card_timer_container"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="24dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginEnd="24dp"
+        android:layout_marginBottom="12dp"
+        app:cardBackgroundColor="@color/fitness_card_background"
+        app:cardCornerRadius="20dp"
+        app:cardElevation="4dp"
+        app:layout_constraintBottom_toTopOf="@id/button_add_exercise_to_session"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:clipChildren="false"
+            android:clipToPadding="false"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <!-- Timer Display with Controls -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="8dp"
+                android:clipChildren="false"
+                android:clipToPadding="false">
+
+                <!-- Start/Pause Icon -->
+                <ImageButton
+                    android:id="@+id/button_timer_start_pause"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Start/Pause timer"
+                    android:padding="4dp"
+                    android:src="@drawable/ic_play"
+                    app:tint="@color/fitness_primary" />
+
+                <!-- -15 Button -->
+                <LinearLayout
+                    android:id="@+id/button_timer_minus_15"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:minHeight="48dp"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp">
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:src="@drawable/ic_minus"
+                        app:tint="@color/fitness_text_secondary" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp"
+                        android:text="(15)"
+                        android:textColor="@color/fitness_text_secondary"
+                        android:textSize="12sp"
+                        android:gravity="center_vertical" />
+                </LinearLayout>
+
+                <!-- Timer Display -->
+                <TextView
+                    android:id="@+id/text_timer_display"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginEnd="4dp"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:minHeight="48dp"
+                    android:text="00:00"
+                    android:textColor="@color/fitness_text_primary"
+                    android:textSize="28sp"
+                    android:textStyle="bold"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackgroundBorderless" />
+
+                <!-- +15 Button -->
+                <LinearLayout
+                    android:id="@+id/button_timer_plus_15"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="4dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:minHeight="48dp"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp">
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:src="@drawable/ic_plus"
+                        app:tint="@color/fitness_text_secondary" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp"
+                        android:text="(15)"
+                        android:textColor="@color/fitness_text_secondary"
+                        android:textSize="12sp"
+                        android:gravity="center_vertical" />
+                </LinearLayout>
+
+                <!-- Reset Icon -->
+                <ImageButton
+                    android:id="@+id/button_timer_reset_stop"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Reset timer"
+                    android:padding="4dp"
+                    android:src="@drawable/ic_refresh"
+                    app:tint="@color/fitness_text_secondary" />
+            </LinearLayout>
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 

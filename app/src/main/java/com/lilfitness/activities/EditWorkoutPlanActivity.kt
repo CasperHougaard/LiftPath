@@ -159,12 +159,12 @@ class EditWorkoutPlanActivity : AppCompatActivity() {
         val planName = binding.editTextPlanName.text.toString().trim()
         
         if (planName.isEmpty()) {
-            Toast.makeText(this, "Please enter a plan name", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.toast_please_enter_plan_name), Toast.LENGTH_SHORT).show()
             return
         }
         
         if (selectedExercises.isEmpty()) {
-            Toast.makeText(this, "Please add at least one exercise", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.toast_please_add_exercise), Toast.LENGTH_SHORT).show()
             return
         }
         

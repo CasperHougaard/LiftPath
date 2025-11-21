@@ -1,23 +1,20 @@
 package com.lilfitness.activities
 
-import android.Manifest
 import android.app.Activity
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.graphics.drawable.Animatable
-import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.lilfitness.R
+import androidx.appcompat.app.AppCompatActivity
 import com.lilfitness.databinding.ActivityLogSetBinding
+import com.lilfitness.helpers.DialogHelper
 import com.lilfitness.helpers.JsonHelper
 import com.lilfitness.helpers.ProgressionHelper
 import com.lilfitness.helpers.ProgressionSettingsManager
+import com.lilfitness.helpers.showWithTransparentWindow
 import com.lilfitness.models.ExerciseEntry
 import com.lilfitness.services.RestTimerService
 import java.util.Locale
@@ -39,8 +36,6 @@ class LogSetActivity : AppCompatActivity() {
         const val EXTRA_LOGGED_SET = "extra_logged_set"
         const val EXTRA_WORKOUT_TYPE = "extra_workout_type"
         const val EXTRA_PREVIOUS_SET_REPS = "extra_previous_set_reps"
-        
-        private const val REQUEST_NOTIFICATION_PERMISSION = 1001
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -182,28 +177,11 @@ class LogSetActivity : AppCompatActivity() {
     }
 
     private fun showRpeHelpDialog() {
-        val message = """
-            RPE Scale (Rate of Perceived Exertion)
-            Based on Reps in Reserve (RIR):
-            
-            10  - Max effort, could not do another rep
-            9.5 - Could maybe do 1 more rep
-            9   - Could definitely do 1 more rep
-            8   - Could do 2 more reps
-            7   - Could do 3 more reps
-            6   - Could do 4+ reps
-            
-            For strength (heavy): aim for RPE 7.5-8.5
-            For volume (light): aim for RPE 7-8
-            
-            Leave blank if you're not sure - the app will use the "Completed?" checkbox instead.
-        """.trimIndent()
-
-        AlertDialog.Builder(this)
-            .setTitle("RPE Scale")
-            .setMessage(message)
-            .setPositiveButton("Got it", null)
-            .show()
+        DialogHelper.createBuilder(this)
+            .setTitle(getString(R.string.dialog_title_rpe_scale))
+            .setMessage(getString(R.string.dialog_message_rpe_scale))
+            .setPositiveButton(getString(R.string.button_got_it), null)
+            .showWithTransparentWindow()
     }
 
     private fun saveSet() {
@@ -212,7 +190,7 @@ class LogSetActivity : AppCompatActivity() {
         val reps = binding.editTextReps.text.toString().toIntOrNull()
 
         if (kg == null || reps == null) {
-            Toast.makeText(this, "Please enter weight and reps", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.toast_please_enter_weight_reps), Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -223,7 +201,7 @@ class LogSetActivity : AppCompatActivity() {
             if (value != null && value in 6.0f..10.0f) {
                 value
             } else {
-                Toast.makeText(this, "RPE must be between 6.0 and 10.0", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.toast_rpe_range), Toast.LENGTH_SHORT).show()
                 return
             }
         } else {
@@ -264,21 +242,6 @@ class LogSetActivity : AppCompatActivity() {
             return
         }
         
-        // Check notification permission for Android 13+
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) 
-                != PackageManager.PERMISSION_GRANTED) {
-                // Request permission
-                ActivityCompat.requestPermissions(
-                    this,
-                    arrayOf(Manifest.permission.POST_NOTIFICATIONS),
-                    REQUEST_NOTIFICATION_PERMISSION
-                )
-                // Timer will start after permission is granted
-                return
-            }
-        }
-        
         // Calculate rest duration based on workout type
         var restSeconds = when (workoutType) {
             "heavy" -> settings.heavyRestSeconds
@@ -292,34 +255,8 @@ class LogSetActivity : AppCompatActivity() {
             restSeconds += settings.rpeHighBonusSeconds
         }
         
-        // Start the timer service
-        com.lilfitness.services.RestTimerService.startTimer(this, restSeconds, exerciseName)
-        
-        // Show confirmation toast
-        val minutes = restSeconds / 60
-        val seconds = restSeconds % 60
-        val timeText = if (minutes > 0) {
-            "${minutes}m ${seconds}s"
-        } else {
-            "${seconds}s"
-        }
-        Toast.makeText(this, "⏱️ Rest timer started: $timeText", Toast.LENGTH_SHORT).show()
-    }
-    
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        
-        if (requestCode == REQUEST_NOTIFICATION_PERMISSION) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                Toast.makeText(this, "Notification permission granted. Timer will start next time.", Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(this, "Notification permission denied. Rest timer disabled.", Toast.LENGTH_SHORT).show()
-            }
-        }
+        // Start the timer service without showing dialog (use permanent UI instead)
+        com.lilfitness.services.RestTimerService.startTimer(this, restSeconds, exerciseName, showDialog = false)
     }
 
     private fun formatTypeLabel(type: String): String {

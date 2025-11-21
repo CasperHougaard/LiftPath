@@ -8,12 +8,15 @@ import android.os.Bundle
 import android.text.InputType
 import android.widget.EditText
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.lilfitness.R
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.lilfitness.adapters.EditActivityAdapter
 import com.lilfitness.databinding.ActivityEditActivityBinding
+import com.lilfitness.helpers.DialogHelper
 import com.lilfitness.helpers.JsonHelper
+import com.lilfitness.helpers.showWithTransparentWindow
 import com.lilfitness.models.ExerciseEntry
 import com.lilfitness.models.TrainingSession
 import java.util.Locale
@@ -59,7 +62,7 @@ class EditActivityActivity : AppCompatActivity() {
             }
             
             if (setsFromIntent == null || setsFromIntent.isEmpty()) {
-                Toast.makeText(this, "No sets to edit", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.toast_no_sets_to_edit), Toast.LENGTH_SHORT).show()
                 finish()
                 return
             }
@@ -69,7 +72,7 @@ class EditActivityActivity : AppCompatActivity() {
             // Saved workout mode - load from database
             val sessionId = intent.getStringExtra(EXTRA_TRAINING_SESSION_ID)
             if (sessionId == null) {
-                Toast.makeText(this, "Invalid training session", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.toast_invalid_training_session), Toast.LENGTH_SHORT).show()
                 finish()
                 return
             }
@@ -78,7 +81,7 @@ class EditActivityActivity : AppCompatActivity() {
             val trainingData = jsonHelper.readTrainingData()
             trainingSession = trainingData.trainings.find { it.id == sessionId }
                 ?: run {
-                    Toast.makeText(this, "Training session not found", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, getString(R.string.toast_training_session_not_found), Toast.LENGTH_SHORT).show()
                     finish()
                     return
                 }
@@ -141,20 +144,20 @@ class EditActivityActivity : AppCompatActivity() {
             maxLines = 5
         }
 
-        AlertDialog.Builder(this)
-            .setTitle("Edit Note for Set ${sets[position].setNumber}")
+        DialogHelper.createBuilder(this)
+            .setTitle(getString(R.string.dialog_title_edit_note, sets[position].setNumber))
             .setView(editText)
-            .setPositiveButton("Save") { _, _ ->
+            .setPositiveButton(getString(R.string.button_save)) { _, _ ->
                 val note = editText.text.toString().takeIf { it.isNotBlank() }
                 sets[position] = sets[position].copy(note = note)
                 binding.recyclerViewSets.adapter?.notifyItemChanged(position)
             }
-            .setNegativeButton("Cancel", null)
-            .setNeutralButton("Clear") { _, _ ->
+            .setNegativeButton(getString(R.string.button_cancel), null)
+            .setNeutralButton(getString(R.string.button_clear)) { _, _ ->
                 sets[position] = sets[position].copy(note = null)
                 binding.recyclerViewSets.adapter?.notifyItemChanged(position)
             }
-            .show()
+            .showWithTransparentWindow()
     }
 
     private fun setupClickListeners() {
@@ -179,16 +182,16 @@ class EditActivityActivity : AppCompatActivity() {
         // Validate all sets
         for (set in sets) {
             if (set.kg <= 0) {
-                Toast.makeText(this, "Set ${set.setNumber}: Weight must be greater than 0", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.toast_set_weight_error, set.setNumber), Toast.LENGTH_SHORT).show()
                 return
             }
             if (set.reps <= 0) {
-                Toast.makeText(this, "Set ${set.setNumber}: Reps must be greater than 0", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.toast_set_reps_error, set.setNumber), Toast.LENGTH_SHORT).show()
                 return
             }
             set.rpe?.let { rpe ->
                 if (rpe < 6.0f || rpe > 10.0f) {
-                    Toast.makeText(this, "Set ${set.setNumber}: RPE must be between 6.0 and 10.0", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, getString(R.string.toast_set_rpe_error, set.setNumber), Toast.LENGTH_SHORT).show()
                     return
                 }
             }
@@ -228,7 +231,7 @@ class EditActivityActivity : AppCompatActivity() {
                 trainingData.trainings[sessionIndex] = trainingSession
                 jsonHelper.writeTrainingData(trainingData)
             } else {
-                Toast.makeText(this, "Error: Training session not found", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.toast_error_training_session_not_found), Toast.LENGTH_SHORT).show()
                 return
             }
 

@@ -5,10 +5,13 @@ import android.content.Intent
 import android.graphics.drawable.Animatable
 import android.os.Bundle
 import android.view.View
-import androidx.appcompat.app.AlertDialog
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.lilfitness.R
 import androidx.appcompat.app.AppCompatActivity
 import com.lilfitness.databinding.ActivityEditExerciseBinding
+import com.lilfitness.helpers.DialogHelper
 import com.lilfitness.helpers.JsonHelper
+import com.lilfitness.helpers.showWithTransparentWindow
 import com.lilfitness.models.ExerciseLibraryItem
 
 class EditExerciseActivity : AppCompatActivity() {
@@ -72,14 +75,14 @@ class EditExerciseActivity : AppCompatActivity() {
     }
 
     private fun showDeleteConfirmationDialog() {
-        AlertDialog.Builder(this)
-            .setTitle("Delete Exercise")
-            .setMessage("Are you sure you want to delete this exercise? This will remove all logged sets for this exercise from your history. This action cannot be undone.")
-            .setPositiveButton("Delete") { _, _ ->
+        DialogHelper.createBuilder(this)
+            .setTitle(getString(R.string.dialog_title_delete_exercise))
+            .setMessage(getString(R.string.dialog_message_delete_exercise))
+            .setPositiveButton(getString(R.string.button_delete)) { _, _ ->
                 deleteExercise()
             }
-            .setNegativeButton("Cancel", null)
-            .show()
+            .setNegativeButton(getString(R.string.button_cancel), null)
+            .showWithTransparentWindow()
     }
 
     private fun deleteExercise() {

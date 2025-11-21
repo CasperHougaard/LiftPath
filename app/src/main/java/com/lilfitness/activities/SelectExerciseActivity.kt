@@ -4,13 +4,16 @@ import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.lilfitness.R
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.lilfitness.databinding.ActivitySelectExerciseBinding
+import com.lilfitness.helpers.DialogHelper
 import com.lilfitness.helpers.JsonHelper
 import com.lilfitness.helpers.ProgressionHelper
 import com.lilfitness.helpers.ProgressionSettingsManager
+import com.lilfitness.helpers.showWithTransparentWindow
 import com.lilfitness.models.ExerciseLibraryItem
 import com.lilfitness.adapters.SelectExerciseWithPlanAdapter
 import java.util.Locale
@@ -154,17 +157,17 @@ class SelectExerciseActivity : AppCompatActivity() {
     }
 
     private fun showFirstTimeDialog(exercise: ExerciseLibraryItem, workoutType: String) {
-        AlertDialog.Builder(this)
+        DialogHelper.createBuilder(this)
             .setTitle(exercise.name)
-            .setMessage("First time doing this exercise!\n\nStart with a comfortable weight for ${formatTypeLabel(workoutType)} workout.")
-            .setPositiveButton("Add Exercise") { _, _ ->
+            .setMessage(getString(R.string.dialog_message_first_time_exercise, formatTypeLabel(workoutType)))
+            .setPositiveButton(getString(R.string.button_add_exercise)) { _, _ ->
                 returnExercise(exercise, workoutType)
             }
-            .setNeutralButton("Change Type") { _, _ ->
+            .setNeutralButton(getString(R.string.button_change_type)) { _, _ ->
                 showTypeOverrideDialog(exercise, workoutType)
             }
-            .setNegativeButton("Cancel", null)
-            .show()
+            .setNegativeButton(getString(R.string.button_cancel), null)
+            .showWithTransparentWindow()
     }
 
     private fun showSuggestionDialog(
@@ -186,13 +189,15 @@ class SelectExerciseActivity : AppCompatActivity() {
             
             // Show RPE context if available
             suggestion.lastHeavyRpe?.let {
-                append("Last RPE: ${String.format("%.1f", it)}\n")
+                append(getString(R.string.dialog_message_last_rpe, it))
+                append("\n")
             }
             
             // Show days since last workout if relevant
             suggestion.daysSinceLastWorkout?.let { days ->
                 if (days >= 14) {
-                    append("Days since last: $days\n")
+                    append(getString(R.string.dialog_message_days_since_last, days))
+                    append("\n")
                 }
             }
             
@@ -200,23 +205,23 @@ class SelectExerciseActivity : AppCompatActivity() {
             append("\n\n")
             
             if (suggestedWeight != null) {
-                append("💡 Suggested weight: ${suggestedWeight}kg")
+                append(getString(R.string.dialog_message_suggested_weight, suggestedWeight))
             } else {
-                append("Custom workout - enter your own weight.")
+                append(getString(R.string.dialog_message_custom_workout))
             }
         }
 
-        AlertDialog.Builder(this)
+        DialogHelper.createBuilder(this)
             .setTitle(exercise.name)
             .setMessage(message)
-            .setPositiveButton("Add Exercise") { _, _ ->
+            .setPositiveButton(getString(R.string.button_add_exercise)) { _, _ ->
                 returnExercise(exercise, workoutType)
             }
-            .setNeutralButton("Change Type") { _, _ ->
+            .setNeutralButton(getString(R.string.button_change_type)) { _, _ ->
                 showTypeOverrideDialog(exercise, workoutType)
             }
-            .setNegativeButton("Cancel", null)
-            .show()
+            .setNegativeButton(getString(R.string.button_cancel), null)
+            .showWithTransparentWindow()
     }
 
     private fun showTypeOverrideDialog(exercise: ExerciseLibraryItem, currentType: String) {
@@ -227,8 +232,8 @@ class SelectExerciseActivity : AppCompatActivity() {
             else -> 2
         }
 
-        AlertDialog.Builder(this)
-            .setTitle("Override Workout Type for ${exercise.name}")
+        DialogHelper.createBuilder(this)
+            .setTitle(getString(R.string.dialog_title_override_workout_type, exercise.name))
             .setSingleChoiceItems(types, currentIndex) { dialog, which ->
                 val newType = when (which) {
                     0 -> "heavy"
@@ -238,8 +243,8 @@ class SelectExerciseActivity : AppCompatActivity() {
                 dialog.dismiss()
                 onExerciseSelected(exercise, newType)
             }
-            .setNegativeButton("Cancel", null)
-            .show()
+            .setNegativeButton(getString(R.string.button_cancel), null)
+            .showWithTransparentWindow()
     }
 
     private fun returnExercise(exercise: ExerciseLibraryItem, workoutType: String) {

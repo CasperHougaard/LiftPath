@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
     <style name="Theme.Fitness" parent="Theme.MaterialComponents.DayNight.NoActionBar">
@@ -18,5 +19,59 @@
         <!-- Status bar color. -->
         <item name="android:statusBarColor">@color/fitness_background</item>
         <item name="android:windowLightStatusBar">true</item>
+        
+        <!-- MaterialAlertDialog Theme - Links to custom dialog overlay -->
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.Fitness.MaterialAlertDialog</item>
+    </style>
+    
+    <!-- MaterialAlertDialog Title Style - Bold as per design guidelines -->
+    <style name="MaterialAlertDialog.Fitness.Title" parent="MaterialAlertDialog.MaterialComponents.Title.Text">
+        <item name="android:textColor">@color/fitness_text_primary</item>
+        <item name="android:textSize">20sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+    
+    <!-- MaterialAlertDialog Body Style -->
+    <style name="MaterialAlertDialog.Fitness.Body" parent="MaterialAlertDialog.MaterialComponents.Body.Text">
+        <item name="android:textColor">@color/fitness_text_primary</item>
+        <item name="android:textSize">15sp</item>
+    </style>
+    
+    <!-- MaterialAlertDialog Button Style - Uses primary color -->
+    <style name="MaterialAlertDialog.Fitness.Button" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/fitness_primary</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+    
+    <!-- Shape Appearance for Fitness Dialog with 24dp corner radius -->
+    <style name="ShapeAppearance.Fitness.Dialog" parent="ShapeAppearance.MaterialComponents.MediumComponent">
+        <item name="cornerSize">@dimen/dialog_corner_radius</item>
+    </style>
+    
+    <!-- Theme Overlay for Fitness MaterialAlertDialog -->
+    <style name="ThemeOverlay.Fitness.MaterialAlertDialog" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+        <!-- Transparent window background to prevent square corners showing -->
+        <item name="android:windowBackground">@android:color/transparent</item>
+        
+        <!-- Background drawable with 24dp rounded corners - applied to content view -->
+        <item name="android:background">@drawable/bg_dialog_rounded</item>
+        
+        <!-- Background color - uses card background -->
+        <item name="colorSurface">@color/fitness_card_background</item>
+        
+        <!-- Primary color for buttons -->
+        <item name="colorPrimary">@color/fitness_primary</item>
+        <item name="colorOnPrimary">@color/white</item>
+        
+        <!-- Surface and text colors -->
+        <item name="colorOnSurface">@color/fitness_text_primary</item>
+        <item name="android:textColorPrimary">@color/fitness_text_primary</item>
+        <item name="android:textColorSecondary">@color/fitness_text_secondary</item>
+        
+        <!-- Apply custom text styles -->
+        <item name="materialAlertDialogTitleTextStyle">@style/MaterialAlertDialog.Fitness.Title</item>
+        <item name="materialAlertDialogBodyTextStyle">@style/MaterialAlertDialog.Fitness.Body</item>
+        <item name="buttonBarButtonStyle">@style/MaterialAlertDialog.Fitness.Button</item>
     </style>
 </resources>

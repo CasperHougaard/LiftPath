@@ -17,7 +17,7 @@
         <activity android:exported="false" android:name="com.lilfitness.activities.ProgressActivity"/>
         <activity android:exported="false" android:name="com.lilfitness.activities.EditActivityActivity"/>
         <activity android:exported="false" android:name="com.lilfitness.activities.EditExerciseActivity"/>
-        <activity android:exported="false" android:name="com.lilfitness.activities.LogSetActivity"/>
+        <activity android:exported="false" android:name="com.lilfitness.activities.LogSetActivity" android:windowSoftInputMode="adjustResize"/>
         <activity android:exported="false" android:name="com.lilfitness.activities.SelectExerciseActivity"/>
         <activity android:exported="false" android:name="com.lilfitness.activities.ActiveTrainingActivity"/>
         <activity android:exported="false" android:name="com.lilfitness.activities.ExercisesActivity"/>

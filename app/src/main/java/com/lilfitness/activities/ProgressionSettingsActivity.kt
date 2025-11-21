@@ -7,12 +7,15 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.animation.doOnEnd
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.lilfitness.R
 import com.lilfitness.databinding.ActivityProgressionSettingsBinding
+import com.lilfitness.helpers.DialogHelper
 import com.lilfitness.helpers.ProgressionHelper
 import com.lilfitness.helpers.ProgressionSettingsManager
+import com.lilfitness.helpers.showWithTransparentWindow
 
 class ProgressionSettingsActivity : AppCompatActivity() {
 
@@ -246,88 +249,88 @@ class ProgressionSettingsActivity : AppCompatActivity() {
             }
 
             settingsManager.saveSettings(settings)
-            Toast.makeText(this, "Settings saved successfully! ✓", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.toast_settings_saved), Toast.LENGTH_SHORT).show()
             finish()
 
         } catch (e: NumberFormatException) {
-            Toast.makeText(this, "Invalid input. Please check all fields.", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, getString(R.string.toast_invalid_input), Toast.LENGTH_LONG).show()
         } catch (e: Exception) {
-            Toast.makeText(this, "Error saving settings: ${e.message}", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, getString(R.string.toast_error_saving_settings, e.message ?: ""), Toast.LENGTH_LONG).show()
         }
     }
 
     private fun validateSettings(settings: ProgressionHelper.ProgressionSettings): Boolean {
         when {
             settings.lookbackCount < 1 || settings.lookbackCount > 10 -> {
-                Toast.makeText(this, "Lookback sessions must be between 1 and 10", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, getString(R.string.validation_lookback_sessions), Toast.LENGTH_LONG).show()
                 return false
             }
             settings.increaseStep < 0 || settings.increaseStep > 10 -> {
-                Toast.makeText(this, "Increase step must be between 0 and 10kg", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, getString(R.string.validation_increase_step), Toast.LENGTH_LONG).show()
                 return false
             }
             settings.smallStep < 0 || settings.smallStep > 5 -> {
-                Toast.makeText(this, "Small step must be between 0 and 5kg", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, getString(R.string.validation_small_step), Toast.LENGTH_LONG).show()
                 return false
             }
             settings.deloadThreshold < 1 || settings.deloadThreshold > 10 -> {
-                Toast.makeText(this, "Deload threshold must be between 1 and 10", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, getString(R.string.validation_deload_threshold), Toast.LENGTH_LONG).show()
                 return false
             }
             settings.deloadRPEThreshold < 6.0f || settings.deloadRPEThreshold > 10.0f -> {
-                Toast.makeText(this, "Deload RPE must be between 6.0 and 10.0", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, getString(R.string.validation_deload_rpe), Toast.LENGTH_LONG).show()
                 return false
             }
             settings.deloadPercent < 0.5f || settings.deloadPercent > 1.0f -> {
-                Toast.makeText(this, "Deload % must be between 50 and 100", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, getString(R.string.validation_deload_percent), Toast.LENGTH_LONG).show()
                 return false
             }
             settings.plateauSessionCount < 2 || settings.plateauSessionCount > 10 -> {
-                Toast.makeText(this, "Plateau sessions must be between 2 and 10", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, getString(R.string.validation_plateau_sessions), Toast.LENGTH_LONG).show()
                 return false
             }
             settings.plateauRPEMax < 6.0f || settings.plateauRPEMax > 10.0f -> {
-                Toast.makeText(this, "Plateau RPE must be between 6.0 and 10.0", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, getString(R.string.validation_plateau_rpe), Toast.LENGTH_LONG).show()
                 return false
             }
             settings.plateauBoost < 1.0f || settings.plateauBoost > 3.0f -> {
-                Toast.makeText(this, "Plateau boost must be between 1.0 and 3.0", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, getString(R.string.validation_plateau_boost), Toast.LENGTH_LONG).show()
                 return false
             }
             settings.heavySets < 1 || settings.heavySets > 10 -> {
-                Toast.makeText(this, "Heavy sets must be between 1 and 10", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, getString(R.string.validation_heavy_sets), Toast.LENGTH_LONG).show()
                 return false
             }
             settings.heavyReps < 1 || settings.heavyReps > 50 -> {
-                Toast.makeText(this, "Heavy reps must be between 1 and 50", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, getString(R.string.validation_heavy_reps), Toast.LENGTH_LONG).show()
                 return false
             }
             settings.lightSets < 1 || settings.lightSets > 10 -> {
-                Toast.makeText(this, "Light sets must be between 1 and 10", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, getString(R.string.validation_light_sets), Toast.LENGTH_LONG).show()
                 return false
             }
             settings.lightReps < 1 || settings.lightReps > 50 -> {
-                Toast.makeText(this, "Light reps must be between 1 and 50", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, getString(R.string.validation_light_reps), Toast.LENGTH_LONG).show()
                 return false
             }
-            settings.heavyRestSeconds < 30 || settings.heavyRestSeconds > 600 -> {
-                Toast.makeText(this, "Heavy rest must be between 30 and 600 seconds", Toast.LENGTH_LONG).show()
+            settings.heavyRestSeconds < 5 || settings.heavyRestSeconds > 600 -> {
+                Toast.makeText(this, getString(R.string.validation_heavy_rest), Toast.LENGTH_LONG).show()
                 return false
             }
-            settings.lightRestSeconds < 30 || settings.lightRestSeconds > 600 -> {
-                Toast.makeText(this, "Light rest must be between 30 and 600 seconds", Toast.LENGTH_LONG).show()
+            settings.lightRestSeconds < 5 || settings.lightRestSeconds > 600 -> {
+                Toast.makeText(this, getString(R.string.validation_light_rest), Toast.LENGTH_LONG).show()
                 return false
             }
-            settings.customRestSeconds < 30 || settings.customRestSeconds > 600 -> {
-                Toast.makeText(this, "Custom rest must be between 30 and 600 seconds", Toast.LENGTH_LONG).show()
+            settings.customRestSeconds < 5 || settings.customRestSeconds > 600 -> {
+                Toast.makeText(this, getString(R.string.validation_custom_rest), Toast.LENGTH_LONG).show()
                 return false
             }
             settings.rpeHighThreshold < 6.0f || settings.rpeHighThreshold > 10.0f -> {
-                Toast.makeText(this, "RPE threshold must be between 6.0 and 10.0", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, getString(R.string.validation_rpe_threshold), Toast.LENGTH_LONG).show()
                 return false
             }
             settings.rpeHighBonusSeconds < 0 || settings.rpeHighBonusSeconds > 300 -> {
-                Toast.makeText(this, "RPE bonus rest must be between 0 and 300 seconds", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, getString(R.string.validation_rpe_bonus_rest), Toast.LENGTH_LONG).show()
                 return false
             }
         }
@@ -335,16 +338,16 @@ class ProgressionSettingsActivity : AppCompatActivity() {
     }
 
     private fun showResetDialog() {
-        AlertDialog.Builder(this)
-            .setTitle("Reset to Defaults")
-            .setMessage("This will reset all progression settings to default values. Continue?")
-            .setPositiveButton("Reset") { _, _ ->
+        DialogHelper.createBuilder(this)
+            .setTitle(getString(R.string.dialog_title_reset_to_defaults))
+            .setMessage(getString(R.string.dialog_message_reset_to_defaults))
+            .setPositiveButton(getString(R.string.button_reset)) { _, _ ->
                 settingsManager.resetToDefaults()
                 loadSettings()
-                Toast.makeText(this, "Settings reset to defaults", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.toast_settings_reset), Toast.LENGTH_SHORT).show()
             }
-            .setNegativeButton("Cancel", null)
-            .show()
+            .setNegativeButton(getString(R.string.button_cancel), null)
+            .showWithTransparentWindow()
     }
 
     override fun onSupportNavigateUp(): Boolean {

@@ -3,11 +3,14 @@ package com.lilfitness.activities
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AlertDialog
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.lilfitness.R
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.lilfitness.databinding.ActivityWorkoutPlansBinding
+import com.lilfitness.helpers.DialogHelper
 import com.lilfitness.helpers.JsonHelper
+import com.lilfitness.helpers.showWithTransparentWindow
 import com.lilfitness.models.WorkoutPlan
 import com.lilfitness.adapters.WorkoutPlansAdapter
 
@@ -50,11 +53,11 @@ class WorkoutPlansActivity : AppCompatActivity() {
             plans = plans,
             onUsePlanClicked = { plan ->
                 // TODO: Will be implemented later - for now just show message
-                AlertDialog.Builder(this)
-                    .setTitle("Use Plan")
-                    .setMessage("Plan usage will be implemented in the workout flow.")
-                    .setPositiveButton("OK", null)
-                    .show()
+                DialogHelper.createBuilder(this)
+                    .setTitle(getString(R.string.dialog_title_use_plan))
+                    .setMessage(getString(R.string.dialog_message_use_plan))
+                    .setPositiveButton(getString(R.string.button_ok), null)
+                    .showWithTransparentWindow()
             },
             onEditPlanClicked = { plan ->
                 editPlan(plan)
@@ -105,17 +108,17 @@ class WorkoutPlansActivity : AppCompatActivity() {
     }
 
     private fun deletePlan(plan: WorkoutPlan) {
-        AlertDialog.Builder(this)
-            .setTitle("Delete Plan")
-            .setMessage("Are you sure you want to delete \"${plan.name}\"? This will not affect your workout history.")
-            .setPositiveButton("Delete") { _, _ ->
+        DialogHelper.createBuilder(this)
+            .setTitle(getString(R.string.dialog_title_delete_plan))
+            .setMessage(getString(R.string.dialog_message_delete_plan, plan.name))
+            .setPositiveButton(getString(R.string.button_delete)) { _, _ ->
                 val trainingData = jsonHelper.readTrainingData()
                 trainingData.workoutPlans.removeAll { it.id == plan.id }
                 jsonHelper.writeTrainingData(trainingData)
                 loadPlans()
             }
-            .setNegativeButton("Cancel", null)
-            .show()
+            .setNegativeButton(getString(R.string.button_cancel), null)
+            .showWithTransparentWindow()
     }
 }
 

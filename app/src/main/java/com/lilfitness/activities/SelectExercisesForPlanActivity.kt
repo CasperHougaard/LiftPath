@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.lilfitness.R
 import com.lilfitness.databinding.ActivitySelectExercisesForPlanBinding
 import com.lilfitness.helpers.JsonHelper
 import com.lilfitness.adapters.SelectExercisesAdapter
@@ -71,7 +72,7 @@ class SelectExercisesForPlanActivity : AppCompatActivity() {
         binding.buttonDone.setOnClickListener {
             val selectedIds = adapter.getSelectedIds()
             if (selectedIds.isEmpty()) {
-                Toast.makeText(this, "Please select at least one exercise", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.toast_please_select_exercise), Toast.LENGTH_SHORT).show()
             } else {
                 val intent = Intent().apply {
                     putIntegerArrayListExtra(EXTRA_SELECTED_EXERCISE_IDS, ArrayList(selectedIds))

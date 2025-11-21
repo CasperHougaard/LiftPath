@@ -9,8 +9,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import com.lilfitness.R
 import com.lilfitness.databinding.ActivitySettingsBinding
+import com.lilfitness.helpers.DialogHelper
 import com.lilfitness.helpers.JsonHelper
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.lilfitness.helpers.showWithTransparentWindow
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -24,8 +25,8 @@ class SettingsActivity : AppCompatActivity() {
     ) { uri ->
         uri?.let {
             jsonHelper.exportTrainingData(it)
-                .onSuccess { showToast("Backup exported") }
-                .onFailure { showToast("Export failed: ${it.localizedMessage}") }
+                .onSuccess { showToast(getString(R.string.toast_backup_exported)) }
+                .onFailure { showToast(getString(R.string.toast_export_failed, it.localizedMessage ?: "")) }
         }
     }
 
@@ -44,8 +45,8 @@ class SettingsActivity : AppCompatActivity() {
                 }
             }
             jsonHelper.importTrainingData(it)
-                .onSuccess { showToast("Backup imported") }
-                .onFailure { showToast("Import failed: ${it.localizedMessage}") }
+                .onSuccess { showToast(getString(R.string.toast_backup_imported)) }
+                .onFailure { showToast(getString(R.string.toast_import_failed, it.localizedMessage ?: "")) }
         }
     }
 
@@ -94,19 +95,19 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun showResetDataConfirmationDialog() {
-        MaterialAlertDialogBuilder(this)
-            .setTitle("Reset Data")
-            .setMessage("Are you sure you want to reset all your data? This action cannot be undone.")
-            .setNegativeButton("Cancel", null)
-            .setPositiveButton("Reset") { _, _ ->
+        DialogHelper.createBuilder(this)
+            .setTitle(getString(R.string.dialog_title_reset_data))
+            .setMessage(getString(R.string.dialog_message_reset_data))
+            .setNegativeButton(getString(R.string.button_cancel), null)
+            .setPositiveButton(getString(R.string.button_reset)) { _, _ ->
                 resetData()
             }
-            .show()
+            .showWithTransparentWindow()
     }
 
     private fun resetData() {
         jsonHelper.resetTrainingData()
-        showToast("Data reset")
+        showToast(getString(R.string.toast_data_reset))
     }
 
     private fun defaultBackupFileName(): String {

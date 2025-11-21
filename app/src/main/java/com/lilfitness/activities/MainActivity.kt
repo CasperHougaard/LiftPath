@@ -12,11 +12,14 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
-import androidx.appcompat.app.AlertDialog
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.lilfitness.R
 import androidx.appcompat.app.AppCompatActivity
 import com.lilfitness.databinding.ActivityMainBinding
 import com.lilfitness.helpers.ActiveWorkoutDraftManager
+import com.lilfitness.helpers.DialogHelper
 import com.lilfitness.helpers.JsonHelper
+import com.lilfitness.helpers.showWithTransparentWindow
 import com.lilfitness.models.ActiveWorkoutDraft
 import com.lilfitness.models.ExerciseLibraryItem
 import com.lilfitness.models.TrainingData
@@ -195,8 +198,8 @@ class MainActivity : AppCompatActivity() {
     private fun showWorkoutTypeDialog() {
         val types = arrayOf("Heavy", "Light", "Custom")
 
-        AlertDialog.Builder(this)
-            .setTitle("Select Workout Type")
+        DialogHelper.createBuilder(this)
+            .setTitle(getString(R.string.dialog_title_select_workout_type))
             .setItems(types) { _, which ->
                 val selectedType = when (which) {
                     0 -> "heavy"
@@ -206,8 +209,8 @@ class MainActivity : AppCompatActivity() {
                 }
                 startWorkoutWithType(selectedType, skipDraftPrompt = true)
             }
-            .setNegativeButton("Cancel", null)
-            .show()
+            .setNegativeButton(getString(R.string.button_cancel), null)
+            .showWithTransparentWindow()
     }
 
     private fun startWorkoutWithType(workoutType: String, skipDraftPrompt: Boolean = false) {
@@ -222,43 +225,37 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showDraftPromptBeforeWorkoutType(draft: ActiveWorkoutDraft) {
-        val message = buildString {
-            append("You have an unfinished ${draft.workoutType} workout from ${draft.date}.")
-            append(" Would you like to resume it?")
-        }
+        val message = getString(R.string.dialog_message_resume_workout_simple, draft.workoutType, draft.date)
 
-        AlertDialog.Builder(this)
-            .setTitle("Resume unfinished workout?")
+        DialogHelper.createBuilder(this)
+            .setTitle(getString(R.string.dialog_title_resume_workout))
             .setMessage(message)
-            .setPositiveButton("Resume") { _, _ ->
+            .setPositiveButton(getString(R.string.button_resume)) { _, _ ->
                 launchActiveWorkout(draft.workoutType, resumeDraft = true)
             }
-            .setNegativeButton("Start new") { _, _ ->
+            .setNegativeButton(getString(R.string.button_start_new)) { _, _ ->
                 draftManager.clearDraft()
                 showWorkoutTypeDialog()
             }
-            .setNeutralButton("Cancel", null)
-            .show()
+            .setNeutralButton(getString(R.string.button_cancel), null)
+            .showWithTransparentWindow()
     }
 
     private fun showResumeDraftDialog(requestedType: String, draft: ActiveWorkoutDraft) {
-        val message = buildString {
-            append("You have an unfinished ${draft.workoutType} workout from ${draft.date}.")
-            append(" Would you like to resume it?")
-        }
+        val message = getString(R.string.dialog_message_resume_workout, draft.workoutType, draft.date)
 
-        AlertDialog.Builder(this)
-            .setTitle("Resume unfinished workout?")
+        DialogHelper.createBuilder(this)
+            .setTitle(getString(R.string.dialog_title_resume_workout))
             .setMessage(message)
-            .setPositiveButton("Resume") { _, _ ->
+            .setPositiveButton(getString(R.string.button_resume)) { _, _ ->
                 launchActiveWorkout(draft.workoutType, resumeDraft = true)
             }
-            .setNegativeButton("Discard") { _, _ ->
+            .setNegativeButton(getString(R.string.button_discard)) { _, _ ->
                 draftManager.clearDraft()
                 launchActiveWorkout(requestedType, resumeDraft = false)
             }
-            .setNeutralButton("Cancel", null)
-            .show()
+            .setNeutralButton(getString(R.string.button_cancel), null)
+            .showWithTransparentWindow()
     }
 
     private fun launchActiveWorkout(workoutType: String, resumeDraft: Boolean) {
@@ -310,24 +307,24 @@ class MainActivity : AppCompatActivity() {
         val exerciseNames = trainingData.exerciseLibrary.map { it.name }.sorted()
         
         if (exerciseNames.isEmpty()) {
-            AlertDialog.Builder(this)
-                .setTitle("No Exercises")
-                .setMessage("Please add exercises to your library first.")
-                .setPositiveButton("OK", null)
-                .show()
+            DialogHelper.createBuilder(this)
+                .setTitle(getString(R.string.dialog_title_no_exercises))
+                .setMessage(getString(R.string.dialog_message_no_exercises))
+                .setPositiveButton(getString(R.string.button_ok), null)
+                .showWithTransparentWindow()
             return
         }
         
-        AlertDialog.Builder(this)
-            .setTitle("Select Exercise")
+        DialogHelper.createBuilder(this)
+            .setTitle(getString(R.string.dialog_title_select_exercise))
             .setItems(exerciseNames.toTypedArray()) { _, which ->
                 val selectedExercise = exerciseNames[which]
                 val key = if (isLeftCard) KEY_LEFT_EXERCISE else KEY_RIGHT_EXERCISE
                 prefs.edit().putString(key, selectedExercise).apply()
                 updateStats() // Refresh the display
             }
-            .setNegativeButton("Cancel", null)
-            .show()
+            .setNegativeButton(getString(R.string.button_cancel), null)
+            .showWithTransparentWindow()
     }
     
     private fun calculateCurrent1RM(exerciseName: String, trainingData: TrainingData): Float? {

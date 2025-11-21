@@ -7,11 +7,14 @@ import android.os.Bundle
 import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AlertDialog
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.lilfitness.R
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.lilfitness.databinding.ActivityTrainingDetailBinding
+import com.lilfitness.helpers.DialogHelper
 import com.lilfitness.helpers.JsonHelper
+import com.lilfitness.helpers.showWithTransparentWindow
 import com.lilfitness.adapters.TrainingDetailAdapter
 import com.lilfitness.models.ExerciseEntry
 import com.lilfitness.models.GroupedExercise
@@ -99,18 +102,18 @@ class TrainingDetailActivity : AppCompatActivity() {
         }
 
         binding.buttonDelete.setOnClickListener {
-            AlertDialog.Builder(this)
-                .setTitle("Delete Training")
-                .setMessage("Are you sure you want to delete this training permanently?")
-                .setPositiveButton("Delete") { _, _ ->
+            DialogHelper.createBuilder(this)
+                .setTitle(getString(R.string.dialog_title_delete_training))
+                .setMessage(getString(R.string.dialog_message_delete_training))
+                .setPositiveButton(getString(R.string.button_delete)) { _, _ ->
                     val trainingData = jsonHelper.readTrainingData()
                     val updatedTrainings = trainingData.trainings.toMutableList()
                     updatedTrainings.remove(trainingSession)
                     jsonHelper.writeTrainingData(trainingData.copy(trainings = updatedTrainings))
                     finish()
                 }
-                .setNegativeButton("Cancel", null)
-                .show()
+                .setNegativeButton(getString(R.string.button_cancel), null)
+                .showWithTransparentWindow()
         }
     }
 
@@ -179,7 +182,7 @@ class TrainingDetailActivity : AppCompatActivity() {
         )
         persistTrainingSession()
         setupRecyclerView()
-        Toast.makeText(this, "Applied ${WorkoutTypeFormatter.label(type)} to all exercises.", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, getString(R.string.toast_applied_type_to_all, WorkoutTypeFormatter.label(type)), Toast.LENGTH_SHORT).show()
     }
 
     private fun showExerciseTypeDialog(groupedExercise: GroupedExercise) {
@@ -187,15 +190,15 @@ class TrainingDetailActivity : AppCompatActivity() {
         val normalized = WorkoutTypeFormatter.normalize(currentType)
         val currentIndex = workoutTypeKeys.indexOf(normalized).takeIf { it >= 0 } ?: 0
 
-        AlertDialog.Builder(this)
-            .setTitle("Set type for ${groupedExercise.exerciseName}")
+        DialogHelper.createBuilder(this)
+            .setTitle(getString(R.string.dialog_title_set_type_for_exercise, groupedExercise.exerciseName))
             .setSingleChoiceItems(workoutTypeLabels.toTypedArray(), currentIndex) { dialog, which ->
                 val selectedType = workoutTypeKeys[which]
                 dialog.dismiss()
                 applyTypeToExercise(groupedExercise.exerciseId, selectedType)
             }
-            .setNegativeButton("Cancel", null)
-            .show()
+            .setNegativeButton(getString(R.string.button_cancel), null)
+            .showWithTransparentWindow()
     }
 
     private fun applyTypeToExercise(exerciseId: Int, type: String) {
@@ -205,7 +208,7 @@ class TrainingDetailActivity : AppCompatActivity() {
         trainingSession = trainingSession.copy(exercises = updatedExercises)
         persistTrainingSession()
         setupRecyclerView()
-        Toast.makeText(this, "${WorkoutTypeFormatter.label(type)} applied to exercise.", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, getString(R.string.toast_type_applied_to_exercise, WorkoutTypeFormatter.label(type)), Toast.LENGTH_SHORT).show()
     }
 
     private fun persistTrainingSession() {
