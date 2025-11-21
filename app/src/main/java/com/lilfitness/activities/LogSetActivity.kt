@@ -4,6 +4,7 @@ import android.Manifest
 import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.drawable.Animatable
 import android.os.Build
 import android.os.Bundle
 import android.view.View
@@ -53,7 +54,9 @@ class LogSetActivity : AppCompatActivity() {
         setNumber = intent.getIntExtra(EXTRA_SET_NUMBER, 1)
         workoutType = intent.getStringExtra(EXTRA_WORKOUT_TYPE) ?: "heavy"
         previousSetReps = intent.getIntExtra(EXTRA_PREVIOUS_SET_REPS, -1).takeIf { it > 0 }
-        binding.textLogSetTitle.text = "Log Set for $exerciseName (${formatTypeLabel(workoutType)})"
+        binding.textLogSetTitle.text = "$exerciseName (${formatTypeLabel(workoutType)})"
+
+        setupBackgroundAnimation()
 
         // Setup RPE help button
         binding.btnRpeHelp.setOnClickListener {
@@ -69,7 +72,14 @@ class LogSetActivity : AppCompatActivity() {
         }
 
         binding.buttonBack.setOnClickListener {
-            onBackPressed()
+            finish()
+        }
+    }
+
+    private fun setupBackgroundAnimation() {
+        val drawable = binding.imageBgAnimation.drawable
+        if (drawable is Animatable) {
+            drawable.start()
         }
     }
 
@@ -132,14 +142,25 @@ class LogSetActivity : AppCompatActivity() {
                     else -> null
                 }
 
-                // Build hint text with badge and recommended sets/reps
+                // Build hint text with set number, total sets, and reps
                 val hintText = buildString {
-                    append("💡 Suggested: ${suggestedWeight}kg")
+                    val totalSets = when (workoutType) {
+                        "heavy" -> userSettings.heavySets
+                        "light" -> userSettings.lightSets
+                        else -> 1
+                    }
+                    val suggestedReps = when (workoutType) {
+                        "heavy" -> userSettings.heavyReps
+                        "light" -> userSettings.lightReps
+                        else -> null
+                    }
                     
-                    // Add recommended sets/reps
-                    when (workoutType) {
-                        "heavy" -> append(" (${userSettings.heavySets} sets × ${userSettings.heavyReps} reps)")
-                        "light" -> append(" (${userSettings.lightSets} sets × ${userSettings.lightReps} reps)")
+                    append("Suggested: ${suggestedWeight}kg")
+                    
+                    if (suggestedReps != null && suggestedReps > 0) {
+                        append(" for Set $setNumber of $totalSets ($suggestedReps reps)")
+                    } else {
+                        append(" for Set $setNumber of $totalSets")
                     }
                     
                     suggestion.badge?.let {
@@ -147,18 +168,13 @@ class LogSetActivity : AppCompatActivity() {
                     }
                 }
                 
-                binding.tvSuggestionHint.text = hintText
+                binding.textSuggestionContent.text = hintText
 
                 if (binding.editTextReps.text.isNullOrBlank() && suggestedReps != null && suggestedReps > 0) {
                     binding.editTextReps.setText(suggestedReps.toString())
                 }
                 
-                // Change background color for warnings
-                if (suggestion.isDeloadWeek || suggestion.badge?.contains("⚠️") == true) {
-                    binding.tvSuggestionHint.setBackgroundResource(R.drawable.suggestion_hint_warning)
-                } else {
-                    binding.tvSuggestionHint.setBackgroundResource(R.drawable.suggestion_hint_background)
-                }
+                // The card now has a fixed accent color background, no need to change it
                 
                 binding.tvSuggestionHint.visibility = View.VISIBLE
             }

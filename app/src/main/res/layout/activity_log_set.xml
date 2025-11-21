@@ -1,184 +1,344 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/fitness_background"
-    android:fillViewport="true"
     android:fitsSystemWindows="true"
     tools:context=".activities.LogSetActivity">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <!-- Background Flow Animation -->
+    <ImageView
+        android:id="@+id/image_bg_animation"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:alpha="1.0"
+        android:scaleType="centerCrop"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@drawable/avd_background_flow" />
+
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/scroll_view_content"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:background="@android:color/transparent"
+        android:clipToPadding="false"
+        android:fillViewport="true"
+        app:layout_constraintBottom_toTopOf="@id/button_save_set"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:clipChildren="false"
+            android:clipToPadding="false"
+            android:paddingStart="24dp"
+            android:paddingTop="24dp"
+            android:paddingEnd="24dp"
+            android:paddingBottom="24dp">
+
+            <!-- HEADER WITH BACK BUTTON -->
+            <LinearLayout
+                android:id="@+id/layout_header"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
+
+                <androidx.cardview.widget.CardView
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    app:cardBackgroundColor="@color/fitness_card_background"
+                    app:cardCornerRadius="24dp"
+                    app:cardElevation="0dp">
+
+                    <ImageButton
+                        android:id="@+id/button_back"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@android:color/transparent"
+                        android:contentDescription="@string/progress_back_content_description"
+                        android:padding="12dp"
+                        android:src="@drawable/ic_arrow_back_24"
+                        app:tint="@color/fitness_text_primary" />
+                </androidx.cardview.widget.CardView>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/text_log_set_title"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/fitness_text_primary"
+                        android:textSize="20sp"
+                        android:textStyle="bold"
+                        tools:text="Bench Press (Heavy)" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="Log your set details"
+                        android:textColor="@color/fitness_text_secondary"
+                        android:textSize="13sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- SUGGESTION HINT CARD -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/tvSuggestionHint"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:visibility="gone"
+                app:cardBackgroundColor="@color/fitness_accent"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="0dp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/layout_header"
+                tools:visibility="visible">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="12dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="💡"
+                        android:textSize="18sp" />
+
+                    <TextView
+                        android:id="@+id/text_suggestion_content"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1"
+                        android:textColor="@color/white"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        tools:text="Suggested: 57.5kg" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- SET DETAILS CARD -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/card_set_details"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:layout_marginBottom="0dp"
+                app:cardBackgroundColor="@color/fitness_card_background"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="4dp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/tvSuggestionHint">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Set Details"
+                        android:textColor="@color/fitness_text_primary"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <!-- Weight and Reps Row -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/text_input_layout_kg"
+                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="8dp"
+                            android:layout_weight="1"
+                            android:hint="Weight (kg)"
+                            app:boxStrokeColor="@color/fitness_primary"
+                            app:hintTextColor="@color/fitness_primary">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/edit_text_kg"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="numberDecimal"
+                                android:textColor="@color/fitness_text_primary" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/text_input_layout_reps"
+                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_weight="1"
+                            android:hint="Reps"
+                            app:boxStrokeColor="@color/fitness_primary"
+                            app:hintTextColor="@color/fitness_primary">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/edit_text_reps"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="number"
+                                android:textColor="@color/fitness_text_primary" />
+                        </com.google.android.material.textfield.TextInputLayout>
+                    </LinearLayout>
+
+                    <!-- Completion Checkbox -->
+                    <CheckBox
+                        android:id="@+id/cbCompleted"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:checked="true"
+                        android:text="✓ Completed all reps"
+                        android:textColor="@color/fitness_text_primary" />
+
+                    <!-- RPE Section -->
+                    <LinearLayout
+                        android:id="@+id/rpe_header_container"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="RPE (Optional)"
+                            android:textColor="@color/fitness_text_primary"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <ImageButton
+                            android:id="@+id/btnRpeHelp"
+                            android:layout_width="32dp"
+                            android:layout_height="32dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:contentDescription="RPE Help"
+                            android:src="@android:drawable/ic_menu_help"
+                            app:tint="@color/fitness_accent" />
+                    </LinearLayout>
+
+                    <!-- RPE Input -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/text_input_layout_rpe"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:hint="6.0 - 10.0 (e.g., 8.5)"
+                        app:boxStrokeColor="@color/fitness_primary"
+                        app:hintTextColor="@color/fitness_primary">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/edit_text_rpe"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="numberDecimal"
+                            android:maxLength="4"
+                            android:textColor="@color/fitness_text_primary" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- RPE Hint -->
+                    <TextView
+                        android:id="@+id/text_rpe_hint"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:text="How hard was this set? Leave blank if unsure."
+                        android:textColor="@color/fitness_text_secondary"
+                        android:textSize="12sp" />
+
+                    <!-- Note Field -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/text_input_layout_note"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:hint="Note (optional)"
+                        app:boxStrokeColor="@color/fitness_primary"
+                        app:hintTextColor="@color/fitness_primary">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/edit_text_note"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="textCapSentences"
+                            android:textColor="@color/fitness_text_primary" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <!-- SAVE BUTTON - FIXED AT BOTTOM -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/button_save_set"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="24dp">
-
-        <TextView
-            android:id="@+id/text_log_set_title"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Log Set for [Exercise]"
-            android:textColor="@color/fitness_text_primary"
-            android:textSize="24sp"
-            android:textStyle="bold"
-            app:layout_constraintTop_toTopOf="parent" />
-
-        <TextView
-            android:id="@+id/tvSuggestionHint"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:background="@drawable/suggestion_hint_background"
-            android:padding="12dp"
-            android:text="💡 Suggested: 57.5kg (heavy)"
-            android:textColor="@color/fitness_primary_dark"
-            android:textSize="14sp"
-            android:visibility="gone"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/text_log_set_title"
-            tools:visibility="visible" />
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/text_input_layout_kg"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:layout_marginEnd="8dp"
-            android:hint="Kg"
-            app:layout_constraintEnd_toStartOf="@+id/text_input_layout_reps"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/tvSuggestionHint">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/edit_text_kg"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="numberDecimal" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/text_input_layout_reps"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:hint="Reps"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@+id/text_input_layout_kg"
-            app:layout_constraintTop_toTopOf="@+id/text_input_layout_kg">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/edit_text_reps"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="number" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/text_input_layout_note"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:hint="Note (optional)"
-            app:layout_constraintTop_toBottomOf="@+id/text_input_layout_kg">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/edit_text_note"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="textCapSentences" />
-        </com.google.android.material.textfield.TextInputLayout>
+        android:layout_marginStart="24dp"
+        android:layout_marginEnd="24dp"
+        android:layout_marginBottom="24dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="?attr/selectableItemBackground"
+        app:cardBackgroundColor="@color/fitness_primary"
+        app:cardCornerRadius="24dp"
+        app:cardElevation="8dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
 
         <LinearLayout
-            android:id="@+id/rpe_header_container"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:gravity="center"
+            android:minHeight="60dp"
             android:orientation="horizontal"
-            android:gravity="center_vertical"
-            app:layout_constraintTop_toBottomOf="@+id/text_input_layout_note">
+            android:padding="16dp">
 
             <TextView
-                android:layout_width="0dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="RPE (optional)"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:textColor="@color/fitness_text_primary" />
-
-            <ImageButton
-                android:id="@+id/btnRpeHelp"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@android:drawable/ic_menu_help"
-                android:contentDescription="RPE Help"
-                android:tint="@color/fitness_accent" />
+                android:text="Save Set"
+                android:textColor="@color/white"
+                android:textSize="18sp"
+                android:textStyle="bold" />
         </LinearLayout>
+    </androidx.cardview.widget.CardView>
 
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/text_input_layout_rpe"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:hint="6.0 - 10.0 (e.g., 8.5)"
-            app:layout_constraintTop_toBottomOf="@+id/rpe_header_container">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/edit_text_rpe"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="numberDecimal"
-                android:maxLength="4" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <TextView
-            android:id="@+id/text_rpe_hint"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="How hard was this set? Leave blank if unsure."
-            android:textSize="12sp"
-            android:textColor="@android:color/darker_gray"
-            app:layout_constraintTop_toBottomOf="@+id/text_input_layout_rpe" />
-
-        <CheckBox
-            android:id="@+id/cbCompleted"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="✓ Completed all prescribed reps"
-            android:checked="true"
-            app:layout_constraintTop_toBottomOf="@+id/text_rpe_hint" />
-
-        <Button
-            android:id="@+id/button_save_set"
-            android:layout_width="match_parent"
-            android:layout_height="64dp"
-            android:layout_marginTop="24dp"
-            android:layout_marginBottom="8dp"
-            android:backgroundTint="@color/fitness_primary"
-            android:text="Save Set"
-            android:textColor="@color/white"
-            app:layout_constraintTop_toBottomOf="@+id/cbCompleted"
-            app:layout_constraintBottom_toTopOf="@+id/button_back" />
-
-        <Button
-            android:id="@+id/button_back"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Back"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toStartOf="parent" />
-
-    </androidx.constraintlayout.widget.ConstraintLayout>
-
-</androidx.core.widget.NestedScrollView>
+</androidx.constraintlayout.widget.ConstraintLayout>

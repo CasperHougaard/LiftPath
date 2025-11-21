@@ -2,6 +2,7 @@ package com.lilfitness.activities
 
 import android.app.Activity
 import android.content.Intent
+import android.graphics.drawable.Animatable
 import android.os.Bundle
 import android.view.View
 import androidx.appcompat.app.AlertDialog
@@ -34,14 +35,22 @@ class EditExerciseActivity : AppCompatActivity() {
             binding.textEditExerciseTitle.text = "Edit Exercise"
             val exerciseName = intent.getStringExtra(EXTRA_EXERCISE_NAME)
             binding.editTextExerciseName.setText(exerciseName)
-            binding.buttonDeleteExercise.visibility = View.VISIBLE
+            binding.cardDelete.visibility = View.VISIBLE
         } else {
             // Create mode
             binding.textEditExerciseTitle.text = "Create New Exercise"
-            binding.buttonDeleteExercise.visibility = View.GONE
+            binding.cardDelete.visibility = View.GONE
         }
 
+        setupBackgroundAnimation()
         setupClickListeners()
+    }
+
+    private fun setupBackgroundAnimation() {
+        val drawable = binding.imageBgAnimation.drawable
+        if (drawable is Animatable) {
+            drawable.start()
+        }
     }
 
     private fun setupClickListeners() {
@@ -49,12 +58,16 @@ class EditExerciseActivity : AppCompatActivity() {
             saveExercise()
         }
 
-        binding.buttonDeleteExercise.setOnClickListener {
+        binding.cardDelete.setOnClickListener {
             showDeleteConfirmationDialog()
         }
 
         binding.buttonBack.setOnClickListener {
-            onBackPressed()
+            finish()
+        }
+
+        binding.buttonCancel.setOnClickListener {
+            finish()
         }
     }
 

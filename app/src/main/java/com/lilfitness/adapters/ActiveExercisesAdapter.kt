@@ -3,8 +3,8 @@ package com.lilfitness.adapters
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
 import android.widget.TextView
+import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.RecyclerView
 import com.lilfitness.R
 import com.lilfitness.models.ExerciseEntry
@@ -21,10 +21,10 @@ class ActiveExercisesAdapter(
     class GroupedExerciseViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val exerciseName: TextView = view.findViewById(R.id.text_exercise_name)
         val setsSummary: TextView = view.findViewById(R.id.text_sets_summary)
-        val addSetButton: Button = view.findViewById(R.id.button_add_set)
-        val editActivityButton: Button = view.findViewById(R.id.button_edit_activity)
-        val duplicateSetButton: Button = view.findViewById(R.id.button_duplicate_set)
-        val deleteExerciseButton: Button = view.findViewById(R.id.button_delete_exercise)
+        val addSetButton: CardView = view.findViewById(R.id.button_add_set)
+        val duplicateSetButton: CardView = view.findViewById(R.id.button_duplicate_set)
+        val editActivityButton: CardView = view.findViewById(R.id.button_edit_activity)
+        val deleteExerciseButton: CardView = view.findViewById(R.id.button_delete_exercise)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): GroupedExerciseViewHolder {
@@ -37,26 +37,32 @@ class ActiveExercisesAdapter(
         val groupedExercise = groupedExercises[position]
         holder.exerciseName.text = groupedExercise.exerciseName
 
-        val setsText = groupedExercise.sets.joinToString("\n") { set ->
-            "Set ${set.setNumber}: ${set.kg} kg x ${set.reps} reps"
-        }
-        holder.setsSummary.text = setsText.ifEmpty { "No sets logged yet." }
-
-        // Show/hide Edit button based on whether there are sets
+        // Format sets vertically, one per line
         val hasSets = groupedExercise.sets.isNotEmpty()
-        holder.editActivityButton.visibility = if (hasSets) View.VISIBLE else View.GONE
+        if (hasSets) {
+            val setsText = groupedExercise.sets.joinToString("\n") { set ->
+                "Set ${set.setNumber}: ${set.kg}kg × ${set.reps}"
+            }
+            holder.setsSummary.text = setsText
+        } else {
+            holder.setsSummary.text = "No sets logged yet"
+        }
+
+        // Show/hide buttons based on whether there are sets
         holder.duplicateSetButton.visibility = if (hasSets) View.VISIBLE else View.GONE
+        holder.editActivityButton.visibility = if (hasSets) View.VISIBLE else View.GONE
+        holder.deleteExerciseButton.visibility = if (hasSets) View.VISIBLE else View.GONE
 
         holder.addSetButton.setOnClickListener {
             onAddSetClicked(groupedExercise.exerciseId, groupedExercise.exerciseName)
         }
 
-        holder.editActivityButton.setOnClickListener {
-            onEditActivityClicked(groupedExercise)
-        }
-
         holder.duplicateSetButton.setOnClickListener {
             onDuplicateSetClicked(groupedExercise.exerciseId)
+        }
+
+        holder.editActivityButton.setOnClickListener {
+            onEditActivityClicked(groupedExercise)
         }
 
         holder.deleteExerciseButton.setOnClickListener {

@@ -2,6 +2,7 @@ package com.lilfitness.activities
 
 import android.app.Activity
 import android.content.Intent
+import android.graphics.drawable.Animatable
 import android.os.Bundle
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -31,9 +32,17 @@ class ExercisesActivity : AppCompatActivity() {
 
         jsonHelper = JsonHelper(this)
 
+        setupBackgroundAnimation()
         setupRecyclerView()
         loadExercises()
         setupClickListeners()
+    }
+
+    private fun setupBackgroundAnimation() {
+        val drawable = binding.imageBgAnimation.drawable
+        if (drawable is Animatable) {
+            drawable.start()
+        }
     }
 
     private fun setupClickListeners() {
@@ -49,7 +58,7 @@ class ExercisesActivity : AppCompatActivity() {
         }
 
         binding.buttonBack.setOnClickListener {
-            onBackPressed()
+            finish()
         }
     }
 

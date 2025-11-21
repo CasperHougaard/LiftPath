@@ -2,6 +2,7 @@ package com.lilfitness.activities
 
 import android.app.Activity
 import android.content.Intent
+import android.graphics.drawable.Animatable
 import android.os.Build
 import android.os.Bundle
 import android.text.InputType
@@ -91,8 +92,16 @@ class EditActivityActivity : AppCompatActivity() {
 
         title = "Edit $exerciseName"
 
+        setupBackgroundAnimation()
         setupRecyclerView()
         setupClickListeners()
+    }
+
+    private fun setupBackgroundAnimation() {
+        val drawable = binding.imageBgAnimation.drawable
+        if (drawable is Animatable) {
+            drawable.start()
+        }
     }
 
     private fun setupRecyclerView() {
@@ -149,6 +158,10 @@ class EditActivityActivity : AppCompatActivity() {
     }
 
     private fun setupClickListeners() {
+        binding.buttonBack.setOnClickListener {
+            finish()
+        }
+
         binding.buttonSave.setOnClickListener {
             saveChanges()
         }

@@ -21,9 +21,17 @@ class HistoryAdapter(private val trainings: List<TrainingSession>) : RecyclerVie
         holder.binding.textTrainingTitle.text = "Training #${training.trainingNumber}"
         holder.binding.textTrainingDate.text = training.date
 
+        // Format volume with comma separator
         val totalVolume = training.exercises.sumOf { (it.reps ?: 0) * (it.kg ?: 0f).toDouble() }
-        holder.binding.textTrainingVolume.text = "Volume: ${totalVolume.toInt()} kg"
-        holder.binding.textTrainingType.text = "Type: ${WorkoutTypeFormatter.label(training.defaultWorkoutType)}"
+        holder.binding.textTrainingVolume.text = String.format("%,dkg", totalVolume.toInt())
+        
+        // Format type as uppercase badge
+        holder.binding.textTrainingType.text = (training.defaultWorkoutType ?: "heavy").uppercase()
+
+        // Exercise summary
+        val uniqueExercises = training.exercises.map { it.exerciseId }.distinct().size
+        val totalSets = training.exercises.size
+        holder.binding.textExercisesSummary.text = "$uniqueExercises exercise${if (uniqueExercises > 1) "s" else ""} • $totalSets set${if (totalSets > 1) "s" else ""}"
 
         holder.itemView.setOnClickListener {
             val context = holder.itemView.context

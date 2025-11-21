@@ -2,6 +2,7 @@ package com.lilfitness.activities
 
 import android.app.Activity
 import android.content.Intent
+import android.graphics.drawable.Animatable
 import android.os.Bundle
 import android.widget.RadioButton
 import android.widget.Toast
@@ -49,9 +50,26 @@ class EditWorkoutPlanActivity : AppCompatActivity() {
         planId = intent.getStringExtra(EXTRA_PLAN_ID)
         isEditing = planId != null
 
+        setupBackgroundAnimation()
+        updateHeaderTitle()
         setupRecyclerView()
         setupClickListeners()
         loadPlanIfEditing()
+    }
+
+    private fun setupBackgroundAnimation() {
+        val drawable = binding.imageBgAnimation.drawable
+        if (drawable is Animatable) {
+            drawable.start()
+        }
+    }
+
+    private fun updateHeaderTitle() {
+        if (isEditing) {
+            binding.textHeaderTitle.text = "Edit Workout Plan"
+        } else {
+            binding.textHeaderTitle.text = "Create Workout Plan"
+        }
     }
 
     private fun setupRecyclerView() {
@@ -68,6 +86,10 @@ class EditWorkoutPlanActivity : AppCompatActivity() {
     }
 
     private fun setupClickListeners() {
+        binding.buttonBack.setOnClickListener {
+            finish()
+        }
+
         binding.buttonAddExercises.setOnClickListener {
             val preselectedIds = selectedExercises.map { it.id }.toIntArray()
             val intent = Intent(this, SelectExercisesForPlanActivity::class.java).apply {

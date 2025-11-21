@@ -3,6 +3,7 @@ package com.lilfitness.activities
 import android.app.Activity
 import android.app.DatePickerDialog
 import android.content.Intent
+import android.graphics.drawable.Animatable
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -99,11 +100,19 @@ class ActiveTrainingActivity : AppCompatActivity() {
         val resumeRequested = intent.getBooleanExtra(EXTRA_RESUME_DRAFT, false)
         binding.textActiveTrainingTitle.text = "Active Workout (${workoutType.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }})"
 
+        setupBackgroundAnimation()
         setupRecyclerView()
         setupClickListeners()
         setupBackButtonInterceptor()
         updateDateDisplay()
         maybeRestoreDraft(forceResume = resumeRequested || savedInstanceState != null)
+    }
+
+    private fun setupBackgroundAnimation() {
+        val drawable = binding.imageBgAnimation.drawable
+        if (drawable is Animatable) {
+            drawable.start()
+        }
     }
 
     private val editActivityLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->

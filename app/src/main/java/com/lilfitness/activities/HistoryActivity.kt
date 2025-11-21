@@ -1,5 +1,6 @@
 package com.lilfitness.activities
 
+import android.graphics.drawable.Animatable
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -20,8 +21,16 @@ class HistoryActivity : AppCompatActivity() {
 
         jsonHelper = JsonHelper(this)
 
+        setupBackgroundAnimation()
         setupRecyclerView()
         setupClickListeners()
+    }
+
+    private fun setupBackgroundAnimation() {
+        val drawable = binding.imageBgAnimation.drawable
+        if (drawable is Animatable) {
+            drawable.start()
+        }
     }
 
     override fun onResume() {
@@ -31,7 +40,7 @@ class HistoryActivity : AppCompatActivity() {
 
     private fun setupClickListeners() {
         binding.buttonBack.setOnClickListener {
-            onBackPressed()
+            finish()
         }
     }
 
