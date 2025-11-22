@@ -1,116 +1,437 @@
 {
+  "userLevel": "NOVICE",
   "exerciseLibrary": [
     {
       "id": 1,
       "name": "Deadlift (Barbell)",
+      "region": "LOWER",
       "pattern": "HINGE",
-      "mechanics": "COMPOUND",
-      "tier": "TIER_1"
+      "tier": "TIER_1",
+      "primaryTargets": ["HAMSTRINGS", "GLUTES", "LOWER_BACK"],
+      "secondaryTargets": ["TRAPS_UPPER", "FOREARMS", "QUADS"]
     },
     {
       "id": 2,
       "name": "Back Squat (Barbell)",
+      "region": "LOWER",
       "pattern": "SQUAT",
-      "mechanics": "COMPOUND",
-      "tier": "TIER_1"
+      "tier": "TIER_1",
+      "primaryTargets": ["QUADS", "GLUTES", "ADDUCTORS"],
+      "secondaryTargets": ["LOWER_BACK", "ABS"]
     },
     {
       "id": 4,
       "name": "Bicep Curl (Dumbbell)",
-      "pattern": "ISOLATION_ARMS",
-      "mechanics": "ISOLATION",
-      "tier": "TIER_3"
+      "region": "UPPER",
+      "pattern": "ISOLATION_ELBOW_FLEXION",
+      "tier": "TIER_3",
+      "primaryTargets": ["BICEPS"],
+      "secondaryTargets": ["FOREARMS"]
     },
     {
       "id": 5,
       "name": "Triceps Pushdown (Cable)",
-      "pattern": "ISOLATION_ARMS",
-      "mechanics": "ISOLATION",
-      "tier": "TIER_3"
+      "region": "UPPER",
+      "pattern": "ISOLATION_ELBOW_EXTENSION",
+      "tier": "TIER_3",
+      "primaryTargets": ["TRICEPS_LATERAL"],
+      "secondaryTargets": []
     },
     {
       "id": 7,
       "name": "Bench Press (Barbell)",
+      "region": "UPPER",
       "pattern": "PUSH_HORIZONTAL",
-      "mechanics": "COMPOUND",
-      "tier": "TIER_1"
+      "tier": "TIER_1",
+      "primaryTargets": ["CHEST_MIDDLE", "TRICEPS_LATERAL", "DELT_FRONT"],
+      "secondaryTargets": ["CHEST_UPPER"]
     },
     {
       "id": 8,
       "name": "Split Squat (Barbell)",
+      "region": "LOWER",
       "pattern": "LUNGE",
-      "mechanics": "COMPOUND",
-      "tier": "TIER_2"
+      "tier": "TIER_2",
+      "primaryTargets": ["QUADS", "GLUTES"],
+      "secondaryTargets": ["ADDUCTORS", "CALVES"]
     },
     {
       "id": 9,
       "name": "Calf Raise (Machine)",
-      "pattern": "OTHER",
-      "mechanics": "ISOLATION",
-      "tier": "TIER_3"
+      "region": "LOWER",
+      "pattern": "ISOLATION_PLANTAR_FLEXION",
+      "tier": "TIER_3",
+      "primaryTargets": ["CALVES"],
+      "secondaryTargets": []
     },
     {
       "id": 10,
       "name": "Decline Bench Press (Barbell)",
+      "region": "UPPER",
       "pattern": "PUSH_HORIZONTAL",
-      "mechanics": "COMPOUND",
-      "tier": "TIER_2"
+      "tier": "TIER_2",
+      "primaryTargets": ["CHEST_LOWER", "TRICEPS_LATERAL"],
+      "secondaryTargets": ["DELT_FRONT"]
     },
     {
       "id": 11,
       "name": "Incline Dumbbell Press",
+      "region": "UPPER",
       "pattern": "PUSH_HORIZONTAL",
-      "mechanics": "COMPOUND",
-      "tier": "TIER_2"
+      "tier": "TIER_2",
+      "primaryTargets": ["CHEST_UPPER", "DELT_FRONT"],
+      "secondaryTargets": ["TRICEPS_LATERAL"]
     },
     {
       "id": 12,
       "name": "Seated Cable Row",
+      "region": "UPPER",
       "pattern": "PULL_HORIZONTAL",
-      "mechanics": "COMPOUND",
-      "tier": "TIER_1"
+      "tier": "TIER_1",
+      "primaryTargets": ["LATS", "TRAPS_MID"],
+      "secondaryTargets": ["BICEPS", "DELT_REAR"]
     },
     {
       "id": 13,
       "name": "Triceps Extension (Single Arm)",
-      "pattern": "ISOLATION_ARMS",
-      "mechanics": "ISOLATION",
-      "tier": "TIER_3"
+      "region": "UPPER",
+      "pattern": "ISOLATION_ELBOW_EXTENSION",
+      "tier": "TIER_3",
+      "primaryTargets": ["TRICEPS_LONG"],
+      "secondaryTargets": []
     },
     {
       "id": 14,
       "name": "Machine Shoulder Press",
+      "region": "UPPER",
       "pattern": "PUSH_VERTICAL",
-      "mechanics": "COMPOUND",
-      "tier": "TIER_1"
+      "tier": "TIER_2",
+      "primaryTargets": ["DELT_FRONT", "DELT_SIDE"],
+      "secondaryTargets": ["TRICEPS_LATERAL", "TRAPS_UPPER"]
     },
     {
       "id": 15,
       "name": "Dips (Bodyweight)",
+      "region": "UPPER",
       "pattern": "PUSH_VERTICAL",
-      "mechanics": "COMPOUND",
-      "tier": "TIER_2"
+      "tier": "TIER_2",
+      "primaryTargets": ["CHEST_LOWER", "TRICEPS_LATERAL"],
+      "secondaryTargets": ["DELT_FRONT"]
     },
     {
       "id": 16,
       "name": "Abdominal Crunch (Machine)",
-      "pattern": "CORE",
-      "mechanics": "ISOLATION",
-      "tier": "TIER_3"
+      "region": "CORE",
+      "pattern": "CORE_FLEXION",
+      "tier": "TIER_3",
+      "primaryTargets": ["ABS"],
+      "secondaryTargets": []
     },
     {
       "id": 17,
       "name": "Bench Press (Paused)",
+      "region": "UPPER",
       "pattern": "PUSH_HORIZONTAL",
-      "mechanics": "COMPOUND",
-      "tier": "TIER_1"
+      "tier": "TIER_1",
+      "primaryTargets": ["CHEST_MIDDLE", "TRICEPS_LATERAL"],
+      "secondaryTargets": ["DELT_FRONT"]
     },
     {
       "id": 18,
-      "name": "Leg Curl (Machine)",
+      "name": "Seated Leg Curl (Machine)",
+      "region": "LOWER",
+      "pattern": "ISOLATION_KNEE_FLEXION",
+      "tier": "TIER_3",
+      "primaryTargets": ["HAMSTRINGS"],
+      "secondaryTargets": []
+    },
+    {
+      "id": 100,
+      "name": "Overhead Press (Barbell)",
+      "region": "UPPER",
+      "pattern": "PUSH_VERTICAL",
+      "tier": "TIER_1",
+      "primaryTargets": ["DELT_FRONT", "TRICEPS_LATERAL"],
+      "secondaryTargets": ["TRAPS_UPPER", "ABS"]
+    },
+    {
+      "id": 101,
+      "name": "Pull Up (Bodyweight)",
+      "region": "UPPER",
+      "pattern": "PULL_VERTICAL",
+      "tier": "TIER_1",
+      "primaryTargets": ["LATS", "BICEPS"],
+      "secondaryTargets": ["TRAPS_MID", "FOREARMS"]
+    },
+    {
+      "id": 102,
+      "name": "Chin Up",
+      "region": "UPPER",
+      "pattern": "PULL_VERTICAL",
+      "tier": "TIER_2",
+      "primaryTargets": ["LATS", "BICEPS"],
+      "secondaryTargets": ["FOREARMS"]
+    },
+    {
+      "id": 103,
+      "name": "Romanian Deadlift (Barbell)",
+      "region": "LOWER",
       "pattern": "HINGE",
-      "mechanics": "ISOLATION",
-      "tier": "TIER_3"
+      "tier": "TIER_1",
+      "primaryTargets": ["HAMSTRINGS", "GLUTES"],
+      "secondaryTargets": ["LOWER_BACK", "FOREARMS"]
+    },
+    {
+      "id": 104,
+      "name": "Leg Press",
+      "region": "LOWER",
+      "pattern": "SQUAT",
+      "tier": "TIER_2",
+      "primaryTargets": ["QUADS", "GLUTES"],
+      "secondaryTargets": ["ADDUCTORS"]
+    },
+    {
+      "id": 105,
+      "name": "Bulgarian Split Squat (Dumbbell)",
+      "region": "LOWER",
+      "pattern": "LUNGE",
+      "tier": "TIER_2",
+      "primaryTargets": ["QUADS", "GLUTES"],
+      "secondaryTargets": ["ADDUCTORS", "ABS"]
+    },
+    {
+      "id": 106,
+      "name": "Lat Pulldown (Wide Grip)",
+      "region": "UPPER",
+      "pattern": "PULL_VERTICAL",
+      "tier": "TIER_2",
+      "primaryTargets": ["LATS", "TRAPS_MID"],
+      "secondaryTargets": ["BICEPS", "DELT_REAR"]
+    },
+    {
+      "id": 107,
+      "name": "Dumbbell Row",
+      "region": "UPPER",
+      "pattern": "PULL_HORIZONTAL",
+      "tier": "TIER_2",
+      "primaryTargets": ["LATS", "TRAPS_MID"],
+      "secondaryTargets": ["BICEPS", "FOREARMS"]
+    },
+    {
+      "id": 108,
+      "name": "Face Pull (Cable)",
+      "region": "UPPER",
+      "pattern": "ISOLATION_SHOULDER_EXTENSION",
+      "tier": "TIER_3",
+      "primaryTargets": ["DELT_REAR", "TRAPS_MID"],
+      "secondaryTargets": ["BICEPS", "TRAPS_UPPER"]
+    },
+    {
+      "id": 109,
+      "name": "Lateral Raise (Dumbbell)",
+      "region": "UPPER",
+      "pattern": "ISOLATION_SHOULDER_ABDUCTION",
+      "tier": "TIER_3",
+      "primaryTargets": ["DELT_SIDE"],
+      "secondaryTargets": ["TRAPS_UPPER"]
+    },
+    {
+      "id": 110,
+      "name": "Leg Extension (Machine)",
+      "region": "LOWER",
+      "pattern": "ISOLATION_KNEE_EXTENSION",
+      "tier": "TIER_3",
+      "primaryTargets": ["QUADS"],
+      "secondaryTargets": []
+    },
+    {
+      "id": 111,
+      "name": "Hip Thrust (Barbell)",
+      "region": "LOWER",
+      "pattern": "HINGE",
+      "tier": "TIER_1",
+      "primaryTargets": ["GLUTES"],
+      "secondaryTargets": ["HAMSTRINGS", "ABS"]
+    },
+    {
+      "id": 112,
+      "name": "Skullcrusher (EZ Bar)",
+      "region": "UPPER",
+      "pattern": "ISOLATION_ELBOW_EXTENSION",
+      "tier": "TIER_3",
+      "primaryTargets": ["TRICEPS_LONG", "TRICEPS_LATERAL"],
+      "secondaryTargets": []
+    },
+    {
+      "id": 113,
+      "name": "Hammer Curl (Dumbbell)",
+      "region": "UPPER",
+      "pattern": "ISOLATION_ELBOW_FLEXION",
+      "tier": "TIER_3",
+      "primaryTargets": ["BICEPS", "FOREARMS"],
+      "secondaryTargets": []
+    },
+    {
+      "id": 114,
+      "name": "Front Squat (Barbell)",
+      "region": "LOWER",
+      "pattern": "SQUAT",
+      "tier": "TIER_1",
+      "primaryTargets": ["QUADS", "ABS", "UPPER_BACK"],
+      "secondaryTargets": ["GLUTES"]
+    },
+    {
+      "id": 115,
+      "name": "Walking Lunges",
+      "region": "LOWER",
+      "pattern": "LUNGE",
+      "tier": "TIER_2",
+      "primaryTargets": ["QUADS", "GLUTES"],
+      "secondaryTargets": ["CALVES", "ABS"]
+    },
+    {
+      "id": 116,
+      "name": "Incline Dumbbell Fly",
+      "region": "UPPER",
+      "pattern": "ISOLATION_SHOULDER_FLEXION",
+      "tier": "TIER_3",
+      "primaryTargets": ["CHEST_UPPER"],
+      "secondaryTargets": ["DELT_FRONT"]
+    },
+    {
+      "id": 117,
+      "name": "Pec Deck / Machine Fly",
+      "region": "UPPER",
+      "pattern": "PUSH_HORIZONTAL",
+      "tier": "TIER_3",
+      "primaryTargets": ["CHEST_MIDDLE"],
+      "secondaryTargets": ["DELT_FRONT"]
+    },
+    {
+      "id": 118,
+      "name": "Dumbbell Shoulder Press (Seated)",
+      "region": "UPPER",
+      "pattern": "PUSH_VERTICAL",
+      "tier": "TIER_2",
+      "primaryTargets": ["DELT_FRONT", "DELT_SIDE"],
+      "secondaryTargets": ["TRICEPS_LATERAL"]
+    },
+    {
+      "id": 119,
+      "name": "Reverse Fly (Dumbbell)",
+      "region": "UPPER",
+      "pattern": "ISOLATION_SHOULDER_EXTENSION",
+      "tier": "TIER_3",
+      "primaryTargets": ["DELT_REAR"],
+      "secondaryTargets": ["TRAPS_MID"]
+    },
+    {
+      "id": 120,
+      "name": "Hanging Leg Raise",
+      "region": "CORE",
+      "pattern": "CORE_FLEXION",
+      "tier": "TIER_3",
+      "primaryTargets": ["ABS"],
+      "secondaryTargets": ["FOREARMS"]
+    },
+    {
+      "id": 121,
+      "name": "Plank",
+      "region": "CORE",
+      "pattern": "CORE_STABILITY",
+      "tier": "TIER_3",
+      "primaryTargets": ["ABS", "OBLIQUES"],
+      "secondaryTargets": []
+    },
+    {
+      "id": 122,
+      "name": "Cable Woodchopper",
+      "region": "CORE",
+      "pattern": "CORE_STABILITY",
+      "tier": "TIER_3",
+      "primaryTargets": ["OBLIQUES"],
+      "secondaryTargets": ["ABS"]
+    },
+    {
+      "id": 123,
+      "name": "Sumo Deadlift",
+      "region": "LOWER",
+      "pattern": "HINGE",
+      "tier": "TIER_1",
+      "primaryTargets": ["HAMSTRINGS", "GLUTES", "QUADS"],
+      "secondaryTargets": ["ADDUCTORS", "LOWER_BACK"]
+    },
+    {
+      "id": 124,
+      "name": "Barbell Shrug",
+      "region": "UPPER",
+      "pattern": "PULL_VERTICAL",
+      "tier": "TIER_3",
+      "primaryTargets": ["TRAPS_UPPER"],
+      "secondaryTargets": ["FOREARMS"]
+    },
+    {
+      "id": 125,
+      "name": "Farmer's Walk",
+      "region": "FULL",
+      "pattern": "CARRY",
+      "tier": "TIER_2",
+      "primaryTargets": ["FOREARMS", "TRAPS_UPPER"],
+      "secondaryTargets": ["CORE", "CALVES"]
+    },
+    {
+      "id": 126,
+      "name": "Glute Bridge (Barbell)",
+      "region": "LOWER",
+      "pattern": "HINGE",
+      "tier": "TIER_2",
+      "primaryTargets": ["GLUTES"],
+      "secondaryTargets": ["HAMSTRINGS"]
+    },
+    {
+      "id": 127,
+      "name": "Goblet Squat",
+      "region": "LOWER",
+      "pattern": "SQUAT",
+      "tier": "TIER_2",
+      "primaryTargets": ["QUADS", "GLUTES"],
+      "secondaryTargets": ["ABS", "UPPER_BACK"]
+    },
+    {
+      "id": 128,
+      "name": "Barbell Row (Pendlay)",
+      "region": "UPPER",
+      "pattern": "PULL_HORIZONTAL",
+      "tier": "TIER_1",
+      "primaryTargets": ["LATS", "TRAPS_MID", "LOWER_BACK"],
+      "secondaryTargets": ["BICEPS", "DELT_REAR"]
+    },
+    {
+      "id": 129,
+      "name": "Cable Crossover",
+      "region": "UPPER",
+      "pattern": "ISOLATION_SHOULDER_FLEXION",
+      "tier": "TIER_3",
+      "primaryTargets": ["CHEST_LOWER", "CHEST_MIDDLE"],
+      "secondaryTargets": []
+    },
+    {
+      "id": 130,
+      "name": "Preacher Curl (EZ Bar)",
+      "region": "UPPER",
+      "pattern": "ISOLATION_ELBOW_FLEXION",
+      "tier": "TIER_3",
+      "primaryTargets": ["BICEPS"],
+      "secondaryTargets": []
+    },
+    {
+      "id": 131,
+      "name": "Push Up",
+      "region": "UPPER",
+      "pattern": "PUSH_HORIZONTAL",
+      "tier": "TIER_3",
+      "primaryTargets": ["CHEST_MIDDLE", "TRICEPS_LATERAL"],
+      "secondaryTargets": ["ABS", "DELT_FRONT"]
     }
   ],
   "trainings": [
@@ -629,7 +950,7 @@
         {
           "completed": true,
           "exerciseId": 18,
-          "exerciseName": "Leg Curl (Machine)",
+          "exerciseName": "Seated Leg Curl (Machine)",
           "kg": 70.0,
           "reps": 8,
           "rpe": 8.0,
@@ -639,7 +960,7 @@
         {
           "completed": true,
           "exerciseId": 18,
-          "exerciseName": "Leg Curl (Machine)",
+          "exerciseName": "Seated Leg Curl (Machine)",
           "kg": 70.0,
           "reps": 8,
           "rpe": 8.0,

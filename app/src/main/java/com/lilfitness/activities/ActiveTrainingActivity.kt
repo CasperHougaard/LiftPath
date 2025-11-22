@@ -10,27 +10,20 @@ import android.graphics.drawable.Animatable
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.view.MenuItem
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.lilfitness.R
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.lilfitness.databinding.ActivityActiveTrainingBinding
-import com.lilfitness.helpers.ActiveWorkoutDraftManager
-import com.lilfitness.helpers.DefaultExercisesHelper
-import com.lilfitness.helpers.DialogHelper
-import com.lilfitness.helpers.JsonHelper
-import com.lilfitness.helpers.ProgressionSettingsManager
-import com.lilfitness.helpers.WorkoutGenerator
-import com.lilfitness.helpers.showWithTransparentWindow
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.lilfitness.R // <--- ENSURE THIS IMPORT EXISTS
 import com.lilfitness.adapters.ActiveExercisesAdapter
-import com.lilfitness.models.ActiveWorkoutDraft
-import com.lilfitness.models.ExerciseEntry
-import com.lilfitness.models.GroupedExercise
-import com.lilfitness.models.TrainingSession
+import com.lilfitness.databinding.ActivityActiveTrainingBinding
+import com.lilfitness.helpers.*
+import com.lilfitness.helpers.showWithTransparentWindow
+import com.lilfitness.models.*
 import com.lilfitness.services.RestTimerService
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -41,37 +34,43 @@ class ActiveTrainingActivity : AppCompatActivity() {
     private lateinit var binding: ActivityActiveTrainingBinding
     private lateinit var jsonHelper: JsonHelper
     private lateinit var draftManager: ActiveWorkoutDraftManager
+    private lateinit var settingsManager: ProgressionSettingsManager
+
+    // Data State
     private val currentExerciseEntries = mutableListOf<ExerciseEntry>()
     private val groupedExercises = mutableListOf<GroupedExercise>()
     private val exerciseWorkoutTypes = mutableMapOf<Int, String>()
+    private val exerciseRecommendations = mutableMapOf<Int, WorkoutGenerator.RecommendedExercise>()
+
     private lateinit var adapter: ActiveExercisesAdapter
     private val selectedDate = Calendar.getInstance()
     private val sessionDateFormat = SimpleDateFormat("yyyy/MM/dd", Locale.getDefault())
     private val TAG = "ActiveTrainingActivity"
+
     private var workoutType: String = "heavy"
     private var appliedPlanId: String? = null
     private var appliedPlanName: String? = null
     private var hasRestoredDraft = false
-    
+
     // Timer state
     private var isActivityVisible = false
     private var timerReceiver: BroadcastReceiver? = null
+
+    // --- LAUNCHERS ---
 
     private val logSetLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             try {
                 val data = result.data
                 val loggedSet = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    data?.getParcelableExtra(com.lilfitness.activities.LogSetActivity.EXTRA_LOGGED_SET, ExerciseEntry::class.java)
+                    data?.getParcelableExtra(LogSetActivity.EXTRA_LOGGED_SET, ExerciseEntry::class.java)
                 } else {
                     @Suppress("DEPRECATION")
-                    data?.getParcelableExtra(com.lilfitness.activities.LogSetActivity.EXTRA_LOGGED_SET)
+                    data?.getParcelableExtra(LogSetActivity.EXTRA_LOGGED_SET)
                 }
 
                 if (loggedSet != null) {
                     updateExercises(loggedSet)
-                } else {
-                    Log.e(TAG, "Received null set from LogSetActivity")
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error processing result from LogSetActivity", e)
@@ -83,9 +82,9 @@ class ActiveTrainingActivity : AppCompatActivity() {
         if (result.resultCode == Activity.RESULT_OK) {
             try {
                 val data = result.data
-                val exerciseId = data?.getIntExtra(com.lilfitness.activities.SelectExerciseActivity.EXTRA_EXERCISE_ID, -1) ?: -1
-                val exerciseName = data?.getStringExtra(com.lilfitness.activities.SelectExerciseActivity.EXTRA_EXERCISE_NAME) ?: ""
-                val exerciseType = data?.getStringExtra(com.lilfitness.activities.SelectExerciseActivity.EXTRA_SELECTED_WORKOUT_TYPE) ?: workoutType
+                val exerciseId = data?.getIntExtra(SelectExerciseActivity.EXTRA_EXERCISE_ID, -1) ?: -1
+                val exerciseName = data?.getStringExtra(SelectExerciseActivity.EXTRA_EXERCISE_NAME) ?: ""
+                val exerciseType = data?.getStringExtra(SelectExerciseActivity.EXTRA_SELECTED_WORKOUT_TYPE) ?: workoutType
 
                 if (exerciseId != -1 && exerciseName.isNotEmpty()) {
                     exerciseWorkoutTypes[exerciseId] = exerciseType
@@ -96,48 +95,10 @@ class ActiveTrainingActivity : AppCompatActivity() {
                         adapter.notifyItemInserted(groupedExercises.size - 1)
                     }
                     launchLogSetActivity(exerciseId, exerciseName)
-                } else {
-                    Log.e(TAG, "Invalid exercise data received from SelectExerciseActivity")
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error processing result from SelectExerciseActivity", e)
             }
-        }
-    }
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        binding = ActivityActiveTrainingBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-
-        jsonHelper = JsonHelper(this)
-        draftManager = ActiveWorkoutDraftManager(this)
-        workoutType = intent.getStringExtra(EXTRA_WORKOUT_TYPE) ?: "heavy"
-        val resumeRequested = intent.getBooleanExtra(EXTRA_RESUME_DRAFT, false)
-        val shouldAutoGenerate = intent.getBooleanExtra(EXTRA_AUTO_GENERATE, false)
-        val isCustomWorkout = workoutType == "custom"
-        binding.textActiveTrainingTitle.text = "Active Workout (${workoutType.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }})"
-
-        setupBackgroundAnimation()
-        setupRecyclerView()
-        setupClickListeners()
-        setupBackButtonInterceptor()
-        setupTimerUI()
-        setupTimerReceiver()
-        updateDateDisplay()
-        
-        // Auto-generate workout if "Continue Plan" was selected (not custom)
-        if (!isCustomWorkout && shouldAutoGenerate && !resumeRequested) {
-            autoGenerateWorkout()
-        }
-        
-        maybeRestoreDraft(forceResume = resumeRequested || savedInstanceState != null)
-    }
-
-    private fun setupBackgroundAnimation() {
-        val drawable = binding.imageBgAnimation.drawable
-        if (drawable is Animatable) {
-            drawable.start()
         }
     }
 
@@ -149,16 +110,189 @@ class ActiveTrainingActivity : AppCompatActivity() {
                 @Suppress("DEPRECATION")
                 result.data?.getParcelableArrayListExtra(EditActivityActivity.EXTRA_UPDATED_SETS)
             }
-            
+
             if (updatedSets != null) {
                 updateSetsFromEditActivity(updatedSets)
             }
         }
     }
 
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            // Permission granted, start the timer
+            startTimerAfterPermissionCheck()
+        } else {
+            Toast.makeText(this, getString(R.string.toast_notification_permission_required), Toast.LENGTH_LONG).show()
+        }
+    }
+
+    // --- LIFECYCLE ---
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        binding = ActivityActiveTrainingBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        setSupportActionBar(binding.toolbar)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+
+        // Init Helpers
+        jsonHelper = JsonHelper(this)
+        draftManager = ActiveWorkoutDraftManager(this)
+        settingsManager = ProgressionSettingsManager(this)
+
+        // Get Intent Data
+        workoutType = intent.getStringExtra(EXTRA_WORKOUT_TYPE) ?: "heavy"
+        val resumeRequested = intent.getBooleanExtra(EXTRA_RESUME_DRAFT, false)
+        val shouldAutoGenerate = intent.getBooleanExtra(EXTRA_AUTO_GENERATE, false)
+        val isCustomWorkout = workoutType == "custom"
+
+        updateTitle()
+        setupBackgroundAnimation()
+        setupRecyclerView()
+        setupClickListeners()
+        setupBackButtonInterceptor()
+        setupTimerUI()
+        setupTimerReceiver()
+        updateDateDisplay()
+
+        if (resumeRequested) {
+            maybeRestoreDraft(forceResume = true)
+        } else if (draftManager.hasDraft()) {
+            maybeRestoreDraft(forceResume = false)
+        } else if (!isCustomWorkout && shouldAutoGenerate) {
+            showSmartWorkoutSetupDialog()
+        }
+    }
+
+    // --- NAVIGATION ---
+
+    // Replaces onCreateOptionsMenu to handle the back arrow correctly without needing menu XML
+    override fun onSupportNavigateUp(): Boolean {
+        handleBackButton()
+        return true
+    }
+
+    // --- NEW SMART SETUP DIALOGS ---
+
+    private fun showSmartWorkoutSetupDialog() {
+        val focusOptions = arrayOf("Upper Body", "Lower Body", "Full Body")
+        var selectedFocus = 0
+
+        DialogHelper.createBuilder(this)
+            .setTitle("Select Session Focus")
+            .setSingleChoiceItems(focusOptions, 0) { _, which ->
+                selectedFocus = which
+            }
+            .setPositiveButton("Next") { _, _ ->
+                showIntensityDialog(selectedFocus)
+            }
+            .setNegativeButton(getString(R.string.button_cancel)) { _, _ ->
+                finish()
+            }
+            .setCancelable(false)
+            .showWithTransparentWindow()
+    }
+
+    private fun showIntensityDialog(focusIndex: Int) {
+        val intensityOptions = arrayOf("Heavy (Strength)", "Light (Volume/Hypertrophy)")
+        var selectedIntensityIndex = 0
+
+        DialogHelper.createBuilder(this)
+            .setTitle("Select Intensity")
+            .setSingleChoiceItems(intensityOptions, 0) { _, which ->
+                selectedIntensityIndex = which
+            }
+            .setPositiveButton("Create Workout") { _, _ ->
+                generateSmartWorkout(focusIndex, selectedIntensityIndex)
+            }
+            .setNeutralButton("Back") { _, _ ->
+                showSmartWorkoutSetupDialog()
+            }
+            .setCancelable(false)
+            .showWithTransparentWindow()
+    }
+
+    private fun generateSmartWorkout(focusIndex: Int, intensityIndex: Int) {
+        try {
+            val focus = when(focusIndex) {
+                0 -> SessionFocus.UPPER
+                1 -> SessionFocus.LOWER
+                else -> SessionFocus.FULL
+            }
+            val intensity = when(intensityIndex) {
+                0 -> SessionIntensity.HEAVY
+                else -> SessionIntensity.LIGHT
+            }
+
+            this.workoutType = if (intensity == SessionIntensity.HEAVY) "heavy" else "light"
+            updateTitle()
+
+            val trainingData = jsonHelper.readTrainingData()
+            val settings = settingsManager.getSettings()
+
+            val recommendedExercises = WorkoutGenerator.generate(
+                library = trainingData.exerciseLibrary,
+                userLevel = settings.userLevel,
+                focus = focus,
+                intensity = intensity
+            )
+
+            currentExerciseEntries.clear()
+            groupedExercises.clear()
+            exerciseWorkoutTypes.clear()
+            exerciseRecommendations.clear()
+
+            if (recommendedExercises.isNotEmpty()) {
+                // Add exercises without sets - user will add sets manually
+                recommendedExercises.forEach { recommendation ->
+                    val exerciseId = recommendation.exerciseId
+                    val exerciseName = recommendation.exerciseName
+                    
+                    // Store recommendations for tooltip display
+                    exerciseRecommendations[exerciseId] = recommendation
+                    
+                    // Set workout type
+                    exerciseWorkoutTypes[exerciseId] = recommendation.workoutType
+                    
+                    // Add exercise as empty GroupedExercise (no sets yet)
+                    groupedExercises.add(GroupedExercise(exerciseId, exerciseName, emptyList()))
+                }
+
+                adapter.notifyDataSetChanged()
+                persistDraft()
+            } else {
+                Toast.makeText(this, "No exercises found for this selection.", Toast.LENGTH_LONG).show()
+            }
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Error generating smart workout", e)
+            Toast.makeText(this, "Error creating workout", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun updateTitle() {
+        val displayType = workoutType.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+        supportActionBar?.title = "Active Workout ($displayType)"
+    }
+
+    // --- EXISTING FUNCTIONALITY ---
+
+    private fun setupBackgroundAnimation() {
+        val drawable = binding.imageBgAnimation.drawable
+        if (drawable is Animatable) {
+            drawable.start()
+        }
+    }
+
     private fun setupRecyclerView() {
         adapter = ActiveExercisesAdapter(
             groupedExercises,
+            exerciseRecommendations,
+            jsonHelper,
+            workoutType,
             onAddSetClicked = { exerciseId, exerciseName ->
                 launchLogSetActivity(exerciseId, exerciseName)
             },
@@ -172,17 +306,17 @@ class ActiveTrainingActivity : AppCompatActivity() {
                 deleteExercise(exerciseId)
             }
         )
-        binding.recyclerViewActiveExercises.adapter = adapter
-        binding.recyclerViewActiveExercises.layoutManager = LinearLayoutManager(this)
+        binding.recyclerViewActiveWorkout.adapter = adapter
+        binding.recyclerViewActiveWorkout.layoutManager = LinearLayoutManager(this)
     }
 
     private fun setupClickListeners() {
-        binding.buttonAddExerciseToSession.setOnClickListener {
+        binding.buttonAddExercise.setOnClickListener {
             val alreadyAddedExerciseIds = groupedExercises.map { it.exerciseId }.toIntArray()
-            val intent = Intent(this, com.lilfitness.activities.SelectExerciseActivity::class.java).apply {
-                putExtra(com.lilfitness.activities.SelectExerciseActivity.EXTRA_WORKOUT_TYPE, workoutType)
-                putExtra(com.lilfitness.activities.SelectExerciseActivity.EXTRA_PLAN_ID, appliedPlanId)
-                putExtra(com.lilfitness.activities.SelectExerciseActivity.EXTRA_ALREADY_ADDED_EXERCISE_IDS, alreadyAddedExerciseIds)
+            val intent = Intent(this, SelectExerciseActivity::class.java).apply {
+                putExtra(SelectExerciseActivity.EXTRA_WORKOUT_TYPE, workoutType)
+                putExtra(SelectExerciseActivity.EXTRA_PLAN_ID, appliedPlanId)
+                putExtra(SelectExerciseActivity.EXTRA_ALREADY_ADDED_EXERCISE_IDS, alreadyAddedExerciseIds)
             }
             selectExerciseLauncher.launch(intent)
         }
@@ -191,54 +325,31 @@ class ActiveTrainingActivity : AppCompatActivity() {
             finishWorkout()
         }
 
-        binding.buttonChangeDate.setOnClickListener {
+        binding.layoutDate.setOnClickListener {
             showDatePickerDialog()
         }
 
-        binding.buttonBack.setOnClickListener {
-            handleBackButton()
-        }
+        // TIMER BUTTONS
+        binding.buttonTimerStartPause.setOnClickListener { handleTimerStartPause() }
+        binding.buttonTimerResetStop.setOnClickListener { handleTimerResetStop() }
+        binding.textTimerDisplay.setOnClickListener { showSetTimerDialog() }
 
-        binding.buttonApplyPlan.setOnClickListener {
-            showPlanSelectionDialog()
-        }
-        
-        // Timer buttons
-        binding.buttonTimerStartPause.setOnClickListener {
-            handleTimerStartPause()
-        }
-        
-        binding.buttonTimerResetStop.setOnClickListener {
-            handleTimerResetStop()
-        }
-        
-        // Timer display click to set custom time
-        binding.textTimerDisplay.setOnClickListener {
-            showSetTimerDialog()
-        }
-        
-        // Timer +/- 15 buttons
         binding.buttonTimerMinus15.setOnClickListener {
             RestTimerService.removeTime(this, 15)
-            // Update display immediately from current time
             val currentTime = RestTimerService.getRemainingSeconds(this)
             updateTimerDisplay(currentTime)
         }
-        
+
         binding.buttonTimerPlus15.setOnClickListener {
             val currentTime = RestTimerService.getRemainingSeconds(this)
-            val wasZero = currentTime == 0
             val isRunning = RestTimerService.isTimerRunning(this)
-            
-            if (wasZero && !isRunning) {
-                // If time is 0 and timer is not running, set time to 15 and start
+
+            if (currentTime == 0 && !isRunning) {
                 RestTimerService.setTimerTime(this, 15)
                 updateTimerDisplay(15)
                 startTimer(useCustomTime = 15)
             } else {
-                // Otherwise, just add time (works if timer is running or has remaining time)
                 RestTimerService.addTime(this, 15)
-                // Update display immediately from current time
                 val newTime = RestTimerService.getRemainingSeconds(this)
                 updateTimerDisplay(newTime)
             }
@@ -259,14 +370,12 @@ class ActiveTrainingActivity : AppCompatActivity() {
                 .setTitle(getString(R.string.dialog_title_cancel_workout))
                 .setMessage(getString(R.string.dialog_message_cancel_workout))
                 .setPositiveButton(getString(R.string.button_cancel_workout)) { _, _ ->
-                    // Stop timer when cancelling workout
                     stopTimerIfRunning()
                     finish()
                 }
                 .setNegativeButton(getString(R.string.button_continue), null)
                 .showWithTransparentWindow()
         } else {
-            // Stop timer when cancelling workout
             stopTimerIfRunning()
             finish()
         }
@@ -296,13 +405,13 @@ class ActiveTrainingActivity : AppCompatActivity() {
                 .maxByOrNull { it.setNumber }
             val setNumber = (previousSet?.setNumber ?: 0) + 1
             val setWorkoutType = exerciseWorkoutTypes[exerciseId] ?: workoutType
-            val intent = Intent(this, com.lilfitness.activities.LogSetActivity::class.java).apply {
-                putExtra(com.lilfitness.activities.LogSetActivity.EXTRA_EXERCISE_ID, exerciseId)
-                putExtra(com.lilfitness.activities.LogSetActivity.EXTRA_EXERCISE_NAME, exerciseName)
-                putExtra(com.lilfitness.activities.LogSetActivity.EXTRA_SET_NUMBER, setNumber)
-                putExtra(com.lilfitness.activities.LogSetActivity.EXTRA_WORKOUT_TYPE, setWorkoutType)
+            val intent = Intent(this, LogSetActivity::class.java).apply {
+                putExtra(LogSetActivity.EXTRA_EXERCISE_ID, exerciseId)
+                putExtra(LogSetActivity.EXTRA_EXERCISE_NAME, exerciseName)
+                putExtra(LogSetActivity.EXTRA_SET_NUMBER, setNumber)
+                putExtra(LogSetActivity.EXTRA_WORKOUT_TYPE, setWorkoutType)
                 previousSet?.let {
-                    putExtra(com.lilfitness.activities.LogSetActivity.EXTRA_PREVIOUS_SET_REPS, it.reps)
+                    putExtra(LogSetActivity.EXTRA_PREVIOUS_SET_REPS, it.reps)
                 }
             }
             logSetLauncher.launch(intent)
@@ -332,8 +441,6 @@ class ActiveTrainingActivity : AppCompatActivity() {
             val newSetNumber = lastSet.setNumber + 1
             val newSet = lastSet.copy(setNumber = newSetNumber, rating = null, note = null)
             updateExercises(newSet)
-            
-            // Start timer with default time from settings
             startTimer()
         }
     }
@@ -344,6 +451,7 @@ class ActiveTrainingActivity : AppCompatActivity() {
             groupedExercises.removeAt(groupIndex)
             currentExerciseEntries.removeAll { it.exerciseId == exerciseId }
             exerciseWorkoutTypes.remove(exerciseId)
+            exerciseRecommendations.remove(exerciseId)
             adapter.notifyItemRemoved(groupIndex)
             persistDraft()
         }
@@ -361,16 +469,10 @@ class ActiveTrainingActivity : AppCompatActivity() {
 
     private fun updateSetsFromEditActivity(updatedSets: ArrayList<ExerciseEntry>) {
         if (updatedSets.isEmpty()) return
-        
         val exerciseId = updatedSets.first().exerciseId
-        
-        // Remove old sets for this exercise
         currentExerciseEntries.removeAll { it.exerciseId == exerciseId }
-        
-        // Add updated sets
         currentExerciseEntries.addAll(updatedSets)
-        
-        // Update the grouped exercise
+
         val groupIndex = groupedExercises.indexOfFirst { it.exerciseId == exerciseId }
         if (groupIndex != -1) {
             val sortedSets = updatedSets.sortedBy { it.setNumber }
@@ -382,49 +484,8 @@ class ActiveTrainingActivity : AppCompatActivity() {
     }
 
     private fun updateDateDisplay() {
-        binding.textActiveTrainingDate.text = sessionDateFormat.format(selectedDate.time)
+        binding.textDate.text = sessionDateFormat.format(selectedDate.time)
         persistDraftIfHasEntries()
-    }
-
-    private fun showPlanSelectionDialog() {
-        val trainingData = jsonHelper.readTrainingData()
-        val plans = trainingData.workoutPlans
-
-        if (plans.isEmpty()) {
-            DialogHelper.createBuilder(this)
-                .setTitle(getString(R.string.dialog_title_no_plans_available))
-                .setMessage(getString(R.string.dialog_message_no_plans))
-                .setPositiveButton(getString(R.string.button_ok), null)
-                .show()
-            return
-        }
-
-        val planNames = plans.map { it.name }.toTypedArray()
-        val currentPlanIndex = plans.indexOfFirst { it.id == appliedPlanId }.takeIf { it >= 0 } ?: -1
-
-        DialogHelper.createBuilder(this)
-            .setTitle(getString(R.string.dialog_title_apply_workout_plan))
-            .setSingleChoiceItems(planNames, currentPlanIndex) { dialog, which ->
-                val selectedPlan = plans[which]
-                appliedPlanId = selectedPlan.id
-                appliedPlanName = selectedPlan.name
-                dialog.dismiss()
-                updatePlanIndicator()
-                persistDraftIfHasEntries()
-            }
-            .setNeutralButton(getString(R.string.button_clear_plan)) { _, _ ->
-                appliedPlanId = null
-                appliedPlanName = null
-                updatePlanIndicator()
-                persistDraftIfHasEntries()
-            }
-            .setNegativeButton(getString(R.string.button_cancel), null)
-            .showWithTransparentWindow()
-    }
-
-    private fun updatePlanIndicator() {
-        // Visual feedback could be added here if needed
-        // For now, the button remains visible to show plan can be changed
     }
 
     private fun finishWorkout() {
@@ -434,7 +495,7 @@ class ActiveTrainingActivity : AppCompatActivity() {
 
             val newSession = TrainingSession(
                 trainingNumber = nextTrainingNumber,
-                date = binding.textActiveTrainingDate.text.toString(),
+                date = binding.textDate.text.toString(),
                 exercises = currentExerciseEntries.toMutableList(),
                 defaultWorkoutType = workoutType,
                 planId = appliedPlanId,
@@ -483,7 +544,7 @@ class ActiveTrainingActivity : AppCompatActivity() {
     private fun applyDraft(draft: ActiveWorkoutDraft) {
         hasRestoredDraft = true
         workoutType = draft.workoutType
-        binding.textActiveTrainingTitle.text = "Active Workout (${workoutType.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }})"
+        updateTitle()
 
         try {
             val parsedDate = sessionDateFormat.parse(draft.date)
@@ -493,7 +554,7 @@ class ActiveTrainingActivity : AppCompatActivity() {
         } catch (e: Exception) {
             Log.e(TAG, "Failed to parse draft date", e)
         }
-        binding.textActiveTrainingDate.text = draft.date
+        binding.textDate.text = draft.date
 
         appliedPlanId = draft.appliedPlanId
         appliedPlanName = draft.appliedPlanName
@@ -524,88 +585,19 @@ class ActiveTrainingActivity : AppCompatActivity() {
         adapter.notifyDataSetChanged()
     }
 
-    private fun autoGenerateWorkout() {
-        try {
-            val trainingData = jsonHelper.readTrainingData()
-            val settingsManager = ProgressionSettingsManager(this)
-            val settings = settingsManager.getSettings()
-            
-            // Get default exercises from DefaultExercisesHelper
-            val defaultExercises = DefaultExercisesHelper.getPopularDefaults()
-            
-            // Generate the workout - returns Pair(selected exercises, default exercises that were selected)
-            val (generatedExercises, defaultExercisesUsed) = WorkoutGenerator.generateFullWorkout(
-                userLevel = settings.userLevel,
-                sessionType = workoutType,
-                userExercises = trainingData.exerciseLibrary,
-                defaultExercises = defaultExercises,
-                settings = settings
-            )
-            
-            if (generatedExercises.isNotEmpty()) {
-                // Add default exercises to user's library if they were selected
-                if (defaultExercisesUsed.isNotEmpty()) {
-                    val updatedTrainingData = jsonHelper.readTrainingData()
-                    val existingIds = updatedTrainingData.exerciseLibrary.map { it.id }.toSet()
-                    val existingNames = updatedTrainingData.exerciseLibrary.map { it.name.lowercase() }.toSet()
-                    
-                    // Only add defaults that aren't already in library (by ID or name)
-                    defaultExercisesUsed.forEach { defaultExercise ->
-                        if (!existingIds.contains(defaultExercise.id) && 
-                            !existingNames.contains(defaultExercise.name.lowercase())) {
-                            updatedTrainingData.exerciseLibrary.add(defaultExercise)
-                        }
-                    }
-                    
-                    // Save updated library
-                    jsonHelper.writeTrainingData(updatedTrainingData)
-                }
-                
-                // Add exercises as GroupedExercise objects with empty sets
-                generatedExercises.forEach { exercise ->
-                    // Set workout type for this exercise
-                    exerciseWorkoutTypes[exercise.id] = workoutType
-                    
-                    // Create a grouped exercise with no sets
-                    val groupedExercise = GroupedExercise(
-                        exerciseId = exercise.id,
-                        exerciseName = exercise.name,
-                        sets = emptyList()
-                    )
-                    
-                    // Only add if not already present
-                    if (groupedExercises.none { it.exerciseId == exercise.id }) {
-                        groupedExercises.add(groupedExercise)
-                    }
-                }
-                
-                // Notify adapter of changes
-                adapter.notifyDataSetChanged()
-                
-                // Persist the draft
-                persistDraft()
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error auto-generating workout", e)
-        }
-    }
-
     private fun persistDraft() {
         if (currentExerciseEntries.isEmpty()) {
             draftManager.clearDraft()
             return
         }
-
         val entriesCopy = currentExerciseEntries.map { it.copy() }
-
         val draft = ActiveWorkoutDraft(
             workoutType = workoutType,
-            date = binding.textActiveTrainingDate.text.toString(),
+            date = binding.textDate.text.toString(),
             appliedPlanId = appliedPlanId,
             appliedPlanName = appliedPlanName,
             entries = entriesCopy
         )
-
         draftManager.saveDraft(draft)
     }
 
@@ -614,13 +606,14 @@ class ActiveTrainingActivity : AppCompatActivity() {
             persistDraft()
         }
     }
-    
-    // Timer setup and management
+
+    // --- TIMER LOGIC ---
+
     private fun setupTimerUI() {
         updateTimerDisplay(0)
         setTimerState(TimerState.IDLE)
     }
-    
+
     private fun setupTimerReceiver() {
         timerReceiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
@@ -628,13 +621,9 @@ class ActiveTrainingActivity : AppCompatActivity() {
                     "com.lilfitness.REST_TIMER_TICK" -> {
                         val remaining = intent.getIntExtra("remaining", 0)
                         updateTimerDisplay(remaining)
-                        // Ensure state is RUNNING when receiving ticks
-                        if (remaining > 0) {
-                            setTimerState(TimerState.RUNNING)
-                        }
+                        if (remaining > 0) setTimerState(TimerState.RUNNING)
                     }
                     "com.lilfitness.REST_TIMER_COMPLETE" -> {
-                        // Timer completed
                         updateTimerDisplay(0)
                         setTimerState(TimerState.COMPLETED)
                     }
@@ -642,67 +631,46 @@ class ActiveTrainingActivity : AppCompatActivity() {
             }
         }
     }
-    
+
     override fun onResume() {
         super.onResume()
         isActivityVisible = true
-        
-        // Register timer receiver
         val filter = IntentFilter().apply {
             addAction("com.lilfitness.REST_TIMER_TICK")
             addAction("com.lilfitness.REST_TIMER_COMPLETE")
         }
-        
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(timerReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
         } else {
             @Suppress("DEPRECATION")
             registerReceiver(timerReceiver, filter)
         }
-        
-        // Sync timer state
         syncTimerState()
     }
-    
+
     override fun onPause() {
         super.onPause()
         isActivityVisible = false
-        
-        // Unregister receiver
         timerReceiver?.let {
-            try {
-                unregisterReceiver(it)
-            } catch (e: Exception) {
-                Log.e(TAG, "Error unregistering timer receiver", e)
-            }
+            try { unregisterReceiver(it) } catch (e: Exception) { Log.e(TAG, "Error", e) }
         }
     }
-    
+
     override fun onDestroy() {
         super.onDestroy()
-        
-        // Stop timer when activity is destroyed (workout cancelled or finished)
         stopTimerIfRunning()
-        
-        // Unregister receiver if still registered
         timerReceiver?.let {
-            try {
-                unregisterReceiver(it)
-            } catch (e: Exception) {
-                Log.e(TAG, "Error unregistering timer receiver in onDestroy", e)
-            }
+            try { unregisterReceiver(it) } catch (e: Exception) { Log.e(TAG, "Error", e) }
         }
     }
-    
+
     private fun syncTimerState() {
         val isRunning = RestTimerService.isTimerRunning(this)
         val remaining = RestTimerService.getRemainingSeconds(this)
-        
         if (isRunning) {
             updateTimerDisplay(remaining)
             setTimerState(TimerState.RUNNING)
         } else if (remaining > 0) {
-            // Timer was stopped but has remaining time
             updateTimerDisplay(remaining)
             setTimerState(TimerState.IDLE)
         } else {
@@ -710,61 +678,61 @@ class ActiveTrainingActivity : AppCompatActivity() {
             setTimerState(TimerState.IDLE)
         }
     }
-    
+
     private fun handleTimerStartPause() {
-        val isRunning = RestTimerService.isTimerRunning(this)
-        
-        if (isRunning) {
-            // Stop the timer
+        if (RestTimerService.isTimerRunning(this)) {
             RestTimerService.stopTimer(this)
             val remaining = RestTimerService.getRemainingSeconds(this)
             updateTimerDisplay(remaining)
             setTimerState(TimerState.IDLE)
         } else {
-            // Start the timer
             startTimer()
         }
     }
-    
+
     private fun handleTimerResetStop() {
-        val isRunning = RestTimerService.isTimerRunning(this)
-        
-        if (isRunning) {
-            // Stop the timer
+        if (RestTimerService.isTimerRunning(this)) {
             RestTimerService.stopTimer(this)
         }
-        
-        // Reset to idle
         updateTimerDisplay(0)
         setTimerState(TimerState.IDLE)
     }
-    
+
     private fun stopTimerIfRunning() {
         if (RestTimerService.isTimerRunning(this)) {
             RestTimerService.stopTimer(this)
         }
     }
-    
+
+    private var pendingTimerTime: Int? = null
+
     private fun startTimer(useCustomTime: Int? = null) {
-        val settings = ProgressionSettingsManager(this).getSettings()
-        
+        val settings = settingsManager.getSettings()
         if (!settings.restTimerEnabled) {
             Toast.makeText(this, getString(R.string.toast_rest_timer_disabled), Toast.LENGTH_SHORT).show()
             return
         }
         
-        // Check notification permission for Android 13+
+        // Check and request notification permission for Android 13+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) 
+            if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS)
                 != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                // Request permission
-                Toast.makeText(this, getString(R.string.toast_notification_permission_required), Toast.LENGTH_SHORT).show()
+                // Store the timer time to use after permission is granted
+                pendingTimerTime = useCustomTime
+                notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
                 return
             }
         }
         
-        // Use custom time if provided, otherwise check if there's already a time set, otherwise use default
-        var restSeconds = useCustomTime ?: let {
+        startTimerAfterPermissionCheck(useCustomTime)
+    }
+
+    private fun startTimerAfterPermissionCheck(useCustomTime: Int? = null) {
+        val settings = settingsManager.getSettings()
+        val actualTime = pendingTimerTime ?: useCustomTime
+        pendingTimerTime = null
+        
+        var restSeconds = actualTime ?: let {
             val currentTime = RestTimerService.getRemainingSeconds(this)
             if (currentTime > 0) {
                 currentTime
@@ -777,141 +745,94 @@ class ActiveTrainingActivity : AppCompatActivity() {
                 }
             }
         }
-        
-        // Start the timer service with "Rest" as exercise name, don't show dialog (we have permanent UI)
         RestTimerService.startTimer(this, restSeconds, "Rest", showDialog = false)
-        
         setTimerState(TimerState.RUNNING)
     }
-    
+
     private fun updateTimerDisplay(seconds: Int) {
         val minutes = seconds / 60
         val secs = seconds % 60
-        val timeText = String.format(Locale.getDefault(), "%02d:%02d", minutes, secs)
-        binding.textTimerDisplay.text = timeText
+        binding.textTimerDisplay.text = String.format(Locale.getDefault(), "%02d:%02d", minutes, secs)
     }
-    
+
     private fun setTimerState(state: TimerState) {
         when (state) {
             TimerState.IDLE -> {
-                // Show play icon
-                binding.buttonTimerStartPause.setImageResource(com.lilfitness.R.drawable.ic_play)
-                binding.buttonTimerStartPause.contentDescription = "Start timer"
+                binding.buttonTimerStartPause.setImageResource(R.drawable.ic_play)
                 binding.buttonTimerStartPause.isEnabled = true
                 binding.buttonTimerResetStop.isEnabled = true
             }
             TimerState.RUNNING -> {
-                // Show pause icon
-                binding.buttonTimerStartPause.setImageResource(com.lilfitness.R.drawable.ic_pause)
-                binding.buttonTimerStartPause.contentDescription = "Pause timer"
+                binding.buttonTimerStartPause.setImageResource(R.drawable.ic_pause)
                 binding.buttonTimerStartPause.isEnabled = true
                 binding.buttonTimerResetStop.isEnabled = true
             }
             TimerState.COMPLETED -> {
-                // Show play icon
-                binding.buttonTimerStartPause.setImageResource(com.lilfitness.R.drawable.ic_play)
-                binding.buttonTimerStartPause.contentDescription = "Start timer"
+                binding.buttonTimerStartPause.setImageResource(R.drawable.ic_play)
                 binding.buttonTimerStartPause.isEnabled = true
                 binding.buttonTimerResetStop.isEnabled = true
             }
         }
     }
-    
+
     private fun showSetTimerDialog() {
-        // Pause timer if running
         val wasRunning = RestTimerService.isTimerRunning(this)
         if (wasRunning) {
             RestTimerService.stopTimer(this)
             setTimerState(TimerState.IDLE)
         }
-        
-        // Get current remaining time
         val currentSeconds = RestTimerService.getRemainingSeconds(this)
-        val currentMinutes = currentSeconds / 60
-        val currentSecs = currentSeconds % 60
-        
-        // Inflate dialog layout
         val dialogBinding = com.lilfitness.databinding.DialogSetTimerBinding.inflate(layoutInflater)
-        
-        // Set up NumberPickers
+
         dialogBinding.numberPickerMinutes.minValue = 0
         dialogBinding.numberPickerMinutes.maxValue = 59
-        dialogBinding.numberPickerMinutes.value = currentMinutes
-        dialogBinding.numberPickerMinutes.wrapSelectorWheel = false
-        
+        dialogBinding.numberPickerMinutes.value = currentSeconds / 60
+
         dialogBinding.numberPickerSeconds.minValue = 0
         dialogBinding.numberPickerSeconds.maxValue = 59
-        dialogBinding.numberPickerSeconds.value = currentSecs
-        dialogBinding.numberPickerSeconds.wrapSelectorWheel = false
-        
-        // Style NumberPicker text colors
+        dialogBinding.numberPickerSeconds.value = currentSeconds % 60
+
         styleNumberPicker(dialogBinding.numberPickerMinutes)
         styleNumberPicker(dialogBinding.numberPickerSeconds)
-        
-        // Create dialog
-        val dialog = DialogHelper.createBuilder(this)
-            .setView(dialogBinding.root)
-            .create()
-        
-        // Style the dialog to match design guidelines
+
+        val dialog = DialogHelper.createBuilder(this).setView(dialogBinding.root).create()
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
-        
-        // Set button listeners
+
         dialogBinding.buttonCancel.setOnClickListener {
-            // Resume timer if it was running
-            if (wasRunning && currentSeconds > 0) {
-                startTimer()
-            }
+            if (wasRunning && currentSeconds > 0) startTimer()
             dialog.dismiss()
         }
-        
+
         dialogBinding.buttonSet.setOnClickListener {
-            val minutes = dialogBinding.numberPickerMinutes.value
-            val seconds = dialogBinding.numberPickerSeconds.value
-            val totalSeconds = (minutes * 60) + seconds
-            
-            // Set the new time and start timer automatically with the custom time
+            val totalSeconds = (dialogBinding.numberPickerMinutes.value * 60) + dialogBinding.numberPickerSeconds.value
             if (totalSeconds > 0) {
                 RestTimerService.setTimerTime(this, totalSeconds)
                 updateTimerDisplay(totalSeconds)
-                // Start timer with the custom time directly
                 startTimer(useCustomTime = totalSeconds)
             } else {
                 RestTimerService.setTimerTime(this, 0)
                 updateTimerDisplay(0)
                 setTimerState(TimerState.IDLE)
             }
-            
             dialog.dismiss()
         }
-        
-        // Window background already set to transparent above, but use extension for consistency
         dialog.show()
-        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
     }
-    
+
     private fun styleNumberPicker(numberPicker: android.widget.NumberPicker) {
         try {
             val count = numberPicker.childCount
             for (i in 0 until count) {
                 val child = numberPicker.getChildAt(i)
                 if (child is android.widget.TextView) {
-                    child.setTextColor(ContextCompat.getColor(this, com.lilfitness.R.color.fitness_text_primary))
+                    child.setTextColor(ContextCompat.getColor(this, R.color.fitness_text_primary))
                     child.textSize = 18f
                 }
             }
-        } catch (e: Exception) {
-            // If styling fails, just continue with default styling
-            Log.e(TAG, "Error styling NumberPicker", e)
-        }
+        } catch (e: Exception) { Log.e(TAG, "Error styling", e) }
     }
-    
-    
-    private enum class TimerState {
-        IDLE,
-        RUNNING,
-        COMPLETED
-    }
+
+    private enum class TimerState { IDLE, RUNNING, COMPLETED }
 
     companion object {
         const val EXTRA_WORKOUT_TYPE = "WORKOUT_TYPE"

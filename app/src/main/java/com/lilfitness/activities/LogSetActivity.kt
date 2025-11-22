@@ -3,12 +3,14 @@ package com.lilfitness.activities
 import android.app.Activity
 import android.content.Intent
 import android.graphics.drawable.Animatable
+import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.lilfitness.R
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
+import com.lilfitness.R // <--- FIXED: ENSURE THIS IMPORT IS HERE
 import com.lilfitness.databinding.ActivityLogSetBinding
 import com.lilfitness.helpers.DialogHelper
 import com.lilfitness.helpers.JsonHelper
@@ -16,8 +18,8 @@ import com.lilfitness.helpers.ProgressionHelper
 import com.lilfitness.helpers.ProgressionSettingsManager
 import com.lilfitness.helpers.showWithTransparentWindow
 import com.lilfitness.models.ExerciseEntry
-import com.lilfitness.services.RestTimerService
 import java.util.Locale
+import kotlin.math.max // <--- FIXED: IMPORT ADDED
 
 class LogSetActivity : AppCompatActivity() {
 
@@ -28,6 +30,25 @@ class LogSetActivity : AppCompatActivity() {
     private var setNumber: Int = 1
     private var workoutType: String = "heavy"
     private var previousSetReps: Int? = null
+
+    private var pendingTimerRpe: Float? = null
+    private var pendingTimerWorkoutType: String? = null
+    private var pendingTimerExerciseName: String? = null
+    private var shouldFinishAfterTimer = false
+
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            // Permission granted, start the timer
+            startRestTimerAfterPermissionCheck()
+        } else {
+            // Permission denied, finish the activity
+            if (shouldFinishAfterTimer) {
+                finish()
+            }
+        }
+    }
 
     companion object {
         const val EXTRA_EXERCISE_ID = "extra_exercise_id"
@@ -53,7 +74,6 @@ class LogSetActivity : AppCompatActivity() {
 
         setupBackgroundAnimation()
 
-        // Setup RPE help button
         binding.btnRpeHelp.setOnClickListener {
             showRpeHelpDialog()
         }
@@ -89,16 +109,12 @@ class LogSetActivity : AppCompatActivity() {
         if (lastSet != null) {
             binding.editTextKg.setText(lastSet.kg.toString())
             binding.editTextReps.setText(lastSet.reps.toString())
-            
-            // Pre-fill RPE if it exists and field is blank
+
             lastSet.rpe?.let {
                 if (binding.editTextRpe.text.isNullOrBlank()) {
                     binding.editTextRpe.setText(it.toString())
-                    // Don't update hint for last set fallback - it's from previous session
                 }
             }
-            
-            // Pre-fill note if exists
             lastSet.note?.let {
                 binding.editTextNote.setText(it)
             }
@@ -115,105 +131,70 @@ class LogSetActivity : AppCompatActivity() {
         val trainingData = jsonHelper.readTrainingData()
         val settingsManager = ProgressionSettingsManager(this)
         val userSettings = settingsManager.getSettings()
+
         val suggestion = ProgressionHelper.getSuggestion(
             exerciseId = exerciseId,
             requestedType = workoutType,
             trainingData = trainingData,
-            settings = userSettings,
-            userLevel = userSettings.userLevel
+            settings = userSettings
         )
 
         if (!suggestion.isFirstTime) {
-            val suggestedWeight = when (workoutType) {
-                "heavy" -> suggestion.proposedHeavyWeight
-                "light" -> suggestion.proposedLightWeight
-                else -> null
-            }
+            val suggestedWeight = suggestion.proposedWeight
 
             if (suggestedWeight != null) {
-                // Auto-fill weight for all sets if field is blank
                 if (binding.editTextKg.text.isNullOrBlank()) {
                     binding.editTextKg.setText(suggestedWeight.toString())
                 }
-                
-                val suggestedReps = when (workoutType) {
-                    "heavy" -> userSettings.heavyReps
-                    "light" -> userSettings.lightReps
-                    else -> null
-                }
 
-                // Get suggested RPE based on user level and workout type
+                val suggestedReps = suggestion.proposedReps ?: 5
+
                 val suggestedRpe = ProgressionHelper.suggestRpe(userSettings.userLevel, workoutType)
 
-                // Build hint text with set number, total sets, and reps
                 val hintText = buildString {
-                    val totalSets = when (workoutType) {
-                        "heavy" -> userSettings.heavySets
-                        "light" -> userSettings.lightSets
-                        else -> 1
-                    }
-                    val suggestedReps = when (workoutType) {
-                        "heavy" -> userSettings.heavyReps
-                        "light" -> userSettings.lightReps
-                        else -> null
-                    }
-                    
                     append("Suggested: ${suggestedWeight}kg")
-                    
-                    if (suggestedReps != null && suggestedReps > 0) {
-                        append(" for Set $setNumber of $totalSets ($suggestedReps reps)")
-                    } else {
-                        append(" for Set $setNumber of $totalSets")
+
+                    if (suggestedReps > 0) {
+                        append(" ($suggestedReps reps)")
                     }
-                    
-                    if (suggestedRpe != null) {
-                        append(" @ RPE $suggestedRpe")
-                    }
-                    
+
+                    append(" @ RPE $suggestedRpe")
+
                     suggestion.badge?.let {
                         append(" $it")
                     }
                 }
-                
+
                 binding.textSuggestionContent.text = hintText
 
-                // Auto-fill reps for all sets if field is blank
-                if (binding.editTextReps.text.isNullOrBlank() && suggestedReps != null && suggestedReps > 0) {
+                if (binding.editTextReps.text.isNullOrBlank() && suggestedReps > 0) {
                     binding.editTextReps.setText(suggestedReps.toString())
                 }
-                
-                // Auto-fill RPE for all sets if field is blank
-                if (suggestedRpe != null && binding.editTextRpe.text.isNullOrBlank()) {
+
+                if (binding.editTextRpe.text.isNullOrBlank()) {
                     binding.editTextRpe.setText(suggestedRpe.toString())
                     updateRpeHint(suggestedRpe)
                 }
-                
-                // The card now has a fixed accent color background, no need to change it
-                
+
                 binding.tvSuggestionHint.visibility = View.VISIBLE
             }
         } else {
-            // First time - still suggest RPE if available
             val suggestedRpe = ProgressionHelper.suggestRpe(userSettings.userLevel, workoutType)
-            if (suggestedRpe != null && binding.editTextRpe.text.isNullOrBlank()) {
+            if (binding.editTextRpe.text.isNullOrBlank()) {
                 binding.editTextRpe.setText(suggestedRpe.toString())
                 updateRpeHint(suggestedRpe)
             }
         }
     }
-    
+
     private fun updateRpeHint(rpe: Float) {
         val rpeDescription = when {
-            rpe <= 6.0f -> "Very easy - Could do 4+ more reps"
-            rpe <= 7.0f -> "Easy - Could do 3 more reps"
-            rpe <= 7.5f -> "Moderate - Could do 2-3 more reps"
-            rpe <= 8.0f -> "Moderate-Hard - Could do 2 more reps"
-            rpe <= 8.5f -> "Hard - Could do 1-2 more reps"
-            rpe <= 9.0f -> "Very Hard - Could do 1 more rep"
-            rpe <= 9.5f -> "Extremely Hard - Maybe 1 more rep"
-            else -> "Maximal - No reps left in tank"
+            rpe <= 6.0f -> "Very easy"
+            rpe <= 7.0f -> "Easy"
+            rpe <= 8.0f -> "Moderate"
+            rpe <= 9.0f -> "Hard"
+            else -> "Maximal"
         }
-        
         val hintText = "Suggested RPE $rpe: $rpeDescription"
         binding.textRpeHint.text = hintText
         binding.textRpeHint.visibility = View.VISIBLE
@@ -228,7 +209,6 @@ class LogSetActivity : AppCompatActivity() {
     }
 
     private fun saveSet() {
-        // Validate inputs
         val kg = binding.editTextKg.text.toString().toFloatOrNull()
         val reps = binding.editTextReps.text.toString().toIntOrNull()
 
@@ -237,7 +217,6 @@ class LogSetActivity : AppCompatActivity() {
             return
         }
 
-        // Get RPE (validate 6-10 range)
         val rpeText = binding.editTextRpe.text.toString()
         val rpe = if (rpeText.isNotEmpty()) {
             val value = rpeText.toFloatOrNull()
@@ -248,7 +227,7 @@ class LogSetActivity : AppCompatActivity() {
                 return
             }
         } else {
-            null  // User didn't enter RPE
+            null
         }
 
         val note = binding.editTextNote.text.toString()
@@ -261,7 +240,7 @@ class LogSetActivity : AppCompatActivity() {
             kg = kg,
             reps = reps,
             note = note.takeIf { it.isNotBlank() },
-            rating = null,  // Don't use rating anymore
+            rating = null,
             workoutType = workoutType,
             rpe = rpe,
             completed = completed
@@ -271,53 +250,90 @@ class LogSetActivity : AppCompatActivity() {
             putExtra(EXTRA_LOGGED_SET, newEntry)
         }
         setResult(Activity.RESULT_OK, resultIntent)
+
+        // Start timer - this will handle permission request if needed
+        shouldFinishAfterTimer = true
+        val needsPermission = startRestTimer(rpe)
         
-        // Start rest timer if enabled
-        startRestTimer(rpe)
-        
-        finish()
+        // Only finish if timer was started immediately (no permission request needed)
+        // Otherwise, finish will be called in the permission callback
+        if (!needsPermission) {
+            finish()
+        }
     }
-    
-    private fun startRestTimer(rpe: Float?) {
+
+    private fun startRestTimer(rpe: Float?): Boolean {
+        val settings = ProgressionSettingsManager(this).getSettings()
+
+        if (!settings.restTimerEnabled) {
+            return false // Timer disabled, no permission needed
+        }
+
+        // Check and request notification permission for Android 13+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS)
+                != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                // Store the timer parameters to use after permission is granted
+                pendingTimerRpe = rpe
+                pendingTimerWorkoutType = workoutType
+                pendingTimerExerciseName = exerciseName
+                notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                return true // Permission request needed
+            }
+        }
+
+        startRestTimerAfterPermissionCheck(rpe)
+        return false // No permission request needed
+    }
+
+    private fun startRestTimerAfterPermissionCheck(rpe: Float? = null) {
         val settings = ProgressionSettingsManager(this).getSettings()
         
-        if (!settings.restTimerEnabled) {
-            return
-        }
+        // Use pending values if available (from permission request), otherwise use current values
+        val actualRpe = pendingTimerRpe ?: rpe
+        val actualWorkoutType = pendingTimerWorkoutType ?: workoutType
+        val actualExerciseName = pendingTimerExerciseName ?: exerciseName
         
-        // Calculate rest duration based on workout type
-        var restSeconds = when (workoutType) {
+        // Clear pending values
+        pendingTimerRpe = null
+        pendingTimerWorkoutType = null
+        pendingTimerExerciseName = null
+
+        // Calculate base rest time based on workout type (heavy/light/custom)
+        var restSeconds = when (actualWorkoutType) {
             "heavy" -> settings.heavyRestSeconds
             "light" -> settings.lightRestSeconds
             "custom" -> settings.customRestSeconds
-            else -> settings.customRestSeconds  // Default to custom for unknown types
+            else -> settings.customRestSeconds
         }
-        
-        // Apply RPE adjustments if RPE is provided
-        if (settings.rpeAdjustmentEnabled && rpe != null) {
-            // Original high RPE threshold logic
-            if (rpe >= settings.rpeHighThreshold) {
+
+        // Apply RPE-based adjustments if enabled
+        if (settings.rpeAdjustmentEnabled && actualRpe != null) {
+            // Add bonus time if RPE is very high
+            if (actualRpe >= settings.rpeHighThreshold) {
                 restSeconds += settings.rpeHighBonusSeconds
             }
-            
-            // New RPE deviation adjustment: compare logged RPE to suggested RPE
-            val suggestedRpe = ProgressionHelper.suggestRpe(settings.userLevel, workoutType)
-            if (suggestedRpe != null) {
-                val rpeDifference = rpe - suggestedRpe
-                
-                // If logged RPE is threshold or more higher than suggested, add positive adjustment
-                if (rpeDifference >= settings.rpeDeviationThreshold) {
-                    restSeconds += settings.rpePositiveAdjustmentSeconds
-                }
-                // If logged RPE is threshold or more lower than suggested, subtract negative adjustment
-                else if (rpeDifference <= -settings.rpeDeviationThreshold) {
-                    restSeconds = maxOf(0, restSeconds - settings.rpeNegativeAdjustmentSeconds) // Don't go below 0
-                }
+
+            // Adjust based on deviation from suggested RPE
+            val suggestedRpe = ProgressionHelper.suggestRpe(settings.userLevel, actualWorkoutType)
+            val rpeDifference = actualRpe - suggestedRpe
+
+            if (rpeDifference >= settings.rpeDeviationThreshold) {
+                // Higher RPE than suggested = add more rest
+                restSeconds += settings.rpePositiveAdjustmentSeconds
+            }
+            else if (rpeDifference <= -settings.rpeDeviationThreshold) {
+                // Lower RPE than suggested = reduce rest
+                restSeconds = max(0, restSeconds - settings.rpeNegativeAdjustmentSeconds)
             }
         }
+
+        com.lilfitness.services.RestTimerService.startTimer(this, restSeconds, actualExerciseName, showDialog = false)
         
-        // Start the timer service without showing dialog (use permanent UI instead)
-        com.lilfitness.services.RestTimerService.startTimer(this, restSeconds, exerciseName, showDialog = false)
+        // Finish activity after timer is started
+        if (shouldFinishAfterTimer) {
+            finish()
+        }
     }
 
     private fun formatTypeLabel(type: String): String {
@@ -326,4 +342,3 @@ class LogSetActivity : AppCompatActivity() {
         }
     }
 }
-

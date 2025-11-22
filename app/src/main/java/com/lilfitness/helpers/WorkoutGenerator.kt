@@ -1,299 +1,194 @@
 package com.lilfitness.helpers
 
-import com.lilfitness.models.ExerciseEntry
-import com.lilfitness.models.ExerciseLibraryItem
-import com.lilfitness.models.MovementPattern
-import com.lilfitness.models.Tier
-import com.lilfitness.models.UserLevel
+import com.lilfitness.models.*
 
 object WorkoutGenerator {
-    
-    /**
-     * Merges user exercises with default exercises, prioritizing user exercises if duplicates exist.
-     * Duplicates are determined by matching names (case-insensitive).
-     */
-    private fun mergeExercises(
-        userExercises: List<ExerciseLibraryItem>,
-        defaultExercises: List<ExerciseLibraryItem>
-    ): List<ExerciseLibraryItem> {
-        val merged = userExercises.toMutableList()
-        val userExerciseNames = userExercises.map { it.name.lowercase() }.toSet()
-        
-        // Add default exercises that don't have matching names in user's library
-        defaultExercises.forEach { defaultExercise ->
-            if (!userExerciseNames.contains(defaultExercise.name.lowercase())) {
-                merged.add(defaultExercise)
-            }
-        }
-        
-        return merged
-    }
 
     /**
-     * Generates a list of exercises for a workout session with balanced tier distribution.
-     * Exercises are returned without sets - user will add sets manually.
-     * Automatically merges user exercises with default exercises.
-     * 
-     * @param userLevel The user's training level (NOVICE or INTERMEDIATE)
-     * @param sessionType The type of session ("heavy" or "light")
-     * @param userExercises The user's exercise library
-     * @param defaultExercises Optional default exercises to merge in (if null, will get from DefaultExercisesHelper)
-     * @param settings Optional progression settings (not used for exercise selection, kept for compatibility)
-     * @return Pair of (selected exercises, default exercises that were selected) - default exercises need to be added to user's library
+     * Represents a recommended exercise with volume suggestions
      */
-    fun generateFullWorkout(
-        userLevel: UserLevel,
-        sessionType: String,
-        userExercises: List<ExerciseLibraryItem>,
-        defaultExercises: List<ExerciseLibraryItem>? = null,
-        settings: ProgressionHelper.ProgressionSettings? = null
-    ): Pair<List<ExerciseLibraryItem>, List<ExerciseLibraryItem>> {
-        // Merge user exercises with default exercises
-        val defaults = defaultExercises ?: DefaultExercisesHelper.getPopularDefaults()
-        val allExercises = mergeExercises(userExercises, defaults)
-        
-        // Track which exercises came from defaults (ID >= 100 or not in user's library)
-        val userExerciseIds = userExercises.map { it.id }.toSet()
-        val userExerciseNames = userExercises.map { it.name.lowercase() }.toSet()
-        
-        val selectedExercises = mutableListOf<ExerciseLibraryItem>()
-        
-        when (userLevel) {
-            UserLevel.NOVICE -> {
-                // NOVICE: Linear progression - same exercises for heavy and light
-                // Structure: Tier 1 main lifts + Tier 2 assistance + Tier 3 accessories
-                
-                // Tier 1: Main compound movements (3-4 exercises)
-                val tier1Exercises = selectExercisesByTier(allExercises, Tier.TIER_1, sessionType)
-                val mainLifts = listOf(
-                    MovementPattern.SQUAT,
-                    MovementPattern.HINGE,
-                    MovementPattern.PUSH_HORIZONTAL,
-                    MovementPattern.PULL_VERTICAL
-                )
-                
-                mainLifts.forEach { pattern ->
-                    val exercise = tier1Exercises.firstOrNull { it.pattern == pattern }
-                    if (exercise != null) {
-                        selectedExercises.add(exercise)
-                    }
-                }
-                
-                // Tier 2: Assistance work (1-2 exercises) - only on heavy days for volume
-                if (sessionType == "heavy") {
-                    val tier2Exercises = selectExercisesByTier(allExercises, Tier.TIER_2, sessionType)
-                    val assistancePatterns = listOf(
-                        MovementPattern.PULL_HORIZONTAL,
-                        MovementPattern.PUSH_VERTICAL
-                    )
-                    
-                    assistancePatterns.forEach { pattern ->
-                        val exercise = tier2Exercises.firstOrNull { it.pattern == pattern }
-                        if (exercise != null && selectedExercises.size < 6) { // Limit total exercises
-                            selectedExercises.add(exercise)
-                        }
-                    }
-                }
-                
-                // Tier 3: Isolation/Accessories (1-2 exercises)
-                val tier3Exercises = selectExercisesByTier(allExercises, Tier.TIER_3, sessionType)
-                val accessoryPatterns = listOf(
-                    MovementPattern.ISOLATION_ARMS,
-                    MovementPattern.CORE
-                )
-                
-                accessoryPatterns.forEach { pattern ->
-                    val exercise = tier3Exercises.firstOrNull { it.pattern == pattern }
-                    if (exercise != null && selectedExercises.size < 7) { // Limit total exercises
-                        selectedExercises.add(exercise)
-                    }
-                }
-            }
-            
-            UserLevel.INTERMEDIATE -> {
-                // INTERMEDIATE: Periodized - different exercises for heavy vs light
-                // Heavy: Tier 1 main lifts
-                // Light: Tier 2 variations
-                
-                if (sessionType == "heavy") {
-                    // Heavy day: Focus on Tier 1 main lifts
-                    val tier1Exercises = selectExercisesByTier(allExercises, Tier.TIER_1, sessionType)
-                    val mainLifts = listOf(
-                        MovementPattern.SQUAT,
-                        MovementPattern.HINGE,
-                        MovementPattern.PUSH_HORIZONTAL,
-                        MovementPattern.PULL_VERTICAL
-                    )
-                    
-                    mainLifts.forEach { pattern ->
-                        val exercise = tier1Exercises.firstOrNull { it.pattern == pattern }
-                        if (exercise != null) {
-                            selectedExercises.add(exercise)
-                        }
-                    }
-                    
-                    // Add 1-2 Tier 2 assistance exercises
-                    val tier2Exercises = selectExercisesByTier(allExercises, Tier.TIER_2, sessionType)
-                    val assistancePatterns = listOf(
-                        MovementPattern.PULL_HORIZONTAL,
-                        MovementPattern.PUSH_VERTICAL
-                    )
-                    
-                    assistancePatterns.forEach { pattern ->
-                        val exercise = tier2Exercises.firstOrNull { it.pattern == pattern }
-                        if (exercise != null && selectedExercises.size < 6) {
-                            selectedExercises.add(exercise)
-                        }
-                    }
-                } else {
-                    // Light day: Focus on Tier 2 variations
-                    val tier2Exercises = selectExercisesByTier(allExercises, Tier.TIER_2, sessionType)
-                    val lightDayPatterns = listOf(
-                        MovementPattern.SQUAT,
-                        MovementPattern.HINGE,
-                        MovementPattern.PUSH_HORIZONTAL,
-                        MovementPattern.PULL_VERTICAL
-                    )
-                    
-                    lightDayPatterns.forEach { pattern ->
-                        val exercise = tier2Exercises.firstOrNull { it.pattern == pattern }
-                        if (exercise != null) {
-                            selectedExercises.add(exercise)
-                        } else {
-                            // Fallback to Tier 1 if no Tier 2 exists for this pattern
-                            val tier1Exercises = selectExercisesByTier(allExercises, Tier.TIER_1, sessionType)
-                            val fallbackExercise = tier1Exercises.firstOrNull { it.pattern == pattern }
-                            if (fallbackExercise != null) {
-                                selectedExercises.add(fallbackExercise)
-                            }
-                        }
-                    }
-                }
-                
-                // Tier 3: Accessories (1-2 exercises) on both heavy and light days
-                val tier3Exercises = selectExercisesByTier(allExercises, Tier.TIER_3, sessionType)
-                val accessoryPatterns = listOf(
-                    MovementPattern.ISOLATION_ARMS,
-                    MovementPattern.CORE
-                )
-                
-                accessoryPatterns.forEach { pattern ->
-                    val exercise = tier3Exercises.firstOrNull { it.pattern == pattern }
-                    if (exercise != null && selectedExercises.size < 7) {
-                        selectedExercises.add(exercise)
-                    }
-                }
-            }
-        }
-        
-        // Separate exercises that came from defaults (not in user's library)
-        val defaultExerciseIds = defaults.map { it.id }.toSet()
-        val defaultExerciseNames = defaults.map { it.name.lowercase() }.toSet()
-        
-        val defaultExercisesUsed = selectedExercises.filter { exercise ->
-            // Exercise is from defaults if it's in the defaults list (by ID or name)
-            // AND not in user's library (by ID and name)
-            val isDefault = (defaultExerciseIds.contains(exercise.id) || 
-                           defaultExerciseNames.contains(exercise.name.lowercase()))
-            val notInUserLibrary = (!userExerciseIds.contains(exercise.id) && 
-                                   !userExerciseNames.contains(exercise.name.lowercase()))
-            isDefault && notInUserLibrary
-        }
-        
-        return Pair(selectedExercises, defaultExercisesUsed)
-    }
+    data class RecommendedExercise(
+        val exerciseId: Int,
+        val exerciseName: String,
+        val workoutType: String,
+        val recommendedSets: Int,
+        val recommendedReps: Int
+    )
 
     /**
-     * Legacy function for single exercise generation (kept for backward compatibility).
+     * Generates a full workout based on Focus (Upper/Lower) and Intensity (Heavy/Light).
+     * Returns a list of RecommendedExercise objects - exercises that fit the blueprint
+     * without pre-filled sets. Sets should be added manually with suggestions shown in tooltips.
      */
-    fun generateSession(
-        userLevel: UserLevel,
-        sessionType: String,
-        pattern: MovementPattern,
-        allExercises: List<ExerciseLibraryItem>
-    ): List<ExerciseEntry> {
-        // Step 1: Filter exercises matching the requested MovementPattern
-        val matchingExercises = allExercises.filter { it.pattern == pattern }
+    fun generate(
+        library: List<ExerciseLibraryItem>,
+        userLevel: UserLevel, // Kept for future scaling (e.g. volume adjustments)
+        focus: SessionFocus,
+        intensity: SessionIntensity
+    ): List<RecommendedExercise> {
         
-        if (matchingExercises.isEmpty()) {
-            return emptyList()
-        }
-        
-        // Step 2: Selection Logic
-        val selectedExercise = when (userLevel) {
-            UserLevel.NOVICE -> {
-                // NOVICE: Always select TIER_1 exercises, regardless of "heavy" or "light"
-                matchingExercises.firstOrNull { it.tier == Tier.TIER_1 }
-                    ?: matchingExercises.first() // Fallback to first available
+        val blueprint = getBlueprint(focus, intensity)
+        val workout = mutableListOf<RecommendedExercise>()
+
+        // To avoid picking the same exercise twice in one session
+        val selectedIds = mutableSetOf<Int>()
+        val workoutType = if (intensity == SessionIntensity.HEAVY) "heavy" else "light"
+
+        for (slot in blueprint) {
+            // 1. Find valid candidates in the library
+            val candidates = library.filter { exercise ->
+                // Match Pattern (e.g., PUSH_HORIZONTAL)
+                slot.patterns.contains(exercise.pattern) &&
+                // Match Tier preference (e.g., TIER_1)
+                slot.preferredTiers.contains(exercise.tier) &&
+                // Avoid duplicates
+                !selectedIds.contains(exercise.id)
             }
-            UserLevel.INTERMEDIATE -> {
-                // INTERMEDIATE:
-                // - IF sessionType == "heavy": Select TIER_1
-                // - IF sessionType == "light": Select TIER_2
-                // Fallback: If no Tier 2 exists, use Tier 1
-                when (sessionType) {
-                    "heavy" -> {
-                        matchingExercises.firstOrNull { it.tier == Tier.TIER_1 }
-                            ?: matchingExercises.first()
-                    }
-                    "light" -> {
-                        matchingExercises.firstOrNull { it.tier == Tier.TIER_2 }
-                            ?: matchingExercises.firstOrNull { it.tier == Tier.TIER_1 }
-                            ?: matchingExercises.first()
-                    }
-                    else -> matchingExercises.first()
-                }
+
+            // 2. Sort candidates by "Best Match"
+            // We prioritize the Tiers in the order defined in the blueprint.
+            // e.g. if blueprint prefers TIER_1, those come first.
+            val sortedCandidates = candidates.sortedBy { exercise ->
+                slot.preferredTiers.indexOf(exercise.tier)
+            }
+
+            // 3. Pick exercises
+            // For now, we take the top ones. In the future, you could add logic to "rotate" them.
+            // If we need random variety, use .shuffled() instead of pure sort.
+            val picks = sortedCandidates.take(slot.count)
+
+            picks.forEach { exercise ->
+                selectedIds.add(exercise.id)
+                
+                // 4. Determine Volume (Sets/Reps) - these are suggestions, not actual sets
+                // Logic: Heavy days = lower reps, Light days = higher reps.
+                // TIER 1 is always lower reps than TIER 3.
+                val (sets, reps) = getVolume(intensity, exercise.tier ?: Tier.TIER_1)
+                
+                // 5. Add exercise with recommendations (no sets created yet)
+                workout.add(
+                    RecommendedExercise(
+                        exerciseId = exercise.id,
+                        exerciseName = exercise.name,
+                        workoutType = workoutType,
+                        recommendedSets = sets,
+                        recommendedReps = reps
+                    )
+                )
             }
         }
-        
-        // Step 3: Return list of ExerciseEntry objects with default sets/reps
-        val sets = when (sessionType) {
-            "heavy" -> 3
-            "light" -> 4
-            else -> 3
-        }
-        
-        val reps = when (sessionType) {
-            "heavy" -> 5
-            "light" -> 10
-            else -> 5
-        }
-        
-        return createExerciseSets(selectedExercise, sets, reps, sessionType)
+
+        return workout
     }
-    
-    /**
-     * Helper function to select exercises by tier, filtering out exercises without required attributes.
-     */
-    private fun selectExercisesByTier(
-        allExercises: List<ExerciseLibraryItem>,
-        tier: Tier,
-        sessionType: String
-    ): List<ExerciseLibraryItem> {
-        return allExercises.filter { 
-            it.tier == tier && it.pattern != null 
-        }.sortedBy { it.name }
+
+    // --- INTERNAL LOGIC ---
+
+    private data class SlotBlueprint(
+        val patterns: List<MovementPattern>,
+        val preferredTiers: List<Tier>,
+        val count: Int = 1
+    )
+
+    private fun getVolume(intensity: SessionIntensity, tier: Tier): Pair<Int, Int> {
+        // Returns Pair(Sets, Reps)
+        return if (intensity == SessionIntensity.HEAVY) {
+            when (tier) {
+                Tier.TIER_1 -> 3 to 5   // Strength work (3x5)
+                Tier.TIER_2 -> 3 to 8   // Assistance strength (3x8)
+                Tier.TIER_3 -> 3 to 12  // Isolation (3x12)
+            }
+        } else {
+            // Light / Hypertrophy Day
+            when (tier) {
+                Tier.TIER_1 -> 3 to 10  // Volume work (3x10)
+                Tier.TIER_2 -> 3 to 12  // Hypertrophy (3x12)
+                Tier.TIER_3 -> 3 to 15  // Metabolic stress (3x15)
+            }
+        }
     }
-    
-    /**
-     * Helper function to create sets for an exercise.
-     */
-    private fun createExerciseSets(
-        exercise: ExerciseLibraryItem,
-        sets: Int,
-        reps: Int,
-        workoutType: String
-    ): List<ExerciseEntry> {
-        return (1..sets).map { setNumber ->
-            ExerciseEntry(
-                exerciseId = exercise.id,
-                exerciseName = exercise.name,
-                setNumber = setNumber,
-                kg = 0f, // Weight will be set by user or progression logic
-                reps = reps,
-                workoutType = workoutType
+
+    private fun getBlueprint(focus: SessionFocus, intensity: SessionIntensity): List<SlotBlueprint> {
+        return when (focus) {
+            SessionFocus.UPPER -> getUpperBodyBlueprint(intensity)
+            SessionFocus.LOWER -> getLowerBodyBlueprint(intensity)
+            SessionFocus.FULL -> getFullBodyBlueprint(intensity)
+            else -> getFullBodyBlueprint(intensity) // Default fallback
+        }
+    }
+
+    // --- BLUEPRINTS ---
+
+    private fun getUpperBodyBlueprint(intensity: SessionIntensity): List<SlotBlueprint> {
+        return if (intensity == SessionIntensity.HEAVY) {
+            listOf(
+                // 1. Main Horizontal Push (e.g. Bench)
+                SlotBlueprint(listOf(MovementPattern.PUSH_HORIZONTAL), listOf(Tier.TIER_1), 1),
+                // 2. Main Vertical Pull (e.g. Weighted Pullup / Heavy Row)
+                SlotBlueprint(listOf(MovementPattern.PULL_VERTICAL, MovementPattern.PULL_HORIZONTAL), listOf(Tier.TIER_1), 1),
+                // 3. Secondary Vertical Push (e.g. OHP)
+                SlotBlueprint(listOf(MovementPattern.PUSH_VERTICAL), listOf(Tier.TIER_1, Tier.TIER_2), 1),
+                // 4. Secondary Pull (Row)
+                SlotBlueprint(listOf(MovementPattern.PULL_HORIZONTAL, MovementPattern.PULL_VERTICAL), listOf(Tier.TIER_2), 1),
+                // 5. Arms / Shoulders (Isolation)
+                SlotBlueprint(
+                    listOf(MovementPattern.ISOLATION_ELBOW_FLEXION, MovementPattern.ISOLATION_ELBOW_EXTENSION, MovementPattern.ISOLATION_SHOULDER_ABDUCTION),
+                    listOf(Tier.TIER_3), 
+                    2
+                )
+            )
+        } else {
+            // LIGHT / HYPERTROPHY UPPER
+            listOf(
+                // 1. Chest Variation (Incline/Dumbbell)
+                SlotBlueprint(listOf(MovementPattern.PUSH_HORIZONTAL, MovementPattern.ISOLATION_SHOULDER_FLEXION), listOf(Tier.TIER_2, Tier.TIER_3), 1),
+                // 2. Back Volume (Lat Pulldowns/Rows)
+                SlotBlueprint(listOf(MovementPattern.PULL_VERTICAL, MovementPattern.PULL_HORIZONTAL), listOf(Tier.TIER_2), 2),
+                // 3. Shoulder Volume
+                SlotBlueprint(listOf(MovementPattern.PUSH_VERTICAL, MovementPattern.ISOLATION_SHOULDER_ABDUCTION), listOf(Tier.TIER_2, Tier.TIER_3), 2),
+                // 4. Arm Pump
+                SlotBlueprint(listOf(MovementPattern.ISOLATION_ELBOW_FLEXION, MovementPattern.ISOLATION_ELBOW_EXTENSION), listOf(Tier.TIER_3), 2)
             )
         }
     }
-}
 
+    private fun getLowerBodyBlueprint(intensity: SessionIntensity): List<SlotBlueprint> {
+        return if (intensity == SessionIntensity.HEAVY) {
+            listOf(
+                // 1. Main Squat
+                SlotBlueprint(listOf(MovementPattern.SQUAT), listOf(Tier.TIER_1), 1),
+                // 2. Main Hinge
+                SlotBlueprint(listOf(MovementPattern.HINGE), listOf(Tier.TIER_1), 1),
+                // 3. Unilateral / Lunge
+                SlotBlueprint(listOf(MovementPattern.LUNGE), listOf(Tier.TIER_2), 1),
+                // 4. Calves / Isolation
+                SlotBlueprint(listOf(MovementPattern.ISOLATION_PLANTAR_FLEXION, MovementPattern.ISOLATION_KNEE_EXTENSION), listOf(Tier.TIER_3), 1)
+            )
+        } else {
+            // LIGHT / HYPERTROPHY LOWER
+            listOf(
+                // 1. Quad Focus (Leg Press/Goblet)
+                SlotBlueprint(listOf(MovementPattern.SQUAT, MovementPattern.LUNGE), listOf(Tier.TIER_2), 2),
+                // 2. Hamstring/Glute Focus (RDL/Curl)
+                SlotBlueprint(listOf(MovementPattern.HINGE, MovementPattern.ISOLATION_KNEE_FLEXION), listOf(Tier.TIER_2, Tier.TIER_3), 2),
+                // 3. Isolation (Extensions/Calves)
+                SlotBlueprint(listOf(MovementPattern.ISOLATION_KNEE_EXTENSION, MovementPattern.ISOLATION_PLANTAR_FLEXION), listOf(Tier.TIER_3), 2)
+            )
+        }
+    }
+
+    private fun getFullBodyBlueprint(intensity: SessionIntensity): List<SlotBlueprint> {
+        // Classic Full Body Structure
+        return listOf(
+            // 1. Squat Pattern
+            SlotBlueprint(listOf(MovementPattern.SQUAT, MovementPattern.LUNGE), listOf(Tier.TIER_1, Tier.TIER_2), 1),
+            // 2. Hinge Pattern
+            SlotBlueprint(listOf(MovementPattern.HINGE), listOf(Tier.TIER_1, Tier.TIER_2), 1),
+            // 3. Push Pattern
+            SlotBlueprint(listOf(MovementPattern.PUSH_HORIZONTAL, MovementPattern.PUSH_VERTICAL), listOf(Tier.TIER_1, Tier.TIER_2), 1),
+            // 4. Pull Pattern
+            SlotBlueprint(listOf(MovementPattern.PULL_VERTICAL, MovementPattern.PULL_HORIZONTAL), listOf(Tier.TIER_1, Tier.TIER_2), 1),
+            // 5. Core / Carry / Arms
+            SlotBlueprint(listOf(MovementPattern.CORE, MovementPattern.CARRY, MovementPattern.ISOLATION_ARMS), listOf(Tier.TIER_3), 1)
+        )
+    }
+}

@@ -3,32 +3,44 @@ package com.lilfitness.activities
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.lilfitness.R
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.lilfitness.R
+import com.lilfitness.adapters.SelectExerciseWithPlanAdapter
 import com.lilfitness.databinding.ActivitySelectExerciseBinding
 import com.lilfitness.helpers.DialogHelper
 import com.lilfitness.helpers.JsonHelper
 import com.lilfitness.helpers.ProgressionHelper
 import com.lilfitness.helpers.ProgressionSettingsManager
 import com.lilfitness.helpers.showWithTransparentWindow
+import com.lilfitness.models.BodyRegion
 import com.lilfitness.models.ExerciseLibraryItem
-import com.lilfitness.adapters.SelectExerciseWithPlanAdapter
 import java.util.Locale
 
 class SelectExerciseActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivitySelectExerciseBinding
     private lateinit var jsonHelper: JsonHelper
-    private lateinit var allExercises: List<ExerciseLibraryItem>
+    
+    // Data sources
+    private var allExercises: List<ExerciseLibraryItem> = emptyList()
+    private var displayedExercises: List<ExerciseLibraryItem> = emptyList()
+    
     private lateinit var adapter: SelectExerciseWithPlanAdapter
+    
+    // Intent / Context Data
     private var sessionWorkoutType: String = "heavy"
     private var planId: String? = null
     private var planExerciseIds: Set<Int> = emptySet()
     private var alreadyAddedExerciseIds: Set<Int> = emptySet()
+    
+    // Filter States
     private var filterUnaddedOnly: Boolean = true
+    private var searchQuery: String = ""
+    private var selectedRegion: BodyRegion? = null // Future: Filter by UPPER/LOWER
 
     companion object {
         const val EXTRA_EXERCISE_ID = "extra_exercise_id"
@@ -41,14 +53,17 @@ class SelectExerciseActivity : AppCompatActivity() {
 
     private val createExerciseLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            val newId = result.data?.getIntExtra(com.lilfitness.activities.EditExerciseActivity.EXTRA_EXERCISE_ID, -1) ?: -1
-            val newName = result.data?.getStringExtra(com.lilfitness.activities.EditExerciseActivity.EXTRA_EXERCISE_NAME) ?: ""
-            if (newId != -1 && newName.isNotEmpty()) {
-                val newExercise = ExerciseLibraryItem(newId, newName)
+            val newId = result.data?.getIntExtra(EditExerciseActivity.EXTRA_EXERCISE_ID, -1) ?: -1
+            
+            // RELOAD DATA: We must reload from JSON because the EditActivity saved the full object 
+            // (with regions/targets) to disk. We cannot manually construct it here safely anymore.
+            loadPlanExercises()
+            loadExercises() 
+
+            // Find the newly created exercise to auto-select it
+            val newExercise = allExercises.find { it.id == newId }
+            if (newExercise != null) {
                 onExerciseSelected(newExercise, sessionWorkoutType)
-            } else {
-                loadPlanExercises()
-                loadExercises()
             }
         }
     }
@@ -58,27 +73,44 @@ class SelectExerciseActivity : AppCompatActivity() {
         binding = ActivitySelectExerciseBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Setup background animation
         setupBackgroundAnimation()
 
         jsonHelper = JsonHelper(this)
+        
+        // Unpack Intent
         sessionWorkoutType = intent.getStringExtra(EXTRA_WORKOUT_TYPE) ?: "heavy"
         planId = intent.getStringExtra(EXTRA_PLAN_ID)
         alreadyAddedExerciseIds = intent.getIntArrayExtra(EXTRA_ALREADY_ADDED_EXERCISE_IDS)?.toSet() ?: emptySet()
         
+        // Initial Setup
         loadPlanExercises()
         setupRecyclerView()
         setupFilterToggle()
+        
+        // Initial Load
         loadExercises()
 
         binding.buttonCreateNewExercise.setOnClickListener {
-            val intent = Intent(this, com.lilfitness.activities.EditExerciseActivity::class.java)
+            val intent = Intent(this, EditExerciseActivity::class.java)
             createExerciseLauncher.launch(intent)
         }
 
         binding.buttonBack.setOnClickListener {
             onBackPressed()
         }
+        
+        // OPTIONAL: If you add an EditText with id 'searchEditText' to your XML later, 
+        // this logic is ready to go.
+        /*
+        binding.searchEditText.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                searchQuery = s.toString()
+                applyFilters()
+            }
+            override fun afterTextChanged(s: Editable?) {}
+        })
+        */
     }
     
     private fun setupBackgroundAnimation() {
@@ -112,23 +144,50 @@ class SelectExerciseActivity : AppCompatActivity() {
         binding.switchFilterUnadded.isChecked = filterUnaddedOnly
         binding.switchFilterUnadded.setOnCheckedChangeListener { _, isChecked ->
             filterUnaddedOnly = isChecked
-            loadExercises()
+            applyFilters()
         }
     }
 
     private fun loadExercises() {
-        loadPlanExercises() // Reload plan exercises in case plan was updated
-        allExercises = jsonHelper.readTrainingData().exerciseLibrary.sortedBy { it.name }
-        
-        val filteredExercises = if (filterUnaddedOnly) {
-            allExercises.filter { it.id !in alreadyAddedExerciseIds }
-        } else {
-            allExercises
+        // Load Raw Data
+        allExercises = jsonHelper.readTrainingData().exerciseLibrary
+        applyFilters()
+    }
+
+    private fun applyFilters() {
+        var result = allExercises
+
+        // 1. Filter by "Not Added Yet"
+        if (filterUnaddedOnly) {
+            result = result.filter { it.id !in alreadyAddedExerciseIds }
         }
+
+        // 2. Filter by Search Text (Name or Target Muscle)
+        if (searchQuery.isNotEmpty()) {
+            val query = searchQuery.lowercase()
+            result = result.filter { 
+                it.name.lowercase().contains(query) || 
+                it.primaryTargets.any { muscle -> muscle.name.lowercase().contains(query) }
+            }
+        }
+
+        // 3. Filter by Body Region (If you add buttons for this later)
+        selectedRegion?.let { region ->
+            result = result.filter { it.region == region }
+        }
+
+        // 4. Smart Sort: Region first, then Name
+        // This groups "LOWER" body exercises together and "UPPER" together
+        result = result.sortedWith(
+            compareBy<ExerciseLibraryItem> { it.region } // Group by Region
+            .thenBy { it.name }                          // Then Alphabetical
+        )
+
+        displayedExercises = result
         
-        // Recreate adapter with updated plan exercise IDs to ensure highlights are correct
+        // Update Adapter
         adapter = SelectExerciseWithPlanAdapter(
-            exercises = filteredExercises,
+            exercises = displayedExercises,
             planExerciseIds = planExerciseIds,
             onExerciseClicked = { exercise ->
                 onExerciseSelected(exercise, sessionWorkoutType)
@@ -142,6 +201,7 @@ class SelectExerciseActivity : AppCompatActivity() {
         val trainingData = jsonHelper.readTrainingData()
         val settingsManager = ProgressionSettingsManager(this)
         val userSettings = settingsManager.getSettings()
+        
         val suggestion = ProgressionHelper.getSuggestion(
             exerciseId = exercise.id,
             requestedType = workoutType,
@@ -155,6 +215,8 @@ class SelectExerciseActivity : AppCompatActivity() {
             showSuggestionDialog(exercise, suggestion, workoutType)
         }
     }
+
+    // --- DIALOGS (Unchanged Logic, just ensuring compatibility) ---
 
     private fun showFirstTimeDialog(exercise: ExerciseLibraryItem, workoutType: String) {
         DialogHelper.createBuilder(this)
@@ -175,32 +237,20 @@ class SelectExerciseActivity : AppCompatActivity() {
         suggestion: ProgressionHelper.ProgressionSuggestion,
         workoutType: String
     ) {
-        val suggestedWeight = when (workoutType) {
-            "heavy" -> suggestion.proposedHeavyWeight
-            "light" -> suggestion.proposedLightWeight
-            else -> null
-        }
+        val suggestedWeight = suggestion.proposedWeight
 
         val message = buildString {
-            // Show badge if present
-            suggestion.badge?.let {
-                append("$it\n\n")
-            }
-            
-            // Show RPE context if available
+            suggestion.badge?.let { append("$it\n\n") }
             suggestion.lastHeavyRpe?.let {
                 append(getString(R.string.dialog_message_last_rpe, it))
                 append("\n")
             }
-            
-            // Show days since last workout if relevant
             suggestion.daysSinceLastWorkout?.let { days ->
                 if (days >= 14) {
                     append(getString(R.string.dialog_message_days_since_last, days))
                     append("\n")
                 }
             }
-            
             append(suggestion.humanExplanation)
             append("\n\n")
             
@@ -263,4 +313,3 @@ class SelectExerciseActivity : AppCompatActivity() {
         }
     }
 }
-

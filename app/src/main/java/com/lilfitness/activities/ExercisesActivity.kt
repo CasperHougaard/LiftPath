@@ -52,11 +52,6 @@ class ExercisesActivity : AppCompatActivity() {
             addExerciseLauncher.launch(intent)
         }
 
-        binding.buttonAddFromDefault.setOnClickListener {
-            val intent = Intent(this, com.lilfitness.activities.SelectDefaultExerciseActivity::class.java)
-            addExerciseLauncher.launch(intent)
-        }
-
         binding.buttonBack.setOnClickListener {
             finish()
         }

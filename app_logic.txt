@@ -36,6 +36,9 @@ Not yet available (previously listed but still TODO): any export/import workflow
   - Sessions receive an auto-incrementing `trainingNumber` and a GUID (`UUID.randomUUID()`).
   - Exercise CRUD cascades into past sessions (renames propagate, deletions remove matching sets).
   - Progress/stat logic groups sets per exercise + per date, computes volume/1RM/averages, and normalizes chart axes for readability.
+  - `ProgressionHelper` analyzes historical performance to suggest weight adjustments based on RPE, deload needs, plateaus, and time decay.
+  - `WorkoutGenerator` creates balanced workout sessions based on user level (NOVICE/INTERMEDIATE), workout type (heavy/light), and exercise tiers.
+  - `DefaultExercisesHelper` provides a curated library of popular exercises with movement patterns, mechanics, and tier classifications.
 
 ---
 
@@ -44,15 +47,24 @@ Not yet available (previously listed but still TODO): any export/import workflow
    - `JsonHelper.readTrainingData()` loads or initializes `TrainingData`.
    - If the exercise library is empty, seed five defaults (Deadlift, Squat, Bench Press, Biceps Curl, Triceps Pushdown).
    - Dashboard stats refresh (currently only total workout count is meaningful; minutes/calories placeholders show 0).
+   - Detects next workout type (heavy/light) by alternating from last session.
 2. Active session
-   - User taps “Start Workout” → `ActiveTrainingActivity`.
+   - User taps "Start Workout" → `ActiveTrainingActivity`.
+   - User selects workout type (heavy/light/custom) or applies a saved workout plan.
+   - `WorkoutGenerator.generateFullWorkout()` can auto-generate exercises based on user level and type.
    - Selecting exercises launches `SelectExerciseActivity` (which can also create a new exercise inline).
-   - Logging a set launches `LogSetActivity`, prefilled with the last logged values for that exercise; returns an `ExerciseEntry`.
+   - Logging a set launches `LogSetActivity`, prefilled with:
+     - Last logged weight/reps for that exercise
+     - Suggested weight from `ProgressionHelper.getSuggestion()`
+     - Suggested RPE based on workout type and user level
    - Sets aggregate per exercise in-memory (`GroupedExercise`) and can be duplicated or removed before saving.
    - User can change the workout date via a `DatePickerDialog`.
+   - Draft is saved to `draft.json` for recovery after app close.
 3. Saving a workout
-   - `finishWorkout()` composes a `TrainingSession` with GUID, next `trainingNumber`, date, and the recorded sets.
+   - `finishWorkout()` composes a `TrainingSession` with GUID, next `trainingNumber`, date, workout type, applied plan (if any), and the recorded sets.
+   - Each `ExerciseEntry` includes workout type, RPE, and completion status.
    - Session is appended to `trainingData.trainings` and flushed to disk.
+   - Draft file is cleared upon successful save.
 4. History & editing
    - `HistoryActivity` shows workouts (newest first); selecting one opens `TrainingDetailActivity`.
    - Users can edit individual sets (`EditSetActivity`) or delete entire sessions.
@@ -66,12 +78,52 @@ Not yet available (previously listed but still TODO): any export/import workflow
 
 #### 4. Data Models
 
+**Enums (Vocabulary for Smart Logic):**
+
+```kotlin
+enum class UserLevel(val displayName: String) {
+    NOVICE("Novice (Linear Progression)"),
+    INTERMEDIATE("Intermediate (Periodized)")
+}
+
+enum class Tier(val displayName: String) {
+    TIER_1("Tier 1 (Main Lift / Heavy)"),
+    TIER_2("Tier 2 (Assistance / Volume)"),
+    TIER_3("Tier 3 (Accessory / Isolation)")
+}
+
+enum class MovementPattern(val displayName: String) {
+    SQUAT("Squat (Knee Dominant)"),
+    HINGE("Hinge (Hip Dominant)"),
+    LUNGE("Lunge (Single Leg)"),
+    PUSH_HORIZONTAL("Horizontal Push (Chest)"),
+    PUSH_VERTICAL("Vertical Push (Shoulders)"),
+    PULL_HORIZONTAL("Horizontal Pull (Rows)"),
+    PULL_VERTICAL("Vertical Pull (Lats)"),
+    CARRY("Carry (Farmer's Walk)"),
+    CORE("Core (Abs/Obliques)"),
+    ISOLATION_ARMS("Arms (Bicep/Tricep)"),
+    OTHER("Other")
+}
+
+enum class Mechanics(val displayName: String) {
+    COMPOUND("Compound (Multi-joint)"),
+    ISOLATION("Isolation (Single-joint)")
+}
+```
+
+**Core Data Classes:**
+
 ```kotlin
 @Parcelize
 data class ExerciseLibraryItem(
     val id: Int,
     val name: String,
-    val category: String? = null
+    val category: String? = null,
+    // Smart Attributes (nullable for backward compatibility)
+    val pattern: MovementPattern? = null,  // Movement pattern classification
+    val mechanics: Mechanics? = null,      // Compound vs Isolation
+    val tier: Tier? = null                 // Exercise importance tier
 )
 
 @Parcelize
@@ -82,21 +134,49 @@ data class ExerciseEntry(
     val kg: Float,
     val reps: Int,
     val note: String? = null,
-    val rating: Int? = null
+    val rating: Int? = null,           // Legacy 1-5 rating
+    val workoutType: String? = null,   // "heavy", "light", or "custom"
+    val rpe: Float? = null,            // Rate of Perceived Exertion (6.0-10.0)
+    val completed: Boolean? = null     // Whether set was completed
 )
 
 @Parcelize
 data class TrainingSession(
     val id: String = UUID.randomUUID().toString(),
     val trainingNumber: Int,
-    val date: String, // yyyy/MM/dd
-    val exercises: MutableList<ExerciseEntry>
+    val date: String,  // yyyy/MM/dd
+    val exercises: MutableList<ExerciseEntry>,
+    val defaultWorkoutType: String? = null,  // "heavy", "light", or "custom"
+    val planId: String? = null,              // ID of applied workout plan
+    val planName: String? = null             // Name of applied workout plan
+)
+
+@Parcelize
+data class WorkoutPlan(
+    val id: String = UUID.randomUUID().toString(),
+    val name: String,
+    val exerciseIds: MutableList<Int>,  // References to ExerciseLibraryItem IDs
+    val workoutType: String,            // "heavy", "light", or "custom"
+    val notes: String? = null,
+    val createdDate: String             // yyyy/MM/dd
 )
 
 @Parcelize
 data class TrainingData(
     val exerciseLibrary: MutableList<ExerciseLibraryItem> = mutableListOf(),
-    val trainings: MutableList<TrainingSession> = mutableListOf()
+    val trainings: MutableList<TrainingSession> = mutableListOf(),
+    val workoutPlans: MutableList<WorkoutPlan> = mutableListOf(),
+    var userLevel: UserLevel = UserLevel.NOVICE  // User's training level
+)
+
+// Helper Data Classes (Not persisted to JSON)
+
+data class ActiveWorkoutDraft(
+    val workoutType: String,
+    val date: String,
+    val appliedPlanId: String?,
+    val appliedPlanName: String?,
+    val entries: List<ExerciseEntry>
 )
 
 data class GroupedExercise(
@@ -109,7 +189,8 @@ data class ExerciseSet(
     val date: String,
     val setNumber: Int,
     val kg: Float,
-    val reps: Int
+    val reps: Int,
+    val rpe: Float? = null
 )
 ```
 
@@ -125,22 +206,56 @@ Example (trimmed):
 ```json
 {
   "exerciseLibrary": [
-    { "id": 1, "name": "Deadlift" },
-    { "id": 2, "name": "Squat" },
-    { "id": 3, "name": "Bench Press" }
+    { 
+      "id": 1, 
+      "name": "Deadlift",
+      "pattern": "HINGE",
+      "mechanics": "COMPOUND",
+      "tier": "TIER_1"
+    },
+    { 
+      "id": 2, 
+      "name": "Squat",
+      "pattern": "SQUAT",
+      "mechanics": "COMPOUND",
+      "tier": "TIER_1"
+    },
+    { 
+      "id": 3, 
+      "name": "Bench Press",
+      "pattern": "PUSH_HORIZONTAL",
+      "mechanics": "COMPOUND",
+      "tier": "TIER_1"
+    }
   ],
+  "workoutPlans": [
+    {
+      "id": "plan-123",
+      "name": "Upper Body Heavy",
+      "exerciseIds": [3, 15, 118],
+      "workoutType": "heavy",
+      "createdDate": "2025/01/15"
+    }
+  ],
+  "userLevel": "NOVICE",
   "trainings": [
     {
       "id": "b122a9de-47fd-4c93-8177-54038a5f4a7c",
       "trainingNumber": 5,
       "date": "2025/11/13",
+      "defaultWorkoutType": "heavy",
+      "planId": "plan-123",
+      "planName": "Upper Body Heavy",
       "exercises": [
         {
           "exerciseId": 3,
           "exerciseName": "Bench Press",
           "setNumber": 1,
           "kg": 82.5,
-          "reps": 8,
+          "reps": 5,
+          "workoutType": "heavy",
+          "rpe": 8.5,
+          "completed": true,
           "note": "Good energy",
           "rating": 5
         }
@@ -155,20 +270,31 @@ Example (trimmed):
 #### 6. Feature Logic
 
 - **Exercise Library (`ExercisesActivity`)**
-  - Lists all stored exercises (no categories yet).
-  - “Add” launches `EditExerciseActivity` in create mode; IDs auto-increment.
-  - “Add from default” opens `SelectDefaultExerciseActivity` with a checklist of seeded lifts; adds only those not already present.
+  - Lists all stored exercises with their attributes (pattern, mechanics, tier).
+  - "Add" launches `EditExerciseActivity` in create mode; IDs auto-increment.
+  - "Add from default" opens `SelectDefaultExerciseActivity` with a checklist of seeded lifts (25+ popular exercises with IDs 100-124); adds only those not already present.
+  - Editing allows setting movement pattern, mechanics (compound/isolation), and tier classification.
   - Editing updates names in both the library and every historical `ExerciseEntry`. Deleting removes the exercise and strips matching sets from all sessions.
   - Exercises can also be created inline from `SelectExerciseActivity` while starting a workout.
 
+- **Workout Plans (`WorkoutPlansActivity` + `EditWorkoutPlanActivity`)**
+  - Users can create, edit, and delete workout plans (templates).
+  - Each plan contains a list of exercise IDs, a workout type (heavy/light/custom), optional notes, and creation date.
+  - Plans can be applied when starting a new workout to automatically populate exercises.
+  - Applied plan ID and name are stored in the resulting `TrainingSession`.
+
 - **Active Training**
+  - User selects workout type: "heavy", "light", or "custom" (optionally from a saved plan).
+  - `WorkoutGenerator.generateFullWorkout()` can auto-generate exercises based on user level and workout type.
   - Each selected exercise renders as a card (`ActiveExercisesAdapter`) showing its sets textually plus buttons to add, duplicate, or delete.
-  - `LogSetActivity` pre-fills fields from the most recent set logged for that exercise across all history; includes optional note + rating tiles.
+  - `LogSetActivity` pre-fills fields from the most recent set logged for that exercise across all history; includes optional note, rating, RPE, and completion status.
+  - `ProgressionHelper.getSuggestion()` provides intelligent weight recommendations based on historical performance.
   - Duplicating a set copies the previous `kg/reps` but clears rating/note and increments the set number.
   - Workouts can be cancelled (with confirmation if any data exists) or saved; saving writes immediately with no background sync.
+  - Draft workouts are persisted to `draft.json` to allow resuming after app close.
 
 - **History & Editing**
-  - `HistoryActivity` simply reverses the `trainings` list (newest first) and shows `trainingNumber`, date, and volume approximation.
+  - `HistoryActivity` reverses the `trainings` list (newest first) and shows `trainingNumber`, date, workout type, and volume approximation.
   - Tapping a workout opens `TrainingDetailActivity`, which groups sets visually; each set has an edit button launching `EditSetActivity`.
   - From details you can delete the entire training (with confirmation).
 
@@ -176,26 +302,135 @@ Example (trimmed):
   - Spinner lists distinct exercise names (derived from actual logged sets, not the library).
   - Stats at the top show Max Volume (per session), Max Weight, Avg Weight, and Total Reps.
   - TabLayout switches the line chart between Weight, Volume, 1RM (via Epley), and Avg Weight. Each mode groups data per session date, sorts chronologically, and formats axes + legend for clarity.
-  - Chart interactivity (zoom, pinch, drag) is enabled; axis scaling auto-expands with a “nice” max value.
+  - Chart interactivity (zoom, pinch, drag) is enabled; axis scaling auto-expands with a "nice" max value.
   - `ExerciseStatsActivity` duplicates some calculations but is currently unused and can be considered carryover code.
 
 - **Settings**
-  - Single action: reset data (clears both exercises and trainings). No theme, account, or export controls.
+  - User level selection (NOVICE or INTERMEDIATE) affects progression logic and workout generation.
+  - Single action: reset data (clears exercises, trainings, and workout plans). No theme, account, or export controls.
 
 ---
 
-#### 7. Data Safety and Compatibility
+#### 7. Progression System
+
+The `ProgressionHelper` provides intelligent weight recommendations based on historical performance analysis:
+
+**Core Algorithm:**
+- Analyzes the last N sessions (default: 3) of "heavy" workouts for each exercise
+- Calculates average RPE, weight trends, and time since last workout
+- Applies priority-based adjustments in this order:
+
+**Priority 1: Deload Detection**
+- Triggers if 3+ consecutive sessions have RPE ≥ 9.0
+- Reduces weight to 70% of last session for recovery week
+- Badge: "⚠️ DELOAD WEEK"
+
+**Priority 2: Failure Detection**
+- Detects incomplete sets (`completed == false`) in recent sessions
+- Reduces weight by configured step (default: 2.5kg)
+- Badge: "⚠️ FAILED REPS"
+
+**Priority 3: Time Decay**
+- If 14+ days since last workout: 5% reduction
+- If 30+ days: 10% reduction
+- If 60+ days: 15% reduction
+- Badge: "🕐 TIME DECAY"
+
+**Priority 4: Plateau Detection**
+- Detects when same weight maintained for 4+ sessions with RPE ≤ 8.0
+- Applies 1.5x boost to progression step
+- Badge: "📈 PLATEAU BOOST"
+
+**Priority 5: Normal RPE Progression**
+- RPE ≤ 7.0: +2.5kg (big jump)
+- RPE 7.1-8.5: +1.25kg (small jump)
+- RPE 8.6-9.4: 0kg (maintain)
+- RPE ≥ 9.5: -2.5kg (reduce)
+
+**Priority 6: Trend Adjustment**
+- Positive trend: +1.25kg bonus
+- Negative trend: -1.25kg penalty
+- Zero trend: no adjustment
+
+**Priority 7: Safety Caps**
+- Maximum increase per session: ±5.0kg
+- Maximum decrease per session: ±10.0kg
+- Rounds to nearest 1.25kg increment
+
+**Light Day Recommendations:**
+- **NOVICE**: Calculates as 80% of proposed heavy weight
+- **INTERMEDIATE**: Returns null (intermediates use different exercises for light days)
+
+**Confidence Levels:**
+- **High**: 5+ sessions, <14 days since last workout
+- **Medium**: 3-4 sessions, <30 days since last workout
+- **Low**: <3 sessions or >30 days since last workout
+
+**RPE Suggestion:**
+- Heavy (NOVICE): 8.0
+- Heavy (INTERMEDIATE): 8.5
+- Light (NOVICE): 7.0
+- Light (INTERMEDIATE): 7.5
+
+---
+
+#### 8. Exercise & Workout Generation
+
+**Default Exercises Library:**
+- `DefaultExercisesHelper` provides 25+ popular exercises (IDs 100-124)
+- Each exercise has movement pattern, mechanics, and tier classification
+- Includes main lifts (Tier 1), assistance work (Tier 2), and accessories (Tier 3)
+- Examples: Deadlift (HINGE, TIER_1), Leg Press (SQUAT, TIER_2), Lateral Raise (TIER_3)
+
+**Workout Generation (`WorkoutGenerator`):**
+
+The generator creates balanced workouts based on:
+- User level (NOVICE vs INTERMEDIATE)
+- Session type (heavy vs light)
+- Movement pattern coverage
+- Tier distribution
+
+**NOVICE (Linear Progression):**
+- Same exercises for heavy and light days
+- **Heavy Day Structure:**
+  - Tier 1: Main compound lifts (Squat, Hinge, Horizontal Push, Vertical Pull) - 4 exercises
+  - Tier 2: Assistance work (Horizontal Pull, Vertical Push) - 1-2 exercises
+  - Tier 3: Accessories (Arms, Core) - 1-2 exercises
+- **Light Day Structure:**
+  - Same as heavy but typically with lower volume (more sets/reps)
+
+**INTERMEDIATE (Periodized):**
+- Different exercises for heavy vs light days
+- **Heavy Day Structure:**
+  - Tier 1: Main compound lifts (Squat, Hinge, Horizontal Push, Vertical Pull) - 4 exercises
+  - Tier 2: Assistance work - 1-2 exercises
+  - Tier 3: Accessories - 1-2 exercises
+- **Light Day Structure:**
+  - Tier 2: Variations of main movement patterns - 4 exercises
+  - Falls back to Tier 1 if no Tier 2 exists for a pattern
+  - Tier 3: Accessories - 1-2 exercises
+
+**Exercise Selection Logic:**
+- Merges user exercises with default exercises (user exercises take priority on name match)
+- Filters by tier and session type
+- Matches movement patterns to ensure balanced coverage
+- Limits total exercises to 6-7 per session
+
+**Exercise Merging:**
+- User exercises are prioritized over defaults
+- Duplicates determined by case-insensitive name matching
+- Default exercises (ID ≥ 100) can be added to user's library when used
+
+---
+
+#### 9. Data Safety and Compatibility
 - `JsonHelper` wraps every read/write, logs failures, and backs up corrupt JSON before resetting.
 - Exercise rename/delete operations mutate historical entries to avoid orphaned IDs.
-- `SettingsActivity` provides a manual “Reset Data” to recover from user-caused inconsistencies.
+- `SettingsActivity` provides a manual "Reset Data" to recover from user-caused inconsistencies.
 - All data stays under app-internal storage, so scoped-storage restrictions are satisfied by default.
+- New data model fields (pattern, mechanics, tier, rpe, completed, workoutType) are nullable for backward compatibility.
+- `UserLevel` defaults to NOVICE for existing data.
+- Workout plans are optional and can be empty.
 - No migrations exist yet; schema changes must remain backward compatible or include manual transforms before serialization.
 
 ---
-
-#### 8. Future Expansion
-- Re-introduce an export/import surface (CSV or JSON) for backups and sharing.
-- Surface the stored 1–5 ratings in history/progress (currently collected but unused).
-- Add exercise categories/tags and filtering in both the library and progress screens.
-- Hook `ExerciseStatsActivity` (or delete it) to avoid dead code.
-- Expand dashboard metrics (minutes, calories) or remove placeholders.

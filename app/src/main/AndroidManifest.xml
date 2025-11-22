@@ -11,7 +11,6 @@
         <activity android:exported="false" android:name="com.lilfitness.activities.SettingsActivity"/>
         <activity android:exported="false" android:label="Progression Settings" android:name="com.lilfitness.activities.ProgressionSettingsActivity" android:parentActivityName="com.lilfitness.activities.SettingsActivity"/>
         <activity android:exported="false" android:name="com.lilfitness.activities.RestTimerDialogActivity" android:showOnLockScreen="true" android:theme="@style/Theme.AppCompat.Dialog" android:turnScreenOn="true"/>
-        <activity android:exported="false" android:name="com.lilfitness.activities.SelectDefaultExerciseActivity"/>
         <activity android:exported="false" android:name="com.lilfitness.activities.TrainingDetailActivity"/>
         <activity android:exported="false" android:name="com.lilfitness.activities.HistoryActivity"/>
         <activity android:exported="false" android:name="com.lilfitness.activities.ProgressActivity"/>

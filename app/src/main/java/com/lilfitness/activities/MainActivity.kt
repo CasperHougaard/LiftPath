@@ -138,35 +138,35 @@ class MainActivity : AppCompatActivity() {
                     id = 1,
                     name = "Deadlift",
                     pattern = com.lilfitness.models.MovementPattern.HINGE,
-                    mechanics = com.lilfitness.models.Mechanics.COMPOUND,
+                    manualMechanics = com.lilfitness.models.Mechanics.COMPOUND,
                     tier = com.lilfitness.models.Tier.TIER_1
                 ),
                 ExerciseLibraryItem(
                     id = 2,
                     name = "Squat",
                     pattern = com.lilfitness.models.MovementPattern.SQUAT,
-                    mechanics = com.lilfitness.models.Mechanics.COMPOUND,
+                    manualMechanics = com.lilfitness.models.Mechanics.COMPOUND,
                     tier = com.lilfitness.models.Tier.TIER_1
                 ),
                 ExerciseLibraryItem(
                     id = 3,
                     name = "Bench Press",
                     pattern = com.lilfitness.models.MovementPattern.PUSH_HORIZONTAL,
-                    mechanics = com.lilfitness.models.Mechanics.COMPOUND,
+                    manualMechanics = com.lilfitness.models.Mechanics.COMPOUND,
                     tier = com.lilfitness.models.Tier.TIER_1
                 ),
                 ExerciseLibraryItem(
                     id = 4,
                     name = "Biceps Curl",
                     pattern = com.lilfitness.models.MovementPattern.ISOLATION_ARMS,
-                    mechanics = com.lilfitness.models.Mechanics.ISOLATION,
+                    manualMechanics = com.lilfitness.models.Mechanics.ISOLATION,
                     tier = com.lilfitness.models.Tier.TIER_3
                 ),
                 ExerciseLibraryItem(
                     id = 5,
                     name = "Triceps Pushdown",
                     pattern = com.lilfitness.models.MovementPattern.ISOLATION_ARMS,
-                    mechanics = com.lilfitness.models.Mechanics.ISOLATION,
+                    manualMechanics = com.lilfitness.models.Mechanics.ISOLATION,
                     tier = com.lilfitness.models.Tier.TIER_3
                 )
             )

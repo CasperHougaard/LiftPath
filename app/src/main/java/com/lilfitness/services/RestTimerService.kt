@@ -179,7 +179,14 @@ class RestTimerService : Service() {
         }, delay)
         
         // Start foreground service with minimal notification (required for background execution)
-        startForeground(NOTIFICATION_ID, createMinimalNotification())
+        try {
+            startForeground(NOTIFICATION_ID, createMinimalNotification())
+        } catch (e: SecurityException) {
+            // Permission not granted, cannot start foreground service
+            android.util.Log.e("RestTimerService", "Cannot start foreground service: notification permission required", e)
+            stopSelf()
+            return
+        }
     }
 
     private fun stopCountdown() {
@@ -234,7 +241,14 @@ class RestTimerService : Service() {
             }.start()
             
             // Update foreground notification silently (required for foreground service)
-            startForeground(NOTIFICATION_ID, createMinimalNotification())
+            try {
+                startForeground(NOTIFICATION_ID, createMinimalNotification())
+            } catch (e: SecurityException) {
+                // Permission not granted, cannot update foreground service
+                android.util.Log.e("RestTimerService", "Cannot update foreground service: notification permission required", e)
+                stopSelf()
+                return
+            }
         }
     }
     
@@ -341,14 +355,21 @@ class RestTimerService : Service() {
             .setOnlyAlertOnce(true)
             .build()
         
-        // Show notification
-        val notificationManager = NotificationManagerCompat.from(this)
-        notificationManager.notify(COMPLETION_NOTIFICATION_ID, notification)
-        
-        // Auto-dismiss after 10 seconds
-        android.os.Handler(mainLooper).postDelayed({
-            notificationManager.cancel(COMPLETION_NOTIFICATION_ID)
-        }, 10000)
+        // Show notification (with permission check for Android 13+)
+        try {
+            val notificationManager = NotificationManagerCompat.from(this)
+            if (notificationManager.areNotificationsEnabled()) {
+                notificationManager.notify(COMPLETION_NOTIFICATION_ID, notification)
+                
+                // Auto-dismiss after 10 seconds
+                android.os.Handler(mainLooper).postDelayed({
+                    notificationManager.cancel(COMPLETION_NOTIFICATION_ID)
+                }, 10000)
+            }
+        } catch (e: SecurityException) {
+            // Permission not granted, skip notification (vibration will still work)
+            android.util.Log.w("RestTimerService", "Cannot show notification: permission denied", e)
+        }
     }
     
     private fun vibratePhone() {

@@ -158,42 +158,11 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent">
 
-        <!-- Add from Default Button -->
-        <androidx.cardview.widget.CardView
-            android:id="@+id/buttonAddFromDefault"
-            android:layout_width="0dp"
-            android:layout_height="60dp"
-            android:layout_marginEnd="8dp"
-            android:layout_weight="1"
-            android:clickable="true"
-            android:focusable="true"
-            android:foreground="?attr/selectableItemBackground"
-            app:cardBackgroundColor="@color/fitness_card_background"
-            app:cardCornerRadius="20dp"
-            app:cardElevation="2dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:gravity="center"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="From Library"
-                    android:textColor="@color/fitness_text_primary"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-        </androidx.cardview.widget.CardView>
-
-        <!-- Create New Exercise Button -->
+        <!-- Create New Exercise Button (Now Full Width) -->
         <androidx.cardview.widget.CardView
             android:id="@+id/buttonAddExercise"
             android:layout_width="0dp"
             android:layout_height="60dp"
-            android:layout_marginStart="8dp"
             android:layout_weight="1"
             android:clickable="true"
             android:focusable="true"
@@ -218,7 +187,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="6dp"
-                    android:text="Create New"
+                    android:text="Create New (Custom)"
                     android:textColor="@color/white"
                     android:textSize="15sp"
                     android:textStyle="bold" />
