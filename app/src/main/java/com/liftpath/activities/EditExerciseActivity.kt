@@ -165,29 +165,32 @@ class EditExerciseActivity : AppCompatActivity() {
         val primaryTargets = getSelectedTargetMuscles(binding.chipGroupPrimaryTargets)
         val secondaryTargets = getSelectedTargetMuscles(binding.chipGroupSecondaryTargets)
         
-        // Combine primary and secondary targets
-        val allTargets = (primaryTargets + secondaryTargets).distinct()
+        android.util.Log.d("MuscleMap", "Updating muscle map - Primary: ${primaryTargets.map { it.name }}, Secondary: ${secondaryTargets.map { it.name }}")
         
-        android.util.Log.d("MuscleMap", "Updating muscle map with ${allTargets.size} targets: ${allTargets.map { it.name }}")
-        
-        // Convert enum list to JavaScript array format: ['BICEPS', 'TRICEPS_LONG']
-        val jsArray = allTargets.joinToString(
+        // Convert enum lists to JavaScript array format
+        val primaryArray = primaryTargets.joinToString(
             prefix = "[",
             postfix = "]",
             separator = ", "
         ) { "'${it.name}'" }
         
-        // Call the JavaScript function setHighlights()
+        val secondaryArray = secondaryTargets.joinToString(
+            prefix = "[",
+            postfix = "]",
+            separator = ", "
+        ) { "'${it.name}'" }
+        
+        // Call the JavaScript function setHighlights() with primary and secondary separately
         // Try both window.setHighlights and setHighlights for compatibility
         val jsCode = """
             (function() {
                 try {
                     if (typeof setHighlights === 'function') {
-                        setHighlights($jsArray);
-                        return 'setHighlights called';
+                        var result = setHighlights($primaryArray, $secondaryArray);
+                        return result || 'setHighlights called (no return value)';
                     } else if (typeof window.setHighlights === 'function') {
-                        window.setHighlights($jsArray);
-                        return 'window.setHighlights called';
+                        var result = window.setHighlights($primaryArray, $secondaryArray);
+                        return result || 'window.setHighlights called (no return value)';
                     } else {
                         console.error('setHighlights function not found!');
                         return 'ERROR: setHighlights not found';
@@ -198,7 +201,7 @@ class EditExerciseActivity : AppCompatActivity() {
                 }
             })();
         """.trimIndent()
-        android.util.Log.d("MuscleMap", "Calling JavaScript: setHighlights($jsArray)")
+        android.util.Log.d("MuscleMap", "Calling JavaScript: setHighlights($primaryArray, $secondaryArray)")
         binding.webViewMuscleMap.evaluateJavascript(jsCode) { result ->
             android.util.Log.d("MuscleMap", "JavaScript result: $result")
         }
@@ -238,113 +241,6 @@ class EditExerciseActivity : AppCompatActivity() {
         binding.cardDelete.setOnClickListener { showDeleteConfirmationDialog() }
         binding.buttonBack.setOnClickListener { finish() }
         binding.buttonCancel.setOnClickListener { finish() }
-        
-        // TEST: Button to test JavaScript connection
-        binding.buttonTestSvg.setOnClickListener {
-            if (isWebViewReady) {
-                // Test: Change LATS element color in SVG
-                val testCode = """
-                    (function() {
-                        console.log('Test button clicked - looking for LATS element');
-                        
-                        // Check main document first (fallback method loads SVG here)
-                        var doc = document;
-                        var latsInMain = document.getElementById('LATS');
-                        
-                        if (latsInMain) {
-                            console.log('Found LATS in main document');
-                            doc = document;
-                        } else {
-                            // Try to get SVG document from object tag
-                            var svgObject = document.getElementById('svg-object');
-                            var svgDoc = null;
-                            
-                            if (svgObject) {
-                                try {
-                                    svgDoc = svgObject.contentDocument;
-                                    if (svgDoc && svgDoc.getElementById('LATS')) {
-                                        doc = svgDoc;
-                                        console.log('Using svgDoc from object');
-                                    } else {
-                                        console.log('svgDoc accessible but LATS not found there');
-                                    }
-                                } catch (e) {
-                                    console.log('Cannot access svgDoc:', e.message);
-                                }
-                            }
-                        }
-                        
-                        console.log('Using document:', doc === document ? 'main document' : 'svgDoc');
-                        
-                        // Look for LATS element (it's a rect element)
-                        var latsElement = doc.getElementById('LATS');
-                        if (latsElement) {
-                            console.log('Found LATS element:', latsElement.tagName, latsElement.id);
-                            
-                            // Get current fill - check attribute, style, or computed
-                            var currentFill = latsElement.getAttribute('fill');
-                            if (!currentFill) {
-                                currentFill = window.getComputedStyle ? window.getComputedStyle(latsElement).fill : null;
-                            }
-                            console.log('Current fill:', currentFill);
-                            
-                            // Toggle between red and default gray
-                            var isRed = currentFill === '#FF3B30' || currentFill === 'rgb(255, 59, 48)' || currentFill === '#ff3b30';
-                            
-                            if (isRed) {
-                                // Change to gray
-                                latsElement.removeAttribute('style');
-                                latsElement.setAttribute('fill', '#444444');
-                                latsElement.setAttribute('fill-opacity', '1');
-                                latsElement.setAttribute('stroke', '#ffffff');
-                                latsElement.setAttribute('stroke-width', '2px');
-                                console.log('Changed LATS to default gray');
-                                return 'LATS changed to gray';
-                            } else {
-                                // Change to red
-                                latsElement.removeAttribute('style');
-                                latsElement.setAttribute('fill', '#FF3B30');
-                                latsElement.setAttribute('fill-opacity', '1');
-                                latsElement.setAttribute('stroke', '#ffffff');
-                                latsElement.setAttribute('stroke-width', '2px');
-                                console.log('Changed LATS to red');
-                                return 'LATS changed to red';
-                            }
-                        } else {
-                            console.error('LATS element not found!');
-                            
-                            // Debug: Check what's in the document
-                            var svgCount = doc.querySelectorAll('svg').length;
-                            var rectCount = doc.querySelectorAll('rect').length;
-                            var pathCount = doc.querySelectorAll('path').length;
-                            var gCount = doc.querySelectorAll('g').length;
-                            console.log('Document stats - SVG:', svgCount, 'Rect:', rectCount, 'Path:', pathCount, 'G:', gCount);
-                            
-                            // List all available IDs
-                            var allIds = [];
-                            doc.querySelectorAll('[id]').forEach(function(el) {
-                                allIds.push(el.id);
-                            });
-                            console.log('Available IDs:', allIds);
-                            
-                            // Try to find LATS in main document too
-                            var mainDocLats = document.getElementById('LATS');
-                            if (mainDocLats) {
-                                console.log('Found LATS in main document!');
-                                return 'LATS found in main document, not svgDoc';
-                            }
-                            
-                            return 'LATS not found. Available IDs: ' + allIds.join(', ') + ' | SVG count: ' + svgCount;
-                        }
-                    })();
-                """.trimIndent()
-                binding.webViewMuscleMap.evaluateJavascript(testCode) { result ->
-                    android.util.Log.d("WebViewTest", "JavaScript result: $result")
-                }
-            } else {
-                android.util.Log.d("WebViewTest", "WebView not ready yet")
-            }
-        }
     }
 
     private fun showDeleteConfirmationDialog() {

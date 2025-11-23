@@ -14,6 +14,7 @@
             overflow: hidden;
             background: transparent;
             box-sizing: border-box;
+            transition: background-color 0.3s ease;
         }
         * {
             box-sizing: border-box;
@@ -44,121 +45,375 @@
             stroke-width: 2px !important;
             transition: fill 0.3s ease;
         }
-
-        /* ACTIVE STATE: Bright Red (Triggered by Kotlin) */
-        .active path,
-        path.active {
-            fill: #FF3B30 !important;
-        }
         
-        g.active path {
-            fill: #FF3B30 !important;
+        /* DEFAULT STATE for <use> elements */
+        use {
+            fill: #444444 !important;
+            fill-opacity: 1.0 !important;
+            stroke: #ffffff !important;
+            stroke-width: 2px !important;
+            transition: fill 0.3s ease;
         }
     </style>
 </head>
 <body>
 
-    <!-- Load SVG using object tag (most reliable for Android WebView) -->
-    <object id="svg-object" data="liftpath_musclegroups.svg" type="image/svg+xml" style="width: 100%; height: 100%;"></object>
+    <!-- Container where SVG will be injected -->
+    <div id="svg-container"></div>
 
     <script>
-        // Wait for SVG object to load, then access its content
-        const svgObject = document.getElementById('svg-object');
-        let svgDoc = null;
-        
-        function setupSVG() {
-            try {
-                svgDoc = svgObject.contentDocument;
-                if (!svgDoc) {
-                    // Try again after a short delay
-                    setTimeout(setupSVG, 100);
-                    return;
-                }
+        // Load the SVG immediately using fetch (works with allowFileAccessFromFileURLs)
+        fetch('liftpath_musclegroups.svg')
+            .then(response => response.text())
+            .then(svgText => {
+                // Inject the raw XML into the DIV
+                const container = document.getElementById('svg-container');
+                container.innerHTML = svgText;
                 
-                const svg = svgDoc.querySelector('svg');
+                // Setup SVG after injection
+                const svg = container.querySelector('svg');
                 if (svg) {
                     // Set preserveAspectRatio to maintain aspect ratio and center
                     svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-                    // Ensure SVG fills container
                     svg.setAttribute('width', '100%');
                     svg.setAttribute('height', '100%');
-                }
-            } catch (e) {
-                console.error('Error accessing SVG content:', e);
-                // Fallback: try XMLHttpRequest
-                loadSVGFallback();
-            }
-        }
-        
-        // Fallback method using XMLHttpRequest
-        function loadSVGFallback() {
-            const xhr = new XMLHttpRequest();
-            xhr.open('GET', 'liftpath_musclegroups.svg', true);
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === 4 && (xhr.status === 200 || xhr.status === 0)) {
-                    const container = document.createElement('div');
-                    container.id = 'svg-container';
-                    container.style.cssText = 'width: 100%; height: 100%;';
-                    document.body.appendChild(container);
-                    container.innerHTML = xhr.responseText;
                     
-                    document.querySelectorAll('svg').forEach(svg => {
-                        if (!svg.hasAttribute('viewBox')) {
-                            const width = svg.getAttribute('width');
-                            const height = svg.getAttribute('height');
-                            if (width && height) {
-                                const widthNum = parseFloat(width.replace('px', '').replace('pt', '').replace('%', ''));
-                                const heightNum = parseFloat(height.replace('px', '').replace('pt', '').replace('%', ''));
-                                if (!isNaN(widthNum) && !isNaN(heightNum)) {
-                                    svg.setAttribute('viewBox', `0 0 ${widthNum} ${heightNum}`);
-                                }
-                            }
-                        }
-                        svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-                        svg.setAttribute('width', '100%');
-                        svg.setAttribute('height', '100%');
+                    console.log('SVG loaded successfully into main document');
+                    
+                    // Log available IDs for debugging
+                    const allIds = [];
+                    document.querySelectorAll('[id]').forEach(el => {
+                        allIds.push(el.id);
                     });
-                    
-                    // Remove object tag
-                    svgObject.remove();
+                    console.log('Available IDs:', allIds);
                 }
-            };
-            xhr.send(null);
+            })
+            .catch(err => {
+                console.error('Failed to load SVG:', err);
+                // Fallback to XMLHttpRequest if fetch fails
+                const xhr = new XMLHttpRequest();
+                xhr.open('GET', 'liftpath_musclegroups.svg', true);
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState === 4 && (xhr.status === 200 || xhr.status === 0)) {
+                        const container = document.getElementById('svg-container');
+                        container.innerHTML = xhr.responseText;
+                        const svg = container.querySelector('svg');
+                        if (svg) {
+                            svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+                            svg.setAttribute('width', '100%');
+                            svg.setAttribute('height', '100%');
+                        }
+                    }
+                };
+                xhr.send(null);
+            });
+
+        // Kotlin calls this function: setHighlights(primaryArray, secondaryArray)
+        // primaryArray: ['CHEST_UPPER'] - uses dark blue (#1E40AF)
+        // secondaryArray: ['CHEST_LOWER'] - uses light blue (#60A5FA)
+        // Make it globally accessible
+        // Track created overlays so we can reliably remove them
+        if (!window.muscleMapOverlays) {
+            window.muscleMapOverlays = new Set(); // Track overlay IDs we've created
         }
         
-        // Try to setup when object loads
-        svgObject.addEventListener('load', setupSVG);
+        // Color definitions
+        const COLOR_PRIMARY = '#1E40AF';      // Dark blue for primary muscles
+        const COLOR_SECONDARY = '#60A5FA';    // Light blue for secondary muscles
+        const COLOR_DEFAULT = '#444444';      // Default gray
         
-        // Also try immediately in case it's already loaded
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', setupSVG);
-        } else {
-            setTimeout(setupSVG, 100);
-        }
-w
-        // Kotlin calls this function: setHighlights(['BICEPS', 'TRICEPS_LONG'])
-        function setHighlights(idsArray) {
-            // Get the SVG document (either from object or main document)
-            let doc = document;
-            if (svgDoc) {
-                doc = svgDoc;
+        window.setHighlights = function(primaryArray, secondaryArray) {
+            // Handle old single-array format for backwards compatibility
+            if (!secondaryArray && Array.isArray(primaryArray)) {
+                secondaryArray = [];
+            } else if (!secondaryArray) {
+                secondaryArray = [];
+                primaryArray = [];
+            }
+            if (!primaryArray) {
+                primaryArray = [];
             }
             
-            // 1. Reset all paths and groups to default
-            doc.querySelectorAll('path, g').forEach(el => el.classList.remove('active'));
-
-            // 2. Highlight target muscles (works with both path and group elements)
-            idsArray.forEach(id => {
-                const el = doc.getElementById(id);
-                if(el) {
-                    el.classList.add('active');
-                    // If it's a group, also add active class to its paths
-                    if(el.tagName === 'g') {
-                        el.querySelectorAll('path').forEach(p => p.classList.add('active'));
+            console.log('=== setHighlights START ===');
+            console.log('Called with primary:', JSON.stringify(primaryArray), 'secondary:', JSON.stringify(secondaryArray));
+            
+            let debugMessages = [];
+            debugMessages.push('START: primary=' + JSON.stringify(primaryArray) + ' secondary=' + JSON.stringify(secondaryArray));
+            
+            try {
+                // Try to find SVG in main document first (where fetch loads it)
+                let doc = document;
+                let svgLoaded = document.querySelector('svg');
+                
+                // If not found in main document, try object tag (like test button does)
+                if (!svgLoaded) {
+                    debugMessages.push('SVG not in main document, trying object tag...');
+                    console.log('SVG not in main document, trying object tag...');
+                    const svgObject = document.getElementById('svg-object');
+                    if (svgObject) {
+                        try {
+                            const svgDoc = svgObject.contentDocument;
+                            if (svgDoc) {
+                                doc = svgDoc;
+                                svgLoaded = svgDoc.querySelector('svg');
+                                debugMessages.push('Using svgDoc from object');
+                                console.log('Using svgDoc from object');
+                            }
+                        } catch (e) {
+                            debugMessages.push('Cannot access svgDoc: ' + e.message);
+                            console.log('Cannot access svgDoc:', e);
+                        }
                     }
+                } else {
+                    debugMessages.push('Using main document');
+                    console.log('Using main document');
                 }
-            });
-        }
+                
+                if (!svgLoaded) {
+                    debugMessages.push('SVG not ready, retrying in 100ms...');
+                    console.log('SVG not ready, retrying in 100ms...');
+                    setTimeout(() => window.setHighlights(primaryArray, secondaryArray), 100);
+                    window.setHighlights._lastDebug = debugMessages.join(' | ');
+                    return 'RETRY: SVG not ready yet | ' + debugMessages.join(' | ');
+                }
+                
+                debugMessages.push('SVG is loaded, using: ' + (doc === document ? 'main' : 'svgDoc'));
+                console.log('SVG is loaded, using document:', doc === document ? 'main' : 'svgDoc');
+            
+                // 1. RESET LOGIC - Remove all overlay rectangles we've tracked
+                let overlayCount = 0;
+                
+                // Remove all tracked overlays first (most reliable method)
+                window.muscleMapOverlays.forEach(overlayId => {
+                    const overlay = doc.getElementById(overlayId);
+                    if (overlay) {
+                        if (overlay.parentNode) {
+                            overlay.parentNode.removeChild(overlay);
+                        } else {
+                            overlay.remove();
+                        }
+                        overlayCount++;
+                        debugMessages.push('Removed tracked overlay: ' + overlayId);
+                        console.log('  Removed tracked overlay:', overlayId);
+                    } else {
+                        // Overlay doesn't exist, remove from tracking
+                        window.muscleMapOverlays.delete(overlayId);
+                    }
+                });
+                
+                // Also scan for any remaining overlays (in case tracking got out of sync)
+                const allRects = Array.from(doc.querySelectorAll('rect')); // Convert to array to avoid live NodeList issues
+                debugMessages.push('Found ' + allRects.length + ' total rect elements');
+                
+                allRects.forEach(rect => {
+                    if (rect.id && rect.id.endsWith('_overlay')) {
+                        // Only remove if not already removed
+                        const overlay = doc.getElementById(rect.id);
+                        if (overlay) {
+                            if (overlay.parentNode) {
+                                overlay.parentNode.removeChild(overlay);
+                            } else {
+                                overlay.remove();
+                            }
+                            overlayCount++;
+                            debugMessages.push('Removed orphaned overlay: ' + rect.id);
+                            console.log('  Removed orphaned overlay:', rect.id);
+                        }
+                        // Remove from tracking if it was there
+                        window.muscleMapOverlays.delete(rect.id);
+                    }
+                });
+                
+                // Clear the tracking set after removing all overlays
+                window.muscleMapOverlays.clear();
+                debugMessages.push('Removed ' + overlayCount + ' total overlay(s), tracking cleared');
+                
+                // 2. Reset all muscle elements to default state
+                doc.querySelectorAll('path, rect, use').forEach(el => {
+                    // Skip overlay rectangles (already removed, but check anyway)
+                    if (el.id && el.id.endsWith('_overlay')) {
+                        return; // Skip overlay rectangles
+                    }
+                    
+                    const tagName = el.tagName.toLowerCase();
+                    
+                    if (tagName === 'use') {
+                        // Reset <use> elements - remove classes
+                        el.classList.remove('highlighted');
+                        el.classList.remove('active');
+                        debugMessages.push('Reset <use>: ' + (el.id || 'no id'));
+                        console.log('  Reset <use> element:', el.id || 'no id');
+                    } else if (!el.id && !el.closest('g[id]')) {
+                        // If the element has no ID and is not inside a group with an ID,
+                        // it might be an outline/decoration - reset it to 'none' to respect original SVG style
+                        el.style.setProperty('fill', 'none', 'important');
+                        el.style.setProperty('stroke', '#272726', 'important'); // Original stroke color
+                    } else {
+                        // This is likely a muscle part - reset to default gray
+                        el.style.setProperty('fill', COLOR_DEFAULT, 'important');
+                        el.style.setProperty('fill-opacity', '1.0', 'important');
+                        el.style.setProperty('stroke', '#ffffff', 'important');
+                        el.style.setProperty('stroke-width', '2px', 'important');
+                    }
+                });
+                
+                // 3. Highlight target muscles
+                // Build a map of muscle ID -> color (primary takes precedence)
+                const muscleColorMap = new Map();
+                
+                // Add secondary muscles first (light blue)
+                secondaryArray.forEach(id => {
+                    muscleColorMap.set(id, COLOR_SECONDARY);
+                });
+                
+                // Add primary muscles (dark blue, will override secondary if same ID)
+                primaryArray.forEach(id => {
+                    muscleColorMap.set(id, COLOR_PRIMARY);
+                });
+                
+                const allTargets = Array.from(muscleColorMap.keys());
+                
+                if (allTargets.length > 0) {
+                    debugMessages.push('Highlighting ' + allTargets.length + ' muscle(s) - ' + primaryArray.length + ' primary, ' + secondaryArray.length + ' secondary');
+                    console.log('Highlighting', allTargets.length, 'muscle(s)');
+                    
+                    // Get all available IDs for debugging
+                    const allIds = [];
+                    doc.querySelectorAll('[id]').forEach(e => allIds.push(e.id));
+                    debugMessages.push('Available IDs: ' + allIds.slice(0, 20).join(', ') + (allIds.length > 20 ? '...' : ''));
+                    
+                    allTargets.forEach(id => {
+                        const color = muscleColorMap.get(id);
+                        const isPrimary = primaryArray.includes(id);
+                        const isSecondary = secondaryArray.includes(id);
+                        const role = isPrimary && isSecondary ? 'both (primary)' : (isPrimary ? 'primary' : 'secondary');
+                        
+                        debugMessages.push('Looking for: ' + id + ' (' + role + ', color: ' + color + ')');
+                        console.log('Looking for element with id:', id, 'color:', color);
+                        const el = doc.getElementById(id);
+                        if (el) {
+                            const tagName = el.tagName.toLowerCase();
+                            debugMessages.push('Found: ' + id + ' (' + tagName + ')');
+                            console.log('✓ Found element:', el.tagName, el.id, 'color:', color);
+                            
+                            // Handle different element types
+                            
+                            if (tagName === 'g') {
+                                // If it's a group, highlight all paths/rects in the group
+                                const paths = el.querySelectorAll('path, rect');
+                                debugMessages.push('Group ' + id + ' has ' + paths.length + ' children');
+                                console.log('  Group has', paths.length, 'child elements');
+                                paths.forEach(path => {
+                                    path.style.setProperty('fill', color, 'important');
+                                    path.style.setProperty('fill-opacity', '0.8', 'important');
+                                    path.style.setProperty('stroke', '#ffffff', 'important');
+                                    path.style.setProperty('stroke-width', '2px', 'important');
+                                });
+                                debugMessages.push('Highlighted group: ' + id);
+                                console.log('  ✓ Group highlighted');
+                            } else if (tagName === 'use') {
+                                // Handle <use> elements (like CHEST_UPPER, CHEST_LOWER, CHEST_MIDDLE)
+                                // <use> elements reference images, so we create a colored overlay rectangle
+                                debugMessages.push('Found <use> element: ' + id);
+                                console.log('  Found <use> element, creating colored overlay');
+                                
+                                // Always remove any existing overlay first (in case it wasn't removed in reset)
+                                const overlayId = id + '_overlay';
+                                let existingOverlay = doc.getElementById(overlayId);
+                                if (existingOverlay) {
+                                    if (existingOverlay.parentNode) {
+                                        existingOverlay.parentNode.removeChild(existingOverlay);
+                                    } else {
+                                        existingOverlay.remove();
+                                    }
+                                    debugMessages.push('Removed existing overlay for: ' + id);
+                                }
+                                
+                                // Now create new overlay - always create fresh after removing any existing one
+                                // Get position and dimensions from the <use> element
+                                const x = el.getAttribute('x') || '0';
+                                const y = el.getAttribute('y') || '0';
+                                const width = el.getAttribute('width') || '0';
+                                const height = el.getAttribute('height') || '0';
+                                const transform = el.getAttribute('transform') || '';
+                                
+                                debugMessages.push('Use attrs: x=' + x + ' y=' + y + ' w=' + width + ' h=' + height);
+                                console.log('  Use element attributes:', { x, y, width, height, transform, id });
+                                
+                                // Create a colored rectangle overlay that matches the use element exactly
+                                const overlay = doc.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                                overlay.setAttribute('id', overlayId);
+                                overlay.setAttribute('x', x);
+                                overlay.setAttribute('y', y);
+                                overlay.setAttribute('width', width);
+                                overlay.setAttribute('height', height);
+                                if (transform) {
+                                    overlay.setAttribute('transform', transform);
+                                }
+                                overlay.setAttribute('fill', color);
+                                overlay.setAttribute('fill-opacity', '0.7'); // Semi-transparent overlay
+                                overlay.setAttribute('stroke', 'none'); // No stroke to avoid bounding box
+                                overlay.setAttribute('pointer-events', 'none'); // Don't interfere with interactions
+                                
+                                // Insert the overlay right AFTER the <use> element so it renders on top
+                                // This creates a colored tint over the image
+                                if (el.parentNode) {
+                                    // Insert after the use element (before next sibling, or append if no next sibling)
+                                    const nextSibling = el.nextSibling;
+                                    if (nextSibling) {
+                                        el.parentNode.insertBefore(overlay, nextSibling);
+                                    } else {
+                                        el.parentNode.appendChild(overlay);
+                                    }
+                                    // Track this overlay so we can remove it later
+                                    window.muscleMapOverlays.add(overlayId);
+                                    debugMessages.push('Created overlay for: ' + id + ' (tracked: ' + overlayId + ')');
+                                    console.log('  ✓ Created and inserted colored overlay rectangle at:', { x, y, width, height, color: color });
+                                } else {
+                                    debugMessages.push('ERROR: No parent for ' + id);
+                                    console.warn('  Could not find parent node for <use> element');
+                                }
+                                
+                                el.classList.add('highlighted');
+                            } else {
+                                // If it's a path or rect, highlight it directly
+                                debugMessages.push('Highlighted directly: ' + id);
+                                console.log('  Highlighting', el.tagName, 'directly');
+                                el.style.setProperty('fill', color, 'important');
+                                el.style.setProperty('fill-opacity', '0.8', 'important');
+                                el.style.setProperty('stroke', '#ffffff', 'important');
+                                el.style.setProperty('stroke-width', '2px', 'important');
+                                console.log('  ✓ Element highlighted');
+                            }
+                        } else {
+                            debugMessages.push('NOT FOUND: ' + id);
+                            console.warn('✗ Element not found with id:', id);
+                        }
+                    });
+                } else {
+                    debugMessages.push('No IDs provided, only resetting');
+                    console.log('No IDs provided, only resetting');
+                }
+            
+                // 4. Force WebView repaint (helps with rendering on some Android versions)
+                document.body.style.display = 'none';
+                document.body.offsetHeight; // Trigger reflow
+                document.body.style.display = '';
+                
+                debugMessages.push('COMPLETED');
+                console.log('=== setHighlights completed');
+                
+                // Store debug messages so Kotlin can access them
+                window.setHighlights._lastDebug = debugMessages.join(' | ');
+                return debugMessages.join(' | ');
+            } catch (error) {
+                const errorMsg = 'ERROR: ' + error.message + ' | Stack: ' + error.stack;
+                console.error('ERROR in setHighlights:', error);
+                console.error('Stack:', error.stack);
+                window.setHighlights._lastDebug = errorMsg;
+                return errorMsg;
+            }
+        };
     </script>
 </body>
 </html>
