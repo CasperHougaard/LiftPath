@@ -1,4 +1,26 @@
 <!DOCTYPE html>
+<!--
+    REUSABLE MUSCLE MAP COMPONENT
+    
+    This HTML file can be reused in any Activity's XML layout that includes a WebView.
+    
+    Setup:
+    1. Add this HTML file to app/src/main/assets/
+    2. Add the SVG file (liftpath_musclegroups.svg) to app/src/main/assets/
+    3. Load this HTML in your WebView:
+       webView.loadUrl("file:///android_asset/muscle_map.html")
+    
+    Usage from Kotlin:
+    - Call JavaScript: setHighlights(primaryArray, secondaryArray)
+    - primaryArray: Array of muscle IDs (e.g., ['CHEST_UPPER', 'CHEST_MIDDLE'])
+    - secondaryArray: Array of muscle IDs (e.g., ['CHEST_LOWER'])
+    - Colors: Primary = dark blue (#1E40AF), Secondary = light blue (#60A5FA), Default = gray (#444444)
+    
+    Features:
+    - Automatically creates gray overlays for all muscles on load
+    - Changes overlay colors when muscles are selected
+    - Works with any SVG element type (ellipse, use, path, rect, g)
+-->
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
@@ -86,6 +108,9 @@
                         allIds.push(el.id);
                     });
                     console.log('Available IDs:', allIds);
+                    
+                    // Initialize: Create gray overlays for all muscle elements
+                    initializeMuscleOverlays(svg);
                 }
             })
             .catch(err => {
@@ -102,6 +127,8 @@
                             svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
                             svg.setAttribute('width', '100%');
                             svg.setAttribute('height', '100%');
+                            // Initialize: Create gray overlays for all muscle elements
+                            initializeMuscleOverlays(svg);
                         }
                     }
                 };
@@ -121,6 +148,148 @@
         const COLOR_PRIMARY = '#1E40AF';      // Dark blue for primary muscles
         const COLOR_SECONDARY = '#60A5FA';    // Light blue for secondary muscles
         const COLOR_DEFAULT = '#444444';      // Default gray
+        
+        // Helper function to create overlay for any muscle element
+        // Works with ellipse, use, path, rect, g, etc. - matches the original shape!
+        function createMuscleOverlay(muscleElement, overlayColor, docContext) {
+            const id = muscleElement.id;
+            if (!id) return null;
+            
+            // Use provided document context or fall back to global document
+            const doc = docContext || document;
+            
+            const overlayId = id + '_overlay';
+            const tagName = muscleElement.tagName.toLowerCase();
+            
+            let overlay;
+            
+            // Create overlay element matching the original shape
+            if (tagName === 'ellipse') {
+                // For ellipse, create an ellipse overlay
+                overlay = doc.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+                overlay.setAttribute('cx', muscleElement.getAttribute('cx') || '0');
+                overlay.setAttribute('cy', muscleElement.getAttribute('cy') || '0');
+                overlay.setAttribute('rx', muscleElement.getAttribute('rx') || '50');
+                overlay.setAttribute('ry', muscleElement.getAttribute('ry') || '50');
+            } else if (tagName === 'circle') {
+                // For circle, create a circle overlay
+                overlay = doc.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                overlay.setAttribute('cx', muscleElement.getAttribute('cx') || '0');
+                overlay.setAttribute('cy', muscleElement.getAttribute('cy') || '0');
+                overlay.setAttribute('r', muscleElement.getAttribute('r') || '50');
+            } else if (tagName === 'path') {
+                // For path, clone the path element
+                overlay = muscleElement.cloneNode(false); // Clone without children
+                overlay.removeAttribute('id'); // Remove original ID, we'll set overlay ID
+            } else if (tagName === 'rect') {
+                // For rect, create a rect overlay
+                overlay = doc.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                overlay.setAttribute('x', muscleElement.getAttribute('x') || '0');
+                overlay.setAttribute('y', muscleElement.getAttribute('y') || '0');
+                overlay.setAttribute('width', muscleElement.getAttribute('width') || '100');
+                overlay.setAttribute('height', muscleElement.getAttribute('height') || '100');
+            } else if (tagName === 'use') {
+                // For use, create overlay matching the referenced element's bounding box
+                // We'll use a path that matches the bounding box shape
+                try {
+                    const bbox = muscleElement.getBBox();
+                    overlay = doc.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    const pathData = `M ${bbox.x} ${bbox.y} L ${bbox.x + bbox.width} ${bbox.y} L ${bbox.x + bbox.width} ${bbox.y + bbox.height} L ${bbox.x} ${bbox.y + bbox.height} Z`;
+                    overlay.setAttribute('d', pathData);
+                } catch (e) {
+                    // Fallback to rect if getBBox fails
+                    const x = muscleElement.getAttribute('x') || '0';
+                    const y = muscleElement.getAttribute('y') || '0';
+                    const width = muscleElement.getAttribute('width') || '100';
+                    const height = muscleElement.getAttribute('height') || '100';
+                    overlay = doc.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    overlay.setAttribute('x', x);
+                    overlay.setAttribute('y', y);
+                    overlay.setAttribute('width', width);
+                    overlay.setAttribute('height', height);
+                }
+            } else {
+                // For other shapes (polygon, polyline, g, etc.), try to get bounding box
+                // and create a path that matches it, or fall back to rect
+                try {
+                    const bbox = muscleElement.getBBox();
+                    overlay = doc.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    const pathData = `M ${bbox.x} ${bbox.y} L ${bbox.x + bbox.width} ${bbox.y} L ${bbox.x + bbox.width} ${bbox.y + bbox.height} L ${bbox.x} ${bbox.y + bbox.height} Z`;
+                    overlay.setAttribute('d', pathData);
+                } catch (e) {
+                    // Final fallback: create a rect overlay
+                    overlay = doc.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    try {
+                        const bbox = muscleElement.getBBox();
+                        overlay.setAttribute('x', bbox.x);
+                        overlay.setAttribute('y', bbox.y);
+                        overlay.setAttribute('width', bbox.width);
+                        overlay.setAttribute('height', bbox.height);
+                    } catch (e2) {
+                        // Absolute last resort
+                        overlay.setAttribute('x', '0');
+                        overlay.setAttribute('y', '0');
+                        overlay.setAttribute('width', '100');
+                        overlay.setAttribute('height', '100');
+                    }
+                }
+            }
+            
+            // Copy transform if exists (important for positioning)
+            const transform = muscleElement.getAttribute('transform');
+            if (transform) {
+                overlay.setAttribute('transform', transform);
+            }
+            
+            // Set overlay properties
+            overlay.setAttribute('id', overlayId);
+            overlay.setAttribute('fill', overlayColor);
+            overlay.setAttribute('fill-opacity', '0.7');
+            overlay.setAttribute('stroke', 'none');
+            overlay.setAttribute('pointer-events', 'none');
+            
+            return overlay;
+        }
+        
+        // Initialize all muscles with gray overlays
+        function initializeMuscleOverlays(svg) {
+            if (!svg) return;
+            
+            const doc = svg.ownerDocument || document;
+            const allElements = doc.querySelectorAll('[id]');
+            
+            allElements.forEach(el => {
+                const id = el.id;
+                // Skip overlays, images, and container IDs
+                if (id.endsWith('_overlay') || id.startsWith('_Image') || id === 'svg-container') {
+                    return;
+                }
+                
+                // Check if this is a muscle element (has an ID that could be a muscle)
+                // We'll create overlay for any element with an ID that might be a muscle
+                const overlayId = id + '_overlay';
+                
+                // Only create if overlay doesn't exist
+                if (!doc.getElementById(overlayId)) {
+                    const overlay = createMuscleOverlay(el, COLOR_DEFAULT, doc);
+                    if (overlay && el.parentNode) {
+                        // Insert after the muscle element
+                        const nextSibling = el.nextSibling;
+                        if (nextSibling) {
+                            el.parentNode.insertBefore(overlay, nextSibling);
+                        } else {
+                            el.parentNode.appendChild(overlay);
+                        }
+                        // Track this overlay
+                        if (!window.muscleMapOverlays) {
+                            window.muscleMapOverlays = new Set();
+                        }
+                        window.muscleMapOverlays.add(overlayId);
+                        console.log('Created gray overlay for:', id);
+                    }
+                }
+            });
+        }
         
         window.setHighlights = function(primaryArray, secondaryArray) {
             // Handle old single-array format for backwards compatibility
@@ -180,80 +349,56 @@
                 debugMessages.push('SVG is loaded, using: ' + (doc === document ? 'main' : 'svgDoc'));
                 console.log('SVG is loaded, using document:', doc === document ? 'main' : 'svgDoc');
             
-                // 1. RESET LOGIC - Remove all overlay rectangles we've tracked
-                let overlayCount = 0;
+                // 1. RESET LOGIC - Reset all overlays to gray (don't remove, just change color)
+                let resetCount = 0;
                 
-                // Remove all tracked overlays first (most reliable method)
-                window.muscleMapOverlays.forEach(overlayId => {
-                    const overlay = doc.getElementById(overlayId);
-                    if (overlay) {
-                        if (overlay.parentNode) {
-                            overlay.parentNode.removeChild(overlay);
-                        } else {
-                            overlay.remove();
+                // Reset all tracked overlays to gray
+                if (window.muscleMapOverlays) {
+                    window.muscleMapOverlays.forEach(overlayId => {
+                        const overlay = doc.getElementById(overlayId);
+                        if (overlay) {
+                            overlay.setAttribute('fill', COLOR_DEFAULT);
+                            overlay.setAttribute('fill-opacity', '0.7');
+                            resetCount++;
                         }
-                        overlayCount++;
-                        debugMessages.push('Removed tracked overlay: ' + overlayId);
-                        console.log('  Removed tracked overlay:', overlayId);
-                    } else {
-                        // Overlay doesn't exist, remove from tracking
-                        window.muscleMapOverlays.delete(overlayId);
-                    }
-                });
+                    });
+                }
                 
-                // Also scan for any remaining overlays (in case tracking got out of sync)
-                const allRects = Array.from(doc.querySelectorAll('rect')); // Convert to array to avoid live NodeList issues
-                debugMessages.push('Found ' + allRects.length + ' total rect elements');
-                
+                // Also reset any overlays found by scanning (in case tracking is incomplete)
+                const allRects = Array.from(doc.querySelectorAll('rect'));
                 allRects.forEach(rect => {
                     if (rect.id && rect.id.endsWith('_overlay')) {
-                        // Only remove if not already removed
-                        const overlay = doc.getElementById(rect.id);
-                        if (overlay) {
-                            if (overlay.parentNode) {
-                                overlay.parentNode.removeChild(overlay);
-                            } else {
-                                overlay.remove();
-                            }
-                            overlayCount++;
-                            debugMessages.push('Removed orphaned overlay: ' + rect.id);
-                            console.log('  Removed orphaned overlay:', rect.id);
+                        rect.setAttribute('fill', COLOR_DEFAULT);
+                        rect.setAttribute('fill-opacity', '0.7');
+                        // Add to tracking if not already there
+                        if (window.muscleMapOverlays && !window.muscleMapOverlays.has(rect.id)) {
+                            window.muscleMapOverlays.add(rect.id);
                         }
-                        // Remove from tracking if it was there
-                        window.muscleMapOverlays.delete(rect.id);
+                        resetCount++;
                     }
                 });
                 
-                // Clear the tracking set after removing all overlays
-                window.muscleMapOverlays.clear();
-                debugMessages.push('Removed ' + overlayCount + ' total overlay(s), tracking cleared');
+                debugMessages.push('Reset ' + resetCount + ' overlay(s) to gray');
                 
-                // 2. Reset all muscle elements to default state
-                doc.querySelectorAll('path, rect, use').forEach(el => {
-                    // Skip overlay rectangles (already removed, but check anyway)
+                // 2. Reset all muscle element styles (remove any direct styling)
+                // The overlays handle the coloring now, but we should reset direct styles too
+                doc.querySelectorAll('path, rect, use, ellipse, g').forEach(el => {
+                    // Skip overlay rectangles
                     if (el.id && el.id.endsWith('_overlay')) {
-                        return; // Skip overlay rectangles
+                        return;
                     }
                     
-                    const tagName = el.tagName.toLowerCase();
+                    // Remove highlight classes
+                    el.classList.remove('highlighted');
+                    el.classList.remove('active');
                     
-                    if (tagName === 'use') {
-                        // Reset <use> elements - remove classes
-                        el.classList.remove('highlighted');
-                        el.classList.remove('active');
-                        debugMessages.push('Reset <use>: ' + (el.id || 'no id'));
-                        console.log('  Reset <use> element:', el.id || 'no id');
-                    } else if (!el.id && !el.closest('g[id]')) {
-                        // If the element has no ID and is not inside a group with an ID,
-                        // it might be an outline/decoration - reset it to 'none' to respect original SVG style
-                        el.style.setProperty('fill', 'none', 'important');
-                        el.style.setProperty('stroke', '#272726', 'important'); // Original stroke color
-                    } else {
-                        // This is likely a muscle part - reset to default gray
-                        el.style.setProperty('fill', COLOR_DEFAULT, 'important');
-                        el.style.setProperty('fill-opacity', '1.0', 'important');
-                        el.style.setProperty('stroke', '#ffffff', 'important');
-                        el.style.setProperty('stroke-width', '2px', 'important');
+                    // Reset inline styles if they were set
+                    if (el.id) {
+                        // Only reset elements with IDs (muscles)
+                        el.style.removeProperty('fill');
+                        el.style.removeProperty('fill-opacity');
+                        el.style.removeProperty('stroke');
+                        el.style.removeProperty('stroke-width');
                     }
                 });
                 
@@ -298,93 +443,37 @@
                             
                             // Handle different element types
                             
-                            if (tagName === 'g') {
-                                // If it's a group, highlight all paths/rects in the group
-                                const paths = el.querySelectorAll('path, rect');
-                                debugMessages.push('Group ' + id + ' has ' + paths.length + ' children');
-                                console.log('  Group has', paths.length, 'child elements');
-                                paths.forEach(path => {
-                                    path.style.setProperty('fill', color, 'important');
-                                    path.style.setProperty('fill-opacity', '0.8', 'important');
-                                    path.style.setProperty('stroke', '#ffffff', 'important');
-                                    path.style.setProperty('stroke-width', '2px', 'important');
-                                });
-                                debugMessages.push('Highlighted group: ' + id);
-                                console.log('  ✓ Group highlighted');
-                            } else if (tagName === 'use') {
-                                // Handle <use> elements (like CHEST_UPPER, CHEST_LOWER, CHEST_MIDDLE)
-                                // <use> elements reference images, so we create a colored overlay rectangle
-                                debugMessages.push('Found <use> element: ' + id);
-                                console.log('  Found <use> element, creating colored overlay');
-                                
-                                // Always remove any existing overlay first (in case it wasn't removed in reset)
-                                const overlayId = id + '_overlay';
-                                let existingOverlay = doc.getElementById(overlayId);
-                                if (existingOverlay) {
-                                    if (existingOverlay.parentNode) {
-                                        existingOverlay.parentNode.removeChild(existingOverlay);
-                                    } else {
-                                        existingOverlay.remove();
-                                    }
-                                    debugMessages.push('Removed existing overlay for: ' + id);
-                                }
-                                
-                                // Now create new overlay - always create fresh after removing any existing one
-                                // Get position and dimensions from the <use> element
-                                const x = el.getAttribute('x') || '0';
-                                const y = el.getAttribute('y') || '0';
-                                const width = el.getAttribute('width') || '0';
-                                const height = el.getAttribute('height') || '0';
-                                const transform = el.getAttribute('transform') || '';
-                                
-                                debugMessages.push('Use attrs: x=' + x + ' y=' + y + ' w=' + width + ' h=' + height);
-                                console.log('  Use element attributes:', { x, y, width, height, transform, id });
-                                
-                                // Create a colored rectangle overlay that matches the use element exactly
-                                const overlay = doc.createElementNS('http://www.w3.org/2000/svg', 'rect');
-                                overlay.setAttribute('id', overlayId);
-                                overlay.setAttribute('x', x);
-                                overlay.setAttribute('y', y);
-                                overlay.setAttribute('width', width);
-                                overlay.setAttribute('height', height);
-                                if (transform) {
-                                    overlay.setAttribute('transform', transform);
-                                }
+                            // Handle any element type using overlays
+                            // Find or update overlay for this muscle
+                            const overlayId = id + '_overlay';
+                            let overlay = doc.getElementById(overlayId);
+                            
+                            if (overlay) {
+                                // Overlay exists - just change its color
                                 overlay.setAttribute('fill', color);
-                                overlay.setAttribute('fill-opacity', '0.7'); // Semi-transparent overlay
-                                overlay.setAttribute('stroke', 'none'); // No stroke to avoid bounding box
-                                overlay.setAttribute('pointer-events', 'none'); // Don't interfere with interactions
-                                
-                                // Insert the overlay right AFTER the <use> element so it renders on top
-                                // This creates a colored tint over the image
-                                if (el.parentNode) {
-                                    // Insert after the use element (before next sibling, or append if no next sibling)
+                                overlay.setAttribute('fill-opacity', '0.7');
+                                debugMessages.push('Updated overlay color for: ' + id + ' to ' + color);
+                                console.log('  ✓ Updated overlay color for:', id, 'to', color);
+                            } else {
+                                // Overlay doesn't exist - create it (shouldn't happen if initialized properly)
+                                overlay = createMuscleOverlay(el, color, doc);
+                                if (overlay && el.parentNode) {
                                     const nextSibling = el.nextSibling;
                                     if (nextSibling) {
                                         el.parentNode.insertBefore(overlay, nextSibling);
                                     } else {
                                         el.parentNode.appendChild(overlay);
                                     }
-                                    // Track this overlay so we can remove it later
+                                    if (!window.muscleMapOverlays) {
+                                        window.muscleMapOverlays = new Set();
+                                    }
                                     window.muscleMapOverlays.add(overlayId);
-                                    debugMessages.push('Created overlay for: ' + id + ' (tracked: ' + overlayId + ')');
-                                    console.log('  ✓ Created and inserted colored overlay rectangle at:', { x, y, width, height, color: color });
-                                } else {
-                                    debugMessages.push('ERROR: No parent for ' + id);
-                                    console.warn('  Could not find parent node for <use> element');
+                                    debugMessages.push('Created overlay for: ' + id);
+                                    console.log('  ✓ Created overlay for:', id);
                                 }
-                                
-                                el.classList.add('highlighted');
-                            } else {
-                                // If it's a path or rect, highlight it directly
-                                debugMessages.push('Highlighted directly: ' + id);
-                                console.log('  Highlighting', el.tagName, 'directly');
-                                el.style.setProperty('fill', color, 'important');
-                                el.style.setProperty('fill-opacity', '0.8', 'important');
-                                el.style.setProperty('stroke', '#ffffff', 'important');
-                                el.style.setProperty('stroke-width', '2px', 'important');
-                                console.log('  ✓ Element highlighted');
                             }
+                            
+                            el.classList.add('highlighted');
                         } else {
                             debugMessages.push('NOT FOUND: ' + id);
                             console.warn('✗ Element not found with id:', id);
