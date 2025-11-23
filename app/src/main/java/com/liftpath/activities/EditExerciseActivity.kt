@@ -149,10 +149,90 @@ class EditExerciseActivity : AppCompatActivity() {
                 super.onPageFinished(view, url)
                 // Set flag and then update muscle map
                 isWebViewReady = true
+                checkMissingMuscleIds()
                 updateMuscleMap()
             }
         }
         binding.webViewMuscleMap.loadUrl("file:///android_asset/muscle_map.html")
+    }
+
+    private fun checkMissingMuscleIds() {
+        if (!isWebViewReady) {
+            android.util.Log.d("MuscleMap", "WebView not ready yet for muscle ID check")
+            return
+        }
+
+        // Get all TargetMuscle enum values
+        val allMuscleIds = TargetMuscle.values().map { it.name }
+        val muscleIdsArray = allMuscleIds.joinToString(
+            prefix = "[",
+            postfix = "]",
+            separator = ", "
+        ) { "'$it'" }
+
+        android.util.Log.d("MuscleMap", "Checking for missing muscle IDs. Expected: ${allMuscleIds.size} muscles")
+        
+        // Call the JavaScript function to check for missing IDs
+        val jsCode = """
+            (function() {
+                try {
+                    if (typeof checkMissingMuscleIds === 'function') {
+                        var result = checkMissingMuscleIds($muscleIdsArray);
+                        return result || 'checkMissingMuscleIds called (no return value)';
+                    } else if (typeof window.checkMissingMuscleIds === 'function') {
+                        var result = window.checkMissingMuscleIds($muscleIdsArray);
+                        return result || 'window.checkMissingMuscleIds called (no return value)';
+                    } else {
+                        console.error('checkMissingMuscleIds function not found!');
+                        return 'ERROR: checkMissingMuscleIds not found';
+                    }
+                } catch (e) {
+                    console.error('Error calling checkMissingMuscleIds:', e);
+                    return 'ERROR: ' + e.message;
+                }
+            })();
+        """.trimIndent()
+        
+        binding.webViewMuscleMap.evaluateJavascript(jsCode) { result ->
+            try {
+                // Remove quotes from result string
+                val cleanResult = result.trim().removeSurrounding("\"")
+                android.util.Log.d("MuscleMap", "Muscle ID check result: $cleanResult")
+                
+                // Try to parse JSON result
+                val jsonResult = cleanResult.replace("\\\"", "\"")
+                    .replace("\\n", "\n")
+                    .replace("\\t", "\t")
+                
+                if (jsonResult.startsWith("{")) {
+                    android.util.Log.d("MuscleMap", "Parsed JSON: $jsonResult")
+                    // Extract missing IDs from JSON-like string
+                    val missingMatch = Regex("""missing":\[(.*?)\]""").find(jsonResult)
+                    if (missingMatch != null) {
+                        val missingIds = missingMatch.groupValues[1]
+                            .split(",")
+                            .map { it.trim().removeSurrounding("\"") }
+                            .filter { it.isNotEmpty() }
+                        
+                        if (missingIds.isNotEmpty()) {
+                            android.util.Log.w("MuscleMap", "⚠️⚠️⚠️ MISSING MUSCLE IDs in SVG: ${missingIds.joinToString(", ")}")
+                            android.util.Log.w("MuscleMap", "Expected ${allMuscleIds.size} muscles, but ${missingIds.size} are missing!")
+                            missingIds.forEach { missingId ->
+                                android.util.Log.w("MuscleMap", "  - Missing: $missingId")
+                            }
+                        } else {
+                            android.util.Log.d("MuscleMap", "✓ All ${allMuscleIds.size} muscle IDs found in SVG!")
+                        }
+                        
+                        // Also log all expected muscles for comparison
+                        android.util.Log.d("MuscleMap", "Expected muscle IDs (${allMuscleIds.size} total): ${allMuscleIds.joinToString(", ")}")
+                    }
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("MuscleMap", "Error parsing muscle ID check result: ${e.message}")
+                android.util.Log.d("MuscleMap", "Raw result: $result")
+            }
+        }
     }
 
     private fun updateMuscleMap() {

@@ -61,17 +61,32 @@
         }
 
         /* DEFAULT STATE: Dark Grey with White Outline */
-        path {
+        /* Exclude overlays from default styling */
+        path:not([id*="_overlay"]) {
             fill: #444444 !important;
             stroke: #ffffff !important;
             stroke-width: 2px !important;
             transition: fill 0.3s ease;
         }
-        
+
         /* DEFAULT STATE for <use> elements */
         use {
             fill: #444444 !important;
             fill-opacity: 1.0 !important;
+            stroke: #ffffff !important;
+            stroke-width: 2px !important;
+            transition: fill 0.3s ease;
+        }
+        
+        /* CRITICAL: Overlays should NOT be affected by default styling - let JavaScript control them */
+        [id*="_overlay"] {
+            /* No default styling - JavaScript sets all properties */
+            transition: fill 0.3s ease, fill-opacity 0.3s ease;
+        }
+        
+        /* Default state for ellipse elements (exclude overlays) */
+        ellipse:not([id*="_overlay"]) {
+            fill: #444444 !important;
             stroke: #ffffff !important;
             stroke-width: 2px !important;
             transition: fill 0.3s ease;
@@ -108,6 +123,9 @@
                         allIds.push(el.id);
                     });
                     console.log('Available IDs:', allIds);
+                    
+                    // Check for missing muscle IDs and report to Kotlin
+                    checkMissingMuscleIds(svg);
                     
                     // Initialize: Create gray overlays for all muscle elements
                     initializeMuscleOverlays(svg);
@@ -180,7 +198,15 @@
             } else if (tagName === 'path') {
                 // For path, clone the path element
                 overlay = muscleElement.cloneNode(false); // Clone without children
-                overlay.removeAttribute('id'); // Remove original ID, we'll set overlay ID
+                // Remove ALL identifying attributes to prevent overlay from being found as muscle
+                overlay.removeAttribute('id');
+                overlay.removeAttributeNS('http://www.serif.com/', 'id');
+                overlay.removeAttribute('serif:id');
+                overlay.removeAttribute('serif\\:id');
+                // Remove any inline fill/style that might interfere with our overlay color
+                overlay.removeAttribute('fill');
+                overlay.removeAttribute('style');
+                // Keep the path data (d attribute) - that's what defines the shape
             } else if (tagName === 'rect') {
                 // For rect, create a rect overlay
                 overlay = doc.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -241,14 +267,204 @@
                 overlay.setAttribute('transform', transform);
             }
             
-            // Set overlay properties
+            // Set overlay properties - CRITICAL: Remove style attribute FIRST, then set our properties
+            overlay.removeAttribute('style'); // Remove any inline styles that might override our colors
             overlay.setAttribute('id', overlayId);
             overlay.setAttribute('fill', overlayColor);
-            overlay.setAttribute('fill-opacity', '0.7');
+            overlay.setAttribute('fill-opacity', '0.9'); // Higher opacity for better visibility
             overlay.setAttribute('stroke', 'none');
+            overlay.setAttribute('stroke-width', '0');
             overlay.setAttribute('pointer-events', 'none');
             
+            // Ensure overlay doesn't have any serif:id attribute that could cause it to be found as a muscle
+            // (clean up any that might have been copied during cloning)
+            overlay.removeAttributeNS('http://www.serif.com/', 'id');
+            overlay.removeAttribute('serif:id');
+            overlay.removeAttribute('serif\\:id');
+            
             return overlay;
+        }
+        
+        // Helper function to find all elements that match a muscle name
+        // Handles: exact ID match (including duplicates), serif:id attribute match, and numbered variants
+        // IMPORTANT: Excludes overlay elements (anything ending in '_overlay')
+        function findAllMuscleElements(muscleName, doc) {
+            const matches = [];
+            const matchedElements = new Set(); // Track elements we've already added to avoid duplicates
+            
+            // Helper to check if an ID is an overlay element
+            function isOverlayElement(id) {
+                return id && id.endsWith('_overlay');
+            }
+            
+            // Iterate through ALL elements with IDs once, checking all matching criteria
+            // This handles duplicate IDs correctly by checking each element individually
+            const allElementsWithId = doc.querySelectorAll('[id]');
+            allElementsWithId.forEach(el => {
+                // Skip overlay elements - they should never be treated as muscle elements
+                if (isOverlayElement(el.id)) {
+                    return;
+                }
+                
+                // Skip if already matched (tracked by element reference, handles duplicate IDs)
+                if (matchedElements.has(el)) {
+                    return;
+                }
+                
+                // 1. Check for exact ID match (handles duplicate IDs - finds ALL elements with same ID)
+                if (el.id === muscleName) {
+                    matches.push(el);
+                    matchedElements.add(el);
+                    return;
+                }
+                
+                // 2. Check serif:id attribute (namespace-aware or as regular attribute)
+                const serifId = el.getAttributeNS('http://www.serif.com/', 'id') || 
+                               el.getAttribute('serif:id') ||
+                               el.getAttribute('serif\\:id');
+                
+                if (serifId === muscleName) {
+                    matches.push(el);
+                    matchedElements.add(el);
+                    return;
+                }
+                
+                // 3. Find numbered variants (e.g., CHEST_MIDDLE1, CHEST_MIDDLE2, etc.)
+                // Pattern: muscleName followed by one or more digits
+                if (el.id) {
+                    const numberedPattern = new RegExp('^' + muscleName + '\\d+$');
+                    if (numberedPattern.test(el.id)) {
+                        matches.push(el);
+                        matchedElements.add(el);
+                    }
+                }
+            });
+            
+            return matches;
+        }
+        
+        // Check for missing muscle IDs from the enum
+        // This function should be called after SVG loads to verify all muscles exist
+        window.checkMissingMuscleIds = function(expectedMuscleIds, docContext) {
+            const doc = docContext || document;
+            const missingIds = [];
+            const foundIds = [];
+            
+            // Get all IDs from the SVG (excluding overlays)
+            const allElementsWithId = doc.querySelectorAll('[id]');
+            const svgIds = new Set();
+            const allOverlayIds = new Set();
+            
+            allElementsWithId.forEach(el => {
+                const id = el.id;
+                if (id && id.endsWith('_overlay')) {
+                    allOverlayIds.add(id);
+                } else if (id && !id.startsWith('_Image') && id !== 'svg-container') {
+                    svgIds.add(id);
+                }
+            });
+            
+            // Check each expected muscle ID
+            expectedMuscleIds.forEach(muscleId => {
+                let found = false;
+                let foundAs = '';
+                
+                // Check if exact match exists
+                if (svgIds.has(muscleId)) {
+                    found = true;
+                    foundAs = muscleId;
+                    foundIds.push(muscleId);
+                }
+                
+                // Check if numbered variant exists (e.g., CHEST_MIDDLE1)
+                if (!found) {
+                    svgIds.forEach(svgId => {
+                        const numberedPattern = new RegExp('^' + muscleId + '\\d+$');
+                        if (numberedPattern.test(svgId)) {
+                            found = true;
+                            foundAs = svgId;
+                            foundIds.push(muscleId + ' (found as ' + svgId + ')');
+                        }
+                    });
+                }
+                
+                // Check if serif:id attribute matches
+                if (!found) {
+                    allElementsWithId.forEach(el => {
+                        if (isOverlayElement(el.id)) return;
+                        const serifId = el.getAttributeNS('http://www.serif.com/', 'id') || 
+                                       el.getAttribute('serif:id') ||
+                                       el.getAttribute('serif\\:id');
+                        if (serifId === muscleId) {
+                            found = true;
+                            foundAs = el.id + ' (via serif:id)';
+                            foundIds.push(muscleId + ' (found via serif:id in ' + el.id + ')');
+                        }
+                    });
+                }
+                
+                // If still not found, it's missing
+                if (!found) {
+                    missingIds.push(muscleId);
+                }
+            });
+            
+            // Log results
+            const result = {
+                missing: missingIds,
+                found: foundIds,
+                totalExpected: expectedMuscleIds.length,
+                totalFound: foundIds.length,
+                totalMissing: missingIds.length,
+                allSvgIds: Array.from(svgIds).sort()
+            };
+            
+            console.log('=== MUSCLE ID CHECK ===');
+            console.log('Total expected muscles:', expectedMuscleIds.length);
+            console.log('Total found:', foundIds.length);
+            console.log('Total missing:', missingIds.length);
+            
+            if (missingIds.length > 0) {
+                console.warn('⚠️⚠️⚠️ MISSING MUSCLE IDs in SVG: ' + missingIds.join(', '));
+                console.warn('Expected ' + expectedMuscleIds.length + ' muscles, but ' + missingIds.length + ' are missing from the SVG file!');
+            } else {
+                console.log('✓ All ' + expectedMuscleIds.length + ' muscle IDs found in SVG!');
+            }
+            
+            console.log('Found IDs: ' + foundIds.join(','));
+            console.log('All SVG IDs (non-overlay): ' + Array.from(svgIds).sort().join(','));
+            
+            // Log a summary
+            console.log('--- SUMMARY ---');
+            console.log('Expected muscles: ' + expectedMuscleIds.length);
+            console.log('Found in SVG: ' + foundIds.length);
+            console.log('Missing from SVG: ' + missingIds.length);
+            
+            // Explicitly list missing muscles
+            if (missingIds.length > 0) {
+                console.error('❌ MISSING MUSCLES FROM SVG:');
+                missingIds.forEach(muscleId => {
+                    console.error('   - ' + muscleId + ' (NOT FOUND in SVG)');
+                });
+                console.error('⚠️  ACTION REQUIRED: Add these muscle IDs to liftpath_musclegroups.svg');
+            } else {
+                console.log('✅ All muscles found! No missing IDs.');
+            }
+            
+            // List all expected for reference
+            console.log('--- ALL EXPECTED MUSCLES ---');
+            expectedMuscleIds.forEach(muscleId => {
+                const isFound = !missingIds.includes(muscleId);
+                console.log('  ' + (isFound ? '✓' : '✗') + ' ' + muscleId);
+            });
+            console.log('========================');
+            
+            return JSON.stringify(result);
+        };
+        
+        // Helper function used by checkMissingMuscleIds
+        function isOverlayElement(id) {
+            return id && id.endsWith('_overlay');
         }
         
         // Initialize all muscles with gray overlays
@@ -360,19 +576,24 @@
                             overlay.setAttribute('fill', COLOR_DEFAULT);
                             overlay.setAttribute('fill-opacity', '0.7');
                             resetCount++;
+                        } else {
+                            // Overlay not found, remove from tracking
+                            window.muscleMapOverlays.delete(overlayId);
                         }
                     });
                 }
                 
                 // Also reset any overlays found by scanning (in case tracking is incomplete)
-                const allRects = Array.from(doc.querySelectorAll('rect'));
-                allRects.forEach(rect => {
-                    if (rect.id && rect.id.endsWith('_overlay')) {
-                        rect.setAttribute('fill', COLOR_DEFAULT);
-                        rect.setAttribute('fill-opacity', '0.7');
+                // Check for ALL overlay types: rect, ellipse, path, circle, etc.
+                const allOverlays = Array.from(doc.querySelectorAll('[id*="_overlay"]'));
+                allOverlays.forEach(overlayEl => {
+                    const overlayId = overlayEl.id;
+                    if (overlayId && overlayId.endsWith('_overlay')) {
+                        overlayEl.setAttribute('fill', COLOR_DEFAULT);
+                        overlayEl.setAttribute('fill-opacity', '0.7');
                         // Add to tracking if not already there
-                        if (window.muscleMapOverlays && !window.muscleMapOverlays.has(rect.id)) {
-                            window.muscleMapOverlays.add(rect.id);
+                        if (window.muscleMapOverlays && !window.muscleMapOverlays.has(overlayId)) {
+                            window.muscleMapOverlays.add(overlayId);
                         }
                         resetCount++;
                     }
@@ -396,7 +617,8 @@
                     if (el.id) {
                         // Only reset elements with IDs (muscles)
                         el.style.removeProperty('fill');
-                        el.style.removeProperty('fill-opacity');
+                        el.style.removeProperty('fill-opacity'); // Reset opacity so original elements show properly
+                        el.style.removeProperty('opacity'); // Reset opacity
                         el.style.removeProperty('stroke');
                         el.style.removeProperty('stroke-width');
                     }
@@ -421,64 +643,173 @@
                 if (allTargets.length > 0) {
                     debugMessages.push('Highlighting ' + allTargets.length + ' muscle(s) - ' + primaryArray.length + ' primary, ' + secondaryArray.length + ' secondary');
                     console.log('Highlighting', allTargets.length, 'muscle(s)');
+                    console.log('Primary:', primaryArray.join(', '));
+                    console.log('Secondary:', secondaryArray.join(', '));
                     
                     // Get all available IDs for debugging
                     const allIds = [];
                     doc.querySelectorAll('[id]').forEach(e => allIds.push(e.id));
                     debugMessages.push('Available IDs: ' + allIds.slice(0, 20).join(', ') + (allIds.length > 20 ? '...' : ''));
                     
-                    allTargets.forEach(id => {
-                        const color = muscleColorMap.get(id);
-                        const isPrimary = primaryArray.includes(id);
-                        const isSecondary = secondaryArray.includes(id);
+                    // Track which muscles are successfully processed
+                    const processedMuscles = [];
+                    const skippedMuscles = [];
+                    
+                    allTargets.forEach((muscleName, muscleIndex) => {
+                        console.log('[' + (muscleIndex + 1) + '/' + allTargets.length + '] Processing:', muscleName);
+                        const color = muscleColorMap.get(muscleName);
+                        const isPrimary = primaryArray.includes(muscleName);
+                        const isSecondary = secondaryArray.includes(muscleName);
                         const role = isPrimary && isSecondary ? 'both (primary)' : (isPrimary ? 'primary' : 'secondary');
                         
-                        debugMessages.push('Looking for: ' + id + ' (' + role + ', color: ' + color + ')');
-                        console.log('Looking for element with id:', id, 'color:', color);
-                        const el = doc.getElementById(id);
-                        if (el) {
-                            const tagName = el.tagName.toLowerCase();
-                            debugMessages.push('Found: ' + id + ' (' + tagName + ')');
-                            console.log('✓ Found element:', el.tagName, el.id, 'color:', color);
+                        debugMessages.push('Looking for: ' + muscleName + ' (' + role + ', color: ' + color + ')');
+                        console.log('Looking for muscle:', muscleName, 'color:', color);
+                        
+                        // Find ALL elements that match this muscle name
+                        // (exact ID, serif:id match, or numbered variants)
+                        const matchingElements = findAllMuscleElements(muscleName, doc);
+                        
+                        if (matchingElements.length > 0) {
+                            debugMessages.push('Found ' + matchingElements.length + ' element(s) for: ' + muscleName);
+                            console.log('✓ Found', matchingElements.length, 'element(s) for:', muscleName);
+                            processedMuscles.push(muscleName);
                             
-                            // Handle different element types
-                            
-                            // Handle any element type using overlays
-                            // Find or update overlay for this muscle
-                            const overlayId = id + '_overlay';
-                            let overlay = doc.getElementById(overlayId);
-                            
-                            if (overlay) {
-                                // Overlay exists - just change its color
-                                overlay.setAttribute('fill', color);
-                                overlay.setAttribute('fill-opacity', '0.7');
-                                debugMessages.push('Updated overlay color for: ' + id + ' to ' + color);
-                                console.log('  ✓ Updated overlay color for:', id, 'to', color);
-                            } else {
-                                // Overlay doesn't exist - create it (shouldn't happen if initialized properly)
-                                overlay = createMuscleOverlay(el, color, doc);
-                                if (overlay && el.parentNode) {
-                                    const nextSibling = el.nextSibling;
-                                    if (nextSibling) {
-                                        el.parentNode.insertBefore(overlay, nextSibling);
-                                    } else {
-                                        el.parentNode.appendChild(overlay);
-                                    }
-                                    if (!window.muscleMapOverlays) {
-                                        window.muscleMapOverlays = new Set();
-                                    }
-                                    window.muscleMapOverlays.add(overlayId);
-                                    debugMessages.push('Created overlay for: ' + id);
-                                    console.log('  ✓ Created overlay for:', id);
+                            matchingElements.forEach((el, index) => {
+                                const elementId = el.id;
+                                
+                                // SAFETY CHECK: Never process overlay elements
+                                if (!elementId || elementId.endsWith('_overlay')) {
+                                    debugMessages.push('  SKIPPING overlay element: ' + elementId);
+                                    console.warn('  ⚠ SKIPPING overlay element:', elementId);
+                                    return;
                                 }
-                            }
-                            
-                            el.classList.add('highlighted');
+                                
+                                const tagName = el.tagName.toLowerCase();
+                                
+                                // Create overlay ID - use simple format: elementId + '_overlay'
+                                // This matches the format used during initialization
+                                // Only add index if there are ACTUAL duplicates (same exact ID, not numbered variants)
+                                let overlayId = elementId + '_overlay';
+                                
+                                // Check if there are actual duplicate IDs (multiple elements with exact same ID)
+                                const elementsWithSameId = matchingElements.filter(e => e.id === elementId);
+                                if (elementsWithSameId.length > 1) {
+                                    // Actual duplicates - need unique overlay IDs
+                                    overlayId = elementId + '_overlay_' + index;
+                                }
+                                
+                                debugMessages.push('  Processing: ' + elementId + ' (' + tagName + ') -> overlay: ' + overlayId);
+                                console.log('  Processing element:', elementId, tagName, '-> overlay:', overlayId);
+                                
+                                // Find or update overlay for this muscle element
+                                let overlay = doc.getElementById(overlayId);
+                                
+                                // If overlay not found and we're dealing with actual duplicate IDs, try finding by position
+                                if (!overlay && elementsWithSameId.length > 1) {
+                                    // Try to find existing overlay by checking all overlays for this element
+                                    const allOverlays = doc.querySelectorAll('#' + elementId.replace(/[#.]/g, '\\$&') + '_overlay, [id^="' + elementId + '_overlay"]');
+                                    if (allOverlays.length > index) {
+                                        overlay = allOverlays[index];
+                                    }
+                                }
+                                
+                                if (overlay) {
+                                    // Overlay exists - remove any style attributes first, then set color
+                                    overlay.removeAttribute('style'); // CRITICAL: Remove any inline styles that might override
+                                    overlay.setAttribute('fill', color);
+                                    overlay.setAttribute('fill-opacity', '0.9'); // Higher opacity for better visibility
+                                    overlay.setAttribute('stroke', 'none');
+                                    overlay.setAttribute('stroke-width', '0');
+                                    // Ensure overlay is visible and on top
+                                    overlay.setAttribute('pointer-events', 'none');
+                                    
+                                    // Force visibility via inline styles (can't be overridden by CSS)
+                                    overlay.style.setProperty('display', 'block', 'important');
+                                    overlay.style.setProperty('visibility', 'visible', 'important');
+                                    overlay.style.setProperty('opacity', '1', 'important');
+                                    overlay.style.setProperty('fill', color, 'important');
+                                    overlay.style.setProperty('fill-opacity', '0.9', 'important');
+                                    
+                                    // Move overlay to end of parent to ensure it's on top (last in DOM = renders on top in SVG)
+                                    if (overlay.parentNode) {
+                                        overlay.parentNode.appendChild(overlay);
+                                    }
+                                    
+                                    // Hide the original element fill completely so overlay shows through clearly
+                                    // This ensures the colored overlay is the only visible fill
+                                    el.style.setProperty('fill', 'none', 'important');
+                                    el.style.setProperty('fill-opacity', '0', 'important');
+                                    // Keep stroke if it exists for outline, but make it very subtle
+                                    if (el.getAttribute('stroke')) {
+                                        el.style.setProperty('stroke-opacity', '0.3', 'important');
+                                    }
+                                    
+                                    debugMessages.push('    ✓ Updated overlay color for: ' + elementId + ' (overlay: ' + overlayId + ') to ' + color);
+                                    console.log('    ✓ Updated overlay color for:', elementId, '(overlay:', overlayId + ')', 'to', color);
+                                } else {
+                                    // Overlay doesn't exist - create it (shouldn't happen if initialized properly)
+                                    console.warn('    ⚠️ Overlay not found for', elementId, 'with ID:', overlayId, '- creating new one');
+                                    // Check if maybe the overlay exists with a slightly different ID
+                                    const allOverlays = Array.from(doc.querySelectorAll('[id*="' + elementId + '_overlay"]'));
+                                    if (allOverlays.length > 0) {
+                                        console.warn('    Found', allOverlays.length, 'potential overlay(s) for', elementId + ':', allOverlays.map(o => o.id).join(', '));
+                                        // Try to use the first matching overlay
+                                        overlay = allOverlays[0];
+                                        overlay.setAttribute('fill', color);
+                                        overlay.setAttribute('fill-opacity', '0.7');
+                                        debugMessages.push('    ✓ Used existing overlay with different ID for: ' + elementId);
+                                        console.log('    ✓ Used existing overlay for:', elementId);
+                                    } else {
+                                        // Create new overlay
+                                        overlay = createMuscleOverlay(el, color, doc);
+                                        if (overlay && el.parentNode) {
+                                            overlay.setAttribute('id', overlayId); // Ensure it has the correct ID
+                                            overlay.setAttribute('pointer-events', 'none');
+                                            const nextSibling = el.nextSibling;
+                                            if (nextSibling) {
+                                                el.parentNode.insertBefore(overlay, nextSibling);
+                                            } else {
+                                                el.parentNode.appendChild(overlay);
+                                            }
+                                            if (!window.muscleMapOverlays) {
+                                                window.muscleMapOverlays = new Set();
+                                            }
+                                            window.muscleMapOverlays.add(overlayId);
+                                            debugMessages.push('    ✓ Created overlay for: ' + elementId + ' with ID: ' + overlayId);
+                                            console.log('    ✓ Created overlay for:', elementId, 'with ID:', overlayId);
+                                        } else {
+                                            console.error('    ✗ Failed to create overlay for:', elementId);
+                                        }
+                                    }
+                                }
+                                
+                                el.classList.add('highlighted');
+                            });
                         } else {
-                            debugMessages.push('NOT FOUND: ' + id);
-                            console.warn('✗ Element not found with id:', id);
+                            debugMessages.push('NOT FOUND: ' + muscleName + ' (no matching elements)');
+                            console.warn('✗ No elements found for muscle:', muscleName);
+                            skippedMuscles.push(muscleName);
                         }
                     });
+                    
+                    // Summary
+                    console.log('=== HIGHLIGHTING SUMMARY ===');
+                    console.log('Total muscles to highlight:', allTargets.length);
+                    console.log('Successfully processed:', processedMuscles.length, '-', processedMuscles.join(', '));
+                    if (skippedMuscles.length > 0) {
+                        console.warn('⚠️ Skipped (not found):', skippedMuscles.length, '-', skippedMuscles.join(', '));
+                    }
+                    console.log('============================');
+                    
+                    // Force a repaint by briefly toggling display (helps with WebView rendering)
+                    setTimeout(() => {
+                        const svgEl = doc.querySelector('svg');
+                        if (svgEl) {
+                            svgEl.style.display = 'none';
+                            svgEl.offsetHeight; // Force reflow
+                            svgEl.style.display = '';
+                        }
+                    }, 50);
                 } else {
                     debugMessages.push('No IDs provided, only resetting');
                     console.log('No IDs provided, only resetting');
