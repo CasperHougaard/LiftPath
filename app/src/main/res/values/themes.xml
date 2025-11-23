@@ -74,4 +74,19 @@
         <item name="materialAlertDialogBodyTextStyle">@style/MaterialAlertDialog.Fitness.Body</item>
         <item name="buttonBarButtonStyle">@style/MaterialAlertDialog.Fitness.Button</item>
     </style>
+    
+    <!-- Theme Overlay for Fitness BottomSheetDialog -->
+    <style name="ThemeOverlay.Fitness.BottomSheetDialog" parent="ThemeOverlay.MaterialComponents.BottomSheetDialog">
+        <!-- Background color - uses card background -->
+        <item name="colorSurface">@color/fitness_card_background</item>
+        
+        <!-- Primary color -->
+        <item name="colorPrimary">@color/fitness_primary</item>
+        <item name="colorOnPrimary">@color/white</item>
+        
+        <!-- Surface and text colors -->
+        <item name="colorOnSurface">@color/fitness_text_primary</item>
+        <item name="android:textColorPrimary">@color/fitness_text_primary</item>
+        <item name="android:textColorSecondary">@color/fitness_text_secondary</item>
+    </style>
 </resources>

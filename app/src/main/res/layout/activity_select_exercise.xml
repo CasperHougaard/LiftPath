@@ -89,22 +89,112 @@
                 android:id="@+id/layout_filter"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
+                android:orientation="vertical"
                 android:padding="16dp">
 
-                <TextView
-                    android:layout_width="0dp"
+                <!-- Filter Chips -->
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/chip_group_filters"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Show only unadded exercises"
-                    android:textColor="@color/fitness_text_primary"
-                    android:textSize="14sp" />
+                    app:chipSpacing="8dp"
+                    app:singleSelection="false">
 
-                <androidx.appcompat.widget.SwitchCompat
-                    android:id="@+id/switch_filter_unadded"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" />
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chip_filter_unadded"
+                        style="@style/Widget.MaterialComponents.Chip.Choice"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Unadded"
+                        android:checked="true" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chip_filter_missing_primary"
+                        style="@style/Widget.MaterialComponents.Chip.Choice"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Missing Primary" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chip_filter_missing_secondary"
+                        style="@style/Widget.MaterialComponents.Chip.Choice"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Missing Secondary" />
+                </com.google.android.material.chip.ChipGroup>
+
+                <!-- Muscle Overview Expandable Section -->
+                <LinearLayout
+                    android:id="@+id/layout_muscle_overview_header"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingTop="12dp"
+                    android:paddingBottom="8dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Muscle Overview"
+                        android:textColor="@color/fitness_text_primary"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/text_muscle_overview_badge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:text="0/24"
+                        android:textSize="14sp"
+                        android:textColor="@color/fitness_text_secondary"
+                        tools:text="12/24" />
+
+                    <ImageView
+                        android:id="@+id/image_muscle_overview_expand"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_arrow_drop_down_24"
+                        app:tint="@color/fitness_text_secondary"
+                        android:rotation="0" />
+                </LinearLayout>
+
+                <!-- Muscle Overview WebView (Collapsed by default) -->
+                <FrameLayout
+                    android:id="@+id/layout_muscle_overview_content"
+                    android:layout_width="match_parent"
+                    android:layout_height="400dp"
+                    android:visibility="gone"
+                    android:background="@color/fitness_background">
+
+                    <WebView
+                        android:id="@+id/webview_muscle_overview"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent" />
+
+                    <ProgressBar
+                        android:id="@+id/progress_muscle_overview"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:visibility="visible"
+                        android:indeterminateTint="@color/fitness_primary" />
+
+                    <TextView
+                        android:id="@+id/text_muscle_overview_empty"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:text="Add exercises to see muscle activation"
+                        android:textSize="14sp"
+                        android:textColor="@color/fitness_text_secondary"
+                        android:visibility="gone" />
+                </FrameLayout>
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 

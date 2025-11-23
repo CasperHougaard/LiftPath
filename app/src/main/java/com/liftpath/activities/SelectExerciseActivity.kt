@@ -11,13 +11,23 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.liftpath.R
 import com.liftpath.adapters.SelectExerciseWithPlanAdapter
 import com.liftpath.databinding.ActivitySelectExerciseBinding
+import android.os.Handler
+import android.os.Looper
+import android.view.View
+import android.webkit.WebChromeClient
+import android.webkit.WebView
+import android.webkit.WebViewClient
+import androidx.core.view.isVisible
 import com.liftpath.helpers.DialogHelper
 import com.liftpath.helpers.JsonHelper
+import com.liftpath.helpers.MuscleActivationHelper
 import com.liftpath.helpers.ProgressionHelper
 import com.liftpath.helpers.ProgressionSettingsManager
 import com.liftpath.helpers.showWithTransparentWindow
 import com.liftpath.models.BodyRegion
 import com.liftpath.models.ExerciseLibraryItem
+import com.liftpath.models.TargetMuscle
+import kotlinx.coroutines.*
 import java.util.Locale
 
 class SelectExerciseActivity : AppCompatActivity() {
@@ -39,8 +49,20 @@ class SelectExerciseActivity : AppCompatActivity() {
     
     // Filter States
     private var filterUnaddedOnly: Boolean = true
+    private var filterMissingPrimary: Boolean = false
+    private var filterMissingSecondary: Boolean = false
     private var searchQuery: String = ""
     private var selectedRegion: BodyRegion? = null // Future: Filter by UPPER/LOWER
+    
+    // Muscle Activation State
+    private var workoutExercises: List<ExerciseLibraryItem> = emptyList()
+    private var muscleActivationState: MuscleActivationHelper.MuscleActivationState? = null
+    private var missingMusclesState: MuscleActivationHelper.MuscleActivationState? = null
+    private var isMuscleOverviewExpanded: Boolean = false
+    private var isWebViewReady: Boolean = false
+    
+    // Coroutine scope for background loading
+    private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
     companion object {
         const val EXTRA_EXERCISE_ID = "extra_exercise_id"
@@ -85,7 +107,11 @@ class SelectExerciseActivity : AppCompatActivity() {
         // Initial Setup
         loadPlanExercises()
         setupRecyclerView()
-        setupFilterToggle()
+        setupFilterChips()
+        setupMuscleOverview()
+        
+        // Load workout exercises and calculate muscle activation (on background thread)
+        loadWorkoutExercises()
         
         // Initial Load
         loadExercises()
@@ -140,11 +166,179 @@ class SelectExerciseActivity : AppCompatActivity() {
         binding.recyclerViewSelectExercise.layoutManager = LinearLayoutManager(this)
     }
 
-    private fun setupFilterToggle() {
-        binding.switchFilterUnadded.isChecked = filterUnaddedOnly
-        binding.switchFilterUnadded.setOnCheckedChangeListener { _, isChecked ->
+    private fun setupFilterChips() {
+        // Set initial states
+        binding.chipFilterUnadded.isChecked = filterUnaddedOnly
+        binding.chipFilterMissingPrimary.isChecked = filterMissingPrimary
+        binding.chipFilterMissingSecondary.isChecked = filterMissingSecondary
+        
+        // Set up chip listeners
+        binding.chipFilterUnadded.setOnCheckedChangeListener { _, isChecked ->
             filterUnaddedOnly = isChecked
             applyFilters()
+        }
+        
+        binding.chipFilterMissingPrimary.setOnCheckedChangeListener { _, isChecked ->
+            filterMissingPrimary = isChecked
+            applyFilters()
+        }
+        
+        binding.chipFilterMissingSecondary.setOnCheckedChangeListener { _, isChecked ->
+            filterMissingSecondary = isChecked
+            applyFilters()
+        }
+    }
+    
+    private fun loadWorkoutExercises() {
+        // Load exercises from workout on background thread to prevent UI stutter
+        scope.launch(Dispatchers.IO) {
+            val exerciseIds = alreadyAddedExerciseIds.toList()
+            val trainingData = jsonHelper.readTrainingData()
+            val exercises = exerciseIds.mapNotNull { id ->
+                trainingData.exerciseLibrary.find { it.id == id }
+            }
+            
+            // Calculate muscle activation
+            val activated = MuscleActivationHelper.getActivatedMuscles(exercises)
+            val missing = MuscleActivationHelper.getMissingMuscles(activated)
+            
+            // Update UI on main thread
+            withContext(Dispatchers.Main) {
+                workoutExercises = exercises
+                muscleActivationState = activated
+                missingMusclesState = missing
+                updateMuscleOverviewBadge()
+                if (isMuscleOverviewExpanded) {
+                    updateMuscleMap()
+                }
+            }
+        }
+    }
+    
+    private fun setupMuscleOverview() {
+        // Set up expand/collapse listener
+        binding.layoutMuscleOverviewHeader.setOnClickListener {
+            toggleMuscleOverview()
+        }
+        
+        // Set up WebView
+        binding.webviewMuscleOverview.settings.apply {
+            javaScriptEnabled = true
+            useWideViewPort = true
+            loadWithOverviewMode = true
+            allowFileAccess = true
+            allowContentAccess = true
+            allowFileAccessFromFileURLs = true
+            allowUniversalAccessFromFileURLs = true
+        }
+        binding.webviewMuscleOverview.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+        
+        binding.webviewMuscleOverview.webChromeClient = object : WebChromeClient() {
+            override fun onConsoleMessage(consoleMessage: android.webkit.ConsoleMessage?): Boolean {
+                consoleMessage?.let {
+                    android.util.Log.d("MuscleOverview", 
+                        "${it.message()} -- From line ${it.lineNumber()} of ${it.sourceId()}")
+                }
+                return true
+            }
+        }
+        
+        binding.webviewMuscleOverview.webViewClient = object : WebViewClient() {
+            override fun onPageFinished(view: WebView?, url: String?) {
+                super.onPageFinished(view, url)
+                isWebViewReady = true
+                binding.progressMuscleOverview.visibility = View.GONE
+                if (isMuscleOverviewExpanded) {
+                    updateMuscleMap()
+                }
+            }
+        }
+        
+        // Load WebView eagerly (as per plan requirement)
+        binding.webviewMuscleOverview.loadUrl("file:///android_asset/muscle_map.html")
+    }
+    
+    private fun toggleMuscleOverview() {
+        isMuscleOverviewExpanded = !isMuscleOverviewExpanded
+        
+        if (isMuscleOverviewExpanded) {
+            binding.layoutMuscleOverviewContent.visibility = View.VISIBLE
+            binding.imageMuscleOverviewExpand.rotation = 180f
+            
+            // Update muscle map if WebView is ready and we have data
+            if (isWebViewReady && muscleActivationState != null) {
+                updateMuscleMap()
+            }
+        } else {
+            binding.layoutMuscleOverviewContent.visibility = View.GONE
+            binding.imageMuscleOverviewExpand.rotation = 0f
+        }
+    }
+    
+    private fun updateMuscleOverviewBadge() {
+        val activated = muscleActivationState
+        if (activated != null) {
+            val count = activated.getTotalActivated()
+            val total = activated.getTotalPossible()
+            binding.textMuscleOverviewBadge.text = "$count/$total"
+        } else {
+            binding.textMuscleOverviewBadge.text = "0/24"
+        }
+    }
+    
+    private fun updateMuscleMap() {
+        if (!isWebViewReady || muscleActivationState == null) {
+            return
+        }
+        
+        val activated = muscleActivationState!!
+        
+        // Show empty state if no muscles activated
+        if (activated.isEmpty()) {
+            binding.textMuscleOverviewEmpty.visibility = View.VISIBLE
+            binding.webviewMuscleOverview.visibility = View.GONE
+            return
+        }
+        
+        binding.textMuscleOverviewEmpty.visibility = View.GONE
+        binding.webviewMuscleOverview.visibility = View.VISIBLE
+        
+        // Convert muscle sets to JavaScript arrays
+        val primaryArray = activated.primaryMuscles.joinToString(
+            prefix = "[",
+            postfix = "]",
+            separator = ", "
+        ) { "'${it.name}'" }
+        
+        val secondaryArray = activated.secondaryMuscles.joinToString(
+            prefix = "[",
+            postfix = "]",
+            separator = ", "
+        ) { "'${it.name}'" }
+        
+        // Call JavaScript setHighlights function
+        val jsCode = """
+            (function() {
+                try {
+                    if (typeof setHighlights === 'function') {
+                        setHighlights($primaryArray, $secondaryArray);
+                        return 'setHighlights called';
+                    } else if (typeof window.setHighlights === 'function') {
+                        window.setHighlights($primaryArray, $secondaryArray);
+                        return 'window.setHighlights called';
+                    } else {
+                        console.error('setHighlights function not found!');
+                        return 'ERROR: setHighlights not found';
+                    }
+                } catch (e) {
+                    console.error('Error calling setHighlights:', e);
+                    return 'ERROR: ' + e.message;
+                }
+            })();
+        """.trimIndent()
+        
+        binding.webviewMuscleOverview.evaluateJavascript(jsCode) { result ->
+            android.util.Log.d("MuscleOverview", "JavaScript result: $result")
         }
     }
 
@@ -162,7 +356,21 @@ class SelectExerciseActivity : AppCompatActivity() {
             result = result.filter { it.id !in alreadyAddedExerciseIds }
         }
 
-        // 2. Filter by Search Text (Name or Target Muscle)
+        // 2. Filter by Missing Muscles (OR logic: if both selected, show exercises matching either)
+        val missingState = missingMusclesState
+        if (missingState != null && (filterMissingPrimary || filterMissingSecondary)) {
+            result = result.filter { exercise ->
+                val hasMissingPrimary = filterMissingPrimary && 
+                    exercise.primaryTargets.intersect(missingState.primaryMuscles).isNotEmpty()
+                val hasMissingSecondary = filterMissingSecondary && 
+                    exercise.secondaryTargets.intersect(missingState.secondaryMuscles).isNotEmpty()
+                
+                // OR logic: exercise matches if it has missing primary OR missing secondary
+                hasMissingPrimary || hasMissingSecondary
+            }
+        }
+
+        // 3. Filter by Search Text (Name or Target Muscle)
         if (searchQuery.isNotEmpty()) {
             val query = searchQuery.lowercase()
             result = result.filter { 
@@ -171,12 +379,12 @@ class SelectExerciseActivity : AppCompatActivity() {
             }
         }
 
-        // 3. Filter by Body Region (If you add buttons for this later)
+        // 4. Filter by Body Region (If you add buttons for this later)
         selectedRegion?.let { region ->
             result = result.filter { it.region == region }
         }
 
-        // 4. Smart Sort: Region first, then Name
+        // 5. Smart Sort: Region first, then Name
         // This groups "LOWER" body exercises together and "UPPER" together
         result = result.sortedWith(
             compareBy<ExerciseLibraryItem> { it.region } // Group by Region
@@ -311,5 +519,10 @@ class SelectExerciseActivity : AppCompatActivity() {
         return type.replaceFirstChar {
             if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
         }
+    }
+    
+    override fun onDestroy() {
+        super.onDestroy()
+        scope.cancel()
     }
 }

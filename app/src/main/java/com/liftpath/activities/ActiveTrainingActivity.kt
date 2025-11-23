@@ -25,6 +25,7 @@ import com.liftpath.helpers.*
 import com.liftpath.helpers.showWithTransparentWindow
 import com.liftpath.models.*
 import com.liftpath.services.RestTimerService
+import com.liftpath.components.MuscleMapDialog
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -354,6 +355,11 @@ class ActiveTrainingActivity : AppCompatActivity() {
                 updateTimerDisplay(newTime)
             }
         }
+
+        // MUSCLE OVERVIEW BUTTON
+        binding.buttonMuscleOverview.setOnClickListener {
+            showMuscleOverview()
+        }
     }
 
     private fun setupBackButtonInterceptor() {
@@ -379,6 +385,27 @@ class ActiveTrainingActivity : AppCompatActivity() {
             stopTimerIfRunning()
             finish()
         }
+    }
+
+    private fun showMuscleOverview() {
+        // Extract unique exercise IDs from grouped exercises
+        val exerciseIds = groupedExercises.map { it.exerciseId }.distinct()
+        
+        // Load ExerciseLibraryItem objects for these IDs
+        val trainingData = jsonHelper.readTrainingData()
+        val exercises = exerciseIds.mapNotNull { id ->
+            trainingData.exerciseLibrary.find { it.id == id }
+        }
+        
+        // Calculate activated muscles
+        val activationState = MuscleActivationHelper.getActivatedMuscles(exercises)
+        
+        // Show muscle map dialog
+        val dialog = MuscleMapDialog.newInstance(
+            primaryMuscles = activationState.primaryMuscles,
+            secondaryMuscles = activationState.secondaryMuscles
+        )
+        dialog.show(supportFragmentManager, "MuscleMapDialog")
     }
 
     private fun showDatePickerDialog() {
