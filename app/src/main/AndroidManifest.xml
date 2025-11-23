@@ -14,6 +14,7 @@
         <activity android:exported="false" android:name="com.liftpath.activities.TrainingDetailActivity"/>
         <activity android:exported="false" android:name="com.liftpath.activities.HistoryActivity"/>
         <activity android:exported="false" android:name="com.liftpath.activities.ProgressActivity"/>
+        <activity android:exported="false" android:label="Progress Settings" android:name="com.liftpath.activities.ProgressSettingsActivity" android:parentActivityName="com.liftpath.activities.ProgressActivity"/>
         <activity android:exported="false" android:name="com.liftpath.activities.EditActivityActivity"/>
         <activity android:exported="false" android:name="com.liftpath.activities.EditExerciseActivity"/>
         <activity android:exported="false" android:name="com.liftpath.activities.LogSetActivity" android:windowSoftInputMode="adjustResize"/>

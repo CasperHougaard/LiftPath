@@ -23,12 +23,15 @@ import com.liftpath.adapters.ActiveExercisesAdapter
 import com.liftpath.databinding.ActivityActiveTrainingBinding
 import com.liftpath.helpers.*
 import com.liftpath.helpers.showWithTransparentWindow
+import com.liftpath.helpers.DurationHelper
 import com.liftpath.models.*
 import com.liftpath.services.RestTimerService
 import com.liftpath.components.MuscleMapDialog
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
+import android.os.Handler
+import android.os.Looper
 
 class ActiveTrainingActivity : AppCompatActivity() {
 
@@ -56,6 +59,11 @@ class ActiveTrainingActivity : AppCompatActivity() {
     // Timer state
     private var isActivityVisible = false
     private var timerReceiver: BroadcastReceiver? = null
+    
+    // Workout timer state
+    private var workoutStartTimeMillis: Long? = null
+    private val workoutTimerHandler = Handler(Looper.getMainLooper())
+    private var workoutTimerRunnable: Runnable? = null
 
     // --- LAUNCHERS ---
 
@@ -157,6 +165,7 @@ class ActiveTrainingActivity : AppCompatActivity() {
         setupBackButtonInterceptor()
         setupTimerUI()
         setupTimerReceiver()
+        setupWorkoutTimer()
         updateDateDisplay()
 
         if (resumeRequested) {
@@ -165,6 +174,9 @@ class ActiveTrainingActivity : AppCompatActivity() {
             maybeRestoreDraft(forceResume = false)
         } else if (!isCustomWorkout && shouldAutoGenerate) {
             showSmartWorkoutSetupDialog()
+        } else {
+            // Start workout timer if no draft to restore and no dialogs to show
+            startWorkoutTimer()
         }
     }
 
@@ -264,6 +276,8 @@ class ActiveTrainingActivity : AppCompatActivity() {
 
                 adapter.notifyDataSetChanged()
                 persistDraft()
+                // Start workout timer after workout is generated
+                startWorkoutTimer()
             } else {
                 Toast.makeText(this, "No exercises found for this selection.", Toast.LENGTH_LONG).show()
             }
@@ -517,6 +531,14 @@ class ActiveTrainingActivity : AppCompatActivity() {
 
     private fun finishWorkout() {
         try {
+            // Calculate duration before stopping timer
+            val durationSeconds = workoutStartTimeMillis?.let { startTime ->
+                calculateElapsedSeconds(startTime)
+            }
+            
+            // Stop workout timer
+            stopWorkoutTimer()
+            
             val trainingData = jsonHelper.readTrainingData()
             val nextTrainingNumber = (trainingData.trainings.maxOfOrNull { it.trainingNumber } ?: 0) + 1
 
@@ -526,7 +548,8 @@ class ActiveTrainingActivity : AppCompatActivity() {
                 exercises = currentExerciseEntries.toMutableList(),
                 defaultWorkoutType = workoutType,
                 planId = appliedPlanId,
-                planName = appliedPlanName
+                planName = appliedPlanName,
+                durationSeconds = durationSeconds
             )
 
             trainingData.trainings.add(newSession)
@@ -595,6 +618,16 @@ class ActiveTrainingActivity : AppCompatActivity() {
         }
 
         rebuildGroupedExercisesFromEntries()
+        
+        // Restore workout timer if it was started
+        draft.startTimeMillis?.let { startTime ->
+            workoutStartTimeMillis = startTime
+            updateWorkoutTimerDisplay()
+            startWorkoutTimerUpdates()
+        } ?: run {
+            // If no start time in draft, start timer now
+            startWorkoutTimer()
+        }
     }
 
     private fun rebuildGroupedExercisesFromEntries() {
@@ -623,7 +656,8 @@ class ActiveTrainingActivity : AppCompatActivity() {
             date = binding.textDate.text.toString(),
             appliedPlanId = appliedPlanId,
             appliedPlanName = appliedPlanName,
-            entries = entriesCopy
+            entries = entriesCopy,
+            startTimeMillis = workoutStartTimeMillis
         )
         draftManager.saveDraft(draft)
     }
@@ -673,6 +707,10 @@ class ActiveTrainingActivity : AppCompatActivity() {
             registerReceiver(timerReceiver, filter)
         }
         syncTimerState()
+        // Resume workout timer if it was started
+        if (workoutStartTimeMillis != null) {
+            startWorkoutTimerUpdates()
+        }
     }
 
     override fun onPause() {
@@ -681,11 +719,14 @@ class ActiveTrainingActivity : AppCompatActivity() {
         timerReceiver?.let {
             try { unregisterReceiver(it) } catch (e: Exception) { Log.e(TAG, "Error", e) }
         }
+        // Pause workout timer updates (but keep tracking time)
+        stopWorkoutTimer()
     }
 
     override fun onDestroy() {
         super.onDestroy()
         stopTimerIfRunning()
+        stopWorkoutTimer()
         timerReceiver?.let {
             try { unregisterReceiver(it) } catch (e: Exception) { Log.e(TAG, "Error", e) }
         }
@@ -860,6 +901,51 @@ class ActiveTrainingActivity : AppCompatActivity() {
     }
 
     private enum class TimerState { IDLE, RUNNING, COMPLETED }
+
+    // --- WORKOUT TIMER LOGIC ---
+
+    private fun setupWorkoutTimer() {
+        binding.textWorkoutTimer.text = DurationHelper.formatDuration(0)
+    }
+
+    private fun startWorkoutTimer() {
+        if (workoutStartTimeMillis == null) {
+            workoutStartTimeMillis = System.currentTimeMillis()
+            updateWorkoutTimerDisplay()
+            startWorkoutTimerUpdates()
+        }
+    }
+
+    private fun stopWorkoutTimer() {
+        workoutTimerRunnable?.let {
+            workoutTimerHandler.removeCallbacks(it)
+        }
+        workoutTimerRunnable = null
+    }
+
+    private fun startWorkoutTimerUpdates() {
+        workoutTimerRunnable = object : Runnable {
+            override fun run() {
+                updateWorkoutTimerDisplay()
+                workoutTimerHandler.postDelayed(this, 1000) // Update every second
+            }
+        }
+        workoutTimerHandler.post(workoutTimerRunnable!!)
+    }
+
+    private fun updateWorkoutTimerDisplay() {
+        workoutStartTimeMillis?.let { startTime ->
+            val elapsedSeconds = calculateElapsedSeconds(startTime)
+            binding.textWorkoutTimer.text = DurationHelper.formatDuration(elapsedSeconds)
+        } ?: run {
+            binding.textWorkoutTimer.text = DurationHelper.formatDuration(0)
+        }
+    }
+
+    private fun calculateElapsedSeconds(startTimeMillis: Long): Long {
+        val currentTimeMillis = System.currentTimeMillis()
+        return (currentTimeMillis - startTimeMillis) / 1000
+    }
 
     companion object {
         const val EXTRA_WORKOUT_TYPE = "WORKOUT_TYPE"

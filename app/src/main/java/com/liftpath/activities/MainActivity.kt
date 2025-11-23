@@ -43,8 +43,8 @@ class MainActivity : AppCompatActivity() {
         private const val PREFS_NAME = "main_activity_prefs"
         private const val KEY_LEFT_EXERCISE = "left_exercise"
         private const val KEY_RIGHT_EXERCISE = "right_exercise"
-        private const val DEFAULT_LEFT_EXERCISE = "Bench Press"
-        private const val DEFAULT_RIGHT_EXERCISE = "Squat"
+        private const val DEFAULT_LEFT_EXERCISE = "Bench Press (Barbell)"
+        private const val DEFAULT_RIGHT_EXERCISE = "Back Squat (Barbell)"
     }
 
     private val startWorkoutForResult = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
@@ -401,7 +401,10 @@ class MainActivity : AppCompatActivity() {
     
     private fun calculateCurrent1RM(exerciseName: String, trainingData: TrainingData): Float? {
         val allSets = trainingData.trainings.flatMap { session ->
-            session.exercises.filter { it.exerciseName == exerciseName }
+            session.exercises.filter { entry ->
+                entry.exerciseName == exerciseName && 
+                (entry.workoutType == "heavy" || (entry.workoutType == null && session.defaultWorkoutType == "heavy"))
+            }
         }
         
         if (allSets.isEmpty()) return null
@@ -419,9 +422,14 @@ class MainActivity : AppCompatActivity() {
     }
     
     private fun calculateProgressionTrend(exerciseName: String, trainingData: TrainingData): String {
-        // Get all sessions with this exercise, sorted by date
+        // Get all sessions with this exercise (only heavy workouts), sorted by date
         val sessionsWithExercise = trainingData.trainings
-            .filter { session -> session.exercises.any { it.exerciseName == exerciseName } }
+            .filter { session ->
+                session.exercises.any { entry ->
+                    entry.exerciseName == exerciseName &&
+                    (entry.workoutType == "heavy" || (entry.workoutType == null && session.defaultWorkoutType == "heavy"))
+                }
+            }
             .sortedBy { it.date }
         
         if (sessionsWithExercise.size < 2) return "steady"
@@ -429,10 +437,13 @@ class MainActivity : AppCompatActivity() {
         // Get last 3 sessions for trend analysis
         val recentSessions = sessionsWithExercise.takeLast(3)
         
-        // Calculate max 1RM per session
-        val oneRMsPerSession = recentSessions.map { session ->
-            val exerciseSets = session.exercises.filter { it.exerciseName == exerciseName }
-            exerciseSets.maxOfOrNull { calculateOneRM(it.kg, it.reps) } ?: 0f
+        // Calculate max 1RM per session (only from heavy sets)
+        val oneRMsPerSession = recentSessions.mapNotNull { session ->
+            val exerciseSets = session.exercises.filter { entry ->
+                entry.exerciseName == exerciseName &&
+                (entry.workoutType == "heavy" || (entry.workoutType == null && session.defaultWorkoutType == "heavy"))
+            }
+            exerciseSets.maxOfOrNull { calculateOneRM(it.kg, it.reps) }
         }
         
         if (oneRMsPerSession.size < 2) return "steady"
@@ -500,24 +511,20 @@ class MainActivity : AppCompatActivity() {
     
     private fun setupVolumeChart(trainingData: TrainingData) {
         val dateFormat = SimpleDateFormat("yyyy/MM/dd", Locale.US)
-        val entries = mutableListOf<Entry>()
+        val displayDateFormat = SimpleDateFormat("MM/dd", Locale.getDefault())
         
-        // Calculate total volume per session (sum of all kg × reps)
-        val volumePerSession = trainingData.trainings.map { session ->
-            val totalVolume = session.exercises.sumOf { (it.kg * it.reps).toDouble() }.toFloat()
-            Pair(session.date, totalVolume)
-        }.sortedBy { it.first } // Sort by date
-        
-        volumePerSession.forEach { (dateStr, volume) ->
-            val date = try {
-                dateFormat.parse(dateStr)
-            } catch (e: Exception) {
-                null
+        // Calculate total volume per session and parse dates in a single pass
+        val entries = trainingData.trainings
+            .mapNotNull { session ->
+                val totalVolume = session.exercises.sumOf { (it.kg * it.reps).toDouble() }.toFloat()
+                try {
+                    val date = dateFormat.parse(session.date) ?: return@mapNotNull null
+                    Entry(date.time.toFloat(), totalVolume)
+                } catch (e: Exception) {
+                    null
+                }
             }
-            if (date != null) {
-                entries.add(Entry(date.time.toFloat(), volume))
-            }
-        }
+            .sortedBy { it.x } // Sort once after creation
         
         if (entries.isEmpty()) {
             binding.chartVolume.visibility = android.view.View.GONE
@@ -525,9 +532,6 @@ class MainActivity : AppCompatActivity() {
         }
         
         binding.chartVolume.visibility = android.view.View.VISIBLE
-        
-        // Sort entries by date
-        entries.sortBy { it.x }
         
         // Calculate maximum value for Y-axis
         val maxEntryValue = entries.maxOfOrNull { it.y } ?: 0f
@@ -537,11 +541,13 @@ class MainActivity : AppCompatActivity() {
         dataSet.color = Color.parseColor("#4CAF50") // Green
         dataSet.valueTextColor = Color.DKGRAY
         dataSet.setCircleColor(Color.parseColor("#4CAF50"))
-        dataSet.circleRadius = 4f
-        dataSet.lineWidth = 2.5f
+        dataSet.circleRadius = 3f // Slightly smaller for better performance
+        dataSet.lineWidth = 2f // Slightly thinner for better performance
         dataSet.setDrawValues(false)
+        // Use CUBIC_BEZIER for smooth curves
         dataSet.mode = LineDataSet.Mode.CUBIC_BEZIER
         dataSet.cubicIntensity = 0.2f
+        // Keep fill but simplify
         dataSet.setDrawFilled(true)
         dataSet.fillColor = Color.parseColor("#4CAF50")
         dataSet.fillAlpha = 30
@@ -558,8 +564,7 @@ class MainActivity : AppCompatActivity() {
         xAxis.valueFormatter = object : ValueFormatter() {
             override fun getFormattedValue(value: Float): String {
                 return try {
-                    val date = Date(value.toLong())
-                    SimpleDateFormat("MM/dd", Locale.getDefault()).format(date)
+                    displayDateFormat.format(Date(value.toLong()))
                 } catch (e: Exception) {
                     ""
                 }
@@ -569,7 +574,8 @@ class MainActivity : AppCompatActivity() {
         xAxis.setDrawGridLines(true)
         xAxis.gridColor = Color.parseColor("#E0E0E0")
         xAxis.gridLineWidth = 1f
-        xAxis.enableGridDashedLine(8f, 4f, 0f)
+        // Use solid lines instead of dashed for better performance
+        xAxis.enableGridDashedLine(0f, 0f, 0f)
         xAxis.setDrawAxisLine(true)
         xAxis.axisLineColor = Color.parseColor("#9E9E9E")
         xAxis.axisLineWidth = 1f
@@ -583,7 +589,8 @@ class MainActivity : AppCompatActivity() {
         leftAxis.setDrawGridLines(true)
         leftAxis.gridColor = Color.parseColor("#E0E0E0")
         leftAxis.gridLineWidth = 1f
-        leftAxis.enableGridDashedLine(8f, 4f, 0f)
+        // Use solid lines instead of dashed for better performance
+        leftAxis.enableGridDashedLine(0f, 0f, 0f)
         leftAxis.setDrawZeroLine(true)
         leftAxis.zeroLineColor = Color.parseColor("#9E9E9E")
         leftAxis.zeroLineWidth = 1f
@@ -596,11 +603,7 @@ class MainActivity : AppCompatActivity() {
         
         leftAxis.valueFormatter = object : ValueFormatter() {
             override fun getFormattedValue(value: Float): String {
-                return if (value >= 1000) {
-                    String.format(Locale.US, "%.0f", value)
-                } else {
-                    String.format(Locale.US, "%.0f", value)
-                }
+                return String.format(Locale.US, "%.0f", value)
             }
         }
         
@@ -622,8 +625,8 @@ class MainActivity : AppCompatActivity() {
         binding.chartVolume.setPinchZoom(false)
         binding.chartVolume.setDoubleTapToZoomEnabled(false)
         
-        // Smooth animation
-        binding.chartVolume.animateX(600)
+        // Skip animation for instant rendering
+        // binding.chartVolume.animateX(200) // Removed for performance
         
         // Refresh chart
         binding.chartVolume.invalidate()

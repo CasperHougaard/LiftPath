@@ -7,7 +7,6 @@ import android.os.Bundle
 import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.liftpath.databinding.ActivityTrainingDetailBinding
@@ -17,6 +16,12 @@ import com.liftpath.models.ExerciseEntry
 import com.liftpath.models.GroupedExercise
 import com.liftpath.models.TrainingSession
 import com.liftpath.utils.WorkoutTypeFormatter
+import com.liftpath.helpers.DurationHelper
+import com.liftpath.helpers.DialogHelper
+import com.liftpath.helpers.showWithTransparentWindow
+import com.liftpath.R
+import android.widget.EditText
+import androidx.core.content.ContextCompat
 
 class TrainingDetailActivity : AppCompatActivity() {
 
@@ -86,6 +91,7 @@ class TrainingDetailActivity : AppCompatActivity() {
             trainingSession = session
             title = "Training #${trainingSession.trainingNumber} - ${trainingSession.date}"
             setupSessionTypeControls()
+            setupDurationDisplay()
             setupRecyclerView()
             setupClickListeners()
         } else {
@@ -99,7 +105,7 @@ class TrainingDetailActivity : AppCompatActivity() {
         }
 
         binding.buttonDelete.setOnClickListener {
-            AlertDialog.Builder(this)
+            DialogHelper.createBuilder(this)
                 .setTitle("Delete Training")
                 .setMessage("Are you sure you want to delete this training permanently?")
                 .setPositiveButton("Delete") { _, _ ->
@@ -110,7 +116,11 @@ class TrainingDetailActivity : AppCompatActivity() {
                     finish()
                 }
                 .setNegativeButton("Cancel", null)
-                .show()
+                .showWithTransparentWindow()
+        }
+
+        binding.buttonEditDuration.setOnClickListener {
+            showEditDurationDialog()
         }
     }
 
@@ -201,7 +211,7 @@ class TrainingDetailActivity : AppCompatActivity() {
         val normalized = WorkoutTypeFormatter.normalize(currentType)
         val currentIndex = workoutTypeKeys.indexOf(normalized).takeIf { it >= 0 } ?: 0
 
-        AlertDialog.Builder(this)
+        DialogHelper.createBuilder(this)
             .setTitle("Set type for ${groupedExercise.exerciseName}")
             .setSingleChoiceItems(workoutTypeLabels.toTypedArray(), currentIndex) { dialog, which ->
                 val selectedType = workoutTypeKeys[which]
@@ -209,7 +219,7 @@ class TrainingDetailActivity : AppCompatActivity() {
                 applyTypeToExercise(groupedExercise.exerciseId, selectedType)
             }
             .setNegativeButton("Cancel", null)
-            .show()
+            .showWithTransparentWindow()
     }
 
     private fun applyTypeToExercise(exerciseId: Int, type: String) {
@@ -229,5 +239,46 @@ class TrainingDetailActivity : AppCompatActivity() {
             trainingData.trainings[sessionIndex] = trainingSession
             jsonHelper.writeTrainingData(trainingData)
         }
+    }
+
+    private fun setupDurationDisplay() {
+        trainingSession.durationSeconds?.let { seconds ->
+            binding.textWorkoutDuration.text = DurationHelper.formatDuration(seconds)
+        } ?: run {
+            binding.textWorkoutDuration.text = "Not recorded"
+        }
+    }
+
+    private fun showEditDurationDialog() {
+        val currentDuration = trainingSession.durationSeconds ?: 0L
+        val currentFormatted = DurationHelper.formatDuration(currentDuration)
+        
+        val input = EditText(this)
+        input.setText(currentFormatted)
+        input.hint = "HH:mm:ss or mm:ss"
+        input.setTextColor(ContextCompat.getColor(this, R.color.fitness_text_primary))
+        input.setHintTextColor(ContextCompat.getColor(this, R.color.fitness_text_secondary))
+        input.setTextSize(16f)
+        input.setPadding(16, 16, 16, 16)
+        
+        DialogHelper.createBuilder(this)
+            .setTitle("Edit Workout Duration")
+            .setMessage("Enter duration in format HH:mm:ss (e.g., 01:30:00) or mm:ss (e.g., 90:00)")
+            .setView(input)
+            .setPositiveButton("Save") { _, _ ->
+                val inputText = input.text.toString().trim()
+                val parsedSeconds = DurationHelper.parseDurationToSeconds(inputText)
+                
+                if (parsedSeconds != null && parsedSeconds >= 0) {
+                    trainingSession = trainingSession.copy(durationSeconds = parsedSeconds)
+                    persistTrainingSession()
+                    setupDurationDisplay()
+                    Toast.makeText(this, "Duration updated", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "Invalid duration format. Use HH:mm:ss or mm:ss", Toast.LENGTH_LONG).show()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .showWithTransparentWindow()
     }
 }

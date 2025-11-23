@@ -110,7 +110,8 @@ data class TrainingSession(
     val exercises: MutableList<ExerciseEntry>,
     val defaultWorkoutType: String? = null,
     val planId: String? = null,
-    val planName: String? = null
+    val planName: String? = null,
+    val durationSeconds: Long? = null
 ) : Parcelable
 
 @Parcelize
@@ -137,7 +138,8 @@ data class ActiveWorkoutDraft(
     val date: String,
     val appliedPlanId: String?,
     val appliedPlanName: String?,
-    val entries: List<ExerciseEntry>
+    val entries: List<ExerciseEntry>,
+    val startTimeMillis: Long? = null
 )
 
 data class GroupedExercise(val exerciseId: Int, val exerciseName: String, val sets: List<ExerciseEntry>)

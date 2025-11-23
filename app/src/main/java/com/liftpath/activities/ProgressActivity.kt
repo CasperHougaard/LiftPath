@@ -10,7 +10,17 @@ import androidx.appcompat.app.AppCompatActivity
 import com.liftpath.R
 import com.liftpath.databinding.ActivityProgressBinding
 import com.liftpath.helpers.JsonHelper
+import com.liftpath.helpers.ProgressSettingsManager
+import com.liftpath.helpers.OneRMEstimationHelper
+import com.liftpath.helpers.DialogHelper
+import com.liftpath.helpers.showWithTransparentWindow
 import com.liftpath.models.ExerciseSet
+import com.liftpath.utils.WorkoutTypeFormatter
+import android.view.LayoutInflater
+import android.widget.TextView
+import com.github.mikephil.charting.charts.LineChart
+import java.util.Calendar
+import android.content.Intent
 import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
@@ -20,6 +30,7 @@ import com.google.android.material.tabs.TabLayout
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.max
 
 enum class ChartType {
     WEIGHT,
@@ -33,8 +44,10 @@ class ProgressActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityProgressBinding
     private lateinit var jsonHelper: JsonHelper
+    private lateinit var settingsManager: ProgressSettingsManager
     private var currentChartType = ChartType.WEIGHT
     private var currentExerciseSets: List<ExerciseSet> = emptyList()
+    private var currentSessionWorkoutTypes: Map<String, String> = emptyMap() // date -> workoutType from TrainingSession
     private lateinit var dateFormat: SimpleDateFormat
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -44,11 +57,13 @@ class ProgressActivity : AppCompatActivity() {
         title = "View Progress"
 
         jsonHelper = JsonHelper(this)
+        settingsManager = ProgressSettingsManager(this)
         dateFormat = SimpleDateFormat("yyyy/MM/dd", Locale.getDefault())
 
         setupBackgroundAnimation()
         setupTabs()
         setupSpinner()
+        setupEstimationPeriodSpinner()
         setupClickListeners()
     }
 
@@ -62,6 +77,30 @@ class ProgressActivity : AppCompatActivity() {
     private fun setupClickListeners() {
         binding.buttonBack.setOnClickListener {
             onBackPressed()
+        }
+
+        binding.buttonSettings.setOnClickListener {
+            val intent = Intent(this, ProgressSettingsActivity::class.java)
+            startActivity(intent)
+        }
+
+        binding.buttonInfoEstimation.setOnClickListener {
+            showEstimationLogicDialog()
+        }
+
+        binding.buttonExtendedProjection.setOnClickListener {
+            showExtendedProjectionDialog()
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Refresh estimation if settings changed
+        if (currentExerciseSets.isNotEmpty()) {
+            val selectedExercise = binding.spinnerExercise.selectedItem?.toString()
+            if (selectedExercise != null) {
+                updateStatsForExercise(selectedExercise)
+            }
         }
     }
 
@@ -120,21 +159,52 @@ class ProgressActivity : AppCompatActivity() {
 
     private fun updateStatsForExercise(exerciseName: String) {
         val allSets = mutableListOf<ExerciseSet>()
+        val sessionWorkoutTypes = mutableMapOf<String, String>() // date -> workoutType
         val trainingData = jsonHelper.readTrainingData()
         val dateFormat = SimpleDateFormat("yyyy/MM/dd", Locale.getDefault())
 
         for (training in trainingData.trainings) {
-            for (exercise in training.exercises) {
-                if (exercise.exerciseName == exerciseName) {
-                    allSets.add(
-                        ExerciseSet(
-                            training.date,
-                            exercise.setNumber,
-                            exercise.kg,
-                            exercise.reps,
-                            exercise.rpe
+            val workoutType = WorkoutTypeFormatter.normalize(training.defaultWorkoutType)
+            
+            // Store session workout type by date (from TrainingSession.defaultWorkoutType)
+            sessionWorkoutTypes[training.date] = training.defaultWorkoutType ?: "heavy"
+            
+            // Rule B: Filtering based on workout type and RPE availability
+            // - Heavy workouts: Always include (can infer from weight/reps if no RPE)
+            // - Light/Deload/Warmup workouts: Only include if RPE data is available
+            val shouldIncludeWorkout = when (workoutType) {
+                WorkoutTypeFormatter.HEAVY -> {
+                    // Heavy workouts always included
+                    true
+                }
+                WorkoutTypeFormatter.LIGHT -> {
+                    // Light workouts only included if they have RPE data (Rule B)
+                    // Check if any exercise sets for this exercise have RPE
+                    training.exercises
+                        .filter { it.exerciseName == exerciseName }
+                        .any { it.rpe != null }
+                }
+                else -> {
+                    // Custom/other workouts: Include if RPE data is available (conservative approach)
+                    training.exercises
+                        .filter { it.exerciseName == exerciseName }
+                        .any { it.rpe != null }
+                }
+            }
+            
+            if (shouldIncludeWorkout) {
+                for (exercise in training.exercises) {
+                    if (exercise.exerciseName == exerciseName) {
+                        allSets.add(
+                            ExerciseSet(
+                                training.date,
+                                exercise.setNumber,
+                                exercise.kg,
+                                exercise.reps,
+                                exercise.rpe
+                            )
                         )
-                    )
+                    }
                 }
             }
         }
@@ -148,8 +218,10 @@ class ProgressActivity : AppCompatActivity() {
         }
 
         currentExerciseSets = allSets
+        currentSessionWorkoutTypes = sessionWorkoutTypes // Store for use in estimation
         calculateAndDisplayStats(allSets)
         setupChart(allSets, dateFormat)
+        calculateAndDisplayEstimation(allSets)
     }
 
     private fun calculateAndDisplayStats(sets: List<ExerciseSet>) {
@@ -184,12 +256,6 @@ class ProgressActivity : AppCompatActivity() {
         binding.textTotalReps.text = totalReps.toString()
     }
 
-    private fun calculateOneRM(weight: Float, reps: Int): Float {
-        // Epley's formula: 1RM = weight × (1 + reps/30)
-        if (reps <= 0) return weight
-        if (reps == 1) return weight
-        return weight * (1 + reps / 30f)
-    }
 
     /**
      * Calculate a nice maximum value for Y-axis that rounds up to a sensible number
@@ -284,7 +350,9 @@ class ProgressActivity : AppCompatActivity() {
             ChartType.ONE_RM -> {
                 val oneRMPerSession = sets.groupBy { it.date }
                     .mapValues { (_, sessionSets) ->
-                        sessionSets.maxOfOrNull { calculateOneRM(it.kg, it.reps) } ?: 0f
+                        // Use hybrid formula from helper (filters out reps > 15)
+                        val valid1RMs = sessionSets.mapNotNull { OneRMEstimationHelper.calculateOneRM(it.kg, it.reps, it.rpe) }
+                        valid1RMs.maxOrNull() ?: 0f
                     }
 
                 oneRMPerSession.forEach { (dateStr, oneRM) ->
@@ -364,8 +432,33 @@ class ProgressActivity : AppCompatActivity() {
 
         entries.sortBy { it.x }
 
+        // Add projection line for 1RM chart
+        val projectionEntries = mutableListOf<Entry>()
+        if (currentChartType == ChartType.ONE_RM && entries.isNotEmpty()) {
+            val settings = settingsManager.getSettings()
+            val estimation = OneRMEstimationHelper.estimate1RMProgression(
+                sets = currentExerciseSets,
+                sessionWorkoutTypes = currentSessionWorkoutTypes,
+                projectionMonths = currentProjectionMonths,
+                minDataPoints = settings.minimumDataPoints,
+                recentDataWindowDays = settings.recentDataWindowDays
+            )
+
+            if (estimation != null && estimation.isQualified) {
+                val lastEntry = entries.last()
+                val projectionDate = estimation.projectionDate
+                
+                // Add point at projection date
+                projectionEntries.add(Entry(projectionDate.time.toFloat(), estimation.expected1RM))
+                
+                // Create projection line from last data point to projection
+                projectionEntries.add(0, Entry(lastEntry.x, lastEntry.y))
+            }
+        }
+
         val maxEntryValue = entries.maxOfOrNull { it.y } ?: 0f
-        val niceMaximum = calculateNiceMaximum(maxEntryValue)
+        val maxProjectionValue = projectionEntries.maxOfOrNull { it.y } ?: 0f
+        val niceMaximum = calculateNiceMaximum(max(maxEntryValue, maxProjectionValue))
 
         val dataSet = LineDataSet(entries, label)
         dataSet.color = color
@@ -383,6 +476,21 @@ class ProgressActivity : AppCompatActivity() {
         dataSet.formSize = 12f
 
         val lineData = LineData(dataSet)
+        
+        // Add projection line if available
+        if (projectionEntries.size >= 2) {
+            val projectionDataSet = LineDataSet(projectionEntries, "Projection")
+            projectionDataSet.color = Color.parseColor("#9E9E9E") // Gray for projection
+            projectionDataSet.setCircleColor(Color.parseColor("#9E9E9E"))
+            projectionDataSet.circleRadius = 4f
+            projectionDataSet.lineWidth = 2f
+            projectionDataSet.setDrawValues(false)
+            projectionDataSet.mode = LineDataSet.Mode.LINEAR
+            projectionDataSet.enableDashedLine(10f, 5f, 0f) // Dashed line
+            projectionDataSet.setDrawCircles(true)
+            lineData.addDataSet(projectionDataSet)
+        }
+        
         lineData.setValueTextSize(11f)
         binding.chart.data = lineData
 
@@ -467,5 +575,277 @@ class ProgressActivity : AppCompatActivity() {
 
         binding.chart.animateX(800)
         binding.chart.invalidate()
+    }
+
+    private var currentProjectionMonths = 3
+
+    private fun setupEstimationPeriodSpinner() {
+        val periods = arrayOf("1 month", "2 months", "3 months", "6 months")
+        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, periods)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        binding.spinnerProjectionPeriod.adapter = adapter
+
+        // Set default from settings
+        val settings = settingsManager.getSettings()
+        val defaultMonths = settings.defaultEstimationPeriodMonths.coerceIn(1, 6)
+        currentProjectionMonths = defaultMonths
+        
+        // Find closest match in spinner options
+        val defaultIndex = when {
+            defaultMonths <= 1 -> 0
+            defaultMonths <= 2 -> 1
+            defaultMonths <= 3 -> 2
+            else -> 3
+        }
+        binding.spinnerProjectionPeriod.setSelection(defaultIndex)
+
+        binding.spinnerProjectionPeriod.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
+                currentProjectionMonths = when (position) {
+                    0 -> 1
+                    1 -> 2
+                    2 -> 3
+                    3 -> 6
+                    else -> 3
+                }
+                if (currentExerciseSets.isNotEmpty()) {
+                    calculateAndDisplayEstimation(currentExerciseSets)
+                    // Refresh chart if on 1RM tab to show updated projection
+                    if (currentChartType == ChartType.ONE_RM) {
+                        setupChart(currentExerciseSets, dateFormat)
+                    }
+                }
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>) {}
+        }
+    }
+
+    private fun calculateAndDisplayEstimation(sets: List<ExerciseSet>) {
+        val settings = settingsManager.getSettings()
+
+        val estimation = OneRMEstimationHelper.estimate1RMProgression(
+            sets = sets,
+            sessionWorkoutTypes = currentSessionWorkoutTypes,
+            projectionMonths = currentProjectionMonths,
+            minDataPoints = settings.minimumDataPoints,
+            recentDataWindowDays = settings.recentDataWindowDays
+        )
+
+        if (estimation == null) {
+            binding.cardEstimation.visibility = View.GONE
+            return
+        }
+
+        binding.cardEstimation.visibility = View.VISIBLE
+
+        // Display current 1RM
+        binding.textCurrent1rm.text = String.format(Locale.US, "%.1f kg", estimation.current1RM)
+
+        // Display expected 1RM
+        binding.textExpected1rm.text = String.format(Locale.US, "%.1f kg", estimation.expected1RM)
+
+        // Display improvement
+        val improvementText = if (estimation.improvementKg >= 0) {
+            String.format(Locale.US, "+%.1f kg (%.1f%%)", estimation.improvementKg, estimation.improvementPercent)
+        } else {
+            String.format(Locale.US, "%.1f kg (%.1f%%)", estimation.improvementKg, estimation.improvementPercent)
+        }
+        binding.textImprovement.text = improvementText
+
+        // Display projection date
+        val projectionDateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+        binding.textProjectionDate.text = "Projected for ${projectionDateFormat.format(estimation.projectionDate)}"
+
+        // Show warnings if enabled and warnings exist
+        if (settings.showWarnings && estimation.warnings.isNotEmpty()) {
+            binding.cardWarning.visibility = View.VISIBLE
+            binding.textWarning.text = estimation.warnings.joinToString("\n")
+            binding.buttonDismissWarning.setOnClickListener {
+                binding.cardWarning.visibility = View.GONE
+            }
+        } else {
+            binding.cardWarning.visibility = View.GONE
+        }
+    }
+
+    private fun showEstimationLogicDialog() {
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_estimation_logic, null)
+
+        DialogHelper.createBuilder(this)
+            .setView(dialogView)
+            .setPositiveButton("Got it", null)
+            .showWithTransparentWindow()
+    }
+
+    private fun showExtendedProjectionDialog() {
+        if (currentExerciseSets.isEmpty()) {
+            DialogHelper.createBuilder(this)
+                .setTitle("No Data")
+                .setMessage("Please select an exercise with training history to view the extended projection.")
+                .setPositiveButton("OK", null)
+                .showWithTransparentWindow()
+            return
+        }
+
+        val settings = settingsManager.getSettings()
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_extended_projection, null)
+        val chart = dialogView.findViewById<LineChart>(R.id.chart_extended_projection)
+        val textTitle = dialogView.findViewById<TextView>(R.id.text_dialog_title)
+
+        // Create 6-month projection
+        val estimation = OneRMEstimationHelper.estimate1RMProgression(
+            sets = currentExerciseSets,
+            sessionWorkoutTypes = currentSessionWorkoutTypes,
+            projectionMonths = 6,
+            minDataPoints = settings.minimumDataPoints,
+            recentDataWindowDays = settings.recentDataWindowDays
+        )
+
+        if (estimation == null) {
+            DialogHelper.createBuilder(this)
+                .setTitle("Insufficient Data")
+                .setMessage("Not enough data points to generate a 6-month projection.")
+                .setPositiveButton("OK", null)
+                .showWithTransparentWindow()
+            return
+        }
+
+        textTitle.text = "6-Month 1RM Projection"
+
+        // Build extended projection data (monthly points)
+        val entries = mutableListOf<Entry>()
+        val projectionEntries = mutableListOf<Entry>()
+
+        // Historical data points
+        val oneRMPerSession = currentExerciseSets.groupBy { it.date }
+            .mapNotNull { (dateStr, sessionSets) ->
+                val date = try {
+                    dateFormat.parse(dateStr)
+                } catch (e: Exception) {
+                    null
+                }
+                if (date != null) {
+                    val valid1RMs = sessionSets.mapNotNull { OneRMEstimationHelper.calculateOneRM(it.kg, it.reps) }
+                    if (valid1RMs.isNotEmpty()) {
+                        val max1RM = valid1RMs.maxOrNull() ?: 0f
+                        Pair(date, max1RM)
+                    } else {
+                        null
+                    }
+                } else {
+                    null
+                }
+            }
+            .sortedBy { it.first }
+
+        val firstDate = oneRMPerSession.first().first
+        val lastDate = oneRMPerSession.last().first
+
+        // Add historical points
+        oneRMPerSession.forEach { (date, oneRM) ->
+            entries.add(Entry(date.time.toFloat(), oneRM))
+        }
+
+        // Add projection points (monthly intervals for 6 months)
+        val calendar = Calendar.getInstance()
+        calendar.time = lastDate
+        val today = Date()
+        
+        // Project current point
+        projectionEntries.add(Entry(lastDate.time.toFloat(), estimation.current1RM))
+
+        // Project monthly for 6 months
+        for (month in 1..6) {
+            calendar.time = lastDate
+            calendar.add(Calendar.MONTH, month)
+            val projectionDate = calendar.time
+
+            val monthlyEstimation = OneRMEstimationHelper.estimate1RMProgression(
+                sets = currentExerciseSets,
+                sessionWorkoutTypes = currentSessionWorkoutTypes,
+                projectionMonths = month,
+                minDataPoints = settings.minimumDataPoints,
+                recentDataWindowDays = settings.recentDataWindowDays
+            )
+
+            if (monthlyEstimation != null) {
+                projectionEntries.add(Entry(projectionDate.time.toFloat(), monthlyEstimation.expected1RM))
+            }
+        }
+
+        // Configure chart
+        setupExtendedProjectionChart(chart, entries, projectionEntries, firstDate)
+
+        DialogHelper.createBuilder(this)
+            .setView(dialogView)
+            .setPositiveButton("Close", null)
+            .showWithTransparentWindow()
+    }
+
+    private fun setupExtendedProjectionChart(
+        chart: LineChart,
+        historicalEntries: List<Entry>,
+        projectionEntries: List<Entry>,
+        firstDate: Date
+    ) {
+        // Historical data
+        val historicalDataSet = LineDataSet(historicalEntries, "Historical 1RM")
+        historicalDataSet.color = Color.parseColor("#FF9800")
+        historicalDataSet.setCircleColor(Color.parseColor("#FF9800"))
+        historicalDataSet.circleRadius = 5f
+        historicalDataSet.lineWidth = 3f
+        historicalDataSet.setDrawValues(false)
+        historicalDataSet.mode = LineDataSet.Mode.CUBIC_BEZIER
+
+        // Projection data
+        val projectionDataSet = LineDataSet(projectionEntries, "Projected 1RM")
+        projectionDataSet.color = Color.parseColor("#9E9E9E")
+        projectionDataSet.setCircleColor(Color.parseColor("#9E9E9E"))
+        projectionDataSet.circleRadius = 4f
+        projectionDataSet.lineWidth = 2.5f
+        projectionDataSet.setDrawValues(false)
+        projectionDataSet.mode = LineDataSet.Mode.LINEAR
+        projectionDataSet.enableDashedLine(10f, 5f, 0f)
+
+        val lineData = LineData(historicalDataSet, projectionDataSet)
+        chart.data = lineData
+
+        // Configure chart appearance
+        chart.description.isEnabled = false
+        chart.setBackgroundColor(Color.WHITE)
+        chart.setDrawGridBackground(false)
+        chart.legend.isEnabled = true
+        chart.setTouchEnabled(true)
+        chart.setDragEnabled(true)
+        chart.setScaleEnabled(true)
+        chart.setPinchZoom(true)
+
+        val xAxis = chart.xAxis
+        xAxis.position = XAxis.XAxisPosition.BOTTOM
+        xAxis.textSize = 11f
+        xAxis.textColor = Color.parseColor("#616161")
+        xAxis.setDrawGridLines(true)
+        xAxis.gridColor = Color.parseColor("#E0E0E0")
+        xAxis.valueFormatter = object : ValueFormatter() {
+            override fun getFormattedValue(value: Float): String {
+                return try {
+                    val date = Date(value.toLong())
+                    SimpleDateFormat("MMM\nyyyy", Locale.getDefault()).format(date)
+                } catch (e: Exception) {
+                    ""
+                }
+            }
+        }
+
+        val leftAxis = chart.axisLeft
+        leftAxis.textSize = 11f
+        leftAxis.textColor = Color.parseColor("#616161")
+        leftAxis.setDrawGridLines(true)
+        leftAxis.gridColor = Color.parseColor("#E0E0E0")
+        leftAxis.axisMinimum = 0f
+
+        chart.axisRight.isEnabled = false
+        chart.invalidate()
     }
 }

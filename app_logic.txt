@@ -9,70 +9,107 @@ Core value props today:
 - Fast workflow for logging sets during an ongoing workout.
 - Lightweight tools to review history, edit past sets, and wipe/reset data on demand.
 - A progress screen with multiple chart modes driven by MPAndroidChart.
-
-Not yet available (previously listed but still TODO): any export/import workflow or cloud sync.
+- **Rest timer** with RPE-based adjustments and foreground service support.
+- **Muscle activation visualization** via interactive SVG muscle map.
+- **Export/import** functionality for data backup and restore.
+- **Smart workout generation** based on focus (Upper/Lower/Full) and intensity (Heavy/Light).
+- **Progression settings** with customizable rest timers, deload thresholds, and RPE adjustments.
 
 ---
 
 #### 2. Core Modules
 
 - **UI Layer (Activities + ViewBinding)**
-  - `MainActivity`: dashboard with workout count + entry points to all flows.
-  - `ActiveTrainingActivity`: live session builder (add exercises, log/duplicate/delete sets, change session date, finish/save workout).
-  - `LogSetActivity`: numeric+note input plus a 1–5 rating tile picker (rating stored but not yet visualized).
-  - `ExercisesActivity` + `EditExerciseActivity` + `SelectDefaultExerciseActivity`: manage the exercise library, create/edit/delete entries, or bulk-add predefined lifts.
-  - `SelectExerciseActivity`: picker/creator surfaced when adding an exercise during an active session.
-  - `HistoryActivity` + `TrainingDetailActivity` + `EditSetActivity`: read-only history list, per-session drill-down, edit or delete historical entries.
-  - `ProgressActivity`: spinner to choose an exercise + tabbed charts (Weight, Volume, 1RM, Avg Weight) powered by MPAndroidChart.
-  - `SettingsActivity`: currently limited to a “Reset Data” action (no other preferences).
+  - `MainActivity`: dashboard with workout count, exercise 1RM cards (customizable), volume chart, days since last workout, entry points to all flows.
+  - `ActiveTrainingActivity`: live session builder (add exercises, log/duplicate/delete sets, change session date, finish/save workout, rest timer controls, muscle overview).
+  - `LogSetActivity`: numeric+note input, RPE input (6.0-10.0), completion checkbox, automatic rest timer start with RPE-based adjustments.
+  - `ExercisesActivity` + `EditExerciseActivity`: manage the exercise library, create/edit/delete entries with muscle target selection and visual muscle map.
+  - `SelectExerciseActivity`: picker/creator surfaced when adding an exercise during an active session, includes muscle activation overview and smart filtering.
+  - `HistoryActivity` + `TrainingDetailActivity` + `EditSetActivity` + `EditActivityActivity`: read-only history list, per-session drill-down, edit individual sets or entire exercise groups, delete sets or sessions.
+  - `ProgressActivity`: spinner to choose an exercise + tabbed charts (Weight, Volume, 1RM, Avg Weight, Avg RPE) powered by MPAndroidChart.
+  - `SettingsActivity`: reset data, export/import JSON backups, progression settings access.
+  - `ProgressionSettingsActivity`: comprehensive settings for user level, progression steps, rest timers, RPE adjustments, deload thresholds.
+  - `WorkoutPlansActivity` + `EditWorkoutPlanActivity` + `SelectExercisesForPlanActivity`: create, edit, delete workout plan templates.
+  - `RestTimerDialogActivity`: full-screen rest timer dialog with controls (start/pause/reset, +/-15s, set custom time).
   - A legacy `ExerciseStatsActivity` + `ExerciseStatsAdapter` remain in the codebase but are not launched anywhere.
 
 - **Data Layer**
   - `JsonHelper` wraps all persistence. It reads/writes `TrainingData` as JSON via Gson and backs up corrupted files before resetting.
   - Storage file: `training_data.json` in `context.filesDir`.
-  - No Room/SQL, no remote APIs, and no export/import hooks at present.
+  - Draft file: `active_workout_draft.json` in `context.cacheDir` (managed by `ActiveWorkoutDraftManager`).
+  - Settings: `progression_settings` SharedPreferences (managed by `ProgressionSettingsManager`).
+  - No Room/SQL, no remote APIs. Export/import via Android Storage Access Framework.
 
 - **Logic Layer**
   - Sessions receive an auto-incrementing `trainingNumber` and a GUID (`UUID.randomUUID()`).
   - Exercise CRUD cascades into past sessions (renames propagate, deletions remove matching sets).
   - Progress/stat logic groups sets per exercise + per date, computes volume/1RM/averages, and normalizes chart axes for readability.
-  - `ProgressionHelper` analyzes historical performance to suggest weight adjustments based on RPE, deload needs, plateaus, and time decay.
-  - `WorkoutGenerator` creates balanced workout sessions based on user level (NOVICE/INTERMEDIATE), workout type (heavy/light), and exercise tiers.
-  - `DefaultExercisesHelper` provides a curated library of popular exercises with movement patterns, mechanics, and tier classifications.
+  - `ProgressionHelper` analyzes historical performance to suggest weight adjustments based on RPE, failure detection, time decay, and tier-based progression schemes (Linear RPE for Tier 1, Double Progression for Tier 2/3).
+  - `WorkoutGenerator` creates balanced workouts based on focus (Upper/Lower/Full), intensity (Heavy/Light), movement patterns, and tier distribution.
+  - `DefaultExercisesHelper` provides a curated library of 40+ popular exercises (IDs 1-131) with movement patterns, mechanics, tier classifications, body regions, and target muscles.
+  - `MuscleActivationHelper` calculates primary and secondary muscle activation from exercise lists for visualization.
+  - `ProgressionSettingsManager` manages user progression settings (user level, rest timers, RPE adjustments, deload thresholds) via SharedPreferences.
+  - `ActiveWorkoutDraftManager` manages draft workout persistence for recovery after app close.
+
+- **Services**
+  - `RestTimerService`: foreground service for rest timer countdown with notifications, vibration, and broadcast updates.
+
+- **Components**
+  - `MuscleMapDialog`: bottom sheet dialog displaying interactive SVG muscle map with primary/secondary muscle highlighting.
 
 ---
 
 #### 3. Data Flow
 1. App launch (`MainActivity`)
    - `JsonHelper.readTrainingData()` loads or initializes `TrainingData`.
-   - If the exercise library is empty, seed five defaults (Deadlift, Squat, Bench Press, Biceps Curl, Triceps Pushdown).
-   - Dashboard stats refresh (currently only total workout count is meaningful; minutes/calories placeholders show 0).
+   - If the exercise library is empty, seeds default exercises from `DefaultExercisesHelper.getPopularDefaults()` (40+ exercises).
+   - Dashboard stats refresh: total workout count, customizable exercise 1RM cards (default: Bench Press, Squat), days since last heavy/light workout, volume chart.
    - Detects next workout type (heavy/light) by alternating from last session.
+   - Checks for draft workouts and prompts to resume.
+
 2. Active session
    - User taps "Start Workout" → `ActiveTrainingActivity`.
-   - User selects workout type (heavy/light/custom) or applies a saved workout plan.
-   - `WorkoutGenerator.generateFullWorkout()` can auto-generate exercises based on user level and type.
+   - User can select workout type (heavy/light/custom) or use smart workout generation (focus + intensity selection).
+   - Smart workout generation (`WorkoutGenerator.generate()`) creates exercises based on:
+     - Focus: Upper Body, Lower Body, or Full Body
+     - Intensity: Heavy (Strength) or Light (Volume/Hypertrophy)
+     - Movement pattern coverage and tier distribution
    - Selecting exercises launches `SelectExerciseActivity` (which can also create a new exercise inline).
+   - `SelectExerciseActivity` shows muscle activation overview, filters by missing muscles, and displays progression suggestions.
    - Logging a set launches `LogSetActivity`, prefilled with:
      - Last logged weight/reps for that exercise
-     - Suggested weight from `ProgressionHelper.getSuggestion()`
+     - Suggested weight from `ProgressionHelper.getSuggestion()` (tier-based: Linear RPE for Tier 1, Double Progression for Tier 2/3)
      - Suggested RPE based on workout type and user level
-   - Sets aggregate per exercise in-memory (`GroupedExercise`) and can be duplicated or removed before saving.
+   - After saving a set, rest timer automatically starts with RPE-based adjustments (if enabled in settings).
+   - Sets aggregate per exercise in-memory (`GroupedExercise`) and can be duplicated, edited (via `EditActivityActivity`), or removed before saving.
    - User can change the workout date via a `DatePickerDialog`.
-   - Draft is saved to `draft.json` for recovery after app close.
+   - Rest timer controls: start/pause, reset/stop, +/-15s, set custom time, muscle overview button.
+   - Draft is saved to `active_workout_draft.json` for recovery after app close.
+
 3. Saving a workout
    - `finishWorkout()` composes a `TrainingSession` with GUID, next `trainingNumber`, date, workout type, applied plan (if any), and the recorded sets.
    - Each `ExerciseEntry` includes workout type, RPE, and completion status.
    - Session is appended to `trainingData.trainings` and flushed to disk.
    - Draft file is cleared upon successful save.
+
 4. History & editing
    - `HistoryActivity` shows workouts (newest first); selecting one opens `TrainingDetailActivity`.
-   - Users can edit individual sets (`EditSetActivity`) or delete entire sessions.
+   - `TrainingDetailActivity` groups sets visually; each set has an edit button launching `EditSetActivity`.
+   - Users can edit entire exercise groups via `EditActivityActivity` (bulk edit all sets for an exercise).
+   - Users can change workout type for entire session or individual exercises.
+   - From details you can delete individual sets or the entire training (with confirmation).
+
 5. Statistics
    - `ProgressActivity` loads all sessions, filters by spinner-selected exercise, computes stats, and renders the chosen chart type.
+   - Stats displayed: Max Volume (per session), Max Weight, Avg Weight, Avg RPE, Total Reps.
+   - TabLayout switches the line chart between Weight, Volume, 1RM (via Epley), Avg Weight, and Avg RPE.
+   - Each mode groups data per session date, sorts chronologically, and formats axes + legend for clarity.
+   - Chart interactivity (zoom, pinch, drag) is enabled; axis scaling auto-expands with a "nice" max value.
    - (Legacy) `ExerciseStatsActivity` performs similar per-exercise calculations but is no longer referenced.
+
 6. Settings
-   - “Reset Data” replaces the JSON file with an empty `TrainingData()` object.
+   - `SettingsActivity`: reset data, export JSON backup, import JSON backup, access progression settings.
+   - `ProgressionSettingsActivity`: user level (NOVICE/INTERMEDIATE), progression steps, rest timer settings (enabled/disabled, heavy/light/custom durations), RPE-based timer adjustments, deload thresholds, lookback count.
 
 ---
 
@@ -92,23 +129,48 @@ enum class Tier(val displayName: String) {
     TIER_3("Tier 3 (Accessory / Isolation)")
 }
 
+enum class BodyRegion(val displayName: String) {
+    UPPER("Upper Body"),
+    LOWER("Lower Body"),
+    CORE("Core"),
+    FULL("Full Body")
+}
+
+enum class SessionFocus(val displayName: String) {
+    UPPER("Upper Body Focus"),
+    LOWER("Lower Body Focus"),
+    FULL("Full Body")
+}
+
+enum class SessionIntensity { HEAVY, LIGHT }
+
+enum class TargetMuscle(val displayName: String) {
+    CHEST_UPPER("Upper Chest"), CHEST_MIDDLE("Middle Chest"), CHEST_LOWER("Lower Chest"),
+    LATS("Lats"), TRAPS_MID("Mid-Back"), TRAPS_UPPER("Upper Traps"), LOWER_BACK("Lower Back"),
+    DELT_FRONT("Front Delts"), DELT_SIDE("Side Delts"), DELT_REAR("Rear Delts"),
+    BICEPS("Biceps"), TRICEPS_LONG("Triceps (Long)"), TRICEPS_LATERAL("Triceps (Lat)"), FOREARMS("Forearms"),
+    QUADS("Quads"), HAMSTRINGS("Hamstrings"), GLUTES("Glutes"), CALVES("Calves"), TIBIALIS("Tibialis"),
+    ADDUCTORS("Adductors"), ABDUCTORS("Abductors"), HIPFLEXORS("Hipflexors"),
+    ABS("Abs"), OBLIQUES("Obliques")
+}
+
 enum class MovementPattern(val displayName: String) {
-    SQUAT("Squat (Knee Dominant)"),
-    HINGE("Hinge (Hip Dominant)"),
-    LUNGE("Lunge (Single Leg)"),
-    PUSH_HORIZONTAL("Horizontal Push (Chest)"),
-    PUSH_VERTICAL("Vertical Push (Shoulders)"),
-    PULL_HORIZONTAL("Horizontal Pull (Rows)"),
-    PULL_VERTICAL("Vertical Pull (Lats)"),
-    CARRY("Carry (Farmer's Walk)"),
-    CORE("Core (Abs/Obliques)"),
-    ISOLATION_ARMS("Arms (Bicep/Tricep)"),
-    OTHER("Other")
+    SQUAT("Squat"), HINGE("Hinge"), LUNGE("Lunge"), 
+    PUSH_HORIZONTAL("Horizontal Push"), PUSH_VERTICAL("Vertical Push"),
+    PULL_HORIZONTAL("Horizontal Pull"), PULL_VERTICAL("Vertical Pull"),
+    CARRY("Carry"),
+    ISOLATION_ELBOW_FLEXION("Curl"), ISOLATION_ELBOW_EXTENSION("Extension"),
+    ISOLATION_SHOULDER_ABDUCTION("Lat Raise"), ISOLATION_SHOULDER_FLEXION("Front Raise"), 
+    ISOLATION_SHOULDER_EXTENSION("Rear Fly"),
+    ISOLATION_KNEE_FLEXION("Leg Curl"), ISOLATION_KNEE_EXTENSION("Leg Ext"), 
+    ISOLATION_PLANTAR_FLEXION("Calf Raise"),
+    CORE_FLEXION("Crunch"), CORE_STABILITY("Plank"), OTHER("Other"),
+    // LEGACY
+    ISOLATION_ARMS("Arms"), CORE("Core")
 }
 
 enum class Mechanics(val displayName: String) {
-    COMPOUND("Compound (Multi-joint)"),
-    ISOLATION("Isolation (Single-joint)")
+    COMPOUND("Compound"), ISOLATION("Isolation")
 }
 ```
 
@@ -119,12 +181,26 @@ enum class Mechanics(val displayName: String) {
 data class ExerciseLibraryItem(
     val id: Int,
     val name: String,
-    val category: String? = null,
-    // Smart Attributes (nullable for backward compatibility)
-    val pattern: MovementPattern? = null,  // Movement pattern classification
-    val mechanics: Mechanics? = null,      // Compound vs Isolation
-    val tier: Tier? = null                 // Exercise importance tier
-)
+    val category: String? = null, // Legacy
+    
+    val region: BodyRegion? = null,
+    val pattern: MovementPattern? = null,
+    val tier: Tier? = null,
+    
+    val primaryTargets: List<TargetMuscle> = emptyList(),
+    val secondaryTargets: List<TargetMuscle> = emptyList(),
+    
+    // Renamed from 'mechanics' to 'manualMechanics' to avoid conflict with computed property
+    val manualMechanics: Mechanics? = null
+) : Parcelable {
+    val mechanics: Mechanics
+        get() {
+            if (manualMechanics != null) return manualMechanics
+            if (secondaryTargets.isNotEmpty()) return Mechanics.COMPOUND
+            if (primaryTargets.size > 1) return Mechanics.COMPOUND
+            return Mechanics.ISOLATION
+        }
+}
 
 @Parcelize
 data class ExerciseEntry(
@@ -138,7 +214,7 @@ data class ExerciseEntry(
     val workoutType: String? = null,   // "heavy", "light", or "custom"
     val rpe: Float? = null,            // Rate of Perceived Exertion (6.0-10.0)
     val completed: Boolean? = null     // Whether set was completed
-)
+) : Parcelable
 
 @Parcelize
 data class TrainingSession(
@@ -149,7 +225,7 @@ data class TrainingSession(
     val defaultWorkoutType: String? = null,  // "heavy", "light", or "custom"
     val planId: String? = null,              // ID of applied workout plan
     val planName: String? = null             // Name of applied workout plan
-)
+) : Parcelable
 
 @Parcelize
 data class WorkoutPlan(
@@ -159,7 +235,7 @@ data class WorkoutPlan(
     val workoutType: String,            // "heavy", "light", or "custom"
     val notes: String? = null,
     val createdDate: String             // yyyy/MM/dd
-)
+) : Parcelable
 
 @Parcelize
 data class TrainingData(
@@ -167,7 +243,7 @@ data class TrainingData(
     val trainings: MutableList<TrainingSession> = mutableListOf(),
     val workoutPlans: MutableList<WorkoutPlan> = mutableListOf(),
     var userLevel: UserLevel = UserLevel.NOVICE  // User's training level
-)
+) : Parcelable
 
 // Helper Data Classes (Not persisted to JSON)
 
@@ -200,7 +276,9 @@ data class ExerciseSet(
 - **File:** `context.filesDir/training_data.json`
 - **Format:** Entire `TrainingData` serialized via Gson (UTF-8 text).
 - **Lifecycle:** File created lazily; on parse failure the old file is renamed to `training_data.json.bak.<timestamp>` before a clean slate is written.
-- **Export/import:** Not implemented yet (no file picker hooks).
+- **Export/import:** Implemented via Android Storage Access Framework (SAF). Export creates a JSON file with timestamp. Import validates JSON before overwriting (creates backup first).
+- **Draft:** `context.cacheDir/active_workout_draft.json` (managed by `ActiveWorkoutDraftManager`).
+- **Settings:** `SharedPreferences` with key `progression_settings` (managed by `ProgressionSettingsManager`).
 
 Example (trimmed):
 ```json
@@ -208,24 +286,22 @@ Example (trimmed):
   "exerciseLibrary": [
     { 
       "id": 1, 
-      "name": "Deadlift",
+      "name": "Deadlift (Barbell)",
+      "region": "LOWER",
       "pattern": "HINGE",
-      "mechanics": "COMPOUND",
-      "tier": "TIER_1"
+      "tier": "TIER_1",
+      "primaryTargets": ["HAMSTRINGS", "GLUTES", "LOWER_BACK"],
+      "secondaryTargets": ["TRAPS_UPPER", "FOREARMS", "QUADS", "ADDUCTORS"],
+      "manualMechanics": "COMPOUND"
     },
     { 
       "id": 2, 
-      "name": "Squat",
+      "name": "Back Squat (Barbell)",
+      "region": "LOWER",
       "pattern": "SQUAT",
-      "mechanics": "COMPOUND",
-      "tier": "TIER_1"
-    },
-    { 
-      "id": 3, 
-      "name": "Bench Press",
-      "pattern": "PUSH_HORIZONTAL",
-      "mechanics": "COMPOUND",
-      "tier": "TIER_1"
+      "tier": "TIER_1",
+      "primaryTargets": ["QUADS", "GLUTES", "ADDUCTORS"],
+      "secondaryTargets": ["LOWER_BACK", "ABS"]
     }
   ],
   "workoutPlans": [
@@ -269,102 +345,132 @@ Example (trimmed):
 
 #### 6. Feature Logic
 
-- **Exercise Library (`ExercisesActivity`)**
-  - Lists all stored exercises with their attributes (pattern, mechanics, tier).
+- **Exercise Library (`ExercisesActivity` + `EditExerciseActivity`)**
+  - Lists all stored exercises with their attributes (pattern, mechanics, tier, body region, target muscles).
   - "Add" launches `EditExerciseActivity` in create mode; IDs auto-increment.
-  - "Add from default" opens `SelectDefaultExerciseActivity` with a checklist of seeded lifts (25+ popular exercises with IDs 100-124); adds only those not already present.
-  - Editing allows setting movement pattern, mechanics (compound/isolation), and tier classification.
+  - Editing allows setting:
+    - Body region (Upper/Lower/Core/Full)
+    - Movement pattern
+    - Tier (1/2/3)
+    - Mechanics (Compound/Isolation) - can be auto-computed from target muscles
+    - Primary and secondary target muscles (via chip selection)
+    - Interactive muscle map visualization (WebView with SVG) showing selected muscles
   - Editing updates names in both the library and every historical `ExerciseEntry`. Deleting removes the exercise and strips matching sets from all sessions.
   - Exercises can also be created inline from `SelectExerciseActivity` while starting a workout.
 
-- **Workout Plans (`WorkoutPlansActivity` + `EditWorkoutPlanActivity`)**
+- **Workout Plans (`WorkoutPlansActivity` + `EditWorkoutPlanActivity` + `SelectExercisesForPlanActivity`)**
   - Users can create, edit, and delete workout plans (templates).
   - Each plan contains a list of exercise IDs, a workout type (heavy/light/custom), optional notes, and creation date.
   - Plans can be applied when starting a new workout to automatically populate exercises.
   - Applied plan ID and name are stored in the resulting `TrainingSession`.
 
-- **Active Training**
-  - User selects workout type: "heavy", "light", or "custom" (optionally from a saved plan).
-  - `WorkoutGenerator.generateFullWorkout()` can auto-generate exercises based on user level and workout type.
-  - Each selected exercise renders as a card (`ActiveExercisesAdapter`) showing its sets textually plus buttons to add, duplicate, or delete.
-  - `LogSetActivity` pre-fills fields from the most recent set logged for that exercise across all history; includes optional note, rating, RPE, and completion status.
-  - `ProgressionHelper.getSuggestion()` provides intelligent weight recommendations based on historical performance.
-  - Duplicating a set copies the previous `kg/reps` but clears rating/note and increments the set number.
+- **Active Training (`ActiveTrainingActivity`)**
+  - User can select workout type: "heavy", "light", or "custom" (optionally from a saved plan).
+  - Smart workout generation: user selects focus (Upper/Lower/Full) and intensity (Heavy/Light), then `WorkoutGenerator.generate()` creates balanced exercises.
+  - Each selected exercise renders as a card (`ActiveExercisesAdapter`) showing its sets textually plus buttons to add, duplicate, edit (bulk), or delete.
+  - `LogSetActivity` pre-fills fields from the most recent set logged for that exercise across all history; includes optional note, RPE (6.0-10.0), and completion status.
+  - `ProgressionHelper.getSuggestion()` provides intelligent weight recommendations based on tier-based progression schemes.
+  - Duplicating a set copies the previous `kg/reps` but clears rating/note and increments the set number, then starts rest timer.
   - Workouts can be cancelled (with confirmation if any data exists) or saved; saving writes immediately with no background sync.
-  - Draft workouts are persisted to `draft.json` to allow resuming after app close.
+  - Draft workouts are persisted to `active_workout_draft.json` to allow resuming after app close.
+  - Rest timer controls: start/pause, reset/stop, +/-15s, set custom time (number picker dialog).
+  - Muscle overview button shows `MuscleMapDialog` with activated muscles highlighted.
 
-- **History & Editing**
+- **Exercise Selection (`SelectExerciseActivity`)**
+  - Shows all exercises with progression suggestions and badges.
+  - Filters: "Not Added Yet", "Missing Primary Muscles", "Missing Secondary Muscles".
+  - Muscle activation overview (expandable) showing current workout's muscle coverage and missing muscles.
+  - Smart sorting: groups by body region, then alphabetical.
+  - Can create new exercises inline.
+
+- **History & Editing (`HistoryActivity` + `TrainingDetailActivity` + `EditSetActivity` + `EditActivityActivity`)**
   - `HistoryActivity` reverses the `trainings` list (newest first) and shows `trainingNumber`, date, workout type, and volume approximation.
   - Tapping a workout opens `TrainingDetailActivity`, which groups sets visually; each set has an edit button launching `EditSetActivity`.
-  - From details you can delete the entire training (with confirmation).
+  - `EditActivityActivity` allows bulk editing of all sets for an exercise (add/remove/reorder sets).
+  - Users can change workout type for entire session (spinner) or individual exercises (dialog).
+  - From details you can delete individual sets or the entire training (with confirmation).
 
-- **Progress / Charts**
+- **Progress / Charts (`ProgressActivity`)**
   - Spinner lists distinct exercise names (derived from actual logged sets, not the library).
-  - Stats at the top show Max Volume (per session), Max Weight, Avg Weight, and Total Reps.
-  - TabLayout switches the line chart between Weight, Volume, 1RM (via Epley), and Avg Weight. Each mode groups data per session date, sorts chronologically, and formats axes + legend for clarity.
+  - Stats at the top show Max Volume (per session), Max Weight, Avg Weight, Avg RPE, and Total Reps.
+  - TabLayout switches the line chart between Weight, Volume, 1RM (via Epley), Avg Weight, and Avg RPE.
+  - Each mode groups data per session date, sorts chronologically, and formats axes + legend for clarity.
   - Chart interactivity (zoom, pinch, drag) is enabled; axis scaling auto-expands with a "nice" max value.
-  - `ExerciseStatsActivity` duplicates some calculations but is currently unused and can be considered carryover code.
+  - Empty states shown when no data or no RPE data (for Avg RPE tab).
 
-- **Settings**
-  - User level selection (NOVICE or INTERMEDIATE) affects progression logic and workout generation.
-  - Single action: reset data (clears exercises, trainings, and workout plans). No theme, account, or export controls.
+- **Settings (`SettingsActivity` + `ProgressionSettingsActivity`)**
+  - `SettingsActivity`: reset data (clears exercises, trainings, workout plans but keeps default library), export JSON backup, import JSON backup, access progression settings.
+  - `ProgressionSettingsActivity`: 
+    - User level (NOVICE/INTERMEDIATE) - affects RPE suggestions and workout generation
+    - Progression steps (increase step, small step, lookback count)
+    - Rest timer settings: enabled/disabled toggle, heavy/light/custom durations (seconds)
+    - RPE-based timer adjustments: enabled/disabled, high RPE threshold, bonus seconds, deviation threshold, positive/negative adjustment seconds
+    - Deload settings: threshold (consecutive sessions), RPE threshold
+    - Collapsible sections for organization
+    - Reset to defaults option
+
+- **Rest Timer (`RestTimerService` + `RestTimerDialogActivity`)**
+  - Foreground service for countdown (required for background execution).
+  - Notification permission required for Android 13+.
+  - Broadcasts updates for UI synchronization.
+  - Features: start/pause, reset/stop, +/-15s, set custom time (number picker).
+  - RPE-based adjustments (if enabled):
+    - Base time from workout type (heavy/light/custom)
+    - +bonus if RPE ≥ high threshold
+    - +adjustment if logged RPE ≥ suggested + deviation threshold
+    - -adjustment if logged RPE ≤ suggested - deviation threshold
+  - Completion: vibration pattern, notification (auto-dismisses after 10s), broadcast.
+  - Full-screen dialog (`RestTimerDialogActivity`) with all controls.
+
+- **Muscle Activation Visualization (`MuscleMapDialog` + `MuscleActivationHelper`)**
+  - `MuscleActivationHelper` calculates primary and secondary muscle activation from exercise lists.
+  - `MuscleMapDialog` displays interactive SVG muscle map (WebView) with primary/secondary highlighting.
+  - Used in: `ActiveTrainingActivity` (muscle overview button), `SelectExerciseActivity` (expandable overview), `EditExerciseActivity` (live preview while selecting targets).
 
 ---
 
 #### 7. Progression System
 
-The `ProgressionHelper` provides intelligent weight recommendations based on historical performance analysis:
+The `ProgressionHelper` provides intelligent weight recommendations based on historical performance analysis with **tier-based progression schemes**:
 
-**Core Algorithm:**
-- Analyzes the last N sessions (default: 3) of "heavy" workouts for each exercise
-- Calculates average RPE, weight trends, and time since last workout
+**Tier-Based Progression Schemes:**
+- **TIER_1 (Main Lifts)**: Linear RPE Progression
+  - Adjusts weight based on RPE of last session
+  - Keeps reps constant (typically 5)
+- **TIER_2/3 (Assistance/Accessories)**: Double Progression
+  - Increases reps until target range hit, then increases weight
+  - Resets reps to minimum when weight increases
+
+**Core Algorithm (Linear RPE for Tier 1):**
+- Analyzes the last session for the exercise (filtered by workout type)
+- Calculates time since last workout
 - Applies priority-based adjustments in this order:
 
-**Priority 1: Deload Detection**
-- Triggers if 3+ consecutive sessions have RPE ≥ 9.0
-- Reduces weight to 70% of last session for recovery week
-- Badge: "⚠️ DELOAD WEEK"
+**Priority 1: Time Decay**
+- If 14+ days since last workout: 5% reduction (multiplier 0.95)
+- If 30+ days: 10% reduction (multiplier 0.90)
+- If 60+ days: 15% reduction (multiplier 0.85)
+- Badge: "🕐 TIME DECAY"
 
 **Priority 2: Failure Detection**
-- Detects incomplete sets (`completed == false`) in recent sessions
+- Detects incomplete sets (`completed == false`) in last session
 - Reduces weight by configured step (default: 2.5kg)
 - Badge: "⚠️ FAILED REPS"
 
-**Priority 3: Time Decay**
-- If 14+ days since last workout: 5% reduction
-- If 30+ days: 10% reduction
-- If 60+ days: 15% reduction
-- Badge: "🕐 TIME DECAY"
-
-**Priority 4: Plateau Detection**
-- Detects when same weight maintained for 4+ sessions with RPE ≤ 8.0
-- Applies 1.5x boost to progression step
-- Badge: "📈 PLATEAU BOOST"
-
-**Priority 5: Normal RPE Progression**
-- RPE ≤ 7.0: +2.5kg (big jump)
-- RPE 7.1-8.5: +1.25kg (small jump)
+**Priority 3: Standard RPE Logic**
+- RPE ≤ 7.0: +increaseStep (default: 2.5kg)
+- RPE 7.1-8.5: +smallStep (default: 1.25kg)
 - RPE 8.6-9.4: 0kg (maintain)
-- RPE ≥ 9.5: -2.5kg (reduce)
+- RPE ≥ 9.5: -smallStep (default: -1.25kg)
 
-**Priority 6: Trend Adjustment**
-- Positive trend: +1.25kg bonus
-- Negative trend: -1.25kg penalty
-- Zero trend: no adjustment
-
-**Priority 7: Safety Caps**
-- Maximum increase per session: ±5.0kg
-- Maximum decrease per session: ±10.0kg
-- Rounds to nearest 1.25kg increment
-
-**Light Day Recommendations:**
-- **NOVICE**: Calculates as 80% of proposed heavy weight
-- **INTERMEDIATE**: Returns null (intermediates use different exercises for light days)
-
-**Confidence Levels:**
-- **High**: 5+ sessions, <14 days since last workout
-- **Medium**: 3-4 sessions, <30 days since last workout
-- **Low**: <3 sessions or >30 days since last workout
+**Double Progression (Tier 2/3):**
+- Uses target rep ranges based on workout type:
+  - Heavy: (heavyReps - 2) to (heavyReps + 2)
+  - Light: lightReps to (lightReps + 5)
+- Logic:
+  - If failure: retry same weight/reps (badge: "🔁 RETRY")
+  - If reps ≥ max range: increase weight by smallStep, reset to min reps (badge: "🚀 LEVEL UP")
+  - Otherwise: add 1 rep (badge: "➕ ADD REP")
 
 **RPE Suggestion:**
 - Heavy (NOVICE): 8.0
@@ -372,65 +478,103 @@ The `ProgressionHelper` provides intelligent weight recommendations based on his
 - Light (NOVICE): 7.0
 - Light (INTERMEDIATE): 7.5
 
+**Settings (via `ProgressionSettingsManager`):**
+- User level (NOVICE/INTERMEDIATE)
+- Lookback count (default: 3 sessions)
+- Increase step (default: 2.5kg)
+- Small step (default: 1.25kg)
+- Round to increment (default: 1.25kg)
+- Time decay thresholds: [14, 30, 60] days
+- Time decay multipliers: [0.95, 0.90, 0.85]
+- Deload threshold: 3 consecutive sessions
+- Deload RPE threshold: 9.0
+- Rest timer settings: enabled, heavy/light/custom durations, RPE adjustments
+
 ---
 
 #### 8. Exercise & Workout Generation
 
-**Default Exercises Library:**
-- `DefaultExercisesHelper` provides 25+ popular exercises (IDs 100-124)
-- Each exercise has movement pattern, mechanics, and tier classification
+**Default Exercises Library (`DefaultExercisesHelper`):**
+- Provides 40+ popular exercises (IDs 1-131)
+- Each exercise has:
+  - Body region (Upper/Lower/Core/Full)
+  - Movement pattern
+  - Tier (1/2/3)
+  - Primary and secondary target muscles
+  - Mechanics (auto-computed or manual)
 - Includes main lifts (Tier 1), assistance work (Tier 2), and accessories (Tier 3)
 - Examples: Deadlift (HINGE, TIER_1), Leg Press (SQUAT, TIER_2), Lateral Raise (TIER_3)
 
 **Workout Generation (`WorkoutGenerator`):**
 
 The generator creates balanced workouts based on:
-- User level (NOVICE vs INTERMEDIATE)
-- Session type (heavy vs light)
+- Focus: Upper Body, Lower Body, or Full Body (`SessionFocus`)
+- Intensity: Heavy (Strength) or Light (Volume/Hypertrophy) (`SessionIntensity`)
 - Movement pattern coverage
 - Tier distribution
 
-**NOVICE (Linear Progression):**
-- Same exercises for heavy and light days
-- **Heavy Day Structure:**
-  - Tier 1: Main compound lifts (Squat, Hinge, Horizontal Push, Vertical Pull) - 4 exercises
-  - Tier 2: Assistance work (Horizontal Pull, Vertical Push) - 1-2 exercises
-  - Tier 3: Accessories (Arms, Core) - 1-2 exercises
-- **Light Day Structure:**
-  - Same as heavy but typically with lower volume (more sets/reps)
+**Blueprint Structure:**
 
-**INTERMEDIATE (Periodized):**
-- Different exercises for heavy vs light days
-- **Heavy Day Structure:**
-  - Tier 1: Main compound lifts (Squat, Hinge, Horizontal Push, Vertical Pull) - 4 exercises
-  - Tier 2: Assistance work - 1-2 exercises
-  - Tier 3: Accessories - 1-2 exercises
-- **Light Day Structure:**
-  - Tier 2: Variations of main movement patterns - 4 exercises
-  - Falls back to Tier 1 if no Tier 2 exists for a pattern
-  - Tier 3: Accessories - 1-2 exercises
+**Upper Body Heavy:**
+- Main Horizontal Push (Tier 1) - 1 exercise
+- Main Vertical Pull (Tier 1) - 1 exercise
+- Secondary Vertical Push (Tier 1/2) - 1 exercise
+- Secondary Pull (Tier 2) - 1 exercise
+- Arms/Shoulders Isolation (Tier 3) - 2 exercises
+
+**Upper Body Light:**
+- Chest Variation (Tier 2/3) - 1 exercise
+- Back Volume (Tier 2) - 2 exercises
+- Shoulder Volume (Tier 2/3) - 2 exercises
+- Arm Pump (Tier 3) - 2 exercises
+
+**Lower Body Heavy:**
+- Main Squat (Tier 1) - 1 exercise
+- Main Hinge (Tier 1) - 1 exercise
+- Unilateral/Lunge (Tier 2) - 1 exercise
+- Calves/Isolation (Tier 3) - 1 exercise
+
+**Lower Body Light:**
+- Quad Focus (Tier 2) - 2 exercises
+- Hamstring/Glute Focus (Tier 2/3) - 2 exercises
+- Isolation (Tier 3) - 2 exercises
+
+**Full Body:**
+- Squat Pattern (Tier 1/2) - 1 exercise
+- Hinge Pattern (Tier 1/2) - 1 exercise
+- Push Pattern (Tier 1/2) - 1 exercise
+- Pull Pattern (Tier 1/2) - 1 exercise
+- Core/Carry/Arms (Tier 3) - 1 exercise
+
+**Volume Recommendations:**
+- Heavy Day:
+  - Tier 1: 3 sets × 5 reps
+  - Tier 2: 3 sets × 8 reps
+  - Tier 3: 3 sets × 12 reps
+- Light Day:
+  - Tier 1: 3 sets × 10 reps
+  - Tier 2: 3 sets × 12 reps
+  - Tier 3: 3 sets × 15 reps
 
 **Exercise Selection Logic:**
-- Merges user exercises with default exercises (user exercises take priority on name match)
-- Filters by tier and session type
-- Matches movement patterns to ensure balanced coverage
-- Limits total exercises to 6-7 per session
-
-**Exercise Merging:**
-- User exercises are prioritized over defaults
-- Duplicates determined by case-insensitive name matching
-- Default exercises (ID ≥ 100) can be added to user's library when used
+- Filters library by movement pattern and tier preferences
+- Avoids duplicates within session
+- Prioritizes preferred tiers (e.g., Tier 1 over Tier 2 if both match pattern)
+- Returns `RecommendedExercise` objects with exercise ID, name, workout type, and suggested sets/reps (user still adds sets manually)
 
 ---
 
 #### 9. Data Safety and Compatibility
 - `JsonHelper` wraps every read/write, logs failures, and backs up corrupt JSON before resetting.
 - Exercise rename/delete operations mutate historical entries to avoid orphaned IDs.
-- `SettingsActivity` provides a manual "Reset Data" to recover from user-caused inconsistencies.
+- `SettingsActivity` provides a manual "Reset Data" to recover from user-caused inconsistencies (keeps default exercise library).
+- Export/import validates JSON structure before overwriting (creates backup first).
 - All data stays under app-internal storage, so scoped-storage restrictions are satisfied by default.
-- New data model fields (pattern, mechanics, tier, rpe, completed, workoutType) are nullable for backward compatibility.
+- New data model fields (region, pattern, mechanics, tier, primaryTargets, secondaryTargets, rpe, completed, workoutType) are nullable for backward compatibility.
 - `UserLevel` defaults to NOVICE for existing data.
 - Workout plans are optional and can be empty.
-- No migrations exist yet; schema changes must remain backward compatible or include manual transforms before serialization.
+- Draft files are stored in cache directory (can be cleared by system).
+- Settings migration: automatically migrates old default rest timer values (180/90s) to new defaults (150/60s).
+- No database migrations exist; schema changes must remain backward compatible or include manual transforms before serialization.
 
 ---

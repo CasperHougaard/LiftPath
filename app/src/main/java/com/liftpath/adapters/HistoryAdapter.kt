@@ -8,6 +8,9 @@ import com.liftpath.databinding.ItemHistoryBinding
 import com.liftpath.models.TrainingSession
 import com.liftpath.utils.WorkoutTypeFormatter
 import com.liftpath.activities.TrainingDetailActivity
+import com.liftpath.helpers.DurationHelper
+import androidx.core.content.ContextCompat
+import com.liftpath.R
 
 class HistoryAdapter(private val trainings: List<TrainingSession>) : RecyclerView.Adapter<HistoryAdapter.ViewHolder>() {
 
@@ -23,15 +26,36 @@ class HistoryAdapter(private val trainings: List<TrainingSession>) : RecyclerVie
 
         // Format volume with comma separator
         val totalVolume = training.exercises.sumOf { (it.reps ?: 0) * (it.kg ?: 0f).toDouble() }
-        holder.binding.textTrainingVolume.text = String.format("%,dkg", totalVolume.toInt())
+        val volumeText = String.format("%,dkg", totalVolume.toInt())
         
-        // Format type as uppercase badge
-        holder.binding.textTrainingType.text = (training.defaultWorkoutType ?: "heavy").uppercase()
+        // Format duration if available
+        val durationText = training.durationSeconds?.let { DurationHelper.formatDuration(it) } ?: "N/A"
+        holder.binding.textTrainingVolume.text = "$volumeText • $durationText"
+        
+        // Format type as uppercase badge with color based on workout type
+        val workoutType = training.defaultWorkoutType ?: "heavy"
+        holder.binding.textTrainingType.text = workoutType.uppercase()
+        
+        // Set badge color: light blue for light, dark blue for heavy
+        val badgeColor = when (workoutType.lowercase()) {
+            "light" -> ContextCompat.getColor(holder.itemView.context, R.color.fitness_light_blue)
+            "heavy" -> ContextCompat.getColor(holder.itemView.context, R.color.fitness_dark_blue)
+            else -> ContextCompat.getColor(holder.itemView.context, R.color.fitness_dark_blue) // Default to dark blue
+        }
+        holder.binding.textTrainingType.setBackgroundTintList(android.content.res.ColorStateList.valueOf(badgeColor))
 
-        // Exercise summary
+        // Calculate average RPE
+        val rpeValues = training.exercises.mapNotNull { it.rpe }
+        val avgRpe = if (rpeValues.isNotEmpty()) {
+            String.format("%.1f", rpeValues.average())
+        } else {
+            "N/A"
+        }
+
+        // Exercise summary with average RPE
         val uniqueExercises = training.exercises.map { it.exerciseId }.distinct().size
         val totalSets = training.exercises.size
-        holder.binding.textExercisesSummary.text = "$uniqueExercises exercise${if (uniqueExercises > 1) "s" else ""} • $totalSets set${if (totalSets > 1) "s" else ""}"
+        holder.binding.textExercisesSummary.text = "$uniqueExercises exercise${if (uniqueExercises > 1) "s" else ""} • $totalSets set${if (totalSets > 1) "s" else ""} • Avg RPE: $avgRpe"
 
         holder.itemView.setOnClickListener {
             val context = holder.itemView.context
