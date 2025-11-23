@@ -2,7 +2,7 @@
 # This helps you verify your keystore file and see available aliases
 
 param(
-    [string]$KeystorePath = "app\lilfitness-release-key.jks",
+    [string]$KeystorePath = "app\liftpath-release-key.jks",
     [string]$KeystorePassword
 )
 

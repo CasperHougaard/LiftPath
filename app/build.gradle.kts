@@ -18,13 +18,13 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.lilfitness"
+    namespace = "com.liftpath"
     compileSdk {
         version = release(36)
     }
 
     defaultConfig {
-        applicationId = "com.lilfitness"
+        applicationId = "com.liftpath"
         minSdk = 35
         targetSdk = 36
         versionCode = 3
@@ -35,7 +35,7 @@ android {
 
     signingConfigs {
         create("release") {
-            val keystorePath = keystoreProperties["storeFile"] ?: "lilfitness-release-key.jks"
+            val keystorePath = keystoreProperties["storeFile"] ?: "liftpath-release-key.jks"
             val keystorePassword = keystoreProperties["storePassword"] ?: System.getenv("KEYSTORE_PASSWORD") ?: ""
             val keyAlias = keystoreProperties["keyAlias"] ?: System.getenv("KEY_ALIAS") ?: ""
             val keyPassword = keystoreProperties["keyPassword"] ?: System.getenv("KEY_PASSWORD") ?: ""
@@ -45,7 +45,7 @@ android {
                     "Release signing REQUIRED for Google Play Console.\n" +
                     "Please provide keystore credentials by either:\n" +
                     "  1. Creating a 'keystore.properties' file in the project root with:\n" +
-                    "     storeFile=lilfitness-release-key.jks\n" +
+                    "     storeFile=liftpath-release-key.jks\n" +
                     "     storePassword=your_keystore_password\n" +
                     "     keyAlias=your_key_alias\n" +
                     "     keyPassword=your_key_password\n" +

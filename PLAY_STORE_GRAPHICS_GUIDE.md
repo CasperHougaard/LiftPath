@@ -1,4 +1,4 @@
-# Google Play Store Graphics Guide for LilFitness
+# Google Play Store Graphics Guide for LiftPath
 
 ## Required Graphics
 

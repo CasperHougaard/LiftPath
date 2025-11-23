@@ -4,35 +4,35 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
     <uses-permission android:name="android.permission.VIBRATE"/>
-    <permission android:name="com.lilfitness.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" android:protectionLevel="signature"/>
-    <uses-permission android:name="com.lilfitness.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"/>
+    <permission android:name="com.liftpath.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" android:protectionLevel="signature"/>
+    <uses-permission android:name="com.liftpath.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"/>
     <application android:allowBackup="true" android:appComponentFactory="androidx.core.app.CoreComponentFactory" android:dataExtractionRules="@xml/data_extraction_rules" android:extractNativeLibs="false" android:fullBackupContent="@xml/backup_rules" android:icon="@mipmap/ic_launcher" android:label="@string/app_name" android:roundIcon="@mipmap/ic_launcher_round" android:supportsRtl="true" android:theme="@style/Theme.Fitness">
-        <activity android:exported="false" android:name="com.lilfitness.activities.EditSetActivity"/>
-        <activity android:exported="false" android:name="com.lilfitness.activities.SettingsActivity"/>
-        <activity android:exported="false" android:label="Progression Settings" android:name="com.lilfitness.activities.ProgressionSettingsActivity" android:parentActivityName="com.lilfitness.activities.SettingsActivity"/>
-        <activity android:exported="false" android:name="com.lilfitness.activities.RestTimerDialogActivity" android:showOnLockScreen="true" android:theme="@style/Theme.AppCompat.Dialog" android:turnScreenOn="true"/>
-        <activity android:exported="false" android:name="com.lilfitness.activities.TrainingDetailActivity"/>
-        <activity android:exported="false" android:name="com.lilfitness.activities.HistoryActivity"/>
-        <activity android:exported="false" android:name="com.lilfitness.activities.ProgressActivity"/>
-        <activity android:exported="false" android:name="com.lilfitness.activities.EditActivityActivity"/>
-        <activity android:exported="false" android:name="com.lilfitness.activities.EditExerciseActivity"/>
-        <activity android:exported="false" android:name="com.lilfitness.activities.LogSetActivity" android:windowSoftInputMode="adjustResize"/>
-        <activity android:exported="false" android:name="com.lilfitness.activities.SelectExerciseActivity"/>
-        <activity android:exported="false" android:name="com.lilfitness.activities.ActiveTrainingActivity"/>
-        <activity android:exported="false" android:name="com.lilfitness.activities.ExercisesActivity"/>
-        <activity android:exported="false" android:name="com.lilfitness.activities.WorkoutPlansActivity"/>
-        <activity android:exported="false" android:name="com.lilfitness.activities.EditWorkoutPlanActivity"/>
-        <activity android:exported="false" android:name="com.lilfitness.activities.SelectExercisesForPlanActivity"/>
-        <activity android:exported="true" android:name="com.lilfitness.activities.MainActivity">
+        <activity android:exported="false" android:name="com.liftpath.activities.EditSetActivity"/>
+        <activity android:exported="false" android:name="com.liftpath.activities.SettingsActivity"/>
+        <activity android:exported="false" android:label="Progression Settings" android:name="com.liftpath.activities.ProgressionSettingsActivity" android:parentActivityName="com.liftpath.activities.SettingsActivity"/>
+        <activity android:exported="false" android:name="com.liftpath.activities.RestTimerDialogActivity" android:showOnLockScreen="true" android:theme="@style/Theme.AppCompat.Dialog" android:turnScreenOn="true"/>
+        <activity android:exported="false" android:name="com.liftpath.activities.TrainingDetailActivity"/>
+        <activity android:exported="false" android:name="com.liftpath.activities.HistoryActivity"/>
+        <activity android:exported="false" android:name="com.liftpath.activities.ProgressActivity"/>
+        <activity android:exported="false" android:name="com.liftpath.activities.EditActivityActivity"/>
+        <activity android:exported="false" android:name="com.liftpath.activities.EditExerciseActivity"/>
+        <activity android:exported="false" android:name="com.liftpath.activities.LogSetActivity" android:windowSoftInputMode="adjustResize"/>
+        <activity android:exported="false" android:name="com.liftpath.activities.SelectExerciseActivity"/>
+        <activity android:exported="false" android:name="com.liftpath.activities.ActiveTrainingActivity"/>
+        <activity android:exported="false" android:name="com.liftpath.activities.ExercisesActivity"/>
+        <activity android:exported="false" android:name="com.liftpath.activities.WorkoutPlansActivity"/>
+        <activity android:exported="false" android:name="com.liftpath.activities.EditWorkoutPlanActivity"/>
+        <activity android:exported="false" android:name="com.liftpath.activities.SelectExercisesForPlanActivity"/>
+        <activity android:exported="true" android:name="com.liftpath.activities.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
-        <service android:enabled="true" android:exported="false" android:foregroundServiceType="specialUse" android:name="com.lilfitness.services.RestTimerService">
+        <service android:enabled="true" android:exported="false" android:foregroundServiceType="specialUse" android:name="com.liftpath.services.RestTimerService">
             <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Rest timer for workout tracking"/>
         </service>
-        <provider android:authorities="com.lilfitness.androidx-startup" android:exported="false" android:name="androidx.startup.InitializationProvider">
+        <provider android:authorities="com.liftpath.androidx-startup" android:exported="false" android:name="androidx.startup.InitializationProvider">
             <meta-data android:name="androidx.emoji2.text.EmojiCompatInitializer" android:value="androidx.startup"/>
             <meta-data android:name="androidx.lifecycle.ProcessLifecycleInitializer" android:value="androidx.startup"/>
             <meta-data android:name="androidx.profileinstaller.ProfileInstallerInitializer" android:value="androidx.startup"/>

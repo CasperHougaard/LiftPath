@@ -6,7 +6,7 @@ This guide walks you through building an Android App Bundle (AAB) for uploading 
 
 - Android Studio and Android SDK installed
 - Java Development Kit (JDK) 11 or higher
-- Keystore file: `app/lilfitness-release-key.jks`
+- Keystore file: `app/liftpath-release-key.jks`
 - Keystore passwords and key alias
 
 ## Version Information
@@ -26,7 +26,7 @@ Before building the AAB, you **must** configure your keystore credentials. You h
 Create a file named `keystore.properties` in the project root directory with the following content:
 
 ```properties
-storeFile=lilfitness-release-key.jks
+storeFile=liftpath-release-key.jks
 storePassword=your_keystore_password_here
 keyAlias=your_key_alias_here
 keyPassword=your_key_password_here
@@ -118,7 +118,7 @@ You can verify the version information of your AAB using the `bundletool`:
 To verify the certificate SHA1 fingerprint matches the expected value:
 
 ```bash
-keytool -list -v -keystore app/lilfitness-release-key.jks
+keytool -list -v -keystore app/liftpath-release-key.jks
 ```
 
 Look for the SHA1 fingerprint in the output and verify it matches:
@@ -163,7 +163,7 @@ C3:3C:A1:A8:48:EC:24:37:66:8B:B8:C4:73:9C:5F:4C:D3:21:0F:A7
 
 ### Build Fails with "Keystore file not found"
 
-- Verify that `app/lilfitness-release-key.jks` exists
+- Verify that `app/liftpath-release-key.jks` exists
 - Check that the path in `keystore.properties` (if using) is correct relative to the project root
 
 ### Build Fails with "Invalid keystore format"
@@ -202,7 +202,7 @@ The build configuration is located in `app/build.gradle.kts`:
 
 ```kotlin
 defaultConfig {
-    applicationId = "com.lilfitness"
+    applicationId = "com.liftpath"
     versionCode = 3
     versionName = "1.00.001"
     // ...

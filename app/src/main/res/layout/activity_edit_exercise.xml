@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -237,6 +236,22 @@
                         android:textColor="@color/fitness_text_primary"
                         android:textSize="18sp"
                         android:textStyle="bold" />
+
+                    <WebView
+                        android:id="@+id/web_view_muscle_map"
+                        android:layout_width="match_parent"
+                        android:layout_height="300dp"
+                        android:layout_marginTop="16dp"
+                        android:background="@android:color/transparent" />
+
+                    <Button
+                        android:id="@+id/button_test_svg"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Test: Toggle Background"
+                        android:backgroundTint="#FF3B30"
+                        android:textColor="@android:color/white" />
 
                     <TextView
                         android:layout_width="wrap_content"
