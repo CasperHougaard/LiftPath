@@ -23,6 +23,8 @@
     <color name="fitness_warning_border">#F59E0B</color>
     <color name="fitness_highlight_background">#D1FAE5</color>
     <color name="fitness_highlight_border">#10B981</color>
+    <color name="fitness_error_background">#FEE2E2</color>
+    <color name="fitness_error_border">#EF4444</color>
     <color name="fitness_badge_blue">#3B82F6</color>
     <color name="fitness_light_blue">#60A5FA</color> <!-- Light blue for light workouts -->
     <color name="fitness_dark_blue">#1E40AF</color> <!-- Dark blue for heavy workouts -->

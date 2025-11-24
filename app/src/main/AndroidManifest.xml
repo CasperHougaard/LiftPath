@@ -24,6 +24,8 @@
         <activity android:exported="false" android:name="com.liftpath.activities.WorkoutPlansActivity"/>
         <activity android:exported="false" android:name="com.liftpath.activities.EditWorkoutPlanActivity"/>
         <activity android:exported="false" android:name="com.liftpath.activities.SelectExercisesForPlanActivity"/>
+        <activity android:exported="false" android:name="com.liftpath.activities.ReadinessDashboardActivity"/>
+        <activity android:exported="false" android:label="Readiness Calibration" android:name="com.liftpath.activities.ReadinessCalibrationActivity" android:parentActivityName="com.liftpath.activities.ReadinessDashboardActivity"/>
         <activity android:exported="true" android:name="com.liftpath.activities.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>

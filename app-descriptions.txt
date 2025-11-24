@@ -1,0 +1,90 @@
+SHORT DESCRIPTION (80 characters max)
+=====================================
+Track workouts, log exercises, view progress, and build strength habits offline.
+
+LONG DESCRIPTION (4000 characters max)
+======================================
+Lift Path is your personal training companion designed for serious lifters who want complete control over their workouts—all while staying offline and private.
+
+🏋️ KEY FEATURES
+
+✓ FAST WORKOUT LOGGING
+Log sets quickly during your session with pre-filled weights and smart suggestions based on your training history. Duplicate sets, edit on the fly, and track RPE (Rate of Perceived Exertion) for precision training.
+
+✓ SMART WORKOUT GENERATION
+Generate balanced workouts instantly based on your focus (Upper Body, Lower Body, or Full Body) and intensity (Heavy or Light). The app intelligently selects exercises to cover all movement patterns and muscle groups.
+
+✓ ADVANCED PROGRESSION TRACKING
+Visualize your strength gains with interactive charts showing:
+• Weight progression over time
+• Volume (total weight lifted)
+• 1RM estimation with scientifically-backed formulas
+• Average weight and RPE trends
+
+✓ SCIENTIFIC 1RM ESTIMATION
+Get accurate one-rep max predictions using:
+• Hybrid formulas (Epley for low reps, Brzycki for high reps)
+• RPE-normalized calculations (accounts for reps in reserve)
+• Weighted linear regression with exponential time decay
+• Realistic projections that account for diminishing returns
+
+✓ INTELLIGENT REST TIMER
+Automatic rest timer starts after each set with:
+• RPE-based adjustments (longer rest after high-intensity sets)
+• Customizable durations for heavy/light workouts
+• Foreground service with persistent notifications
+• Quick adjust buttons (+15s/-15s) for fine-tuning
+
+✓ MUSCLE ACTIVATION VISUALIZATION
+Interactive muscle map shows which muscles you're targeting in real-time. Build balanced workouts and identify muscle gaps in your training program.
+
+✓ COMPREHENSIVE EXERCISE LIBRARY
+Access 40+ pre-loaded exercises with movement patterns, mechanics, and muscle targets. Create custom exercises with detailed metadata for personalized tracking.
+
+✓ WORKOUT PLANS
+Build and save workout templates for quick session creation. Perfect for structured training programs or repeating your favorite routines.
+
+✓ PROGRESSION SUGGESTIONS
+Get intelligent weight recommendations based on:
+• Your training tier (Main Lift, Assistance, Accessory)
+• RPE-based progression (for strength-focused lifts)
+• Double progression (for hypertrophy-focused lifts)
+• Historical performance and failure detection
+
+✓ COMPLETE WORKOUT HISTORY
+Review past sessions, edit sets retroactively, and analyze long-term trends. Full search and filter capabilities make finding specific workouts effortless.
+
+✓ DATA PRIVACY & BACKUP
+• 100% offline—your data never leaves your device
+• Export/import JSON backups for peace of mind
+• No accounts, no subscriptions, no ads
+• Your training data stays yours
+
+✓ CUSTOMIZABLE DASHBOARD
+Track your favorite lifts with customizable 1RM cards. See workout counts, training volume charts, and days since last workout at a glance.
+
+🎯 PERFECT FOR
+• Strength athletes tracking progressive overload
+• Powerlifters monitoring RPE and volume
+• Bodybuilders managing hypertrophy programs
+• Anyone serious about structured training
+
+📊 DETAILED STATISTICS
+• Max weight per exercise
+• Total volume per session
+• Average RPE tracking
+• 1RM projections with confidence
+• Training frequency metrics
+
+🔬 SCIENCE-BACKED FEATURES
+Built with exercise science principles:
+• RPE normalization prevents underestimating strength
+• Intensity filtering ensures quality data
+• Weighted regression prioritizes recent performance
+• Damped projections account for biological limits
+
+💪 START BUILDING YOUR STRENGTH TODAY
+Download Lift Path and take control of your training. Track every rep, analyze your progress, and achieve your strength goals with the most comprehensive offline training tracker available.
+
+No internet required. No distractions. Just you and your lifts.
+

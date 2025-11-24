@@ -204,6 +204,11 @@ class MainActivity : AppCompatActivity() {
             val intent = Intent(this, WorkoutPlansActivity::class.java)
             startActivity(intent)
         }
+
+        binding.cardReadiness.setOnClickListener {
+            val intent = Intent(this, ReadinessDashboardActivity::class.java)
+            startActivity(intent)
+        }
         
         // Add click listeners to exercise cards
         binding.cardBenchPress.setOnClickListener {
