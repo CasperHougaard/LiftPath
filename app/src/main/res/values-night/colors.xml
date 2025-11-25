@@ -16,7 +16,12 @@
     <color name="fitness_warning_border">#FCD34D</color>
     <color name="fitness_highlight_background">#064E3B</color>
     <color name="fitness_highlight_border">#34D399</color>
+    <color name="fitness_error_background">#7F1D1D</color> <!-- Red 900 - dark red for dark mode -->
+    <color name="fitness_error_border">#F87171</color> <!-- Red 400 - lighter red for visibility -->
     
     <!-- Mesh Animation Color (dark mode - lighter) -->
     <color name="mesh_color">#50FFFFFF</color> <!-- Semi-transparent white - works on dark bg -->
+    
+    <!-- Chart Grid Lines -->
+    <color name="fitness_chart_grid">#374151</color> <!-- Cool Gray 700 - visible on dark bg -->
 </resources>

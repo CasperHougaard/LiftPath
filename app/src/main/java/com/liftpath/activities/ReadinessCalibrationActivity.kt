@@ -30,6 +30,12 @@ class ReadinessCalibrationActivity : AppCompatActivity() {
         setupListeners()
     }
 
+    override fun onPause() {
+        super.onPause()
+        // Auto-save settings when leaving the activity
+        saveSettings()
+    }
+
     private fun setupBackgroundAnimation() {
         val drawable = binding.imageBgAnimation.drawable
         if (drawable is Animatable) {

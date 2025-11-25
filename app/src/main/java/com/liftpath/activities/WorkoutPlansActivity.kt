@@ -72,7 +72,7 @@ class WorkoutPlansActivity : AppCompatActivity() {
 
     private fun setupClickListeners() {
         binding.buttonBack.setOnClickListener {
-            onBackPressed()
+            onBackPressedDispatcher.onBackPressed()
         }
         
         binding.fabCreatePlan.setOnClickListener {

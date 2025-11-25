@@ -49,6 +49,8 @@
                 android:contentDescription="@string/progress_back_content_description"
                 android:padding="12dp"
                 android:src="@drawable/ic_arrow_back_24"
+                android:clickable="false"
+                android:focusable="false"
                 app:tint="@color/fitness_text_primary" />
         </androidx.cardview.widget.CardView>
 
@@ -72,6 +74,22 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
+        <!-- SCROLLABLE CONTENT (Filter + Exercises) -->
+        <androidx.core.widget.NestedScrollView
+            android:id="@+id/nested_scroll_view"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:fillViewport="true"
+            app:layout_constraintBottom_toTopOf="@id/button_create_new_exercise"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/header_container">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
         <!-- FILTER CARD -->
         <androidx.cardview.widget.CardView
             android:id="@+id/card_filter"
@@ -80,10 +98,7 @@
             android:layout_marginTop="16dp"
             app:cardBackgroundColor="@color/fitness_card_background"
             app:cardCornerRadius="20dp"
-            app:cardElevation="4dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/header_container">
+            app:cardElevation="4dp">
 
             <LinearLayout
                 android:id="@+id/layout_filter"
@@ -122,6 +137,96 @@
                         android:layout_height="wrap_content"
                         android:text="Missing Secondary" />
                 </com.google.android.material.chip.ChipGroup>
+
+                <!-- Advanced Filters Expandable Section -->
+                <LinearLayout
+                    android:id="@+id/layout_advanced_filters_header"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingTop="12dp"
+                    android:paddingBottom="8dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Advanced Filters"
+                        android:textColor="@color/fitness_text_primary"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <ImageView
+                        android:id="@+id/image_advanced_filters_expand"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_arrow_drop_down_24"
+                        app:tint="@color/fitness_text_secondary"
+                        android:rotation="0" />
+                </LinearLayout>
+
+                <!-- Advanced Filters Content (Collapsed by default) -->
+                <LinearLayout
+                    android:id="@+id/layout_advanced_filters_content"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone"
+                    android:paddingTop="8dp">
+
+                    <!-- Movement Pattern Spinner -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Movement Type"
+                        android:textColor="@color/fitness_text_primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="8dp" />
+
+                    <Spinner
+                        android:id="@+id/spinner_movement_pattern"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp" />
+
+                    <!-- Body Region Spinner -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Body Area"
+                        android:textColor="@color/fitness_text_primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="8dp" />
+
+                    <Spinner
+                        android:id="@+id/spinner_body_region"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp" />
+
+                    <!-- Target Muscle ChipGroup -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Muscle Groups"
+                        android:textColor="@color/fitness_text_primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="8dp" />
+
+                    <com.google.android.material.chip.ChipGroup
+                        android:id="@+id/chip_group_muscle_groups"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:chipSpacing="8dp"
+                        app:singleSelection="false" />
+                </LinearLayout>
 
                 <!-- Muscle Overview Expandable Section -->
                 <LinearLayout
@@ -202,25 +307,25 @@
         <androidx.cardview.widget.CardView
             android:id="@+id/card_exercises_list"
             android:layout_width="match_parent"
-            android:layout_height="0dp"
+            android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:layout_marginBottom="12dp"
             app:cardBackgroundColor="@color/fitness_card_background"
             app:cardCornerRadius="20dp"
-            app:cardElevation="4dp"
-            app:layout_constraintBottom_toTopOf="@id/button_create_new_exercise"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/card_filter">
+            app:cardElevation="4dp">
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/recycler_view_select_exercise"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"
                 android:padding="12dp"
                 android:clipToPadding="false"
                 android:clipChildren="false" />
         </androidx.cardview.widget.CardView>
+
+            </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
 
         <!-- CREATE NEW EXERCISE BUTTON - FIXED AT BOTTOM -->
         <androidx.cardview.widget.CardView

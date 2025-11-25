@@ -53,6 +53,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:background="@android:color/transparent"
+                    android:clickable="false"
+                    android:focusable="false"
                     android:contentDescription="@string/progress_back_content_description"
                     android:padding="12dp"
                     android:src="@drawable/ic_arrow_back_24"

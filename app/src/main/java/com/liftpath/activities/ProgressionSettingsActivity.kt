@@ -51,6 +51,11 @@ class ProgressionSettingsActivity : AppCompatActivity() {
         loadSettings()
         setupListeners()
         setupExpandCollapseListeners()
+        
+        // Header back button
+        binding.buttonBackHeader.setOnClickListener {
+            onBackPressedDispatcher.onBackPressed()
+        }
     }
     
     private fun setupBackgroundAnimation() {

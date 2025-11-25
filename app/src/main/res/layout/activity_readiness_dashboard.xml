@@ -121,7 +121,7 @@
                 android:layout_marginTop="24dp"
                 app:cardBackgroundColor="@color/fitness_card_background"
                 app:cardCornerRadius="20dp"
-                app:cardElevation="4dp">
+                app:cardElevation="2dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -258,7 +258,7 @@
                         android:layout_weight="1"
                         app:cardBackgroundColor="@color/fitness_card_background"
                         app:cardCornerRadius="20dp"
-                        app:cardElevation="4dp">
+                        app:cardElevation="2dp">
 
                         <LinearLayout
                             android:layout_width="match_parent"
@@ -314,7 +314,7 @@
                         android:layout_weight="1"
                         app:cardBackgroundColor="@color/fitness_card_background"
                         app:cardCornerRadius="20dp"
-                        app:cardElevation="4dp">
+                        app:cardElevation="2dp">
 
                         <LinearLayout
                             android:layout_width="match_parent"
@@ -378,7 +378,7 @@
                         android:layout_weight="1"
                         app:cardBackgroundColor="@color/fitness_card_background"
                         app:cardCornerRadius="20dp"
-                        app:cardElevation="4dp">
+                        app:cardElevation="2dp">
 
                         <LinearLayout
                             android:layout_width="match_parent"
@@ -434,7 +434,7 @@
                         android:layout_weight="1"
                         app:cardBackgroundColor="@color/fitness_card_background"
                         app:cardCornerRadius="20dp"
-                        app:cardElevation="4dp">
+                        app:cardElevation="2dp">
 
                         <LinearLayout
                             android:layout_width="match_parent"
@@ -482,6 +482,102 @@
                     </androidx.cardview.widget.CardView>
                 </LinearLayout>
             </LinearLayout>
+
+            <!-- 7-DAY CALENDAR VIEW -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/card_calendar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                app:cardBackgroundColor="@color/fitness_card_background"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:animateLayoutChanges="true">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="7-Day Fatigue Calendar"
+                        android:textColor="@color/fitness_text_primary"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:id="@+id/layout_calendar_days"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/layout_chart_expanded"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Current Fatigue (with decay)"
+                            android:textColor="@color/fitness_text_secondary"
+                            android:textSize="14sp" />
+
+                        <!-- Fatigue Values List -->
+                        <LinearLayout
+                            android:id="@+id/layout_fatigue_list"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:orientation="vertical" />
+
+                        <com.github.mikephil.charting.charts.LineChart
+                            android:id="@+id/chart_fatigue"
+                            android:layout_width="match_parent"
+                            android:layout_height="200dp"
+                            android:minHeight="200dp"
+                            android:layout_marginTop="8dp" />
+
+                        <androidx.cardview.widget.CardView
+                            android:id="@+id/button_export_fatigue_data"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="16dp"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:foreground="?attr/selectableItemBackground"
+                            app:cardBackgroundColor="@color/fitness_card_background"
+                            app:cardCornerRadius="12dp"
+                            app:cardElevation="2dp">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:gravity="center"
+                                android:orientation="horizontal"
+                                android:padding="12dp">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="📊 Export Fatigue Data to JSON"
+                                    android:textColor="@color/fitness_text_primary"
+                                    android:textSize="14sp"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+                        </androidx.cardview.widget.CardView>
+                    </LinearLayout>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
 
             <!-- Empty State Message -->
             <TextView

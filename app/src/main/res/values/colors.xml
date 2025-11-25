@@ -31,4 +31,7 @@
     
     <!-- Mesh Animation Color (visible in both light and dark) -->
     <color name="mesh_color">#50000000</color> <!-- Semi-transparent black - works on light bg -->
+    
+    <!-- Chart Grid Lines -->
+    <color name="fitness_chart_grid">#E0E0E0</color> <!-- Light gray for light mode -->
 </resources>

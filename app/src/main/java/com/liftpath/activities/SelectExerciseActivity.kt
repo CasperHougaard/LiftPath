@@ -9,6 +9,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.liftpath.R
+import com.liftpath.adapters.ListItem
 import com.liftpath.adapters.SelectExerciseWithPlanAdapter
 import com.liftpath.databinding.ActivitySelectExerciseBinding
 import android.os.Handler
@@ -26,6 +27,7 @@ import com.liftpath.helpers.ProgressionSettingsManager
 import com.liftpath.helpers.showWithTransparentWindow
 import com.liftpath.models.BodyRegion
 import com.liftpath.models.ExerciseLibraryItem
+import com.liftpath.models.MovementPattern
 import com.liftpath.models.TargetMuscle
 import kotlinx.coroutines.*
 import java.util.Locale
@@ -52,7 +54,10 @@ class SelectExerciseActivity : AppCompatActivity() {
     private var filterMissingPrimary: Boolean = false
     private var filterMissingSecondary: Boolean = false
     private var searchQuery: String = ""
-    private var selectedRegion: BodyRegion? = null // Future: Filter by UPPER/LOWER
+    private var selectedRegion: BodyRegion? = null // Reused for body area filter
+    private var selectedMovementPattern: MovementPattern? = null
+    private var selectedMuscleGroups: Set<TargetMuscle> = emptySet()
+    private var isAdvancedFiltersExpanded: Boolean = false
     
     // Muscle Activation State
     private var workoutExercises: List<ExerciseLibraryItem> = emptyList()
@@ -108,6 +113,7 @@ class SelectExerciseActivity : AppCompatActivity() {
         loadPlanExercises()
         setupRecyclerView()
         setupFilterChips()
+        setupAdvancedFilters()
         setupMuscleOverview()
         
         // Load workout exercises and calculate muscle activation (on background thread)
@@ -122,7 +128,7 @@ class SelectExerciseActivity : AppCompatActivity() {
         }
 
         binding.buttonBack.setOnClickListener {
-            onBackPressed()
+            finish()
         }
         
         // OPTIONAL: If you add an EditText with id 'searchEditText' to your XML later, 
@@ -156,7 +162,7 @@ class SelectExerciseActivity : AppCompatActivity() {
 
     private fun setupRecyclerView() {
         adapter = SelectExerciseWithPlanAdapter(
-            exercises = emptyList(),
+            items = emptyList(),
             planExerciseIds = planExerciseIds,
             onExerciseClicked = { exercise ->
                 onExerciseSelected(exercise, sessionWorkoutType)
@@ -186,6 +192,77 @@ class SelectExerciseActivity : AppCompatActivity() {
         binding.chipFilterMissingSecondary.setOnCheckedChangeListener { _, isChecked ->
             filterMissingSecondary = isChecked
             applyFilters()
+        }
+    }
+
+    private fun setupAdvancedFilters() {
+        // Set up expandable section toggle
+        binding.layoutAdvancedFiltersHeader.setOnClickListener {
+            toggleAdvancedFilters()
+        }
+
+        // Set up Movement Pattern Spinner
+        val movementPatterns = listOf("All") + MovementPattern.values().map { it.displayName }
+        val movementAdapter = android.widget.ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            movementPatterns
+        )
+        movementAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        binding.spinnerMovementPattern.adapter = movementAdapter
+        binding.spinnerMovementPattern.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: android.view.View?, position: Int, id: Long) {
+                selectedMovementPattern = if (position == 0) null else MovementPattern.values()[position - 1]
+                applyFilters()
+            }
+            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
+        }
+
+        // Set up Body Region Spinner
+        val bodyRegions = listOf("All") + BodyRegion.values().map { it.displayName }
+        val bodyRegionAdapter = android.widget.ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            bodyRegions
+        )
+        bodyRegionAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        binding.spinnerBodyRegion.adapter = bodyRegionAdapter
+        binding.spinnerBodyRegion.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: android.view.View?, position: Int, id: Long) {
+                selectedRegion = if (position == 0) null else BodyRegion.values()[position - 1]
+                applyFilters()
+            }
+            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
+        }
+
+        // Set up Muscle Groups ChipGroup
+        TargetMuscle.values().forEach { muscle ->
+            val chip = com.google.android.material.chip.Chip(this)
+            chip.id = View.generateViewId()
+            chip.text = muscle.displayName
+            chip.isCheckable = true
+            chip.isChecked = false
+            chip.setOnCheckedChangeListener { _, isChecked ->
+                if (isChecked) {
+                    selectedMuscleGroups = selectedMuscleGroups + muscle
+                } else {
+                    selectedMuscleGroups = selectedMuscleGroups - muscle
+                }
+                applyFilters()
+            }
+            binding.chipGroupMuscleGroups.addView(chip)
+        }
+    }
+
+    private fun toggleAdvancedFilters() {
+        isAdvancedFiltersExpanded = !isAdvancedFiltersExpanded
+        
+        if (isAdvancedFiltersExpanded) {
+            binding.layoutAdvancedFiltersContent.visibility = View.VISIBLE
+            binding.imageAdvancedFiltersExpand.rotation = 180f
+        } else {
+            binding.layoutAdvancedFiltersContent.visibility = View.GONE
+            binding.imageAdvancedFiltersExpand.rotation = 0f
         }
     }
     
@@ -379,29 +456,59 @@ class SelectExerciseActivity : AppCompatActivity() {
             }
         }
 
-        // 4. Filter by Body Region (If you add buttons for this later)
+        // 4. Filter by Movement Pattern
+        selectedMovementPattern?.let { pattern ->
+            result = result.filter { it.pattern == pattern }
+        }
+
+        // 5. Filter by Body Region
         selectedRegion?.let { region ->
             result = result.filter { it.region == region }
         }
 
-        // 5. Smart Sort: Region first, then Name
-        // This groups "LOWER" body exercises together and "UPPER" together
-        result = result.sortedWith(
-            compareBy<ExerciseLibraryItem> { it.region } // Group by Region
-            .thenBy { it.name }                          // Then Alphabetical
-        )
+        // 6. Filter by Muscle Groups (show exercises where any selected muscle is in primary or secondary targets)
+        if (selectedMuscleGroups.isNotEmpty()) {
+            result = result.filter { exercise ->
+                val hasPrimaryMatch = exercise.primaryTargets.intersect(selectedMuscleGroups).isNotEmpty()
+                val hasSecondaryMatch = exercise.secondaryTargets.intersect(selectedMuscleGroups).isNotEmpty()
+                hasPrimaryMatch || hasSecondaryMatch
+            }
+        }
+
+        // 7. Sort alphabetically by name
+        result = result.sortedBy { it.name.lowercase() }
 
         displayedExercises = result
         
-        // Update Adapter
-        adapter = SelectExerciseWithPlanAdapter(
-            exercises = displayedExercises,
-            planExerciseIds = planExerciseIds,
-            onExerciseClicked = { exercise ->
-                onExerciseSelected(exercise, sessionWorkoutType)
+        // 8. Create list items with section headers if muscle group filters are applied
+        val listItems = if (selectedMuscleGroups.isNotEmpty()) {
+            // Split into primary and secondary
+            val primaryExercises = result.filter { exercise ->
+                exercise.primaryTargets.intersect(selectedMuscleGroups).isNotEmpty()
+            }.sortedBy { it.name.lowercase() }
+            
+            val secondaryExercises = result.filter { exercise ->
+                exercise.primaryTargets.intersect(selectedMuscleGroups).isEmpty() &&
+                exercise.secondaryTargets.intersect(selectedMuscleGroups).isNotEmpty()
+            }.sortedBy { it.name.lowercase() }
+            
+            mutableListOf<ListItem>().apply {
+                if (primaryExercises.isNotEmpty()) {
+                    add(ListItem.SectionHeader("Primary"))
+                    primaryExercises.forEach { add(ListItem.ExerciseItem(it)) }
+                }
+                if (secondaryExercises.isNotEmpty()) {
+                    add(ListItem.SectionHeader("Secondary"))
+                    secondaryExercises.forEach { add(ListItem.ExerciseItem(it)) }
+                }
             }
-        )
-        binding.recyclerViewSelectExercise.adapter = adapter
+        } else {
+            // No section headers, just exercises
+            result.map { ListItem.ExerciseItem(it) }
+        }
+        
+        // Update Adapter
+        adapter.updateItems(listItems)
     }
 
     private fun onExerciseSelected(exercise: ExerciseLibraryItem, requestedType: String? = null) {
