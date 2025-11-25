@@ -50,7 +50,10 @@ object ProgressionHelper {
         val rpeHighBonusSeconds: Int = 60,
         val rpeDeviationThreshold: Float = 1.0f,
         val rpePositiveAdjustmentSeconds: Int = 30,
-        val rpeNegativeAdjustmentSeconds: Int = 15
+        val rpeNegativeAdjustmentSeconds: Int = 15,
+        
+        // Notification Settings
+        val notificationLiveCountdown: Boolean = false
     )
 
     data class ProgressionSuggestion(

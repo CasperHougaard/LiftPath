@@ -163,6 +163,8 @@ class ProgressionSettingsActivity : AppCompatActivity() {
         binding.etRpePositiveAdjustment.setText(settings.rpePositiveAdjustmentSeconds.toString())
         binding.etRpeNegativeAdjustment.setText(settings.rpeNegativeAdjustmentSeconds.toString())
         
+        binding.switchNotificationLiveCountdown.isChecked = settings.notificationLiveCountdown
+        
         // Visibility Toggles
         binding.layoutRestTimerSettings.visibility = if (settings.restTimerEnabled) View.VISIBLE else View.GONE
         binding.layoutRpeAdjustmentSettings.visibility = if (settings.rpeAdjustmentEnabled) View.VISIBLE else View.GONE
@@ -302,7 +304,8 @@ class ProgressionSettingsActivity : AppCompatActivity() {
                 rpeHighBonusSeconds = binding.etRpeBonus.text.toString().toInt(),
                 rpeDeviationThreshold = binding.etRpeDeviationThreshold.text.toString().toFloat(),
                 rpePositiveAdjustmentSeconds = binding.etRpePositiveAdjustment.text.toString().toInt(),
-                rpeNegativeAdjustmentSeconds = binding.etRpeNegativeAdjustment.text.toString().toInt()
+                rpeNegativeAdjustmentSeconds = binding.etRpeNegativeAdjustment.text.toString().toInt(),
+                notificationLiveCountdown = binding.switchNotificationLiveCountdown.isChecked
             )
 
             if (!validateSettings(settings)) {

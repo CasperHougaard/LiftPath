@@ -14,6 +14,7 @@ import androidx.core.app.NotificationManagerCompat
 import com.liftpath.R
 import com.liftpath.activities.MainActivity
 import com.liftpath.activities.RestTimerDialogActivity
+import com.liftpath.helpers.ProgressionSettingsManager
 
 class RestTimerService : Service() {
 
@@ -147,6 +148,9 @@ class RestTimerService : Service() {
                         setPackage(applicationContext.packageName)
                         putExtra("remaining", remainingSeconds)
                     })
+                    
+                    // Update notification with live countdown if enabled
+                    updateNotification()
                 }
 
                 override fun onFinish() {
@@ -219,6 +223,9 @@ class RestTimerService : Service() {
                         setPackage(applicationContext.packageName)
                         putExtra("remaining", remainingSeconds)
                     })
+                    
+                    // Update notification with live countdown if enabled
+                    updateNotification()
                 }
 
                 override fun onFinish() {
@@ -240,9 +247,11 @@ class RestTimerService : Service() {
                 }
             }.start()
             
-            // Update foreground notification silently (required for foreground service)
+            // Update foreground notification (required for foreground service)
             try {
                 startForeground(NOTIFICATION_ID, createMinimalNotification())
+                // Also update notification if live countdown is enabled
+                updateNotification()
             } catch (e: SecurityException) {
                 // Permission not granted, cannot update foreground service
                 android.util.Log.e("RestTimerService", "Cannot update foreground service: notification permission required", e)
@@ -285,34 +294,88 @@ class RestTimerService : Service() {
         }
     }
 
+    // Helper function to format seconds as MM:SS
+    private fun formatTimeRemaining(seconds: Int): String {
+        val minutes = seconds / 60
+        val secs = seconds % 60
+        return String.format("%d:%02d remaining", minutes, secs)
+    }
+    
     // Minimal notification required for foreground service (Android requirement)
-    // This runs silently in background - no visible notification shown
+    // If live countdown is enabled, shows visible notification with countdown
     private fun createMinimalNotification(): Notification {
+        val settings = ProgressionSettingsManager(this).getSettings()
+        val showLiveCountdown = settings.notificationLiveCountdown
+        
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            // Create channel with lowest importance (won't show to user)
+            // Create channel with appropriate importance based on setting
+            val importance = if (showLiveCountdown) {
+                NotificationManager.IMPORTANCE_DEFAULT
+            } else {
+                NotificationManager.IMPORTANCE_LOW
+            }
+            
+            val notificationManager = getSystemService(NotificationManager::class.java)
+            
+            // Delete existing channel if it exists (to allow importance changes)
+            // Note: This is safe - channels can be recreated
+            try {
+                notificationManager.deleteNotificationChannel(CHANNEL_ID)
+            } catch (e: Exception) {
+                // Channel might not exist, ignore
+            }
+            
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 getString(R.string.notification_channel_rest_timer),
-                NotificationManager.IMPORTANCE_LOW
+                importance
             ).apply {
                 description = getString(R.string.notification_channel_description_background)
                 setShowBadge(false)
                 setSound(null, null)
             }
             
-            val notificationManager = getSystemService(NotificationManager::class.java)
             notificationManager.createNotificationChannel(channel)
         }
         
-        // Create minimal notification (required for foreground service)
+        // Create notification content based on setting
+        val contentText = if (showLiveCountdown && isTimerRunning) {
+            formatTimeRemaining(remainingSeconds)
+        } else {
+            getString(R.string.notification_rest_timer_running)
+        }
+        
+        val priority = if (showLiveCountdown) {
+            NotificationCompat.PRIORITY_DEFAULT
+        } else {
+            NotificationCompat.PRIORITY_LOW
+        }
+        
+        // Create notification (required for foreground service)
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(getString(R.string.notification_rest_timer_title))
-            .setContentText(getString(R.string.notification_rest_timer_running))
+            .setContentText(contentText)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setPriority(priority)
             .setOngoing(true)
-            .setSilent(true)
+            .setSilent(!showLiveCountdown)
             .build()
+    }
+    
+    // Update notification with current countdown (called on each tick when live countdown is enabled)
+    private fun updateNotification() {
+        val settings = ProgressionSettingsManager(this).getSettings()
+        if (settings.notificationLiveCountdown && isTimerRunning) {
+            try {
+                val notification = createMinimalNotification()
+                val notificationManager = NotificationManagerCompat.from(this)
+                if (notificationManager.areNotificationsEnabled()) {
+                    notificationManager.notify(NOTIFICATION_ID, notification)
+                }
+            } catch (e: SecurityException) {
+                android.util.Log.w("RestTimerService", "Cannot update notification: permission denied", e)
+            }
+        }
     }
 
     private fun showCompletionNotification() {
