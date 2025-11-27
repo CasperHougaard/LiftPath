@@ -81,6 +81,49 @@
                 android:textSize="14sp" />
         </LinearLayout>
 
+        <!-- SEARCH FIELD -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/card_search"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            app:cardBackgroundColor="@color/fitness_card_background"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="4dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/header_container">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="16dp">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_search_24"
+                    app:tint="@color/fitness_text_secondary"
+                    android:layout_marginEnd="12dp" />
+
+                <EditText
+                    android:id="@+id/edit_text_search"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:hint="Search exercises..."
+                    android:textColor="@color/fitness_text_primary"
+                    android:textColorHint="@color/fitness_text_secondary"
+                    android:textSize="16sp"
+                    android:background="@android:color/transparent"
+                    android:inputType="text"
+                    android:imeOptions="actionSearch"
+                    android:maxLines="1" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
         <!-- EXERCISES LIST CARD -->
         <androidx.cardview.widget.CardView
             android:id="@+id/card_exercises_list"
@@ -94,7 +137,7 @@
             app:layout_constraintBottom_toTopOf="@id/button_done"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/header_container">
+            app:layout_constraintTop_toBottomOf="@id/card_search">
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/recycler_view_exercises"

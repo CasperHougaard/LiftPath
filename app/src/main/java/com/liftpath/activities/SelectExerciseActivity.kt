@@ -131,18 +131,32 @@ class SelectExerciseActivity : AppCompatActivity() {
             finish()
         }
         
-        // OPTIONAL: If you add an EditText with id 'searchEditText' to your XML later, 
-        // this logic is ready to go.
-        /*
-        binding.searchEditText.addTextChangedListener(object : TextWatcher {
+        // Search field TextWatcher
+        binding.editTextSearch.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                searchQuery = s.toString()
-                applyFilters()
+                try {
+                    searchQuery = s?.toString() ?: ""
+                    applyFilters()
+                } catch (e: Exception) {
+                    android.util.Log.e("SelectExerciseActivity", "Error in search filter", e)
+                }
             }
             override fun afterTextChanged(s: Editable?) {}
         })
-        */
+        
+        // Handle IME action to prevent activity from closing
+        binding.editTextSearch.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH) {
+                // Hide keyboard and keep focus on search field
+                val imm = getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                imm.hideSoftInputFromWindow(binding.editTextSearch.windowToken, 0)
+                binding.editTextSearch.clearFocus()
+                true
+            } else {
+                false
+            }
+        }
     }
     
     private fun setupBackgroundAnimation() {
@@ -426,12 +440,13 @@ class SelectExerciseActivity : AppCompatActivity() {
     }
 
     private fun applyFilters() {
-        var result = allExercises
+        try {
+            var result = allExercises
 
-        // 1. Filter by "Not Added Yet"
-        if (filterUnaddedOnly) {
-            result = result.filter { it.id !in alreadyAddedExerciseIds }
-        }
+            // 1. Filter by "Not Added Yet"
+            if (filterUnaddedOnly) {
+                result = result.filter { it.id !in alreadyAddedExerciseIds }
+            }
 
         // 2. Filter by Missing Muscles (OR logic: if both selected, show exercises matching either)
         val missingState = missingMusclesState
@@ -447,12 +462,18 @@ class SelectExerciseActivity : AppCompatActivity() {
             }
         }
 
-        // 3. Filter by Search Text (Name or Target Muscle)
+        // 3. Filter by Search Text (Name only)
         if (searchQuery.isNotEmpty()) {
-            val query = searchQuery.lowercase()
-            result = result.filter { 
-                it.name.lowercase().contains(query) || 
-                it.primaryTargets.any { muscle -> muscle.name.lowercase().contains(query) }
+            val query = searchQuery.trim().lowercase()
+            if (query.isNotEmpty()) {
+                result = result.filter { exercise ->
+                    try {
+                        exercise.name.lowercase().contains(query)
+                    } catch (e: Exception) {
+                        android.util.Log.e("SelectExerciseActivity", "Error filtering exercise: ${exercise.name}", e)
+                        false
+                    }
+                }
             }
         }
 
@@ -508,7 +529,22 @@ class SelectExerciseActivity : AppCompatActivity() {
         }
         
         // Update Adapter
-        adapter.updateItems(listItems)
+        try {
+            adapter.updateItems(listItems)
+        } catch (e: Exception) {
+            android.util.Log.e("SelectExerciseActivity", "Error updating adapter", e)
+            // Fallback: update with empty list to prevent crash
+            adapter.updateItems(emptyList())
+        }
+        } catch (e: Exception) {
+            android.util.Log.e("SelectExerciseActivity", "Error in applyFilters", e)
+            // On error, show all exercises to prevent activity from closing
+            try {
+                adapter.updateItems(allExercises.map { ListItem.ExerciseItem(it) })
+            } catch (e2: Exception) {
+                android.util.Log.e("SelectExerciseActivity", "Error in fallback update", e2)
+            }
+        }
     }
 
     private fun onExerciseSelected(exercise: ExerciseLibraryItem, requestedType: String? = null) {
