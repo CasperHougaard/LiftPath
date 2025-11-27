@@ -45,6 +45,9 @@ class ActiveTrainingActivity : AppCompatActivity() {
     private val groupedExercises = mutableListOf<GroupedExercise>()
     private val exerciseWorkoutTypes = mutableMapOf<Int, String>()
     private val exerciseRecommendations = mutableMapOf<Int, WorkoutGenerator.RecommendedExercise>()
+    private val lastSetsCount = mutableMapOf<Int, Int>()
+    private val lastLoggedKg = mutableMapOf<Int, Float>()
+    private val lastLoggedReps = mutableMapOf<Int, Int>()
 
     private lateinit var adapter: ActiveExercisesAdapter
     private val selectedDate = Calendar.getInstance()
@@ -167,6 +170,7 @@ class ActiveTrainingActivity : AppCompatActivity() {
         setupTimerReceiver()
         setupWorkoutTimer()
         updateDateDisplay()
+        updatePlanButtonState()
 
         if (resumeRequested) {
             maybeRestoreDraft(forceResume = true)
@@ -288,9 +292,154 @@ class ActiveTrainingActivity : AppCompatActivity() {
         }
     }
 
+    private fun showPlanSelectionDialog() {
+        val trainingData = jsonHelper.readTrainingData()
+        val plans = trainingData.workoutPlans
+
+        if (plans.isEmpty()) {
+            DialogHelper.createBuilder(this)
+                .setTitle("No Workout Plans")
+                .setMessage("You don't have any workout plans yet. Create one from the Plans screen.")
+                .setPositiveButton(getString(R.string.button_ok), null)
+                .showWithTransparentWindow()
+            return
+        }
+
+        val planNames = plans.map { it.name }.toTypedArray()
+        var selectedIndex = -1
+
+        DialogHelper.createBuilder(this)
+            .setTitle("Select Workout Plan")
+            .setSingleChoiceItems(planNames, -1) { _, which ->
+                selectedIndex = which
+            }
+            .setPositiveButton("Apply") { _, _ ->
+                if (selectedIndex >= 0 && selectedIndex < plans.size) {
+                    applyPlan(plans[selectedIndex])
+                }
+            }
+            .setNegativeButton(getString(R.string.button_cancel), null)
+            .showWithTransparentWindow()
+    }
+
+    private fun showPlanManagementDialog() {
+        val options = arrayOf("Change Plan", "Remove Plan")
+        var selectedIndex = -1
+
+        DialogHelper.createBuilder(this)
+            .setTitle("Plan: $appliedPlanName")
+            .setSingleChoiceItems(options, -1) { _, which ->
+                selectedIndex = which
+            }
+            .setPositiveButton("OK") { _, _ ->
+                when (selectedIndex) {
+                    0 -> showPlanSelectionDialog()
+                    1 -> removePlan()
+                }
+            }
+            .setNegativeButton(getString(R.string.button_cancel), null)
+            .showWithTransparentWindow()
+    }
+
+    private fun applyPlan(plan: WorkoutPlan) {
+        appliedPlanId = plan.id
+        appliedPlanName = plan.name
+        // If current workout is custom, keep it as custom (don't change to plan's workout type)
+        // Otherwise, use the plan's workout type
+        if (workoutType != "custom") {
+            workoutType = plan.workoutType
+        }
+        updateTitle()
+        updatePlanButtonState()
+
+        val trainingData = jsonHelper.readTrainingData()
+        lastSetsCount.clear()
+
+        // Clear existing exercises if needed (or merge - for now, we'll add to existing)
+        // For simplicity, we'll add plan exercises even if some already exist
+        plan.exerciseIds.forEach { exerciseId ->
+            val exercise = trainingData.exerciseLibrary.find { it.id == exerciseId }
+            if (exercise != null) {
+                // Check if exercise already exists in workout
+                val existingGroup = groupedExercises.find { it.exerciseId == exerciseId }
+                if (existingGroup == null) {
+                    // Find the last logged exercise entry for this exercise
+                    val lastEntry = trainingData.trainings
+                        .flatMap { it.exercises }
+                        .filter { it.exerciseId == exerciseId }
+                        .lastOrNull()
+                    
+                    if (lastEntry != null) {
+                        // Store last logged kg and reps
+                        lastLoggedKg[exerciseId] = lastEntry.kg
+                        lastLoggedReps[exerciseId] = lastEntry.reps
+                        
+                        // Find the last number of sets for this exercise
+                        val lastSession = trainingData.trainings
+                            .sortedByDescending { it.trainingNumber }
+                            .firstOrNull { session ->
+                                session.exercises.any { it.exerciseId == exerciseId }
+                            }
+                        
+                        val setsCount = lastSession?.exercises
+                            ?.filter { it.exerciseId == exerciseId }
+                            ?.size ?: 0
+                        
+                        if (setsCount > 0) {
+                            lastSetsCount[exerciseId] = setsCount
+                        }
+                    }
+
+                    // Add exercise as empty GroupedExercise
+                    groupedExercises.add(GroupedExercise(exerciseId, exercise.name, emptyList()))
+                    // If workout is custom, use custom for exercise type, otherwise use plan's workout type
+                    exerciseWorkoutTypes[exerciseId] = if (workoutType == "custom") "custom" else plan.workoutType
+                }
+            }
+        }
+
+        adapter.notifyDataSetChanged()
+        persistDraft()
+        Toast.makeText(this, "Plan \"$appliedPlanName\" applied", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun removePlan() {
+        appliedPlanId = null
+        appliedPlanName = null
+        lastSetsCount.clear()
+        lastLoggedKg.clear()
+        lastLoggedReps.clear()
+        updatePlanButtonState()
+        updateTitle()
+        adapter.notifyDataSetChanged()
+        persistDraft()
+        Toast.makeText(this, "Plan removed", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun updatePlanButtonState() {
+        if (appliedPlanId != null) {
+            // Plan is applied - change tint to indicate active state
+            binding.buttonPlan.setColorFilter(
+                ContextCompat.getColor(this, R.color.fitness_primary),
+                android.graphics.PorterDuff.Mode.SRC_IN
+            )
+        } else {
+            // No plan applied - use default tint
+            binding.buttonPlan.setColorFilter(
+                ContextCompat.getColor(this, R.color.fitness_primary),
+                android.graphics.PorterDuff.Mode.SRC_IN
+            )
+        }
+    }
+
     private fun updateTitle() {
         val displayType = workoutType.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
-        supportActionBar?.title = "Active Workout ($displayType)"
+        val title = if (appliedPlanName != null) {
+            "Active Workout ($displayType) - $appliedPlanName"
+        } else {
+            "Active Workout ($displayType)"
+        }
+        supportActionBar?.title = title
     }
 
     // --- EXISTING FUNCTIONALITY ---
@@ -308,6 +457,9 @@ class ActiveTrainingActivity : AppCompatActivity() {
             exerciseRecommendations,
             jsonHelper,
             workoutType,
+            lastSetsCount,
+            lastLoggedKg,
+            lastLoggedReps,
             onAddSetClicked = { exerciseId, exerciseName ->
                 launchLogSetActivity(exerciseId, exerciseName)
             },
@@ -373,6 +525,15 @@ class ActiveTrainingActivity : AppCompatActivity() {
         // MUSCLE OVERVIEW BUTTON
         binding.buttonMuscleOverview.setOnClickListener {
             showMuscleOverview()
+        }
+
+        // PLAN BUTTON
+        binding.buttonPlan.setOnClickListener {
+            if (appliedPlanId != null) {
+                showPlanManagementDialog()
+            } else {
+                showPlanSelectionDialog()
+            }
         }
     }
 
@@ -454,6 +615,13 @@ class ActiveTrainingActivity : AppCompatActivity() {
                 previousSet?.let {
                     putExtra(LogSetActivity.EXTRA_PREVIOUS_SET_REPS, it.reps)
                 }
+                // Pass last logged values if available (from plan)
+                lastLoggedKg[exerciseId]?.let {
+                    putExtra(LogSetActivity.EXTRA_LAST_LOGGED_KG, it)
+                }
+                lastLoggedReps[exerciseId]?.let {
+                    putExtra(LogSetActivity.EXTRA_LAST_LOGGED_REPS, it)
+                }
             }
             logSetLauncher.launch(intent)
         } catch (e: Exception) {
@@ -493,6 +661,9 @@ class ActiveTrainingActivity : AppCompatActivity() {
             currentExerciseEntries.removeAll { it.exerciseId == exerciseId }
             exerciseWorkoutTypes.remove(exerciseId)
             exerciseRecommendations.remove(exerciseId)
+            lastSetsCount.remove(exerciseId)
+            lastLoggedKg.remove(exerciseId)
+            lastLoggedReps.remove(exerciseId)
             adapter.notifyItemRemoved(groupIndex)
             persistDraft()
         }
@@ -617,7 +788,48 @@ class ActiveTrainingActivity : AppCompatActivity() {
             entry.workoutType?.let { exerciseWorkoutTypes[entry.exerciseId] = it }
         }
 
+        // Restore last sets count and last logged kg/reps if plan was applied
+        if (appliedPlanId != null) {
+            val trainingData = jsonHelper.readTrainingData()
+            lastSetsCount.clear()
+            lastLoggedKg.clear()
+            lastLoggedReps.clear()
+            val exerciseIds = currentExerciseEntries.map { it.exerciseId }.distinct()
+            exerciseIds.forEach { exerciseId ->
+                // Find the last logged exercise entry
+                val lastEntry = trainingData.trainings
+                    .flatMap { it.exercises }
+                    .filter { it.exerciseId == exerciseId }
+                    .lastOrNull()
+                
+                if (lastEntry != null) {
+                    lastLoggedKg[exerciseId] = lastEntry.kg
+                    lastLoggedReps[exerciseId] = lastEntry.reps
+                }
+                
+                // Find the last number of sets
+                val lastSession = trainingData.trainings
+                    .sortedByDescending { it.trainingNumber }
+                    .firstOrNull { session ->
+                        session.exercises.any { it.exerciseId == exerciseId }
+                    }
+                
+                val setsCount = lastSession?.exercises
+                    ?.filter { it.exerciseId == exerciseId }
+                    ?.size ?: 0
+                
+                if (setsCount > 0) {
+                    lastSetsCount[exerciseId] = setsCount
+                }
+            }
+        } else {
+            lastSetsCount.clear()
+            lastLoggedKg.clear()
+            lastLoggedReps.clear()
+        }
+
         rebuildGroupedExercisesFromEntries()
+        updatePlanButtonState()
         
         // Restore workout timer if it was started
         draft.startTimeMillis?.let { startTime ->

@@ -30,6 +30,8 @@ class LogSetActivity : AppCompatActivity() {
     private var setNumber: Int = 1
     private var workoutType: String = "heavy"
     private var previousSetReps: Int? = null
+    private var lastLoggedKg: Float? = null
+    private var lastLoggedReps: Int? = null
 
     private var pendingTimerRpe: Float? = null
     private var pendingTimerWorkoutType: String? = null
@@ -57,6 +59,8 @@ class LogSetActivity : AppCompatActivity() {
         const val EXTRA_LOGGED_SET = "extra_logged_set"
         const val EXTRA_WORKOUT_TYPE = "extra_workout_type"
         const val EXTRA_PREVIOUS_SET_REPS = "extra_previous_set_reps"
+        const val EXTRA_LAST_LOGGED_KG = "extra_last_logged_kg"
+        const val EXTRA_LAST_LOGGED_REPS = "extra_last_logged_reps"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -70,6 +74,8 @@ class LogSetActivity : AppCompatActivity() {
         setNumber = intent.getIntExtra(EXTRA_SET_NUMBER, 1)
         workoutType = intent.getStringExtra(EXTRA_WORKOUT_TYPE) ?: "heavy"
         previousSetReps = intent.getIntExtra(EXTRA_PREVIOUS_SET_REPS, -1).takeIf { it > 0 }
+        lastLoggedKg = intent.getFloatExtra(EXTRA_LAST_LOGGED_KG, -1f).takeIf { it > 0 }
+        lastLoggedReps = intent.getIntExtra(EXTRA_LAST_LOGGED_REPS, -1).takeIf { it > 0 }
         binding.textLogSetTitle.text = "$exerciseName (${formatTypeLabel(workoutType)})"
 
         setupBackgroundAnimation()
@@ -100,23 +106,47 @@ class LogSetActivity : AppCompatActivity() {
 
     private fun prefillLastSetFallback() {
         if (binding.editTextKg.text?.isNotBlank() == true) return
-        val trainingData = jsonHelper.readTrainingData()
-        val lastSet = trainingData.trainings
-            .flatMap { it.exercises }
-            .filter { it.exerciseName == exerciseName }
-            .lastOrNull()
-
-        if (lastSet != null) {
-            binding.editTextKg.setText(lastSet.kg.toString())
-            binding.editTextReps.setText(lastSet.reps.toString())
-
-            lastSet.rpe?.let {
+        
+        // Use passed last logged values if available (from plan), otherwise look up from history
+        if (lastLoggedKg != null && lastLoggedReps != null) {
+            binding.editTextKg.setText(lastLoggedKg.toString())
+            binding.editTextReps.setText(lastLoggedReps.toString())
+            
+            // Still try to get RPE and note from last set if available
+            val trainingData = jsonHelper.readTrainingData()
+            val lastSet = trainingData.trainings
+                .flatMap { it.exercises }
+                .filter { it.exerciseName == exerciseName }
+                .lastOrNull()
+            
+            lastSet?.rpe?.let {
                 if (binding.editTextRpe.text.isNullOrBlank()) {
                     binding.editTextRpe.setText(it.toString())
                 }
             }
-            lastSet.note?.let {
+            lastSet?.note?.let {
                 binding.editTextNote.setText(it)
+            }
+        } else {
+            // Fall back to looking up from training history
+            val trainingData = jsonHelper.readTrainingData()
+            val lastSet = trainingData.trainings
+                .flatMap { it.exercises }
+                .filter { it.exerciseName == exerciseName }
+                .lastOrNull()
+
+            if (lastSet != null) {
+                binding.editTextKg.setText(lastSet.kg.toString())
+                binding.editTextReps.setText(lastSet.reps.toString())
+
+                lastSet.rpe?.let {
+                    if (binding.editTextRpe.text.isNullOrBlank()) {
+                        binding.editTextRpe.setText(it.toString())
+                    }
+                }
+                lastSet.note?.let {
+                    binding.editTextNote.setText(it)
+                }
             }
         }
     }
@@ -128,6 +158,15 @@ class LogSetActivity : AppCompatActivity() {
     }
 
     private fun showWeightSuggestion() {
+        // For custom workouts, don't show progression suggestions
+        if (workoutType == "custom") {
+            // Only prefill from last set (already done in prefillLastSetFallback)
+            // Don't show suggestion text or RPE hint
+            binding.tvSuggestionHint.visibility = View.GONE
+            binding.textRpeHint.visibility = View.GONE
+            return
+        }
+        
         val trainingData = jsonHelper.readTrainingData()
         val settingsManager = ProgressionSettingsManager(this)
         val userSettings = settingsManager.getSettings()

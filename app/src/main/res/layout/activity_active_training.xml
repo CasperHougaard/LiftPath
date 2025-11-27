@@ -83,6 +83,17 @@
                 app:tint="@color/fitness_text_secondary" />
         </LinearLayout>
 
+        <!-- PLAN BUTTON -->
+        <ImageButton
+            android:id="@+id/button_plan"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginEnd="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_plans"
+            app:tint="@color/fitness_primary"
+            android:contentDescription="Select Workout Plan" />
+
         <!-- WORKOUT TIMER -->
         <TextView
             android:id="@+id/text_workout_timer"

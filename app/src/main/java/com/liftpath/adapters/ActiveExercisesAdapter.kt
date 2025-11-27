@@ -20,6 +20,9 @@ class ActiveExercisesAdapter(
     private val exerciseRecommendations: Map<Int, WorkoutGenerator.RecommendedExercise>,
     private val jsonHelper: JsonHelper,
     private val workoutType: String,
+    private val lastSetsCount: Map<Int, Int>,
+    private val lastLoggedKg: Map<Int, Float>,
+    private val lastLoggedReps: Map<Int, Int>,
     private val onAddSetClicked: (exerciseId: Int, exerciseName: String) -> Unit,
     private val onEditActivityClicked: (GroupedExercise) -> Unit,
     private val onDuplicateSetClicked: (exerciseId: Int) -> Unit,
@@ -58,20 +61,29 @@ class ActiveExercisesAdapter(
         // Get recommendation to check if sets are complete
         val recommendation = exerciseRecommendations[groupedExercise.exerciseId]
         val recommendedSetsCount = recommendation?.recommendedSets
+        val lastSets = lastSetsCount[groupedExercise.exerciseId]
         
         // Show completion checkmark if user has logged the recommended number of sets
-        val isComplete = recommendedSetsCount != null && loggedSetsCount >= recommendedSetsCount
+        // or if they've logged the last number of sets (when no recommendation exists)
+        val targetSetsCount = recommendedSetsCount ?: lastSets
+        val isComplete = targetSetsCount != null && loggedSetsCount >= targetSetsCount
         holder.completionCheck.visibility = if (isComplete) View.VISIBLE else View.GONE
 
         // Show sets count: "(x of y sets)"
         if (recommendedSetsCount != null) {
             holder.setsCount.text = "($loggedSetsCount of $recommendedSetsCount sets)"
         } else {
-            // If no recommendation, just show logged count
-            if (loggedSetsCount > 0) {
-                holder.setsCount.text = "($loggedSetsCount sets)"
+            // Check if we have last sets count from plan
+            val lastSets = lastSetsCount[groupedExercise.exerciseId]
+            if (lastSets != null) {
+                holder.setsCount.text = "($loggedSetsCount of $lastSets sets)"
             } else {
-                holder.setsCount.text = ""
+                // If no recommendation or last sets count, just show logged count
+                if (loggedSetsCount > 0) {
+                    holder.setsCount.text = "($loggedSetsCount sets)"
+                } else {
+                    holder.setsCount.text = ""
+                }
             }
         }
 
@@ -148,6 +160,53 @@ class ActiveExercisesAdapter(
     override fun getItemCount() = groupedExercises.size
 
     private fun getRecommendedText(context: Context, exerciseId: Int): String {
+        // For custom workouts, only show last logged values, no progression suggestions
+        if (workoutType == "custom") {
+            // First check if we have last logged values from plan
+            var lastKg = lastLoggedKg[exerciseId]
+            var lastReps = lastLoggedReps[exerciseId]
+            
+            // If not from plan, try to get from training history
+            if (lastKg == null || lastReps == null) {
+                val trainingData = jsonHelper.readTrainingData()
+                val lastEntry = trainingData.trainings
+                    .flatMap { it.exercises }
+                    .filter { it.exerciseId == exerciseId }
+                    .lastOrNull()
+                
+                if (lastEntry != null) {
+                    lastKg = lastEntry.kg
+                    lastReps = lastEntry.reps
+                }
+            }
+            
+            if (lastKg != null && lastReps != null) {
+                // Use last logged values as placeholders
+                val weightString = if (lastKg % 1 == 0f) {
+                    lastKg.toInt().toString()
+                } else {
+                    lastKg.toString()
+                }
+                return "${weightString}kg × $lastReps reps"
+            }
+            // No suggestions for custom workouts if no last logged values
+            return ""
+        }
+        
+        // If we have last logged kg/reps (from plan), use those instead of progression suggestions
+        val lastKg = lastLoggedKg[exerciseId]
+        val lastReps = lastLoggedReps[exerciseId]
+        
+        if (lastKg != null && lastReps != null) {
+            // Use last logged values
+            val weightString = if (lastKg % 1 == 0f) {
+                lastKg.toInt().toString()
+            } else {
+                lastKg.toString()
+            }
+            return "${weightString}kg × $lastReps reps"
+        }
+        
         val recommendation = exerciseRecommendations[exerciseId]
         
         if (recommendation == null) {
