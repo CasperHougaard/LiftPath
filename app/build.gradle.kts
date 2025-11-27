@@ -27,8 +27,8 @@ android {
         applicationId = "com.liftpath"
         minSdk = 35
         targetSdk = 36
-        versionCode = 5
-        versionName = "1.02.001"
+        versionCode = 6
+        versionName = "1.02.002"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

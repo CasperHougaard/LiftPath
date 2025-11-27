@@ -115,6 +115,7 @@ class MainActivity : AppCompatActivity() {
         fadeUp2.startOffset = 400
         binding.cardExercises.startAnimation(fadeUp2)
         binding.cardPlans.startAnimation(fadeUp2)
+        binding.cardReadiness.startAnimation(fadeUp2)
 
         // 4. Stats Section (Fade Up)
         val fadeUpStats = AnimationUtils.loadAnimation(this, com.liftpath.R.anim.fade_in_up)
