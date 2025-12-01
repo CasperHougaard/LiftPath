@@ -49,6 +49,8 @@
                 android:contentDescription="@string/progress_back_content_description"
                 android:padding="12dp"
                 android:src="@drawable/ic_arrow_back_24"
+                android:clickable="false"
+                android:focusable="false"
                 app:tint="@color/fitness_text_primary" />
         </androidx.cardview.widget.CardView>
 

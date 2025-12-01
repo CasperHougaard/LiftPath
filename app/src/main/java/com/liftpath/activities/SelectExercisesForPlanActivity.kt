@@ -99,7 +99,7 @@ class SelectExercisesForPlanActivity : AppCompatActivity() {
 
     private fun setupClickListeners() {
         binding.buttonBack.setOnClickListener {
-            onBackPressed()
+            finish()
         }
         
         binding.buttonDone.setOnClickListener {

@@ -31,8 +31,12 @@ class SelectExercisesAdapter(
     override fun onBindViewHolder(holder: ExerciseViewHolder, position: Int) {
         val exercise = exercises[position]
         holder.exerciseName.text = exercise.name
+        
+        // Remove listener before setting state to prevent triggering during recycling
+        holder.checkbox.setOnCheckedChangeListener(null)
         holder.checkbox.isChecked = selectedIds.contains(exercise.id)
 
+        // Set listener after state is set
         holder.checkbox.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
                 selectedIds.add(exercise.id)
