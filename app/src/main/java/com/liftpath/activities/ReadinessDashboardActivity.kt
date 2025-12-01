@@ -3,8 +3,6 @@ package com.liftpath.activities
 import android.content.Intent
 import android.graphics.drawable.Animatable
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -16,12 +14,20 @@ import com.liftpath.helpers.JsonHelper
 import com.liftpath.helpers.ReadinessConfig
 import com.liftpath.helpers.ReadinessHelper
 import com.liftpath.helpers.FatigueScores
+import com.liftpath.helpers.FatigueValues
 import com.liftpath.helpers.ActivityReadiness
 import com.liftpath.helpers.ActivityStatus
 import com.liftpath.helpers.FatigueTimeline
 import com.liftpath.helpers.ReadinessSettingsManager
+import com.liftpath.helpers.HealthConnectHelper
+import com.liftpath.helpers.ExternalActivity
 import com.liftpath.models.TrainingSession
 import com.liftpath.models.TrainingData
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import androidx.lifecycle.lifecycleScope
+import android.content.SharedPreferences
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.data.Entry
@@ -45,14 +51,14 @@ class ReadinessDashboardActivity : AppCompatActivity() {
     private lateinit var binding: ActivityReadinessDashboardBinding
     private lateinit var jsonHelper: JsonHelper
     private lateinit var settingsManager: ReadinessSettingsManager
+    private lateinit var healthConnectPrefs: SharedPreferences
     private val dateFormat = SimpleDateFormat("yyyy/MM/dd", Locale.getDefault())
+    private val HEALTH_CONNECT_ENABLED_KEY = "use_health_connect_data"
     private val dateTimeFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
     private val isoDateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
         timeZone = TimeZone.getTimeZone("UTC")
     }
-    private val handler = Handler(Looper.getMainLooper())
     private var fatigueTimeline: FatigueTimeline? = null
-    private var updateRunnable: Runnable? = null
 
     private val exportDocumentLauncher = registerForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
@@ -69,9 +75,11 @@ class ReadinessDashboardActivity : AppCompatActivity() {
 
         jsonHelper = JsonHelper(this)
         settingsManager = ReadinessSettingsManager(this)
+        healthConnectPrefs = getSharedPreferences("health_connect_settings", MODE_PRIVATE)
 
         setupBackgroundAnimation()
         setupClickListeners()
+        setupHealthConnectToggle()
         loadReadinessData()
     }
 
@@ -111,6 +119,22 @@ class ReadinessDashboardActivity : AppCompatActivity() {
         binding.buttonExportFatigueData.setOnClickListener {
             exportFatigueDataToFile()
         }
+
+        binding.buttonHealthConnect.setOnClickListener {
+            val intent = Intent(this, HealthConnectActivity::class.java)
+            startActivity(intent)
+        }
+
+        binding.switchUseHealthConnect.setOnCheckedChangeListener { _, isChecked ->
+            healthConnectPrefs.edit().putBoolean(HEALTH_CONNECT_ENABLED_KEY, isChecked).apply()
+            // Reload data when toggle changes
+            loadReadinessData()
+        }
+    }
+
+    private fun setupHealthConnectToggle() {
+        val isEnabled = healthConnectPrefs.getBoolean(HEALTH_CONNECT_ENABLED_KEY, false)
+        binding.switchUseHealthConnect.isChecked = isEnabled
     }
 
     private var isCalendarExpanded = false
@@ -125,10 +149,41 @@ class ReadinessDashboardActivity : AppCompatActivity() {
             trainingData = ReadinessHelper.createMockTrainingData()
         }
 
-        // Calculate continuous fatigue timeline
-        fatigueTimeline = ReadinessHelper.calculateContinuousFatigueTimeline(trainingData, config)
-        val timeline = fatigueTimeline ?: return
+        // Load external activities from stored JSON (if enabled)
+        lifecycleScope.launch(Dispatchers.IO) {
+            val useHealthConnect = healthConnectPrefs.getBoolean(HEALTH_CONNECT_ENABLED_KEY, false)
+            val externalActivities = if (useHealthConnect) {
+                try {
+                    // Use stored activities from JSON instead of fetching from Health Connect
+                    // This way we use the persisted data with deduplication and overlap filtering
+                    HealthConnectHelper.getStoredActivities(applicationContext)
+                } catch (e: Exception) {
+                    emptyList()
+                }
+            } else {
+                emptyList()
+            }
 
+            // Calculate continuous fatigue timeline with external activities
+            val timeline = ReadinessHelper.calculateContinuousFatigueTimeline(
+                trainingData,
+                config,
+                externalActivities
+            )
+
+            withContext(Dispatchers.Main) {
+                fatigueTimeline = timeline
+                updateCalendarWithTimeline(timeline)
+                // Update activity readiness tiles with timeline that includes Health Connect data
+                val settings = settingsManager.getSettings()
+                val config = ReadinessConfig.fromSettings(settings)
+                val currentFatigue = ReadinessHelper.getCurrentFatigueFromTimeline(timeline, config)
+                updateActivityReadiness(currentFatigue, config)
+            }
+        }
+    }
+
+    private fun updateCalendarWithTimeline(timeline: FatigueTimeline) {
         // Extract daily end values for calendar
         val dailyEndValues = timeline.dailyEndValues
 
@@ -146,8 +201,9 @@ class ReadinessDashboardActivity : AppCompatActivity() {
             calendar.add(Calendar.DAY_OF_YEAR, -i)
             val dateStr = dateFormat.format(calendar.time)
 
-            // Get fatigue at end of day from timeline
-            val fatigue = dailyEndValues[dateStr] ?: 0f
+            // Get fatigue at end of day from timeline (using systemic fatigue for calendar display)
+            val fatigueValues = dailyEndValues[dateStr] ?: FatigueValues(0f, 0f, 0f)
+            val fatigue = fatigueValues.systemicFatigue
             days.add(Pair(dateStr, fatigue))
         }
 
@@ -281,9 +337,9 @@ class ReadinessDashboardActivity : AppCompatActivity() {
         val settings = settingsManager.getSettings()
         val config = ReadinessConfig.fromSettings(settings)
 
-        // Convert timeline graph points to chart entries
-        val entries = timeline.graphPoints.map { point: Pair<Long, Float> ->
-            Entry(point.first.toFloat(), point.second)
+        // Convert timeline graph points to chart entries (using systemic fatigue for chart)
+        val entries = timeline.graphPoints.map { point: Pair<Long, FatigueValues> ->
+            Entry(point.first.toFloat(), point.second.systemicFatigue)
         }
 
         if (entries.isEmpty()) {
@@ -363,11 +419,11 @@ class ReadinessDashboardActivity : AppCompatActivity() {
         val now = System.currentTimeMillis()
         
         // Find graph point closest to now
-        val nearestPoint = timeline.graphPoints.minByOrNull { point: Pair<Long, Float> ->
+        val nearestPoint = timeline.graphPoints.minByOrNull { point: Pair<Long, FatigueValues> ->
             kotlin.math.abs(point.first - now) 
         } ?: return
         
-        val currentFatigue = nearestPoint.second
+        val currentFatigue = nearestPoint.second.systemicFatigue
         
         // Determine status based on thresholds
         val status = when {
@@ -417,7 +473,8 @@ class ReadinessDashboardActivity : AppCompatActivity() {
             val dateDisplay = displayDateFormat.format(date)
             
             val rawFatigue = rawFatigueByDate[dateStr] ?: 0f
-            val endOfDayFatigue = timeline.dailyEndValues[dateStr] ?: 0f
+            val endOfDayFatigueValues = timeline.dailyEndValues[dateStr] ?: FatigueValues(0f, 0f, 0f)
+            val endOfDayFatigue = endOfDayFatigueValues.systemicFatigue
 
             val rowLayout = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
@@ -504,11 +561,13 @@ class ReadinessDashboardActivity : AppCompatActivity() {
         // Update last workout summary (show both raw and decayed)
         updateLastWorkoutSummary(lastWorkout, rawFatigueScores, decayedFatigueScores)
 
-        // Calculate and update activity readiness using decayed scores
-        updateActivityReadiness(decayedFatigueScores, config)
-
-        // Setup calendar view
+        // Setup calendar view (calculates fatigue timeline)
+        // Note: setupCalendarView() is async and will update activity readiness tiles when timeline is ready
         setupCalendarView()
+
+        // For immediate display, use decayed scores as fallback
+        // The timeline will update the tiles when it's ready (includes Health Connect data if enabled)
+        updateActivityReadiness(decayedFatigueScores, config)
     }
 
     private fun getLastCompletedWorkout(trainings: List<TrainingSession>): TrainingSession? {
@@ -681,73 +740,70 @@ class ReadinessDashboardActivity : AppCompatActivity() {
 
     private fun startCountdownUpdates() {
         stopCountdownUpdates()
-        updateRunnable = object : Runnable {
-            override fun run() {
+        
+        // Use coroutine scope for async operations
+        lifecycleScope.launch {
+            while (true) {
                 val trainingData = jsonHelper.readTrainingData()
-                val lastWorkout = getLastCompletedWorkout(trainingData.trainings)
-                if (lastWorkout != null) {
-                    val settings = settingsManager.getSettings()
-                    val config = ReadinessConfig.fromSettings(settings)
-                    val rawFatigueScores = ReadinessHelper.calculateFatigueScores(
-                        lastWorkout,
-                        trainingData,
-                        config
-                    )
-                    
-                    // Apply decay
-                    val elapsedTime = calculateElapsedTime(lastWorkout.date)
-                    val fatigueScores = FatigueScores(
-                        lowerFatigue = ReadinessHelper.getDecayedScore(
-                            rawFatigueScores.lowerFatigue,
-                            elapsedTime,
-                            config
-                        ),
-                        upperFatigue = ReadinessHelper.getDecayedScore(
-                            rawFatigueScores.upperFatigue,
-                            elapsedTime,
-                            config
-                        ),
-                        systemicFatigue = ReadinessHelper.getDecayedScore(
-                            rawFatigueScores.systemicFatigue,
-                            elapsedTime,
-                            config
-                        )
-                    )
-
-                    // Update countdowns for all activities
-                    val runCycleReadiness = ReadinessHelper.getRunCycleStatus(fatigueScores, config)
-                    if (runCycleReadiness.timeUntilFresh != null) {
-                        updateCountdown(binding.textRunCycleCountdown, runCycleReadiness.timeUntilFresh)
+                val settings = settingsManager.getSettings()
+                val config = ReadinessConfig.fromSettings(settings)
+                
+                // Load external activities from stored JSON (if enabled)
+                val useHealthConnect = healthConnectPrefs.getBoolean(HEALTH_CONNECT_ENABLED_KEY, false)
+                val externalActivities = if (useHealthConnect) {
+                    withContext(Dispatchers.IO) {
+                        try {
+                            // Use stored activities from JSON
+                            HealthConnectHelper.getStoredActivities(applicationContext)
+                        } catch (e: Exception) {
+                            emptyList()
+                        }
                     }
+                } else {
+                    emptyList()
+                }
+                
+                val timeline = ReadinessHelper.calculateContinuousFatigueTimeline(
+                    trainingData,
+                    config,
+                    externalActivities
+                )
+                
+                fatigueTimeline = timeline
+                
+                // Get current fatigue from timeline (accounts for all workouts in last 7 days)
+                val currentFatigue = ReadinessHelper.getCurrentFatigueFromTimeline(timeline, config)
 
-                    val swimReadiness = ReadinessHelper.getSwimStatus(fatigueScores, config)
-                    if (swimReadiness.timeUntilFresh != null) {
-                        updateCountdown(binding.textSwimCountdown, swimReadiness.timeUntilFresh)
-                    }
-
-                    val lowerLiftReadiness = ReadinessHelper.getLowerLiftStatus(fatigueScores, config)
-                    if (lowerLiftReadiness.timeUntilFresh != null) {
-                        updateCountdown(binding.textLowerLiftCountdown, lowerLiftReadiness.timeUntilFresh)
-                    }
-
-                    val upperLiftReadiness = ReadinessHelper.getUpperLiftStatus(fatigueScores, config)
-                    if (upperLiftReadiness.timeUntilFresh != null) {
-                        updateCountdown(binding.textUpperLiftCountdown, upperLiftReadiness.timeUntilFresh)
-                    }
+                // Update countdowns for all activities using timeline values
+                val runCycleReadiness = ReadinessHelper.getRunCycleStatus(currentFatigue, config)
+                if (runCycleReadiness.timeUntilFresh != null) {
+                    updateCountdown(binding.textRunCycleCountdown, runCycleReadiness.timeUntilFresh)
                 }
 
-                // Schedule next update in 1 minute
-                handler.postDelayed(this, 60_000L)
+                val swimReadiness = ReadinessHelper.getSwimStatus(currentFatigue, config)
+                if (swimReadiness.timeUntilFresh != null) {
+                    updateCountdown(binding.textSwimCountdown, swimReadiness.timeUntilFresh)
+                }
+
+                val lowerLiftReadiness = ReadinessHelper.getLowerLiftStatus(currentFatigue, config)
+                if (lowerLiftReadiness.timeUntilFresh != null) {
+                    updateCountdown(binding.textLowerLiftCountdown, lowerLiftReadiness.timeUntilFresh)
+                }
+
+                val upperLiftReadiness = ReadinessHelper.getUpperLiftStatus(currentFatigue, config)
+                if (upperLiftReadiness.timeUntilFresh != null) {
+                    updateCountdown(binding.textUpperLiftCountdown, upperLiftReadiness.timeUntilFresh)
+                }
+
+                // Wait 1 minute before next update
+                kotlinx.coroutines.delay(60_000L)
             }
         }
-        handler.post(updateRunnable!!)
     }
 
     private fun stopCountdownUpdates() {
-        updateRunnable?.let {
-            handler.removeCallbacks(it)
-            updateRunnable = null
-        }
+        // Coroutine cancellation is handled automatically by lifecycleScope
+        // No explicit cancellation needed as lifecycleScope cancels on onPause
     }
 
     private fun exportFatigueDataToFile() {
@@ -793,15 +849,23 @@ class ReadinessDashboardActivity : AppCompatActivity() {
                         ignoreWeekends = config.ignoreWeekends
                     )
                 ),
-                graphPoints = timeline.graphPoints.map { (timestamp, fatigueValue) ->
+                graphPoints = timeline.graphPoints.map { (timestamp, fatigueValues) ->
                     GraphPoint(
                         timestamp = timestamp,
                         timestampISO = isoDateFormat.format(Date(timestamp)),
                         timestampReadable = dateTimeFormat.format(Date(timestamp)),
-                        fatigueValue = fatigueValue
+                        fatigueValue = fatigueValues.systemicFatigue,
+                        lowerFatigue = fatigueValues.lowerFatigue,
+                        upperFatigue = fatigueValues.upperFatigue
                     )
                 },
-                dailyEndValues = timeline.dailyEndValues
+                dailyEndValues = timeline.dailyEndValues.mapValues { (_, fatigueValues) ->
+                    mapOf(
+                        "systemic" to fatigueValues.systemicFatigue,
+                        "lower" to fatigueValues.lowerFatigue,
+                        "upper" to fatigueValues.upperFatigue
+                    )
+                }
             )
 
             // Serialize to JSON with pretty printing
@@ -830,7 +894,7 @@ class ReadinessDashboardActivity : AppCompatActivity() {
     private data class FatigueExportData(
         val metadata: FatigueMetadata,
         val graphPoints: List<GraphPoint>,
-        val dailyEndValues: Map<String, Float>
+        val dailyEndValues: Map<String, Map<String, Float>>
     )
 
     private data class FatigueMetadata(
@@ -863,7 +927,9 @@ class ReadinessDashboardActivity : AppCompatActivity() {
         val timestamp: Long,
         val timestampISO: String,
         val timestampReadable: String,
-        val fatigueValue: Float
+        val fatigueValue: Float, // Systemic fatigue (for backward compatibility)
+        val lowerFatigue: Float,
+        val upperFatigue: Float
     )
 }
 

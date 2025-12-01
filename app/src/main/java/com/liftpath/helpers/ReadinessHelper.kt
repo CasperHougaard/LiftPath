@@ -50,11 +50,20 @@ data class FatigueScores(
 )
 
 /**
+ * Fatigue values at a point in time (lower, upper, systemic).
+ */
+data class FatigueValues(
+    val lowerFatigue: Float,
+    val upperFatigue: Float,
+    val systemicFatigue: Float
+)
+
+/**
  * Timeline data for continuous fatigue simulation.
  */
 data class FatigueTimeline(
-    val graphPoints: List<Pair<Long, Float>>, // (timestamp, fatigueValue) for chart
-    val dailyEndValues: Map<String, Float>    // (dateString, fatigueAtEndOfDay) for calendar
+    val graphPoints: List<Pair<Long, FatigueValues>>, // (timestamp, fatigueValues) for chart
+    val dailyEndValues: Map<String, FatigueValues>    // (dateString, fatigueValuesAtEndOfDay) for calendar
 )
 
 /**
@@ -706,16 +715,26 @@ object ReadinessHelper {
     }
 
     /**
+     * Data class to hold timeline events (both internal workouts and external activities)
+     */
+    data class TimelineEvent(
+        val timestamp: Long,
+        val impact: FatigueScores
+    )
+
+    /**
      * Calculates continuous fatigue timeline using hour-by-hour simulation (bucket method).
      * Accumulates fatigue from workouts and applies decay each hour.
      * 
      * @param trainingData The training data containing workouts
      * @param config The readiness configuration
+     * @param externalActivities Optional list of external activities from Health Connect
      * @return FatigueTimeline with graph points and daily end values
      */
     fun calculateContinuousFatigueTimeline(
         trainingData: TrainingData,
-        config: ReadinessConfig
+        config: ReadinessConfig,
+        externalActivities: List<ExternalActivity> = emptyList()
     ): FatigueTimeline {
         val dateFormat = java.text.SimpleDateFormat("yyyy/MM/dd", java.util.Locale.getDefault())
         val now = System.currentTimeMillis()
@@ -737,10 +756,12 @@ object ReadinessHelper {
         // Step size: 1 hour
         val stepSizeMs = 3600_000L
         
-        // Initialize simulation state
-        var currentStack = 0f
-        val graphPoints = mutableListOf<Pair<Long, Float>>()
-        val dailyEndValues = mutableMapOf<String, Float>()
+        // Initialize simulation state - track three separate stacks
+        var currentLowerStack = 0f
+        var currentUpperStack = 0f
+        var currentSystemicStack = 0f
+        val graphPoints = mutableListOf<Pair<Long, FatigueValues>>()
+        val dailyEndValues = mutableMapOf<String, FatigueValues>()
         
         // Pre-process workouts: map them to their end timestamps
         val workoutsByEndTime = mutableMapOf<Long, MutableList<TrainingSession>>()
@@ -764,6 +785,17 @@ object ReadinessHelper {
                 // Skip workouts with invalid dates
             }
         }
+
+        // Pre-process external activities: map them to their end timestamps
+        val externalActivitiesByEndTime = mutableMapOf<Long, MutableList<ExternalActivity>>()
+        externalActivities.forEach { activity ->
+            // Use the endTime from the activity (when fatigue is applied)
+            val activityEndTime = activity.endTime
+            
+            if (activityEndTime in startTime..endTime) {
+                externalActivitiesByEndTime.getOrPut(activityEndTime) { mutableListOf() }.add(activity)
+            }
+        }
         
         // Track last day processed for daily snapshots
         var lastDayStr = ""
@@ -777,27 +809,63 @@ object ReadinessHelper {
             
             workoutsByEndTime.forEach { (workoutEndTime, workouts) ->
                 if (workoutEndTime in hourStart until hourEnd) {
-                    // Workout occurred in this hour, add raw fatigue
+                    // Workout occurred in this hour, add raw fatigue to all three stacks
                     workouts.forEach { workout ->
                         val rawScores = calculateFatigueScores(workout, trainingData, config)
-                        currentStack += rawScores.systemicFatigue
+                        currentLowerStack += rawScores.lowerFatigue
+                        currentUpperStack += rawScores.upperFatigue
+                        currentSystemicStack += rawScores.systemicFatigue
+                    }
+                }
+            }
+
+            // Process external activities in this hour
+            externalActivitiesByEndTime.forEach { (activityTime, activities) ->
+                if (activityTime in hourStart until hourEnd) {
+                    // External activity occurred in this hour, add fatigue to stacks
+                    activities.forEach { activity ->
+                        currentLowerStack += activity.fatigue.lowerFatigue
+                        currentUpperStack += activity.fatigue.upperFatigue
+                        currentSystemicStack += activity.fatigue.systemicFatigue
                     }
                 }
             }
             
-            // 2. DECAY: Calculate decay for this hour
-            if (currentStack > 0f) {
-                val recoveryTimeMs = calculateRecoveryTime(currentStack, config)
+            // 2. DECAY: Calculate decay for each stack independently
+            if (currentLowerStack > 0f) {
+                val recoveryTimeMs = calculateRecoveryTime(currentLowerStack, config)
                 val recoveryTimeHours = recoveryTimeMs.toFloat() / stepSizeMs.toFloat()
-                
                 if (recoveryTimeHours > 0f) {
-                    val decayPerHour = currentStack / recoveryTimeHours
-                    currentStack = (currentStack - decayPerHour).coerceAtLeast(0f)
+                    val decayPerHour = currentLowerStack / recoveryTimeHours
+                    currentLowerStack = (currentLowerStack - decayPerHour).coerceAtLeast(0f)
                 }
             }
             
-            // 3. STORE: Add graph point
-            graphPoints.add(Pair(currentTime, currentStack))
+            if (currentUpperStack > 0f) {
+                val recoveryTimeMs = calculateRecoveryTime(currentUpperStack, config)
+                val recoveryTimeHours = recoveryTimeMs.toFloat() / stepSizeMs.toFloat()
+                if (recoveryTimeHours > 0f) {
+                    val decayPerHour = currentUpperStack / recoveryTimeHours
+                    currentUpperStack = (currentUpperStack - decayPerHour).coerceAtLeast(0f)
+                }
+            }
+            
+            if (currentSystemicStack > 0f) {
+                val recoveryTimeMs = calculateRecoveryTime(currentSystemicStack, config)
+                val recoveryTimeHours = recoveryTimeMs.toFloat() / stepSizeMs.toFloat()
+                if (recoveryTimeHours > 0f) {
+                    val decayPerHour = currentSystemicStack / recoveryTimeHours
+                    currentSystemicStack = (currentSystemicStack - decayPerHour).coerceAtLeast(0f)
+                }
+            }
+            
+            // 3. STORE: Add graph point with all three fatigue values
+            val currentFatigueValues = FatigueValues(
+                lowerFatigue = currentLowerStack,
+                upperFatigue = currentUpperStack,
+                systemicFatigue = currentSystemicStack
+            )
+            graphPoints.add(Pair(currentTime, currentFatigueValues))
             
             // 4. DAILY SNAPSHOT: Store end-of-day value
             val currentCalendar = java.util.Calendar.getInstance().apply {
@@ -808,7 +876,7 @@ object ReadinessHelper {
             
             // Store value at end of day (23:00 or last hour before midnight)
             if (hourOfDay == 23 || (hourOfDay == 22 && currentTime + stepSizeMs > endTime)) {
-                dailyEndValues[currentDayStr] = currentStack
+                dailyEndValues[currentDayStr] = currentFatigueValues
             } else if (currentDayStr != lastDayStr && lastDayStr.isNotEmpty()) {
                 // Store previous day's end value if we just moved to a new day
                 val prevCalendar = java.util.Calendar.getInstance().apply {
@@ -816,7 +884,7 @@ object ReadinessHelper {
                 }
                 val prevDayStr = dateFormat.format(prevCalendar.time)
                 if (!dailyEndValues.containsKey(prevDayStr)) {
-                    dailyEndValues[prevDayStr] = 0f // Default if no value stored
+                    dailyEndValues[prevDayStr] = FatigueValues(0f, 0f, 0f) // Default if no value stored
                 }
             }
             
@@ -835,13 +903,49 @@ object ReadinessHelper {
             calendar.add(java.util.Calendar.DAY_OF_YEAR, -i)
             val dateStr = dateFormat.format(calendar.time)
             if (!dailyEndValues.containsKey(dateStr)) {
-                dailyEndValues[dateStr] = 0f
+                dailyEndValues[dateStr] = FatigueValues(0f, 0f, 0f)
             }
         }
         
         return FatigueTimeline(
             graphPoints = graphPoints,
             dailyEndValues = dailyEndValues
+        )
+    }
+
+    /**
+     * Gets current fatigue values from the timeline by finding the last point before or at now,
+     * then applying decay based on time elapsed since that point.
+     * Returns FatigueScores with current lower, upper, and systemic fatigue values.
+     * 
+     * @param timeline The fatigue timeline to extract current values from
+     * @param config The readiness configuration for decay calculations
+     * @return FatigueScores with current fatigue values, or zero values if timeline is empty
+     */
+    fun getCurrentFatigueFromTimeline(timeline: FatigueTimeline, config: ReadinessConfig): FatigueScores {
+        if (timeline.graphPoints.isEmpty()) {
+            return FatigueScores(0f, 0f, 0f)
+        }
+        
+        val now = System.currentTimeMillis()
+        
+        // 1. Find the last known point before or at 'now', or the very last point if all are in past
+        val lastPoint = timeline.graphPoints.lastOrNull { it.first <= now } 
+            ?: timeline.graphPoints.last() // Use last point if we're after all points
+        
+        // 2. Calculate time elapsed since that point
+        val timeElapsedMs = now - lastPoint.first
+        
+        // 3. Apply decay for the time gap to get accurate "Right Now" value
+        // Use existing getDecayedScore function which handles proper decay logic
+        val decayedLower = getDecayedScore(lastPoint.second.lowerFatigue, timeElapsedMs, config)
+        val decayedUpper = getDecayedScore(lastPoint.second.upperFatigue, timeElapsedMs, config)
+        val decayedSystemic = getDecayedScore(lastPoint.second.systemicFatigue, timeElapsedMs, config)
+        
+        return FatigueScores(
+            lowerFatigue = decayedLower,
+            upperFatigue = decayedUpper,
+            systemicFatigue = decayedSystemic
         )
     }
 
