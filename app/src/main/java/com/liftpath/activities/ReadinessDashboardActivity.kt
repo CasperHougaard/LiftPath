@@ -337,33 +337,132 @@ class ReadinessDashboardActivity : AppCompatActivity() {
         val settings = settingsManager.getSettings()
         val config = ReadinessConfig.fromSettings(settings)
 
-        // Convert timeline graph points to chart entries (using systemic fatigue for chart)
-        val entries = timeline.graphPoints.map { point: Pair<Long, FatigueValues> ->
+        // Get activity timestamps (workouts and external activities)
+        val activityTimestamps = mutableSetOf<Long>()
+        val dateFormat = SimpleDateFormat("yyyy/MM/dd", Locale.getDefault())
+        
+        // Get workout timestamps
+        var trainingData = jsonHelper.readTrainingData()
+        if (trainingData.trainings.isEmpty()) {
+            trainingData = ReadinessHelper.createMockTrainingData()
+        }
+        
+        trainingData.trainings.forEach { workout ->
+            try {
+                val workoutDate = dateFormat.parse(workout.date) ?: return@forEach
+                val calendar = Calendar.getInstance().apply {
+                    time = workoutDate
+                    set(Calendar.HOUR_OF_DAY, 12) // Noon as workout start
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }
+                // Add duration if available
+                val workoutEndTime = calendar.timeInMillis + (workout.durationSeconds?.times(1000) ?: 0L)
+                activityTimestamps.add(workoutEndTime)
+            } catch (e: Exception) {
+                // Skip workouts with invalid dates
+            }
+        }
+        
+        // Get external activity timestamps (if Health Connect is enabled)
+        val useHealthConnect = healthConnectPrefs.getBoolean(HEALTH_CONNECT_ENABLED_KEY, false)
+        if (useHealthConnect) {
+            try {
+                val externalActivities = HealthConnectHelper.getStoredActivities(applicationContext)
+                externalActivities.forEach { activity ->
+                    activityTimestamps.add(activity.endTime)
+                }
+            } catch (e: Exception) {
+                // Skip if unable to load external activities
+            }
+        }
+        
+        // Use ALL graph points to show calculated decay values
+        val sortedGraphPoints = timeline.graphPoints.sortedBy { it.first }
+        val allEntries = sortedGraphPoints.map { point ->
             Entry(point.first.toFloat(), point.second.systemicFatigue)
         }
-
-        if (entries.isEmpty()) {
+        
+        // Identify which points correspond to activities (within 1 hour tolerance)
+        val activityPointIndices = mutableSetOf<Int>()
+        val oneHourMs = 3600_000L
+        
+        activityTimestamps.forEach { activityTime ->
+            sortedGraphPoints.forEachIndexed { index, point ->
+                if (kotlin.math.abs(point.first - activityTime) <= oneHourMs) {
+                    activityPointIndices.add(index)
+                }
+            }
+        }
+        
+        // Identify segments that need linear interpolation (2 hours before each activity)
+        val linearSegmentIndices = mutableSetOf<Int>()
+        val twoHoursMs = 2 * 3600_000L
+        activityTimestamps.forEach { activityTime ->
+            sortedGraphPoints.forEachIndexed { index, point ->
+                val timeDiff = activityTime - point.first
+                if (timeDiff > 0 && timeDiff <= twoHoursMs) {
+                    linearSegmentIndices.add(index)
+                }
+            }
+        }
+        
+        if (allEntries.isEmpty()) {
             binding.chartFatigue.visibility = View.GONE
             return
         }
 
         binding.chartFatigue.visibility = View.VISIBLE
 
-        val dataSet = LineDataSet(entries, "Systemic Fatigue")
         val primaryColor = ContextCompat.getColor(this, R.color.fitness_primary)
-        dataSet.color = primaryColor
-        dataSet.valueTextColor = ContextCompat.getColor(this, R.color.fitness_text_secondary)
-        dataSet.setCircleColor(primaryColor)
-        dataSet.circleRadius = 3f // Smaller for hourly data
-        dataSet.lineWidth = 2f
-        dataSet.setDrawValues(false)
-        dataSet.mode = LineDataSet.Mode.CUBIC_BEZIER
-        dataSet.cubicIntensity = 0.2f
-        dataSet.setDrawFilled(true)
-        dataSet.fillColor = primaryColor
-        dataSet.fillAlpha = 30
+        val lineData = LineData()
+        
+        // Use a single dataset with all points for perfect continuity
+        // Use LINEAR mode which will show all calculated values accurately connected
+        // LINEAR mode is appropriate since we're using all calculated hourly points
+        val mainDataSet = LineDataSet(allEntries, "Systemic Fatigue").apply {
+            color = primaryColor
+            valueTextColor = Color.DKGRAY
+            setCircleColor(primaryColor)
+            circleRadius = 0f
+            setDrawCircles(false)
+            lineWidth = 3.5f
+            setDrawValues(false)
+            mode = LineDataSet.Mode.LINEAR // Linear connects all points continuously
+            setDrawFilled(true)
+            fillColor = primaryColor
+            fillAlpha = 40
+            valueTextSize = 11f
+            formSize = 12f
+        }
+        lineData.addDataSet(mainDataSet)
 
-        val lineData = LineData(dataSet)
+        // Activity markers: single dataset with all activity points, configured to not draw lines
+        val activityEntries = activityPointIndices.mapNotNull { index ->
+            if (index < allEntries.size) {
+                allEntries[index]
+            } else {
+                null
+            }
+        }
+        
+        if (activityEntries.isNotEmpty()) {
+            val activityDataSet = LineDataSet(activityEntries, "Activities").apply {
+                color = Color.TRANSPARENT // Transparent line color to prevent line artifacts
+                setCircleColor(primaryColor)
+                circleRadius = 6f
+                setDrawCircles(true)
+                lineWidth = 0f
+                setDrawValues(false)
+                mode = LineDataSet.Mode.CUBIC_BEZIER
+                cubicIntensity = 0f
+                setDrawFilled(false)
+            }
+            lineData.addDataSet(activityDataSet)
+        }
+        
+        lineData.setValueTextSize(11f)
         binding.chartFatigue.data = lineData
 
         // Configure chart
@@ -374,12 +473,13 @@ class ReadinessDashboardActivity : AppCompatActivity() {
         binding.chartFatigue.setScaleEnabled(true)
         binding.chartFatigue.setPinchZoom(false)
 
-        // Configure X-axis
+        // Configure X-axis - match progression chart styling
         val xAxis = binding.chartFatigue.xAxis
         xAxis.position = XAxis.XAxisPosition.BOTTOM
-        xAxis.textSize = 10f
-        xAxis.textColor = ContextCompat.getColor(this, R.color.fitness_text_secondary)
-        xAxis.setLabelCount(7, true)
+        xAxis.textSize = 12f
+        xAxis.textColor = Color.parseColor("#616161")
+        xAxis.yOffset = 8f
+        xAxis.setLabelCount(minOf(allEntries.size, 8), true)
         xAxis.valueFormatter = object : ValueFormatter() {
             override fun getFormattedValue(value: Float): String {
                 return try {
@@ -390,20 +490,36 @@ class ReadinessDashboardActivity : AppCompatActivity() {
                 }
             }
         }
+        xAxis.labelRotationAngle = -45f
         xAxis.setDrawGridLines(true)
-        xAxis.gridColor = ContextCompat.getColor(this, R.color.fitness_chart_grid)
+        xAxis.gridColor = Color.parseColor("#E0E0E0")
+        xAxis.gridLineWidth = 1.5f
+        xAxis.enableGridDashedLine(12f, 8f, 0f)
         xAxis.setDrawAxisLine(true)
+        xAxis.axisLineColor = Color.parseColor("#9E9E9E")
+        xAxis.axisLineWidth = 1.5f
 
-        // Configure Y-axis
+        // Configure Y-axis - match progression chart styling
         val leftAxis = binding.chartFatigue.axisLeft
-        val maxFatigue = entries.maxOfOrNull { entry: Entry -> entry.y.toFloat() } ?: 80f
+        val maxFatigue = allEntries.maxOfOrNull { entry: Entry -> entry.y.toFloat() } ?: 80f
         leftAxis.axisMinimum = 0f
-        leftAxis.axisMaximum = (maxFatigue * 1.1f).coerceAtLeast(10f) // Add 10% padding
-        leftAxis.textSize = 10f
-        leftAxis.textColor = ContextCompat.getColor(this, R.color.fitness_text_secondary)
+        leftAxis.axisMaximum = (maxFatigue * 1.15f).coerceAtLeast(10f) // Add 15% padding like progression charts
+        leftAxis.textSize = 12f
+        leftAxis.textColor = Color.parseColor("#616161")
         leftAxis.setDrawGridLines(true)
-        leftAxis.gridColor = ContextCompat.getColor(this, R.color.fitness_chart_grid)
+        leftAxis.gridColor = Color.parseColor("#E0E0E0")
+        leftAxis.gridLineWidth = 1.5f
+        leftAxis.enableGridDashedLine(12f, 8f, 0f)
         leftAxis.setDrawZeroLine(true)
+        leftAxis.zeroLineColor = Color.parseColor("#9E9E9E")
+        leftAxis.zeroLineWidth = 2f
+        leftAxis.setLabelCount(6, true)
+        leftAxis.setDrawAxisLine(true)
+        leftAxis.axisLineColor = Color.parseColor("#9E9E9E")
+        leftAxis.axisLineWidth = 1.5f
+        leftAxis.setDrawLabels(true)
+        leftAxis.spaceTop = 5f
+        leftAxis.spaceBottom = 0f
 
         binding.chartFatigue.axisRight.isEnabled = false
         binding.chartFatigue.invalidate()
