@@ -1,6 +1,7 @@
 package com.liftpath.helpers
 
 import com.liftpath.models.*
+import kotlin.math.pow
 
 /**
  * Configuration object for readiness calculations.
@@ -229,31 +230,26 @@ object ReadinessHelper {
     }
 
     /**
-     * Applies linear decay to a fatigue score based on elapsed time.
+     * Applies exponential decay (half-life) to a fatigue score based on elapsed time.
      * 
      * @param originalScore The original fatigue score at workout completion
      * @param durationMs The time elapsed since the workout (in milliseconds)
      * @param config The readiness configuration containing recovery parameters
      * @return The decayed fatigue score (0 if fully recovered)
      * 
-     * Example: If score is 60 and recovery time is 24 hours, but 12 hours have passed,
-     * the returned score should be 30 (linear decay: 60 * (1 - 12/24) = 30)
+     * Uses 48-hour half-life exponential decay: decayedScore = originalScore * (0.5 ^ (hoursElapsed / 48.0))
+     * This matches biological CNS recovery patterns where recovery is rapid initially, then slows.
      */
     fun getDecayedScore(originalScore: Float, durationMs: Long, config: ReadinessConfig): Float {
         if (originalScore <= 0f) return 0f
         
-        // Calculate required recovery time for this score
-        val requiredRecoveryTime = calculateRecoveryTime(originalScore, config)
+        // Convert duration to hours
+        val hoursElapsed = durationMs.toFloat() / (3600f * 1000f)
         
-        // If duration exceeds recovery time, fully recovered
-        if (durationMs >= requiredRecoveryTime) {
-            return 0f
-        }
-        
-        // Linear decay: score decreases proportionally to time elapsed
-        // Formula: decayedScore = originalScore * (1 - durationMs / requiredRecoveryTime)
-        val decayRatio = 1f - (durationMs.toFloat() / requiredRecoveryTime.toFloat())
-        return (originalScore * decayRatio).coerceAtLeast(0f)
+        // Exponential decay with 48-hour half-life
+        // Formula: decayedScore = originalScore * (0.5 ^ (hoursElapsed / 48.0))
+        val decayFactor = 0.5.pow(hoursElapsed / 48.0).toFloat()
+        return (originalScore * decayFactor).coerceAtLeast(0f)
     }
 
     /**
@@ -521,7 +517,7 @@ object ReadinessHelper {
                 // Calculate elapsed time from workout date (start of day) to now
                 val elapsedTime = now - dateTime
                 
-                // Apply linear decay to the total fatigue
+                // Apply exponential decay (half-life) to the total fatigue
                 getDecayedScore(totalRawSystemicFatigue, elapsedTime, config)
             } else {
                 // No workout on this day - no fatigue
@@ -610,7 +606,7 @@ object ReadinessHelper {
                         // How long ago was this workout?
                         val durationSinceWorkout = currentTime - workoutEndTime
                         
-                        // Use your existing linear decay logic
+                        // Use exponential decay (half-life) logic
                         // This naturally handles "Stacking". If 3 workouts are decaying, 
                         // this adds up their remaining values.
                         val residualFatigue = getDecayedScore(
@@ -693,7 +689,7 @@ object ReadinessHelper {
             // Calculate elapsed time from workout date to now
             val elapsedTime = now - dateTime
             
-            // Apply linear decay
+            // Apply exponential decay (half-life)
             val decayedFatigue = if (rawFatigue > 0) {
                 getDecayedScore(rawFatigue, elapsedTime, config)
             } else {
@@ -831,32 +827,21 @@ object ReadinessHelper {
                 }
             }
             
-            // 2. DECAY: Calculate decay for each stack independently
+            // 2. DECAY: Apply exponential decay (half-life) to each stack independently
+            // Calculate hourly decay factor for 48-hour half-life
+            // This results in a 50% drop over 48 hours when applied each hour
+            val hourlyDecayFactor = 0.5.pow(1.0 / 48.0).toFloat()
+            
             if (currentLowerStack > 0f) {
-                val recoveryTimeMs = calculateRecoveryTime(currentLowerStack, config)
-                val recoveryTimeHours = recoveryTimeMs.toFloat() / stepSizeMs.toFloat()
-                if (recoveryTimeHours > 0f) {
-                    val decayPerHour = currentLowerStack / recoveryTimeHours
-                    currentLowerStack = (currentLowerStack - decayPerHour).coerceAtLeast(0f)
-                }
+                currentLowerStack *= hourlyDecayFactor
             }
             
             if (currentUpperStack > 0f) {
-                val recoveryTimeMs = calculateRecoveryTime(currentUpperStack, config)
-                val recoveryTimeHours = recoveryTimeMs.toFloat() / stepSizeMs.toFloat()
-                if (recoveryTimeHours > 0f) {
-                    val decayPerHour = currentUpperStack / recoveryTimeHours
-                    currentUpperStack = (currentUpperStack - decayPerHour).coerceAtLeast(0f)
-                }
+                currentUpperStack *= hourlyDecayFactor
             }
             
             if (currentSystemicStack > 0f) {
-                val recoveryTimeMs = calculateRecoveryTime(currentSystemicStack, config)
-                val recoveryTimeHours = recoveryTimeMs.toFloat() / stepSizeMs.toFloat()
-                if (recoveryTimeHours > 0f) {
-                    val decayPerHour = currentSystemicStack / recoveryTimeHours
-                    currentSystemicStack = (currentSystemicStack - decayPerHour).coerceAtLeast(0f)
-                }
+                currentSystemicStack *= hourlyDecayFactor
             }
             
             // 3. STORE: Add graph point with all three fatigue values

@@ -81,6 +81,9 @@ class ReadinessDashboardActivity : AppCompatActivity() {
         setupClickListeners()
         setupHealthConnectToggle()
         loadReadinessData()
+        
+        // Auto-sync Health Connect in the background
+        autoSyncHealthConnect()
     }
 
     override fun onResume() {
@@ -88,6 +91,9 @@ class ReadinessDashboardActivity : AppCompatActivity() {
         // Reload data when returning (e.g., from calibration settings)
         loadReadinessData()
         startCountdownUpdates()
+        
+        // Auto-sync Health Connect in the background
+        autoSyncHealthConnect()
     }
 
     override fun onPause() {
@@ -1047,5 +1053,32 @@ class ReadinessDashboardActivity : AppCompatActivity() {
         val lowerFatigue: Float,
         val upperFatigue: Float
     )
+
+    private fun autoSyncHealthConnect() {
+        // Check if Health Connect is enabled
+        val isEnabled = healthConnectPrefs.getBoolean(HEALTH_CONNECT_ENABLED_KEY, false)
+        
+        if (!isEnabled) {
+            return // Health Connect sync is disabled, skip
+        }
+        
+        // Check if Health Connect is available
+        if (!HealthConnectHelper.isAvailable(this)) {
+            return // Health Connect not available, skip
+        }
+        
+        // Perform sync in background (silently, no UI feedback)
+        lifecycleScope.launch {
+            HealthConnectHelper.autoSyncActivities(applicationContext).fold(
+                onSuccess = { newCount ->
+                    // Sync successful - reload data to include new activities
+                    loadReadinessData()
+                },
+                onFailure = { error ->
+                    // Sync failed silently (already logged in helper)
+                }
+            )
+        }
+    }
 }
 

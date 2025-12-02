@@ -18,8 +18,11 @@ import androidx.appcompat.app.AppCompatActivity
 import com.liftpath.databinding.ActivityMainBinding
 import com.liftpath.helpers.ActiveWorkoutDraftManager
 import com.liftpath.helpers.DialogHelper
+import com.liftpath.helpers.HealthConnectHelper
 import com.liftpath.helpers.JsonHelper
 import com.liftpath.helpers.showWithTransparentWindow
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import com.liftpath.models.ActiveWorkoutDraft
 import com.liftpath.models.ExerciseLibraryItem
 import com.liftpath.models.TrainingData
@@ -78,12 +81,18 @@ class MainActivity : AppCompatActivity() {
         setupBackgroundAnimation()
         runEntranceAnimations()
         updateStats()
+        
+        // Auto-sync Health Connect in the background
+        autoSyncHealthConnect()
     }
 
     override fun onResume() {
         super.onResume()
         // Refresh stats when returning from other activities (e.g., after deleting a training session)
         updateStats()
+        
+        // Auto-sync Health Connect in the background
+        autoSyncHealthConnect()
     }
 
     private fun setupBackgroundAnimation() {
@@ -661,6 +670,33 @@ class MainActivity : AppCompatActivity() {
             else -> {
                 ((paddedValue / 500).toInt() * 500 + 500).toFloat().coerceAtLeast(5000f)
             }
+        }
+    }
+    
+    private fun autoSyncHealthConnect() {
+        // Check if Health Connect is enabled
+        val healthConnectPrefs = getSharedPreferences("health_connect_settings", Context.MODE_PRIVATE)
+        val isEnabled = healthConnectPrefs.getBoolean("use_health_connect_data", false)
+        
+        if (!isEnabled) {
+            return // Health Connect sync is disabled, skip
+        }
+        
+        // Check if Health Connect is available
+        if (!HealthConnectHelper.isAvailable(this)) {
+            return // Health Connect not available, skip
+        }
+        
+        // Perform sync in background (silently, no UI feedback)
+        lifecycleScope.launch {
+            HealthConnectHelper.autoSyncActivities(applicationContext).fold(
+                onSuccess = { newCount ->
+                    // Sync successful, no UI feedback needed for auto-sync
+                },
+                onFailure = { error ->
+                    // Sync failed silently (already logged in helper)
+                }
+            )
         }
     }
     

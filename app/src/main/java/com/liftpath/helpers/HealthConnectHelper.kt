@@ -12,6 +12,8 @@ import java.time.temporal.ChronoUnit
 import com.liftpath.models.TrainingSession
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 object HealthConnectHelper {
 
@@ -234,6 +236,98 @@ object HealthConnectHelper {
         }
         
         return false
+    }
+
+    /**
+     * Auto-syncs Health Connect activities in the background.
+     * This function performs the same sync logic as the manual sync but silently.
+     * It checks permissions, fetches activities, deduplicates, checks overlaps, and stores them.
+     * 
+     * @param context Application context
+     * @param retentionDays Number of days to retain activities (default: 14)
+     * @return Result indicating success or failure (no UI feedback)
+     */
+    suspend fun autoSyncActivities(
+        context: Context,
+        retentionDays: Int = 14
+    ): Result<Int> = withContext(Dispatchers.IO) {
+        try {
+            // Check if Health Connect is available
+            if (!isAvailable(context)) {
+                return@withContext Result.failure(Exception("Health Connect is not available"))
+            }
+
+            // Check permissions
+            val client = getClient(context) ?: return@withContext Result.failure(Exception("Health Connect client unavailable"))
+            val granted = client.permissionController.getGrantedPermissions()
+            if (!granted.containsAll(PERMISSIONS)) {
+                return@withContext Result.failure(Exception("Health Connect permissions not granted"))
+            }
+
+            // Load existing stored activities
+            val storageHelper = HealthConnectStorageHelper(context)
+            val storage = storageHelper.readStoredActivities()
+            storage.retentionDays = retentionDays
+
+            val existingActivityIds = storage.activities.map { it.id }.toSet()
+
+            // Fetch new activities from Health Connect
+            val newActivities = readRecentExercises(context)
+
+            // Get workouts for overlap detection
+            val jsonHelper = JsonHelper(context)
+            val trainingData = jsonHelper.readTrainingData()
+            val workouts = trainingData.trainings
+
+            // Process new activities: deduplicate and check overlaps
+            val now = System.currentTimeMillis()
+            val retentionCutoff = now - (retentionDays * 24 * 60 * 60 * 1000L)
+
+            val activitiesToAdd = mutableListOf<StoredHealthConnectActivity>()
+
+            for (activity in newActivities) {
+                // Skip if already exists (deduplication)
+                if (activity.id in existingActivityIds) {
+                    continue
+                }
+
+                // Check for overlap with workouts
+                val hasOverlap = checkWorkoutOverlap(activity, workouts)
+
+                val storedActivity = StoredHealthConnectActivity(
+                    id = activity.id,
+                    startTime = activity.startTime,
+                    endTime = activity.endTime,
+                    type = activity.type,
+                    fatigue = activity.fatigue,
+                    syncedAt = now,
+                    ignored = hasOverlap,
+                    ignoreReason = if (hasOverlap) "Overlaps with registered workout" else null
+                )
+
+                activitiesToAdd.add(storedActivity)
+            }
+
+            // Add new activities to storage
+            storage.activities.addAll(activitiesToAdd)
+
+            // Filter out old activities (older than retention days)
+            val filteredActivities = storage.activities.filter { activity ->
+                activity.syncedAt >= retentionCutoff
+            }
+            storage.activities.clear()
+            storage.activities.addAll(filteredActivities)
+
+            // Update last sync time
+            storage.lastSyncTime = now
+
+            // Save to JSON
+            storageHelper.writeStoredActivities(storage)
+
+            Result.success(activitiesToAdd.size)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 }
 
