@@ -31,6 +31,12 @@ import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
 import com.github.mikephil.charting.formatter.ValueFormatter
+import com.liftpath.adapters.ChartCarouselAdapter
+import com.liftpath.adapters.ChartType
+import com.liftpath.adapters.ChartData
+import com.liftpath.helpers.ReadinessHelper
+import com.liftpath.helpers.ReadinessConfig
+import com.google.android.material.tabs.TabLayoutMediator
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -134,10 +140,10 @@ class MainActivity : AppCompatActivity() {
         binding.cardSquat.startAnimation(fadeUpStats)
         binding.cardDaysSince.startAnimation(fadeUpStats)
 
-        // 5. Chart (Fade Up Last)
+        // 5. Chart Carousel (Fade Up Last)
         val fadeUpChart = AnimationUtils.loadAnimation(this, com.liftpath.R.anim.fade_in_up)
         fadeUpChart.startOffset = 600
-        binding.cardVolumeChart.startAnimation(fadeUpChart)
+        binding.cardChartsCarousel.startAnimation(fadeUpChart)
     }
 
     private fun setupDefaultExercises() {
@@ -385,8 +391,8 @@ class MainActivity : AppCompatActivity() {
         binding.textDaysHeavy.text = if (daysSinceHeavy != null) daysSinceHeavy.toString() else "--"
         binding.textDaysLight.text = if (daysSinceLight != null) daysSinceLight.toString() else "--"
         
-        // Setup volume chart
-        setupVolumeChart(trainingData)
+        // Setup charts carousel
+        setupChartsCarousel(trainingData)
     }
     
     private fun showExerciseSelectionDialog(isLeftCard: Boolean) {
@@ -524,12 +530,11 @@ class MainActivity : AppCompatActivity() {
         }
     }
     
-    private fun setupVolumeChart(trainingData: TrainingData) {
+    private fun setupChartsCarousel(trainingData: TrainingData) {
         val dateFormat = SimpleDateFormat("yyyy/MM/dd", Locale.US)
-        val displayDateFormat = SimpleDateFormat("MM/dd", Locale.getDefault())
         
-        // Calculate total volume per session and parse dates in a single pass
-        val entries = trainingData.trainings
+        // Calculate volume chart data
+        val volumeEntries = trainingData.trainings
             .mapNotNull { session ->
                 val totalVolume = session.exercises.sumOf { (it.kg * it.reps).toDouble() }.toFloat()
                 try {
@@ -539,138 +544,129 @@ class MainActivity : AppCompatActivity() {
                     null
                 }
             }
-            .sortedBy { it.x } // Sort once after creation
+            .sortedBy { it.x }
         
-        if (entries.isEmpty()) {
-            binding.chartVolume.visibility = android.view.View.GONE
-            return
-        }
-        
-        binding.chartVolume.visibility = android.view.View.VISIBLE
-        
-        // Calculate maximum value for Y-axis
-        val maxEntryValue = entries.maxOfOrNull { it.y } ?: 0f
-        val niceMaximum = calculateNiceMaximum(maxEntryValue)
-        
-        val dataSet = LineDataSet(entries, "Volume (kg)")
-        dataSet.color = Color.parseColor("#4CAF50") // Green
-        dataSet.valueTextColor = Color.DKGRAY
-        dataSet.setCircleColor(Color.parseColor("#4CAF50"))
-        dataSet.circleRadius = 3f // Slightly smaller for better performance
-        dataSet.lineWidth = 2f // Slightly thinner for better performance
-        dataSet.setDrawValues(false)
-        // Use CUBIC_BEZIER for smooth curves
-        dataSet.mode = LineDataSet.Mode.CUBIC_BEZIER
-        dataSet.cubicIntensity = 0.2f
-        // Keep fill but simplify
-        dataSet.setDrawFilled(true)
-        dataSet.fillColor = Color.parseColor("#4CAF50")
-        dataSet.fillAlpha = 30
-        
-        val lineData = LineData(dataSet)
-        binding.chartVolume.data = lineData
-        
-        // Configure X-axis
-        val xAxis = binding.chartVolume.xAxis
-        xAxis.position = XAxis.XAxisPosition.BOTTOM
-        xAxis.textSize = 10f
-        xAxis.textColor = Color.parseColor("#616161")
-        xAxis.setLabelCount(minOf(entries.size, 6), true)
-        xAxis.valueFormatter = object : ValueFormatter() {
-            override fun getFormattedValue(value: Float): String {
-                return try {
-                    displayDateFormat.format(Date(value.toLong()))
+        // Calculate average RPE per session
+        val rpeEntries = trainingData.trainings
+            .mapNotNull { session ->
+                val rpeValues = session.exercises.mapNotNull { it.rpe }
+                if (rpeValues.isEmpty()) return@mapNotNull null
+                val avgRpe = rpeValues.average().toFloat()
+                try {
+                    val date = dateFormat.parse(session.date) ?: return@mapNotNull null
+                    Entry(date.time.toFloat(), avgRpe)
                 } catch (e: Exception) {
-                    ""
+                    null
                 }
             }
-        }
-        xAxis.labelRotationAngle = -45f
-        xAxis.setDrawGridLines(true)
-        xAxis.gridColor = Color.parseColor("#E0E0E0")
-        xAxis.gridLineWidth = 1f
-        // Use solid lines instead of dashed for better performance
-        xAxis.enableGridDashedLine(0f, 0f, 0f)
-        xAxis.setDrawAxisLine(true)
-        xAxis.axisLineColor = Color.parseColor("#9E9E9E")
-        xAxis.axisLineWidth = 1f
+            .sortedBy { it.x }
         
-        // Configure Y-axis
-        val leftAxis = binding.chartVolume.axisLeft
-        leftAxis.axisMinimum = 0f
-        leftAxis.axisMaximum = niceMaximum
-        leftAxis.textSize = 10f
-        leftAxis.textColor = Color.parseColor("#616161")
-        leftAxis.setDrawGridLines(true)
-        leftAxis.gridColor = Color.parseColor("#E0E0E0")
-        leftAxis.gridLineWidth = 1f
-        // Use solid lines instead of dashed for better performance
-        leftAxis.enableGridDashedLine(0f, 0f, 0f)
-        leftAxis.setDrawZeroLine(true)
-        leftAxis.zeroLineColor = Color.parseColor("#9E9E9E")
-        leftAxis.zeroLineWidth = 1f
-        leftAxis.setLabelCount(5, true)
-        leftAxis.setDrawAxisLine(true)
-        leftAxis.axisLineColor = Color.parseColor("#9E9E9E")
-        leftAxis.axisLineWidth = 1f
-        leftAxis.spaceTop = 5f
-        leftAxis.spaceBottom = 0f
+        // Calculate time consumption per session (in minutes)
+        val timeEntries = trainingData.trainings
+            .mapNotNull { session ->
+                val durationSeconds = session.durationSeconds
+                if (durationSeconds == null || durationSeconds <= 0) return@mapNotNull null
+                val durationMinutes = (durationSeconds / 60f)
+                try {
+                    val date = dateFormat.parse(session.date) ?: return@mapNotNull null
+                    Entry(date.time.toFloat(), durationMinutes)
+                } catch (e: Exception) {
+                    null
+                }
+            }
+            .sortedBy { it.x }
         
-        leftAxis.valueFormatter = object : ValueFormatter() {
-            override fun getFormattedValue(value: Float): String {
-                return String.format(Locale.US, "%.0f", value)
+        // Calculate raw fatigue per session - show all dates from last 28 days
+        val config = ReadinessConfig() // Use default config
+        
+        // Create a map of date -> (fatigue, workoutType)
+        val fatigueByDate = mutableMapOf<String, Pair<Float, String?>>()
+        
+        trainingData.trainings.forEach { session ->
+            try {
+                val sessionDate = dateFormat.parse(session.date) ?: return@forEach
+                val fatigueScores = ReadinessHelper.calculateFatigueScores(session, trainingData, config)
+                val rawFatigue = fatigueScores.systemicFatigue
+                if (rawFatigue > 0) {
+                    fatigueByDate[session.date] = Pair(rawFatigue, session.defaultWorkoutType)
+                }
+            } catch (e: Exception) {
+                // Skip invalid dates
             }
         }
         
-        binding.chartVolume.axisRight.isEnabled = false
+        // Generate all dates for the last 28 days
+        val calendar = java.util.Calendar.getInstance()
+        val today = calendar.time
+        val allDates = mutableListOf<Pair<Long, Pair<Float, String?>>>()
         
-        // Configure chart appearance
-        binding.chartVolume.description.isEnabled = false
-        binding.chartVolume.setBackgroundColor(Color.TRANSPARENT)
-        binding.chartVolume.setDrawGridBackground(false)
-        
-        // Disable legend for compact display
-        val legend = binding.chartVolume.legend
-        legend.isEnabled = false
-        
-        // Disable interactions - view only
-        binding.chartVolume.setTouchEnabled(false)
-        binding.chartVolume.setDragEnabled(false)
-        binding.chartVolume.setScaleEnabled(false)
-        binding.chartVolume.setPinchZoom(false)
-        binding.chartVolume.setDoubleTapToZoomEnabled(false)
-        
-        // Skip animation for instant rendering
-        // binding.chartVolume.animateX(200) // Removed for performance
-        
-        // Refresh chart
-        binding.chartVolume.invalidate()
-    }
-    
-    private fun calculateNiceMaximum(maxValue: Float): Float {
-        if (maxValue <= 0) return 1000f
-        
-        // Add 15% padding
-        val paddedValue = maxValue * 1.15f
-        
-        // Round up to nice numbers based on magnitude
-        return when {
-            paddedValue < 100 -> {
-                ((paddedValue / 10).toInt() * 10 + 10).toFloat().coerceAtLeast(50f)
-            }
-            paddedValue < 500 -> {
-                ((paddedValue / 25).toInt() * 25 + 25).toFloat().coerceAtLeast(100f)
-            }
-            paddedValue < 1000 -> {
-                ((paddedValue / 50).toInt() * 50 + 50).toFloat().coerceAtLeast(500f)
-            }
-            paddedValue < 5000 -> {
-                ((paddedValue / 250).toInt() * 250 + 250).toFloat().coerceAtLeast(1000f)
-            }
-            else -> {
-                ((paddedValue / 500).toInt() * 500 + 500).toFloat().coerceAtLeast(5000f)
-            }
+        for (i in 0 until 28) {
+            calendar.time = today
+            calendar.add(java.util.Calendar.DAY_OF_YEAR, -i)
+            val date = calendar.time
+            val dateStr = dateFormat.format(date)
+            val dateMillis = date.time
+            
+            val (fatigue, workoutType) = fatigueByDate[dateStr] ?: Pair(0f, null)
+            allDates.add(Pair(dateMillis, Pair(fatigue, workoutType)))
         }
+        
+        // Sort by date (oldest first)
+        allDates.sortBy { it.first }
+        
+        val fatigueEntries = allDates.map { (dateMillis, fatigueData) ->
+            Entry(dateMillis.toFloat(), fatigueData.first)
+        }
+        
+        val workoutTypes = allDates.map { it.second.second }
+        
+        // Create chart data list
+        val charts = listOf(
+            ChartData(
+                type = ChartType.VOLUME,
+                entries = volumeEntries,
+                title = "Volume Trends",
+                color = Color.parseColor("#4CAF50"), // Green
+                yAxisLabel = "Volume (kg)"
+            ),
+            ChartData(
+                type = ChartType.AVG_RPE,
+                entries = rpeEntries,
+                title = "Average RPE",
+                color = Color.parseColor("#FF9800"), // Orange
+                yAxisLabel = "RPE"
+            ),
+            ChartData(
+                type = ChartType.TIME_CONSUMPTION,
+                entries = timeEntries,
+                title = "Time Consumption",
+                color = Color.parseColor("#2196F3"), // Blue
+                yAxisLabel = "Time (min)"
+            ),
+            ChartData(
+                type = ChartType.FATIGUE,
+                entries = fatigueEntries,
+                title = "Raw Fatigue",
+                color = Color.parseColor("#F44336"), // Red (default, but will be overridden by color coding)
+                yAxisLabel = "Fatigue",
+                workoutTypes = workoutTypes
+            )
+        )
+        
+        // Setup ViewPager2
+        val adapter = ChartCarouselAdapter(charts)
+        binding.viewpagerCharts.adapter = adapter
+        
+        // Setup TabLayout
+        TabLayoutMediator(binding.tabLayoutCharts, binding.viewpagerCharts) { tab, position ->
+            tab.text = when (position) {
+                0 -> "Volume"
+                1 -> "RPE"
+                2 -> "Time"
+                3 -> "Fatigue"
+                else -> ""
+            }
+        }.attach()
     }
     
     private fun autoSyncHealthConnect() {

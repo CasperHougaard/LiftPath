@@ -27,8 +27,8 @@ android {
         applicationId = "com.liftpath"
         minSdk = 35
         targetSdk = 36
-        versionCode = 7
-        versionName = "1.02.005"
+        versionCode = 8
+        versionName = "1.02.006"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -100,6 +100,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
     implementation("androidx.health.connect:connect-client:1.1.0-alpha11")
+    implementation("androidx.viewpager2:viewpager2:1.1.0")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

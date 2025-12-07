@@ -622,11 +622,11 @@
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
-        <!-- CHART -->
+        <!-- CHART CAROUSEL -->
         <androidx.cardview.widget.CardView
-            android:id="@+id/card_volume_chart"
+            android:id="@+id/card_charts_carousel"
             android:layout_width="match_parent"
-            android:layout_height="280dp"
+            android:layout_height="320dp"
             android:layout_marginTop="24dp"
             android:layout_marginBottom="24dp"
             app:cardBackgroundColor="@color/fitness_card_background"
@@ -639,18 +639,23 @@
                 android:layout_height="match_parent"
                 android:orientation="vertical"
                 android:padding="16dp">
-                <TextView
-                    android:layout_width="wrap_content"
+                
+                <androidx.viewpager2.widget.ViewPager2
+                    android:id="@+id/viewpager_charts"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"/>
+                
+                <com.google.android.material.tabs.TabLayout
+                    android:id="@+id/tab_layout_charts"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Volume Trends"
-                    android:textColor="@color/fitness_text_primary"
-                    android:textStyle="bold"
-                    android:textSize="16sp"/>
-                 <com.github.mikephil.charting.charts.LineChart
-                     android:id="@+id/chart_volume"
-                     android:layout_width="match_parent"
-                     android:layout_height="match_parent"
-                     android:layout_marginTop="8dp"/>
+                    android:layout_marginTop="8dp"
+                    app:tabMode="fixed"
+                    app:tabGravity="fill"
+                    app:tabIndicatorColor="@color/fitness_primary"
+                    app:tabSelectedTextColor="@color/fitness_primary"
+                    app:tabTextColor="@color/fitness_text_secondary"/>
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
