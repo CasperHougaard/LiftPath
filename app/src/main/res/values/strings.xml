@@ -245,6 +245,7 @@
     <string name="validation_custom_rest">Custom rest must be between 5 and 600 seconds</string>
     <string name="validation_rpe_threshold">RPE threshold must be between 6.0 and 10.0</string>
     <string name="validation_rpe_bonus_rest">RPE bonus rest must be between 0 and 300 seconds</string>
+    <string name="validation_notification_auto_dismiss">Notification auto-dismiss must be between 1 and 60 seconds</string>
     
     <!-- Dialog Titles -->
     <string name="dialog_title_reset_data">Reset Data</string>

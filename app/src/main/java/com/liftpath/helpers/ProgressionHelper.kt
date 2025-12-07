@@ -53,7 +53,9 @@ object ProgressionHelper {
         val rpeNegativeAdjustmentSeconds: Int = 15,
         
         // Notification Settings
-        val notificationLiveCountdown: Boolean = false
+        val notificationLiveCountdown: Boolean = false,
+        val notificationAutoDismissEnabled: Boolean = false,
+        val notificationAutoDismissSeconds: Int = 10
     )
 
     data class ProgressionSuggestion(

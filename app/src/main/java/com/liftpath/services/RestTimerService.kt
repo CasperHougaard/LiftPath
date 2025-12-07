@@ -424,10 +424,14 @@ class RestTimerService : Service() {
             if (notificationManager.areNotificationsEnabled()) {
                 notificationManager.notify(COMPLETION_NOTIFICATION_ID, notification)
                 
-                // Auto-dismiss after 10 seconds
-                android.os.Handler(mainLooper).postDelayed({
-                    notificationManager.cancel(COMPLETION_NOTIFICATION_ID)
-                }, 10000)
+                // Auto-dismiss after configured time if enabled
+                val settings = ProgressionSettingsManager(this).getSettings()
+                if (settings.notificationAutoDismissEnabled) {
+                    val dismissDelayMs = settings.notificationAutoDismissSeconds * 1000L
+                    android.os.Handler(mainLooper).postDelayed({
+                        notificationManager.cancel(COMPLETION_NOTIFICATION_ID)
+                    }, dismissDelayMs)
+                }
             }
         } catch (e: SecurityException) {
             // Permission not granted, skip notification (vibration will still work)

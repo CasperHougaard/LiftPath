@@ -447,6 +447,68 @@
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
+                                android:text="Auto-Dismiss Notification"
+                                android:textSize="16sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/fitness_text_primary" />
+
+                            <androidx.appcompat.widget.SwitchCompat
+                                android:id="@+id/switchNotificationAutoDismiss"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:text="Automatically dismiss the completion notification after a set time"
+                            android:textSize="12sp"
+                            android:textColor="@color/fitness_text_secondary" />
+
+                        <LinearLayout
+                            android:id="@+id/layoutNotificationAutoDismissSettings"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:orientation="vertical">
+
+                            <com.google.android.material.textfield.TextInputLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:hint="Auto-Dismiss Time (seconds)"
+                                app:boxBackgroundMode="outline"
+                                app:boxStrokeColor="@color/fitness_primary"
+                                app:hintTextColor="@color/fitness_primary">
+
+                                <com.google.android.material.textfield.TextInputEditText
+                                    android:id="@+id/etNotificationAutoDismiss"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:inputType="number"
+                                    android:textColor="@color/fitness_text_primary" />
+                            </com.google.android.material.textfield.TextInputLayout>
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="8dp"
+                                android:text="How long the completion notification stays visible before auto-dismissing (default: 10 seconds)"
+                                android:textSize="12sp"
+                                android:textColor="@color/fitness_text_secondary" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="16dp"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
                                 android:text="RPE-Based Adjustment"
                                 android:textSize="16sp"
                                 android:textStyle="bold"

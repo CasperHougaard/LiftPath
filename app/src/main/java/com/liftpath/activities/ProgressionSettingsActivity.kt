@@ -164,10 +164,13 @@ class ProgressionSettingsActivity : AppCompatActivity() {
         binding.etRpeNegativeAdjustment.setText(settings.rpeNegativeAdjustmentSeconds.toString())
         
         binding.switchNotificationLiveCountdown.isChecked = settings.notificationLiveCountdown
+        binding.switchNotificationAutoDismiss.isChecked = settings.notificationAutoDismissEnabled
+        binding.etNotificationAutoDismiss.setText(settings.notificationAutoDismissSeconds.toString())
         
         // Visibility Toggles
         binding.layoutRestTimerSettings.visibility = if (settings.restTimerEnabled) View.VISIBLE else View.GONE
         binding.layoutRpeAdjustmentSettings.visibility = if (settings.rpeAdjustmentEnabled) View.VISIBLE else View.GONE
+        binding.layoutNotificationAutoDismissSettings.visibility = if (settings.notificationAutoDismissEnabled) View.VISIBLE else View.GONE
         
         updateTimerCalculationInfo()
     }
@@ -187,6 +190,10 @@ class ProgressionSettingsActivity : AppCompatActivity() {
         
         binding.switchRpeAdjustment.setOnCheckedChangeListener { _, isChecked ->
             binding.layoutRpeAdjustmentSettings.visibility = if (isChecked) View.VISIBLE else View.GONE
+        }
+        
+        binding.switchNotificationAutoDismiss.setOnCheckedChangeListener { _, isChecked ->
+            binding.layoutNotificationAutoDismissSettings.visibility = if (isChecked) View.VISIBLE else View.GONE
         }
         
         // Focus listeners for info updates
@@ -305,7 +312,9 @@ class ProgressionSettingsActivity : AppCompatActivity() {
                 rpeDeviationThreshold = binding.etRpeDeviationThreshold.text.toString().toFloat(),
                 rpePositiveAdjustmentSeconds = binding.etRpePositiveAdjustment.text.toString().toInt(),
                 rpeNegativeAdjustmentSeconds = binding.etRpeNegativeAdjustment.text.toString().toInt(),
-                notificationLiveCountdown = binding.switchNotificationLiveCountdown.isChecked
+                notificationLiveCountdown = binding.switchNotificationLiveCountdown.isChecked,
+                notificationAutoDismissEnabled = binding.switchNotificationAutoDismiss.isChecked,
+                notificationAutoDismissSeconds = binding.etNotificationAutoDismiss.text.toString().toInt()
             )
 
             if (!validateSettings(settings)) {
@@ -343,6 +352,10 @@ class ProgressionSettingsActivity : AppCompatActivity() {
             }
             settings.lightRestSeconds < 5 || settings.lightRestSeconds > 600 -> {
                 Toast.makeText(this, getString(R.string.validation_light_rest), Toast.LENGTH_LONG).show()
+                return false
+            }
+            settings.notificationAutoDismissEnabled && (settings.notificationAutoDismissSeconds < 1 || settings.notificationAutoDismissSeconds > 60) -> {
+                Toast.makeText(this, getString(R.string.validation_notification_auto_dismiss), Toast.LENGTH_LONG).show()
                 return false
             }
         }
