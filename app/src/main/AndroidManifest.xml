@@ -9,26 +9,26 @@
     <permission android:name="com.liftpath.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" android:protectionLevel="signature"/>
     <uses-permission android:name="com.liftpath.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"/>
     <application android:allowBackup="true" android:appComponentFactory="androidx.core.app.CoreComponentFactory" android:dataExtractionRules="@xml/data_extraction_rules" android:extractNativeLibs="false" android:fullBackupContent="@xml/backup_rules" android:icon="@mipmap/ic_launcher" android:label="@string/app_name" android:roundIcon="@mipmap/ic_launcher_round" android:supportsRtl="true" android:theme="@style/Theme.Fitness">
-        <activity android:exported="false" android:name="com.liftpath.activities.EditSetActivity"/>
-        <activity android:exported="false" android:name="com.liftpath.activities.SettingsActivity"/>
-        <activity android:exported="false" android:label="Progression Settings" android:name="com.liftpath.activities.ProgressionSettingsActivity" android:parentActivityName="com.liftpath.activities.SettingsActivity"/>
-        <activity android:exported="false" android:name="com.liftpath.activities.RestTimerDialogActivity" android:showOnLockScreen="true" android:theme="@style/Theme.AppCompat.Dialog" android:turnScreenOn="true"/>
-        <activity android:exported="false" android:name="com.liftpath.activities.TrainingDetailActivity"/>
-        <activity android:exported="false" android:name="com.liftpath.activities.HistoryActivity"/>
-        <activity android:exported="false" android:name="com.liftpath.activities.ProgressActivity"/>
-        <activity android:exported="false" android:label="Progress Settings" android:name="com.liftpath.activities.ProgressSettingsActivity" android:parentActivityName="com.liftpath.activities.ProgressActivity"/>
-        <activity android:exported="false" android:name="com.liftpath.activities.EditActivityActivity"/>
-        <activity android:exported="false" android:name="com.liftpath.activities.EditExerciseActivity"/>
-        <activity android:exported="false" android:name="com.liftpath.activities.LogSetActivity" android:windowSoftInputMode="adjustResize"/>
-        <activity android:exported="false" android:name="com.liftpath.activities.SelectExerciseActivity"/>
-        <activity android:exported="false" android:name="com.liftpath.activities.ActiveTrainingActivity"/>
-        <activity android:exported="false" android:name="com.liftpath.activities.ExercisesActivity"/>
-        <activity android:exported="false" android:name="com.liftpath.activities.WorkoutPlansActivity"/>
-        <activity android:exported="false" android:name="com.liftpath.activities.EditWorkoutPlanActivity"/>
-        <activity android:exported="false" android:name="com.liftpath.activities.SelectExercisesForPlanActivity"/>
-        <activity android:exported="false" android:name="com.liftpath.activities.ReadinessDashboardActivity"/>
-        <activity android:exported="false" android:label="Readiness Calibration" android:name="com.liftpath.activities.ReadinessCalibrationActivity" android:parentActivityName="com.liftpath.activities.ReadinessDashboardActivity"/>
-        <activity android:exported="false" android:label="Health Connect" android:name="com.liftpath.activities.HealthConnectActivity" android:parentActivityName="com.liftpath.activities.ReadinessDashboardActivity"/>
+        <activity android:exported="false" android:name="com.liftpath.activities.EditSetActivity" android:screenOrientation="portrait"/>
+        <activity android:exported="false" android:name="com.liftpath.activities.SettingsActivity" android:screenOrientation="portrait"/>
+        <activity android:exported="false" android:label="Progression Settings" android:name="com.liftpath.activities.ProgressionSettingsActivity" android:parentActivityName="com.liftpath.activities.SettingsActivity" android:screenOrientation="portrait"/>
+        <activity android:exported="false" android:name="com.liftpath.activities.RestTimerDialogActivity" android:showOnLockScreen="true" android:theme="@style/Theme.AppCompat.Dialog" android:turnScreenOn="true" android:screenOrientation="portrait"/>
+        <activity android:exported="false" android:name="com.liftpath.activities.TrainingDetailActivity" android:screenOrientation="portrait"/>
+        <activity android:exported="false" android:name="com.liftpath.activities.HistoryActivity" android:screenOrientation="portrait"/>
+        <activity android:exported="false" android:name="com.liftpath.activities.ProgressActivity" android:screenOrientation="portrait"/>
+        <activity android:exported="false" android:label="Progress Settings" android:name="com.liftpath.activities.ProgressSettingsActivity" android:parentActivityName="com.liftpath.activities.ProgressActivity" android:screenOrientation="portrait"/>
+        <activity android:exported="false" android:name="com.liftpath.activities.EditActivityActivity" android:screenOrientation="portrait"/>
+        <activity android:exported="false" android:name="com.liftpath.activities.EditExerciseActivity" android:screenOrientation="portrait"/>
+        <activity android:exported="false" android:name="com.liftpath.activities.LogSetActivity" android:windowSoftInputMode="adjustResize" android:screenOrientation="portrait"/>
+        <activity android:exported="false" android:name="com.liftpath.activities.SelectExerciseActivity" android:screenOrientation="portrait"/>
+        <activity android:exported="false" android:name="com.liftpath.activities.ActiveTrainingActivity" android:screenOrientation="portrait"/>
+        <activity android:exported="false" android:name="com.liftpath.activities.ExercisesActivity" android:screenOrientation="portrait"/>
+        <activity android:exported="false" android:name="com.liftpath.activities.WorkoutPlansActivity" android:screenOrientation="portrait"/>
+        <activity android:exported="false" android:name="com.liftpath.activities.EditWorkoutPlanActivity" android:screenOrientation="portrait"/>
+        <activity android:exported="false" android:name="com.liftpath.activities.SelectExercisesForPlanActivity" android:screenOrientation="portrait"/>
+        <activity android:exported="false" android:name="com.liftpath.activities.ReadinessDashboardActivity" android:screenOrientation="portrait"/>
+        <activity android:exported="false" android:label="Readiness Calibration" android:name="com.liftpath.activities.ReadinessCalibrationActivity" android:parentActivityName="com.liftpath.activities.ReadinessDashboardActivity" android:screenOrientation="portrait"/>
+        <activity android:exported="false" android:label="Health Connect" android:name="com.liftpath.activities.HealthConnectActivity" android:parentActivityName="com.liftpath.activities.ReadinessDashboardActivity" android:screenOrientation="portrait"/>
         <activity-alias
             android:name="ViewPermissionUsageActivity"
             android:exported="true"
@@ -39,7 +39,7 @@
                 <category android:name="android.intent.category.HEALTH_PERMISSIONS"/>
             </intent-filter>
         </activity-alias>
-        <activity android:exported="true" android:name="com.liftpath.activities.MainActivity">
+        <activity android:exported="true" android:name="com.liftpath.activities.MainActivity" android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
