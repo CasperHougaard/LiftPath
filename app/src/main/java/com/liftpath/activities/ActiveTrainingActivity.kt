@@ -159,6 +159,7 @@ class ActiveTrainingActivity : AppCompatActivity() {
         workoutType = intent.getStringExtra(EXTRA_WORKOUT_TYPE) ?: "heavy"
         val resumeRequested = intent.getBooleanExtra(EXTRA_RESUME_DRAFT, false)
         val shouldAutoGenerate = intent.getBooleanExtra(EXTRA_AUTO_GENERATE, false)
+        val planId = intent.getStringExtra(EXTRA_PLAN_ID)
         val isCustomWorkout = workoutType == "custom"
 
         updateTitle()
@@ -176,11 +177,19 @@ class ActiveTrainingActivity : AppCompatActivity() {
             maybeRestoreDraft(forceResume = true)
         } else if (draftManager.hasDraft()) {
             maybeRestoreDraft(forceResume = false)
-        } else if (!isCustomWorkout && shouldAutoGenerate) {
-            showSmartWorkoutSetupDialog()
         } else {
-            // Start workout timer if no draft to restore and no dialogs to show
-            startWorkoutTimer()
+            // Apply plan if provided (before auto-generate dialog)
+            if (planId != null) {
+                applyPlanById(planId)
+            }
+            
+            // Show auto-generate dialog if needed (after plan is applied)
+            if (!isCustomWorkout && shouldAutoGenerate) {
+                showSmartWorkoutSetupDialog()
+            } else {
+                // Start workout timer if no draft to restore and no dialogs to show
+                startWorkoutTimer()
+            }
         }
     }
 
@@ -341,7 +350,7 @@ class ActiveTrainingActivity : AppCompatActivity() {
             .showWithTransparentWindow()
     }
 
-    private fun applyPlan(plan: WorkoutPlan) {
+    private fun applyPlan(plan: WorkoutPlan, showToast: Boolean = true) {
         appliedPlanId = plan.id
         appliedPlanName = plan.name
         // If current workout is custom, keep it as custom (don't change to plan's workout type)
@@ -400,7 +409,9 @@ class ActiveTrainingActivity : AppCompatActivity() {
 
         adapter.notifyDataSetChanged()
         persistDraft()
-        Toast.makeText(this, "Plan \"$appliedPlanName\" applied", Toast.LENGTH_SHORT).show()
+        if (showToast) {
+            Toast.makeText(this, "Plan \"$appliedPlanName\" applied", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun removePlan() {
@@ -414,6 +425,22 @@ class ActiveTrainingActivity : AppCompatActivity() {
         adapter.notifyDataSetChanged()
         persistDraft()
         Toast.makeText(this, "Plan removed", Toast.LENGTH_SHORT).show()
+    }
+
+    /**
+     * Loads and applies a plan by its ID. Used when plan is passed via intent.
+     * Suppresses toast notification since it's auto-applied on startup.
+     */
+    private fun applyPlanById(planId: String) {
+        val trainingData = jsonHelper.readTrainingData()
+        val plan = trainingData.workoutPlans.find { it.id == planId }
+        
+        if (plan != null) {
+            applyPlan(plan, showToast = false)
+        } else {
+            // Plan not found - log error but don't crash
+            android.util.Log.e(TAG, "Plan with ID $planId not found")
+        }
     }
 
     private fun updatePlanButtonState() {
@@ -1163,5 +1190,6 @@ class ActiveTrainingActivity : AppCompatActivity() {
         const val EXTRA_WORKOUT_TYPE = "WORKOUT_TYPE"
         const val EXTRA_RESUME_DRAFT = "RESUME_DRAFT"
         const val EXTRA_AUTO_GENERATE = "AUTO_GENERATE"
+        const val EXTRA_PLAN_ID = "PLAN_ID"
     }
 }

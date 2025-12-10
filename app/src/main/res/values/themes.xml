@@ -89,4 +89,10 @@
         <item name="android:textColorPrimary">@color/fitness_text_primary</item>
         <item name="android:textColorSecondary">@color/fitness_text_secondary</item>
     </style>
+    
+    <!-- Animation style for top sheet dialog (slides down from top) -->
+    <style name="TopSheetDialogAnimation">
+        <item name="android:windowEnterAnimation">@anim/slide_down_in</item>
+        <item name="android:windowExitAnimation">@anim/slide_down_out</item>
+    </style>
 </resources>

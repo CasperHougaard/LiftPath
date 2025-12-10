@@ -37,6 +37,7 @@ import com.liftpath.adapters.ChartData
 import com.liftpath.helpers.ReadinessHelper
 import com.liftpath.helpers.ReadinessConfig
 import com.google.android.material.tabs.TabLayoutMediator
+import com.liftpath.components.SelectWorkoutModeBottomSheet
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -285,24 +286,23 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showWorkoutModeDialog() {
-        val detectedType = detectNextWorkoutType()
-        val typeLabel = detectedType.replaceFirstChar { 
-            if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() 
-        }
-        
-        DialogHelper.createBuilder(this)
-            .setTitle(getString(R.string.dialog_title_select_workout_mode))
-            .setMessage("Detected next workout: $typeLabel\n\nContinue with plan progression or create a custom workout?")
-            .setPositiveButton("Continue Plan") { _, _ ->
-                // Launch with auto-generate enabled for "Continue Plan"
-                launchActiveWorkout(detectedType, resumeDraft = false, autoGenerate = true)
+        showWorkoutModeBottomSheet()
+    }
+
+    private fun showWorkoutModeBottomSheet() {
+        val bottomSheet = SelectWorkoutModeBottomSheet.newInstance(
+            onCustomSelected = {
+                launchActiveWorkout("custom", resumeDraft = false, autoGenerate = false, planId = null)
+            },
+            onPlanSelected = { plan ->
+                launchActiveWorkout(plan.workoutType, resumeDraft = false, autoGenerate = false, planId = plan.id)
+            },
+            onAutoSelected = {
+                val detectedType = detectNextWorkoutType()
+                launchActiveWorkout(detectedType, resumeDraft = false, autoGenerate = true, planId = null)
             }
-            .setNeutralButton("Custom") { _, _ ->
-                // Custom workouts don't auto-generate
-                launchActiveWorkout("custom", resumeDraft = false, autoGenerate = false)
-            }
-            .setNegativeButton(getString(R.string.button_cancel), null)
-            .showWithTransparentWindow()
+        )
+        bottomSheet.show(supportFragmentManager, "SelectWorkoutModeBottomSheet")
     }
 
     private fun startWorkoutWithType(workoutType: String, skipDraftPrompt: Boolean = false, autoGenerate: Boolean = false) {
@@ -327,7 +327,7 @@ class MainActivity : AppCompatActivity() {
             }
             .setNegativeButton(getString(R.string.button_start_new)) { _, _ ->
                 draftManager.clearDraft()
-                showWorkoutModeDialog()
+                showWorkoutModeBottomSheet()
             }
             .setNeutralButton(getString(R.string.button_cancel), null)
             .showWithTransparentWindow()
@@ -350,11 +350,14 @@ class MainActivity : AppCompatActivity() {
             .showWithTransparentWindow()
     }
 
-    private fun launchActiveWorkout(workoutType: String, resumeDraft: Boolean, autoGenerate: Boolean = false) {
+    private fun launchActiveWorkout(workoutType: String, resumeDraft: Boolean, autoGenerate: Boolean = false, planId: String? = null) {
         val intent = Intent(this, ActiveTrainingActivity::class.java).apply {
             putExtra(ActiveTrainingActivity.EXTRA_WORKOUT_TYPE, workoutType)
             putExtra(ActiveTrainingActivity.EXTRA_RESUME_DRAFT, resumeDraft)
             putExtra(ActiveTrainingActivity.EXTRA_AUTO_GENERATE, autoGenerate)
+            if (planId != null) {
+                putExtra(ActiveTrainingActivity.EXTRA_PLAN_ID, planId)
+            }
         }
         startWorkoutForResult.launch(intent)
     }
