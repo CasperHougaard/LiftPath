@@ -230,15 +230,17 @@ object ReadinessHelper {
     }
 
     /**
-     * Applies exponential decay (half-life) to a fatigue score based on elapsed time.
+     * Applies decay to a fatigue score based on elapsed time.
+     * Uses exponential decay for the first 48 hours, then switches to linear decay.
      * 
      * @param originalScore The original fatigue score at workout completion
      * @param durationMs The time elapsed since the workout (in milliseconds)
      * @param config The readiness configuration containing recovery parameters
      * @return The decayed fatigue score (0 if fully recovered)
      * 
-     * Uses 48-hour half-life exponential decay: decayedScore = originalScore * (0.5 ^ (hoursElapsed / 48.0))
-     * This matches biological CNS recovery patterns where recovery is rapid initially, then slows.
+     * First 48 hours: Exponential decay with 48-hour half-life
+     * After 48 hours: Linear decay at 1.5% per day (0.0625% per hour)
+     * This matches biological recovery patterns: rapid initial recovery, then slower linear decay.
      */
     fun getDecayedScore(originalScore: Float, durationMs: Long, config: ReadinessConfig): Float {
         if (originalScore <= 0f) return 0f
@@ -246,10 +248,24 @@ object ReadinessHelper {
         // Convert duration to hours
         val hoursElapsed = durationMs.toFloat() / (3600f * 1000f)
         
-        // Exponential decay with 48-hour half-life
-        // Formula: decayedScore = originalScore * (0.5 ^ (hoursElapsed / 48.0))
-        val decayFactor = 0.5.pow(hoursElapsed / 48.0).toFloat()
-        return (originalScore * decayFactor).coerceAtLeast(0f)
+        val decayedScore = if (hoursElapsed <= 48f) {
+            // First 48 hours: Exponential decay with 48-hour half-life
+            // Formula: decayedScore = originalScore * (0.5 ^ (hoursElapsed / 48.0))
+            val decayFactor = 0.5.pow(hoursElapsed / 48.0).toFloat()
+            originalScore * decayFactor
+        } else {
+            // After 48 hours: Linear decay
+            // Calculate the value at 48 hours using exponential decay
+            val valueAt48Hours = originalScore * 0.5f // 50% remaining after 48 hours
+            
+            // Linear decay rate: 1.5% per day = 0.0625% per hour
+            // Formula: decayedScore = valueAt48Hours * (1 - (hoursElapsed - 48) * 0.000625)
+            val hoursAfter48 = hoursElapsed - 48f
+            val linearDecayFactor = (1f - hoursAfter48 * 0.000625f).coerceAtLeast(0f)
+            valueAt48Hours * linearDecayFactor
+        }
+        
+        return decayedScore.coerceAtLeast(0f)
     }
 
     /**
@@ -735,19 +751,19 @@ object ReadinessHelper {
         val dateFormat = java.text.SimpleDateFormat("yyyy/MM/dd", java.util.Locale.getDefault())
         val now = System.currentTimeMillis()
         
-        // Start time: 7 days ago at midnight
+        // Start time: 28 days ago at midnight (for calculation, but calendar still shows 7 days)
         val startCalendar = java.util.Calendar.getInstance().apply {
             time = java.util.Date()
             set(java.util.Calendar.HOUR_OF_DAY, 0)
             set(java.util.Calendar.MINUTE, 0)
             set(java.util.Calendar.SECOND, 0)
             set(java.util.Calendar.MILLISECOND, 0)
-            add(java.util.Calendar.DAY_OF_YEAR, -7)
+            add(java.util.Calendar.DAY_OF_YEAR, -28)
         }
         val startTime = startCalendar.timeInMillis
         
-        // End time: Now + 48 hours
-        val endTime = now + (48 * 3600_000L)
+        // End time: Now + 2 days (48 hours)
+        val endTime = now + (2 * 24 * 3600_000L)
         
         // Step size: 1 hour
         val stepSizeMs = 3600_000L
@@ -797,54 +813,46 @@ object ReadinessHelper {
         var lastDayStr = ""
         
         // Hour-by-hour simulation
+        // Instead of bucket method, calculate decay for each workout at each time point
+        // This ensures accurate exponential->linear decay transition for each workout
         var currentTime = startTime
         while (currentTime <= endTime) {
-            // 1. ACCUMULATE: Check if any workout ended in this hour
-            val hourStart = currentTime
-            val hourEnd = currentTime + stepSizeMs
+            // Calculate accumulated fatigue at this time point by summing decayed values
+            // from all workouts and activities that occurred before this time
+            var currentLowerStack = 0f
+            var currentUpperStack = 0f
+            var currentSystemicStack = 0f
             
+            // Sum decayed fatigue from all workouts
             workoutsByEndTime.forEach { (workoutEndTime, workouts) ->
-                if (workoutEndTime in hourStart until hourEnd) {
-                    // Workout occurred in this hour, add raw fatigue to all three stacks
+                if (workoutEndTime < currentTime) {
                     workouts.forEach { workout ->
                         val rawScores = calculateFatigueScores(workout, trainingData, config)
-                        currentLowerStack += rawScores.lowerFatigue
-                        currentUpperStack += rawScores.upperFatigue
-                        currentSystemicStack += rawScores.systemicFatigue
+                        val timeSinceWorkout = currentTime - workoutEndTime
+                        
+                        // Apply decay using getDecayedScore for accurate exponential->linear transition
+                        currentLowerStack += getDecayedScore(rawScores.lowerFatigue, timeSinceWorkout, config)
+                        currentUpperStack += getDecayedScore(rawScores.upperFatigue, timeSinceWorkout, config)
+                        currentSystemicStack += getDecayedScore(rawScores.systemicFatigue, timeSinceWorkout, config)
                     }
                 }
             }
-
-            // Process external activities in this hour
+            
+            // Sum decayed fatigue from all external activities
             externalActivitiesByEndTime.forEach { (activityTime, activities) ->
-                if (activityTime in hourStart until hourEnd) {
-                    // External activity occurred in this hour, add fatigue to stacks
+                if (activityTime < currentTime) {
                     activities.forEach { activity ->
-                        currentLowerStack += activity.fatigue.lowerFatigue
-                        currentUpperStack += activity.fatigue.upperFatigue
-                        currentSystemicStack += activity.fatigue.systemicFatigue
+                        val timeSinceActivity = currentTime - activityTime
+                        
+                        // Apply decay to external activity fatigue
+                        currentLowerStack += getDecayedScore(activity.fatigue.lowerFatigue, timeSinceActivity, config)
+                        currentUpperStack += getDecayedScore(activity.fatigue.upperFatigue, timeSinceActivity, config)
+                        currentSystemicStack += getDecayedScore(activity.fatigue.systemicFatigue, timeSinceActivity, config)
                     }
                 }
             }
             
-            // 2. DECAY: Apply exponential decay (half-life) to each stack independently
-            // Calculate hourly decay factor for 48-hour half-life
-            // This results in a 50% drop over 48 hours when applied each hour
-            val hourlyDecayFactor = 0.5.pow(1.0 / 48.0).toFloat()
-            
-            if (currentLowerStack > 0f) {
-                currentLowerStack *= hourlyDecayFactor
-            }
-            
-            if (currentUpperStack > 0f) {
-                currentUpperStack *= hourlyDecayFactor
-            }
-            
-            if (currentSystemicStack > 0f) {
-                currentSystemicStack *= hourlyDecayFactor
-            }
-            
-            // 3. STORE: Add graph point with all three fatigue values
+            // STORE: Add graph point with all three fatigue values
             val currentFatigueValues = FatigueValues(
                 lowerFatigue = currentLowerStack,
                 upperFatigue = currentUpperStack,

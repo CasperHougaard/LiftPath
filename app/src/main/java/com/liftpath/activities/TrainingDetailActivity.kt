@@ -69,6 +69,34 @@ class TrainingDetailActivity : AppCompatActivity() {
         }
     }
 
+    private val selectExerciseLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val exerciseId = result.data?.getIntExtra(SelectExerciseActivity.EXTRA_EXERCISE_ID, -1) ?: -1
+            val exerciseName = result.data?.getStringExtra(SelectExerciseActivity.EXTRA_EXERCISE_NAME) ?: ""
+            val exerciseType = result.data?.getStringExtra(SelectExerciseActivity.EXTRA_SELECTED_WORKOUT_TYPE) ?: trainingSession.defaultWorkoutType ?: "heavy"
+
+            if (exerciseId != -1 && exerciseName.isNotEmpty()) {
+                // Launch LogSetActivity to add the first set for this new exercise
+                launchLogSetActivity(exerciseId, exerciseName, exerciseType, isNewExercise = true)
+            }
+        }
+    }
+
+    private val logSetLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val loggedSet = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                result.data?.getParcelableExtra(LogSetActivity.EXTRA_LOGGED_SET, ExerciseEntry::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                result.data?.getParcelableExtra(LogSetActivity.EXTRA_LOGGED_SET)
+            }
+
+            if (loggedSet != null) {
+                addSetToSession(loggedSet)
+            }
+        }
+    }
+
     companion object {
         const val EXTRA_TRAINING_SESSION = "extra_training_session"
     }
@@ -122,6 +150,10 @@ class TrainingDetailActivity : AppCompatActivity() {
         binding.buttonEditDuration.setOnClickListener {
             showEditDurationDialog()
         }
+
+        binding.buttonAddExercise.setOnClickListener {
+            launchSelectExerciseActivity()
+        }
     }
 
     private fun setupRecyclerView() {
@@ -155,6 +187,10 @@ class TrainingDetailActivity : AppCompatActivity() {
                     putExtra(com.liftpath.activities.EditActivityActivity.EXTRA_EXERCISE_NAME, groupedExercise.exerciseName)
                 }
                 editActivityLauncher.launch(intent)
+            },
+            onAddSetClicked = { groupedExercise ->
+                val exerciseType = groupedExercise.sets.firstOrNull()?.workoutType ?: trainingSession.defaultWorkoutType ?: "heavy"
+                launchLogSetActivity(groupedExercise.exerciseId, groupedExercise.exerciseName, exerciseType, isNewExercise = false)
             }
         )
     }
@@ -280,5 +316,53 @@ class TrainingDetailActivity : AppCompatActivity() {
             }
             .setNegativeButton("Cancel", null)
             .showWithTransparentWindow()
+    }
+
+    private fun launchSelectExerciseActivity() {
+        val alreadyAddedExerciseIds = trainingSession.exercises.map { it.exerciseId }.distinct().toIntArray()
+        val intent = Intent(this, SelectExerciseActivity::class.java).apply {
+            putExtra(SelectExerciseActivity.EXTRA_WORKOUT_TYPE, trainingSession.defaultWorkoutType ?: "heavy")
+            putExtra(SelectExerciseActivity.EXTRA_ALREADY_ADDED_EXERCISE_IDS, alreadyAddedExerciseIds)
+        }
+        selectExerciseLauncher.launch(intent)
+    }
+
+    private fun launchLogSetActivity(exerciseId: Int, exerciseName: String, workoutType: String, isNewExercise: Boolean) {
+        val setNumber = if (isNewExercise) {
+            1
+        } else {
+            val maxSetNumber = trainingSession.exercises
+                .filter { it.exerciseId == exerciseId }
+                .maxByOrNull { it.setNumber }?.setNumber ?: 0
+            maxSetNumber + 1
+        }
+
+        // Get last logged values for this exercise from training history
+        val trainingData = jsonHelper.readTrainingData()
+        val lastEntry = trainingData.trainings
+            .flatMap { it.exercises }
+            .filter { it.exerciseId == exerciseId }
+            .lastOrNull()
+
+        val intent = Intent(this, LogSetActivity::class.java).apply {
+            putExtra(LogSetActivity.EXTRA_EXERCISE_ID, exerciseId)
+            putExtra(LogSetActivity.EXTRA_EXERCISE_NAME, exerciseName)
+            putExtra(LogSetActivity.EXTRA_SET_NUMBER, setNumber)
+            putExtra(LogSetActivity.EXTRA_WORKOUT_TYPE, workoutType)
+            
+            // Pass last logged values if available
+            lastEntry?.let {
+                putExtra(LogSetActivity.EXTRA_LAST_LOGGED_KG, it.kg)
+                putExtra(LogSetActivity.EXTRA_LAST_LOGGED_REPS, it.reps)
+            }
+        }
+        logSetLauncher.launch(intent)
+    }
+
+    private fun addSetToSession(loggedSet: ExerciseEntry) {
+        trainingSession.exercises.add(loggedSet)
+        persistTrainingSession()
+        setupRecyclerView()
+        Toast.makeText(this, "Set added to workout", Toast.LENGTH_SHORT).show()
     }
 }

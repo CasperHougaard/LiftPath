@@ -20,7 +20,8 @@ class TrainingDetailAdapter(
     private val sessionDefaultType: String?,
     private val onEditSetClicked: (ExerciseEntry) -> Unit,
     private val onChangeTypeClicked: (GroupedExercise) -> Unit,
-    private val onEditActivityClicked: (GroupedExercise) -> Unit
+    private val onEditActivityClicked: (GroupedExercise) -> Unit,
+    private val onAddSetClicked: (GroupedExercise) -> Unit
 ) : RecyclerView.Adapter<TrainingDetailAdapter.ViewHolder>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -38,6 +39,9 @@ class TrainingDetailAdapter(
         }
         holder.binding.buttonChangeType.setOnClickListener {
             onChangeTypeClicked(groupedExercise)
+        }
+        holder.binding.buttonAddSet?.setOnClickListener {
+            onAddSetClicked(groupedExercise)
         }
 
         holder.binding.setsContainer.removeAllViews()

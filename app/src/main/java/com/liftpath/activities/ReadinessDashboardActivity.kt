@@ -386,8 +386,19 @@ class ReadinessDashboardActivity : AppCompatActivity() {
         
         // Use ALL graph points to show calculated decay values
         val sortedGraphPoints = timeline.graphPoints.sortedBy { it.first }
-        val allEntries = sortedGraphPoints.map { point ->
-            Entry(point.first.toFloat(), point.second.systemicFatigue)
+        val now = System.currentTimeMillis()
+        
+        // Split entries into past (solid line) and future (dotted line)
+        val pastEntries = mutableListOf<Entry>()
+        val futureEntries = mutableListOf<Entry>()
+        
+        sortedGraphPoints.forEach { point ->
+            val entry = Entry(point.first.toFloat(), point.second.systemicFatigue)
+            if (point.first <= now) {
+                pastEntries.add(entry)
+            } else {
+                futureEntries.add(entry)
+            }
         }
         
         // Identify which points correspond to activities (within 1 hour tolerance)
@@ -402,19 +413,7 @@ class ReadinessDashboardActivity : AppCompatActivity() {
             }
         }
         
-        // Identify segments that need linear interpolation (2 hours before each activity)
-        val linearSegmentIndices = mutableSetOf<Int>()
-        val twoHoursMs = 2 * 3600_000L
-        activityTimestamps.forEach { activityTime ->
-            sortedGraphPoints.forEachIndexed { index, point ->
-                val timeDiff = activityTime - point.first
-                if (timeDiff > 0 && timeDiff <= twoHoursMs) {
-                    linearSegmentIndices.add(index)
-                }
-            }
-        }
-        
-        if (allEntries.isEmpty()) {
+        if (pastEntries.isEmpty() && futureEntries.isEmpty()) {
             binding.chartFatigue.visibility = View.GONE
             return
         }
@@ -424,25 +423,47 @@ class ReadinessDashboardActivity : AppCompatActivity() {
         val primaryColor = ContextCompat.getColor(this, R.color.fitness_primary)
         val lineData = LineData()
         
-        // Use a single dataset with all points for perfect continuity
-        // Use LINEAR mode which will show all calculated values accurately connected
-        // LINEAR mode is appropriate since we're using all calculated hourly points
-        val mainDataSet = LineDataSet(allEntries, "Systemic Fatigue").apply {
-            color = primaryColor
-            valueTextColor = Color.DKGRAY
-            setCircleColor(primaryColor)
-            circleRadius = 0f
-            setDrawCircles(false)
-            lineWidth = 3.5f
-            setDrawValues(false)
-            mode = LineDataSet.Mode.LINEAR // Linear connects all points continuously
-            setDrawFilled(true)
-            fillColor = primaryColor
-            fillAlpha = 40
-            valueTextSize = 11f
-            formSize = 12f
+        // Past data: solid line
+        if (pastEntries.isNotEmpty()) {
+            val pastDataSet = LineDataSet(pastEntries, "Systemic Fatigue").apply {
+                color = primaryColor
+                valueTextColor = Color.DKGRAY
+                setCircleColor(primaryColor)
+                circleRadius = 0f
+                setDrawCircles(false)
+                lineWidth = 3.5f
+                setDrawValues(false)
+                mode = LineDataSet.Mode.LINEAR
+                setDrawFilled(true)
+                fillColor = primaryColor
+                fillAlpha = 40
+                valueTextSize = 11f
+                formSize = 12f
+            }
+            lineData.addDataSet(pastDataSet)
         }
-        lineData.addDataSet(mainDataSet)
+        
+        // Future data: dotted line (2 days forward)
+        if (futureEntries.isNotEmpty()) {
+            val futureDataSet = LineDataSet(futureEntries, "Projected Fatigue").apply {
+                color = primaryColor
+                valueTextColor = Color.DKGRAY
+                setCircleColor(primaryColor)
+                circleRadius = 0f
+                setDrawCircles(false)
+                lineWidth = 3.5f
+                setDrawValues(false)
+                mode = LineDataSet.Mode.LINEAR
+                setDrawFilled(false) // No fill for future projection
+                enableDashedLine(15f, 10f, 0f) // Dashed line: 15px dash, 10px gap
+                valueTextSize = 11f
+                formSize = 12f
+            }
+            lineData.addDataSet(futureDataSet)
+        }
+        
+        // Combine all entries for activity markers
+        val allEntries = pastEntries + futureEntries
 
         // Activity markers: single dataset with all activity points, configured to not draw lines
         val activityEntries = activityPointIndices.mapNotNull { index ->
@@ -485,7 +506,7 @@ class ReadinessDashboardActivity : AppCompatActivity() {
         xAxis.textSize = 12f
         xAxis.textColor = Color.parseColor("#616161")
         xAxis.yOffset = 8f
-        xAxis.setLabelCount(minOf(allEntries.size, 8), true)
+        xAxis.setLabelCount(minOf((pastEntries + futureEntries).size, 12), true)
         xAxis.valueFormatter = object : ValueFormatter() {
             override fun getFormattedValue(value: Float): String {
                 return try {
@@ -507,7 +528,7 @@ class ReadinessDashboardActivity : AppCompatActivity() {
 
         // Configure Y-axis - match progression chart styling
         val leftAxis = binding.chartFatigue.axisLeft
-        val maxFatigue = allEntries.maxOfOrNull { entry: Entry -> entry.y.toFloat() } ?: 80f
+        val maxFatigue = (pastEntries + futureEntries).maxOfOrNull { entry: Entry -> entry.y.toFloat() } ?: 80f
         leftAxis.axisMinimum = 0f
         leftAxis.axisMaximum = (maxFatigue * 1.15f).coerceAtLeast(10f) // Add 15% padding like progression charts
         leftAxis.textSize = 12f

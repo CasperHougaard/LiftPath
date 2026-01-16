@@ -76,6 +76,7 @@
                 android:layout_width="0dp"
                 android:layout_height="40dp"
                 android:layout_marginStart="6dp"
+                android:layout_marginEnd="6dp"
                 android:layout_weight="1"
                 android:clickable="true"
                 android:focusable="true"
@@ -92,6 +93,30 @@
                     android:gravity="center"
                     android:text="Change Type"
                     android:textColor="@color/fitness_text_primary"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+            </androidx.cardview.widget.CardView>
+
+            <!-- Add Set Button -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/button_add_set"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="6dp"
+                android:layout_weight="1"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground"
+                app:cardBackgroundColor="@color/fitness_primary"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="0dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text="Add Set"
+                    android:textColor="@color/white"
                     android:textSize="13sp"
                     android:textStyle="bold" />
             </androidx.cardview.widget.CardView>
