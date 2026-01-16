@@ -1,6 +1,6 @@
 # Fitness App Design Philosophy & Guidelines
 
-This document outlines the design philosophy and implementation guidelines for the fitness app, derived from the established patterns in `activity_main.xml` and `activity_progress.xml`.
+This document outlines the complete design system and implementation guidelines for the fitness app, derived from the established patterns in `activity_main.xml`, `activity_progress.xml`, and throughout the app.
 
 ## Design Philosophy
 
@@ -11,6 +11,7 @@ This document outlines the design philosophy and implementation guidelines for t
 4. **Color-Coded Information**: Use a consistent color system to convey meaning and importance
 5. **Animated Background**: Subtle background animation (`avd_background_flow`) provides visual interest without distraction
 6. **Accessibility First**: All interactive elements are properly sized and have content descriptions
+7. **Dark Mode Support**: Full dark mode support with appropriate color adjustments for readability
 
 ## Layout Structure
 
@@ -57,6 +58,48 @@ This document outlines the design philosophy and implementation guidelines for t
 - Set `clipChildren="false"` and `clipToPadding="false"` to allow visual overflow
 
 ## Color System
+
+### Color Palette (Light Mode / Day)
+
+| Color Resource | Hex Code | Usage | Examples |
+|---------------|----------|-------|----------|
+| `@color/fitness_background` | `#F3F4F6` | Root container background | Main activity background |
+| `@color/fitness_card_background` | `#FFFFFF` | Card backgrounds | All CardView backgrounds |
+| `@color/fitness_text_primary` | `#111827` | Primary text, icons | Titles, main content, primary icons |
+| `@color/fitness_text_secondary` | `#6B7280` | Secondary text, subtle icons | Subtitles, hints, secondary icons |
+| `@color/fitness_primary` | `#2563EB` | Primary actions, highlights | Hero buttons, primary stat values, primary icons |
+| `@color/fitness_primary_dark` | `#1E40AF` | Darker primary variant | Alternative stat values |
+| `@color/fitness_accent` | `#F59E0B` | Accent elements | Secondary icons, accent stat values |
+| `@color/white` | `#FFFFFF` | Text on primary background | Text on hero cards |
+
+### Color Palette (Dark Mode / Night)
+
+| Color Resource | Hex Code | Usage | Examples |
+|---------------|----------|-------|----------|
+| `@color/fitness_background` | `#111827` | Root container background | Main activity background |
+| `@color/fitness_card_background` | `#1F2937` | Card backgrounds | All CardView backgrounds |
+| `@color/fitness_text_primary` | `#F9FAFB` | Primary text, icons | Titles, main content, primary icons |
+| `@color/fitness_text_secondary` | `#9CA3AF` | Secondary text, subtle icons | Subtitles, hints, secondary icons |
+| `@color/fitness_primary` | `#60A5FA` | Primary actions, highlights | Hero buttons, primary stat values, primary icons |
+| `@color/fitness_primary_dark` | `#3B82F6` | Darker primary variant | Alternative stat values |
+| `@color/fitness_accent` | `#FBBF24` | Accent elements | Secondary icons, accent stat values |
+
+### Semantic Colors (Light / Dark)
+
+These colors automatically adapt for dark mode:
+
+| Color Resource | Light Mode | Dark Mode | Usage |
+|---------------|------------|-----------|-------|
+| `@color/fitness_info_banner_background` | `#E0E7FF` | `#312E81` | Info banner backgrounds |
+| `@color/fitness_info_banner_border` | `#6366F1` | `#818CF8` | Info banner borders |
+| `@color/fitness_warning_background` | `#FEF3C7` | `#78350F` | Warning banner backgrounds |
+| `@color/fitness_warning_border` | `#F59E0B` | `#FCD34D` | Warning banner borders |
+| `@color/fitness_highlight_background` | `#D1FAE5` | `#064E3B` | Success/highlight backgrounds |
+| `@color/fitness_highlight_border` | `#10B981` | `#34D399` | Success/highlight borders |
+| `@color/fitness_error_background` | `#FEE2E2` | `#7F1D1D` | Error banner backgrounds |
+| `@color/fitness_error_border` | `#EF4444` | `#F87171` | Error banner borders |
+| `@color/fitness_chart_grid` | `#E0E0E0` | `#374151` | Chart grid lines |
+| `@color/mesh_color` | `#50000000` | `#50FFFFFF` | Background animation mesh color |
 
 ### Color Usage Guidelines
 
@@ -865,6 +908,303 @@ When creating grid layouts:
     app:tabTextColor="@color/fitness_text_secondary" />
 ```
 
+## Banner Patterns
+
+### Info Banner Pattern
+For informational messages and tips:
+
+```xml
+<androidx.cardview.widget.CardView
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="12dp"
+    app:cardBackgroundColor="@color/fitness_info_banner_background"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="2dp">
+    
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="12dp">
+        
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/ic_info_outline_24"
+            app:tint="@color/fitness_info_banner_border" />
+        
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:textColor="@color/fitness_info_banner_border"
+            android:textSize="13sp" />
+    </LinearLayout>
+</androidx.cardview.widget.CardView>
+```
+
+### Warning Banner Pattern (Dismissible)
+For warnings that can be dismissed:
+
+```xml
+<androidx.cardview.widget.CardView
+    android:id="@+id/card_warning"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="12dp"
+    android:visibility="gone"
+    app:cardBackgroundColor="@color/fitness_warning_background"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="2dp">
+    
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="12dp">
+        
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/ic_info_outline_24"
+            app:tint="@color/fitness_warning_border" />
+        
+        <TextView
+            android:id="@+id/text_warning"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:textColor="@color/fitness_warning_border"
+            android:textSize="13sp" />
+        
+        <ImageButton
+            android:id="@+id/button_dismiss_warning"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Dismiss warning"
+            android:src="@drawable/ic_close_24"
+            app:tint="@color/fitness_warning_border" />
+    </LinearLayout>
+</androidx.cardview.widget.CardView>
+```
+
+### Highlight/Success Banner Pattern
+For success messages and positive highlights:
+
+```xml
+<androidx.cardview.widget.CardView
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="12dp"
+    app:cardBackgroundColor="@color/fitness_highlight_background"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="2dp">
+    
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="12dp">
+        
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/ic_check"
+            app:tint="@color/fitness_highlight_border" />
+        
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:textColor="@color/fitness_highlight_border"
+            android:textSize="13sp" />
+    </LinearLayout>
+</androidx.cardview.widget.CardView>
+```
+
+### Error Banner Pattern
+For error messages:
+
+```xml
+<androidx.cardview.widget.CardView
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="12dp"
+    app:cardBackgroundColor="@color/fitness_error_background"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="2dp">
+    
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="12dp">
+        
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/ic_close_24"
+            app:tint="@color/fitness_error_border" />
+        
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:textColor="@color/fitness_error_border"
+            android:textSize="13sp" />
+    </LinearLayout>
+</androidx.cardview.widget.CardView>
+```
+
+**Banner Guidelines:**
+- All banners: 12dp corner radius, 2dp elevation
+- Padding: 12dp internal padding
+- Icon size: 20dp for banner icons
+- Text size: 13sp, uses border color for text
+- Icon-text spacing: 8dp margin between icon and text
+- Dismissible banners include a 24dp close button with borderless ripple
+
+## Tile Selection Pattern
+
+### Unselected Tile
+For toggleable selection tiles (e.g., exercise type selection):
+
+```xml
+<androidx.cardview.widget.CardView
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    app:cardBackgroundColor="@color/fitness_background"
+    app:cardCornerRadius="8dp"
+    app:cardElevation="0dp">
+    
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/tile_unselected"
+        android:paddingStart="12dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="12dp"
+        android:paddingBottom="8dp"
+        android:textColor="@color/fitness_primary"
+        android:textSize="14sp" />
+</androidx.cardview.widget.CardView>
+```
+
+### Selected Tile
+```xml
+<androidx.cardview.widget.CardView
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    app:cardBackgroundColor="@color/fitness_primary"
+    app:cardCornerRadius="8dp"
+    app:cardElevation="0dp">
+    
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/tile_selected"
+        android:paddingStart="12dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="12dp"
+        android:paddingBottom="8dp"
+        android:textColor="@color/white"
+        android:textSize="14sp"
+        android:textStyle="bold" />
+</androidx.cardview.widget.CardView>
+```
+
+**Tile Guidelines:**
+- Unselected: Background color, 1dp primary color stroke, primary text color
+- Selected: Primary background color, white text, bold
+- Corner radius: 8dp for tiles
+- Padding: 12dp horizontal, 8dp vertical
+- Text size: 14sp
+
+## Dialog System
+
+### MaterialAlertDialog Styling
+The app uses custom-styled MaterialAlertDialog with the theme `@style/ThemeOverlay.Fitness.MaterialAlertDialog`.
+
+**Dialog Specifications:**
+- Corner radius: 24dp (`@dimen/dialog_corner_radius`)
+- Background: `@color/fitness_card_background` (adapts to dark mode)
+- Title: 20sp, bold, `@color/fitness_text_primary`
+- Body text: 15sp, `@color/fitness_text_primary`
+- Buttons: 15sp, bold, `@color/fitness_primary`
+- Background drawable: `@drawable/bg_dialog_rounded`
+
+**Usage:**
+```kotlin
+MaterialAlertDialogBuilder(context, R.style.ThemeOverlay_Fitness_MaterialAlertDialog)
+    .setTitle("Dialog Title")
+    .setMessage("Dialog message")
+    .setPositiveButton("Confirm", null)
+    .setNegativeButton("Cancel", null)
+    .show()
+```
+
+### BottomSheetDialog Styling
+For bottom sheets, use `@style/ThemeOverlay.Fitness.BottomSheetDialog`:
+
+```kotlin
+BottomSheetDialog(context, R.style.ThemeOverlay_Fitness_BottomSheetDialog)
+```
+
+## Background Animation
+
+### Animated Background Pattern
+All screens include a subtle animated background using `@drawable/avd_background_flow`:
+
+```xml
+<ImageView
+    android:id="@+id/image_bg_animation"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:alpha="1.0"
+    android:scaleType="centerCrop"
+    app:srcCompat="@drawable/avd_background_flow" />
+```
+
+**Guidelines:**
+- Always place as first child in the root ConstraintLayout
+- Full screen coverage (`match_parent` for both dimensions)
+- Alpha: 1.0 (subtle but visible)
+- Scale type: `centerCrop` for proper coverage
+- Animation drawable: `avd_background_flow.xml`
+- Mesh color adapts to light/dark mode via `@color/mesh_color`
+
+## Theme System
+
+### Base Theme
+The app uses `Theme.Fitness` which extends `Theme.MaterialComponents.DayNight.NoActionBar`, providing automatic dark mode support.
+
+**Theme Attributes:**
+- `colorPrimary`: `@color/fitness_primary`
+- `colorPrimaryVariant`: `@color/fitness_primary_dark`
+- `colorOnPrimary`: `@color/white`
+- `colorSecondary`: `@color/fitness_accent`
+- `android:windowBackground`: `@color/fitness_background`
+- `colorSurface`: `@color/fitness_card_background`
+- `android:textColorPrimary`: `@color/fitness_text_primary`
+- `android:textColorSecondary`: `@color/fitness_text_secondary`
+- `android:statusBarColor`: `@color/fitness_background`
+- `android:windowLightStatusBar`: `true` (light mode) / `false` (dark mode)
+
+**Status Bar:**
+- Light mode: Light status bar (`windowLightStatusBar="true"`)
+- Dark mode: Dark status bar (`windowLightStatusBar="false"`)
+- Status bar color matches background color
+
 ## Best Practices
 
 ### Do's
@@ -878,37 +1218,95 @@ When creating grid layouts:
 ✅ Use string resources for all text content  
 ✅ Follow the elevation hierarchy for visual depth  
 ✅ Place primary action buttons (Save/Cancel, Confirm/Dismiss) at the bottom of the screen  
+✅ Use semantic colors for banners (info, warning, error, success)  
+✅ Test designs in both light and dark modes  
+✅ Use appropriate status bar styling for each mode  
 
 ### Don'ts
 ❌ Don't use arbitrary spacing values - stick to the spacing scale  
 ❌ Don't mix different corner radius values arbitrarily  
-❌ Don't use hardcoded colors  
+❌ Don't use hardcoded colors - always use color resources  
 ❌ Don't skip the background animation  
 ❌ Don't forget to make cards clickable when they should be interactive  
 ❌ Don't use inconsistent icon sizes within the same context  
 ❌ Don't forget to set `minHeight` on stat cards for consistency  
 ❌ Don't place action buttons inline with content - use fixed bottom positioning  
+❌ Don't hardcode banner colors - use semantic color resources  
+❌ Don't forget to hide dismissible banners with `visibility="gone"` initially  
 
 ## Implementation Checklist
 
 When creating a new screen or component:
 
+### Layout Structure
 - [ ] Root ConstraintLayout with `@color/fitness_background`
-- [ ] Background animation ImageView as first child
-- [ ] NestedScrollView for scrollable content
+- [ ] Background animation ImageView as first child (`avd_background_flow`)
+- [ ] NestedScrollView for scrollable content (transparent background)
 - [ ] 24dp padding on main container
+- [ ] `clipChildren="false"` and `clipToPadding="false"` on containers
+
+### Cards & Components
 - [ ] Cards use appropriate elevation (2dp, 4dp, 6dp, 8dp)
 - [ ] Cards use appropriate corner radius (20dp or 24dp)
+- [ ] Interactive cards have click handlers and ripple effects
+- [ ] Stat cards have `minHeight="120dp"` for consistency
+
+### Typography & Colors
 - [ ] Text sizes follow typography scale
-- [ ] Colors use the color system resources
-- [ ] Spacing follows the spacing scale
+- [ ] Colors use the color system resources (never hardcoded)
+- [ ] Primary text uses `@color/fitness_text_primary`
+- [ ] Secondary text uses `@color/fitness_text_secondary`
 - [ ] Icons are properly sized and tinted
-- [ ] Interactive elements have proper click handlers
-- [ ] Content descriptions provided for accessibility
-- [ ] String resources used for all text
+
+### Spacing & Layout
+- [ ] Spacing follows the spacing scale (4dp, 8dp, 12dp, 16dp, 20dp, 24dp, 32dp)
+- [ ] Grid layouts use `baselineAligned="false"`
 - [ ] Primary action buttons placed at bottom of screen (if applicable)
+
+### Accessibility & Best Practices
+- [ ] Content descriptions provided for all interactive elements
+- [ ] String resources used for all text
+- [ ] Tested in both light and dark modes
+- [ ] Status bar styling appropriate for mode
+
+### Banners & Dialogs
+- [ ] Banners use semantic colors (info, warning, error, success)
+- [ ] Dismissible banners start with `visibility="gone"`
+- [ ] Dialogs use `ThemeOverlay.Fitness.MaterialAlertDialog` theme
 
 ---
 
-*This document should be referenced when creating new layouts or modifying existing ones to maintain design consistency across the app.*
+## Quick Reference
+
+### Common Corner Radii
+- **8dp**: Tiles, small badges, info banners
+- **12dp**: Warning/error banners, small cards, chips
+- **16dp**: List item cards
+- **20dp**: Standard cards, bottom buttons
+- **24dp**: Hero cards, featured cards, dialogs, circular buttons
+
+### Common Elevations
+- **0dp**: Flat buttons, tiles, inline elements
+- **2dp**: Subtle cards, banners, secondary buttons
+- **4dp**: Standard cards, primary bottom buttons
+- **6dp**: Featured cards (charts, important content)
+- **8dp**: Hero cards, primary action buttons
+
+### Common Padding Values
+- **12dp**: Banner content, tile content, compact cards
+- **16dp**: Standard card content
+- **20dp**: Featured card content
+- **24dp**: Main container padding, major section spacing
+
+### Icon Size Reference
+- **16dp**: Inline date picker arrows, small inline indicators
+- **20dp**: Banner icons
+- **24dp**: Action buttons, standard UI icons
+- **28dp**: Stat card icons, larger UI icons
+- **40dp**: Hero card icons
+- **48dp**: Circular button icons
+
+---
+
+*This document should be referenced when creating new layouts or modifying existing ones to maintain design consistency across the app. All color values automatically adapt to dark mode when using the provided color resources.*
 

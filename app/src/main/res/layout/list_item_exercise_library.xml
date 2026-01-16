@@ -20,6 +20,16 @@
         android:orientation="horizontal"
         android:padding="12dp">
 
+        <ImageView
+            android:id="@+id/image_favorite_star"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_marginEnd="8dp"
+            android:src="@drawable/ic_star"
+            android:visibility="gone"
+            android:contentDescription="Favorite"
+            app:tint="@color/fitness_primary" />
+
         <TextView
             android:id="@+id/text_exercise_name"
             android:layout_width="0dp"

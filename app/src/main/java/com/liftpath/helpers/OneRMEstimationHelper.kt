@@ -20,6 +20,28 @@ data class OneRMEstimationResult(
     val warnings: List<String>
 )
 
+data class SessionMetrics(
+    val date: String,
+    val workoutType: String?,
+    val oneRM: Float?,
+    val volume: Float,
+    val efficiency: Float?
+)
+
+enum class TrendDirection {
+    UP,
+    STABLE,
+    DOWN
+}
+
+data class TrendResult(
+    val slope: Float,
+    val percentageChange: Float,
+    val sessionCount: Int,
+    val trendDirection: TrendDirection,
+    val confidence: Float
+)
+
 object OneRMEstimationHelper {
 
     /**
@@ -342,6 +364,393 @@ object OneRMEstimationHelper {
             meanX = meanXWeighted,
             sumSquaredDeviations = weightedSumSquaredDeviations.toFloat()
         )
+    }
+
+    /**
+     * Calculate total volume per session (sum of weight × reps for all sets).
+     * Includes ALL session types (Heavy, Light, Custom) as volume is cumulative.
+     * 
+     * @param sets List of ExerciseSet objects
+     * @param sessionWorkoutTypes Map of date string -> workout type
+     * @return Map of date string -> total volume in kg
+     */
+    fun calculateVolumePerSession(
+        sets: List<ExerciseSet>,
+        sessionWorkoutTypes: Map<String, String>
+    ): Map<String, Float> {
+        return sets.groupBy { it.date }
+            .mapValues { (_, sessionSets) ->
+                sessionSets.sumOf { (it.kg * it.reps).toDouble() }.toFloat()
+            }
+    }
+
+    /**
+     * Calculate efficiency score per session: (weight × reps) / RPE for the top set.
+     * Top set is defined as the set with highest volume (weight × reps) in the session.
+     * 
+     * @param sets List of ExerciseSet objects
+     * @param sessionWorkoutTypes Map of date string -> workout type
+     * @return Map of date string -> efficiency score (null if no RPE data for top set)
+     */
+    fun calculateEfficiencyPerSession(
+        sets: List<ExerciseSet>,
+        sessionWorkoutTypes: Map<String, String>
+    ): Map<String, Float?> {
+        return sets.groupBy { it.date }
+            .mapValues { (_, sessionSets) ->
+                // Find set with highest volume (weight × reps)
+                val topSet = sessionSets.maxByOrNull { it.kg * it.reps }
+                
+                if (topSet != null && topSet.rpe != null && topSet.rpe > 0) {
+                    // Calculate efficiency: (weight × reps) / RPE
+                    (topSet.kg * topSet.reps) / topSet.rpe
+                } else {
+                    null
+                }
+            }
+    }
+
+    /**
+     * Calculate 1RM per session with context filtering.
+     * Default: Only "heavy" workout sessions included.
+     * If includeLightSessions is true, includes both "heavy" and "light" sessions.
+     * Always excludes "custom" sessions from E1RM calculation.
+     * 
+     * @param sets List of ExerciseSet objects
+     * @param sessionWorkoutTypes Map of date string -> workout type
+     * @param includeLightSessions Whether to include light sessions (default: false)
+     * @return Map of date string -> max 1RM for that session
+     */
+    fun calculateOneRMPerSession(
+        sets: List<ExerciseSet>,
+        sessionWorkoutTypes: Map<String, String>,
+        includeLightSessions: Boolean = false
+    ): Map<String, Float> {
+        val dateFormat = SimpleDateFormat("yyyy/MM/dd", Locale.getDefault())
+        
+        return sets.groupBy { it.date }
+            .mapNotNull { (dateStr, sessionSets) ->
+                // Get workout type and normalize it
+                val rawWorkoutType = sessionWorkoutTypes[dateStr]
+                val workoutType = WorkoutTypeFormatter.normalize(rawWorkoutType)
+                
+                // Context filtering for E1RM (Strength)
+                val shouldInclude = when (workoutType) {
+                    WorkoutTypeFormatter.HEAVY -> true
+                    WorkoutTypeFormatter.LIGHT -> includeLightSessions
+                    else -> false // Always exclude custom/other sessions
+                }
+                
+                if (!shouldInclude) {
+                    return@mapNotNull null
+                }
+                
+                // Calculate 1RM for each set with RPE normalization
+                val valid1RMs = sessionSets.mapNotNull { set ->
+                    calculateOneRM(set.kg, set.reps, set.rpe)
+                }
+                
+                if (valid1RMs.isNotEmpty()) {
+                    val max1RM = valid1RMs.maxOrNull() ?: 0f
+                    Pair(dateStr, max1RM)
+                } else {
+                    null
+                }
+            }
+            .toMap()
+    }
+
+    /**
+     * Find matching session for "apples to apples" comparison.
+     * Finds the most recent session (before excludeDate) with matching workout type.
+     * If no matching workout type found, returns most recent previous session.
+     * 
+     * @param sessions List of SessionMetrics sorted by date (most recent first)
+     * @param targetWorkoutType Workout type to match (null to match any)
+     * @param excludeDate Date to exclude (typically the last session date)
+     * @return Matching SessionMetrics or null if no match found
+     */
+    fun findMatchingSessionForComparison(
+        sessions: List<SessionMetrics>,
+        targetWorkoutType: String?,
+        excludeDate: String
+    ): SessionMetrics? {
+        val dateFormat = SimpleDateFormat("yyyy/MM/dd", Locale.getDefault())
+        val excludeDateObj = try {
+            dateFormat.parse(excludeDate)
+        } catch (e: Exception) {
+            return null
+        }
+        
+        // First try to find matching workout type
+        if (targetWorkoutType != null) {
+            val matching = sessions.firstOrNull { session ->
+                val sessionDate = try {
+                    dateFormat.parse(session.date)
+                } catch (e: Exception) {
+                    null
+                }
+                sessionDate != null && 
+                sessionDate.before(excludeDateObj) &&
+                WorkoutTypeFormatter.normalize(session.workoutType) == targetWorkoutType
+            }
+            if (matching != null) return matching
+        }
+        
+        // Fallback: return most recent previous session
+        return sessions.firstOrNull { session ->
+            val sessionDate = try {
+                dateFormat.parse(session.date)
+            } catch (e: Exception) {
+                null
+            }
+            sessionDate != null && sessionDate.before(excludeDateObj)
+        }
+    }
+
+    /**
+     * Calculate trend analysis over last 4-6 sessions using simple linear regression.
+     * 
+     * @param sessions List of SessionMetrics sorted by date (oldest to newest)
+     * @param metricType "volume", "strength", or "efficiency"
+     * @return TrendResult with slope, percentage change, and trend direction, or null if insufficient data
+     */
+    fun calculateTrend(
+        sessions: List<SessionMetrics>,
+        metricType: String
+    ): TrendResult? {
+        if (sessions.size < 4) return null
+
+        // Get last 4-6 sessions (prefer 6, but use what's available)
+        val sessionsToAnalyze = sessions.takeLast(minOf(6, sessions.size))
+        if (sessionsToAnalyze.size < 4) return null
+
+        // Extract metric values
+        val values = sessionsToAnalyze.mapNotNull { session ->
+            when (metricType.lowercase()) {
+                "volume" -> session.volume
+                "strength" -> session.oneRM
+                "efficiency" -> session.efficiency
+                else -> null
+            }
+        }.filter { it != null && it > 0 }
+
+        if (values.size < 4) return null
+
+        // Simple linear regression: y = mx + b
+        // x = session index (0, 1, 2, ...)
+        // y = metric value
+        val n = values.size
+        val xValues = (0 until n).map { it.toFloat() }
+        val yValues = values.map { it.toFloat() }
+
+        val meanX = xValues.average().toFloat()
+        val meanY = yValues.average().toFloat()
+
+        var numerator = 0.0
+        var denominator = 0.0
+        for (i in xValues.indices) {
+            val xDiff = (xValues[i] - meanX).toDouble()
+            val yDiff = (yValues[i] - meanY).toDouble()
+            numerator += xDiff * yDiff
+            denominator += xDiff * xDiff
+        }
+
+        val slope = if (denominator != 0.0) {
+            (numerator / denominator).toFloat()
+        } else {
+            0f
+        }
+
+        // Calculate percentage change
+        val firstValue = yValues.first()
+        val lastValue = yValues.last()
+        val percentageChange = if (firstValue > 0) {
+            ((lastValue - firstValue) / firstValue) * 100f
+        } else {
+            0f
+        }
+
+        // Calculate R² for confidence
+        var sumSquaredResiduals = 0.0
+        var sumSquaredTotal = 0.0
+        for (i in yValues.indices) {
+            val predicted = slope * xValues[i] + (meanY - slope * meanX)
+            val residual = (yValues[i] - predicted).toDouble()
+            sumSquaredResiduals += residual * residual
+            val totalDiff = (yValues[i] - meanY).toDouble()
+            sumSquaredTotal += totalDiff * totalDiff
+        }
+        val rSquared = if (sumSquaredTotal > 0) {
+            (1.0 - sumSquaredResiduals / sumSquaredTotal).toFloat().coerceIn(0f, 1f)
+        } else {
+            0f
+        }
+
+        // Determine trend direction
+        val trendDirection = when {
+            slope > 0 && percentageChange > 5f -> TrendDirection.UP
+            slope < 0 && percentageChange < -5f -> TrendDirection.DOWN
+            else -> TrendDirection.STABLE
+        }
+
+        return TrendResult(
+            slope = slope,
+            percentageChange = percentageChange,
+            sessionCount = n,
+            trendDirection = trendDirection,
+            confidence = rSquared
+        )
+    }
+
+    /**
+     * Calculate aggregated volume per session for a group of exercises.
+     * The sets should already be filtered to only include exercises in the group.
+     * 
+     * @param groupSets List of ExerciseSet objects for exercises in the group
+     * @param sessionWorkoutTypes Map of date string -> workout type
+     * @return Map of date string -> total aggregated volume in kg
+     */
+    fun calculateGroupVolumePerSession(
+        groupSets: List<ExerciseSet>,
+        sessionWorkoutTypes: Map<String, String>
+    ): Map<String, Float> {
+        return calculateVolumePerSession(groupSets, sessionWorkoutTypes)
+    }
+
+    /**
+     * Calculate Relative Strength Index for a group of exercises.
+     * Normalizes each exercise to its baseline (average of last 4 sessions) and averages across group.
+     * 
+     * @param exerciseMetrics Map of exercise name -> Map of date -> 1RM for that exercise
+     * @param sessionWorkoutTypes Map of date string -> workout type
+     * @return Map of date string -> Relative Strength Index (100 = baseline)
+     */
+    fun calculateGroupRelativeStrengthIndex(
+        exerciseMetrics: Map<String, Map<String, Float>>,
+        sessionWorkoutTypes: Map<String, String>
+    ): Map<String, Float> {
+        if (exerciseMetrics.isEmpty()) return emptyMap()
+
+        // For each exercise, calculate baseline (average of last 4 sessions)
+        val exerciseBaselines = exerciseMetrics.mapValues { (_, oneRMPerSession) ->
+            val sortedSessions = oneRMPerSession.values.sorted()
+            val sessionsToAverage = sortedSessions.takeLast(4)
+            if (sessionsToAverage.isNotEmpty()) {
+                sessionsToAverage.average().toFloat()
+            } else {
+                0f
+            }
+        }
+
+        // Get all unique session dates
+        val allDates = exerciseMetrics.values.flatMap { it.keys }.distinct().sorted()
+
+        // Calculate normalized index for each session
+        return allDates.associateWith { date ->
+            val normalizedIndices = exerciseMetrics.mapNotNull { (exerciseName, oneRMPerSession) ->
+                val oneRM = oneRMPerSession[date] ?: return@mapNotNull null
+                val baseline = exerciseBaselines[exerciseName] ?: return@mapNotNull null
+                if (baseline > 0) {
+                    (oneRM / baseline) * 100f
+                } else {
+                    null
+                }
+            }.filterNotNull()
+
+            if (normalizedIndices.isNotEmpty()) {
+                normalizedIndices.average().toFloat()
+            } else {
+                100f // Default to baseline if no data
+            }
+        }
+    }
+
+    /**
+     * Generate coach's summary report based on trend analysis.
+     * 
+     * @param volumeTrend TrendResult for volume, or null
+     * @param strengthTrend TrendResult for strength, or null
+     * @param efficiencyTrend TrendResult for efficiency, or null
+     * @param sessionCount Total number of sessions analyzed
+     * @return Formatted advice string
+     */
+    fun generateCoachReport(
+        volumeTrend: TrendResult?,
+        strengthTrend: TrendResult?,
+        efficiencyTrend: TrendResult?,
+        sessionCount: Int
+    ): String {
+        val volumeUp = volumeTrend?.trendDirection == TrendDirection.UP
+        val volumeDown = volumeTrend?.trendDirection == TrendDirection.DOWN
+        val volumeStable = volumeTrend?.trendDirection == TrendDirection.STABLE || volumeTrend == null
+
+        val strengthUp = strengthTrend?.trendDirection == TrendDirection.UP
+        val strengthDown = strengthTrend?.trendDirection == TrendDirection.DOWN
+        val strengthStable = strengthTrend?.trendDirection == TrendDirection.STABLE || strengthTrend == null
+
+        val efficiencyUp = efficiencyTrend?.trendDirection == TrendDirection.UP
+        val efficiencyDown = efficiencyTrend?.trendDirection == TrendDirection.DOWN
+        val efficiencyStable = efficiencyTrend?.trendDirection == TrendDirection.STABLE || efficiencyTrend == null
+
+        return when {
+            // Excellent progress across all dimensions
+            volumeUp && strengthUp && (efficiencyUp || efficiencyStable) -> {
+                "Excellent progress across all dimensions! Your volume, strength, and efficiency are all trending up. Keep this momentum going."
+            }
+            
+            // Volume building phase
+            volumeUp && strengthStable && (efficiencyStable || efficiencyTrend == null) -> {
+                "Volume building phase - your total work capacity is increasing. Strength gains typically follow volume accumulation. Stay consistent."
+            }
+            
+            // Potential overreaching
+            volumeUp && strengthDown -> {
+                "Volume is increasing but strength is declining. This may indicate overreaching. Consider a deload week to allow recovery and supercompensation."
+            }
+            
+            // Strength gains without efficiency
+            strengthUp && efficiencyDown -> {
+                "Strength is improving, but efficiency is declining. Your gains may be coming from increased effort rather than true adaptation. Focus on technique and consider a lighter week."
+            }
+            
+            // Efficiency improving (good sign)
+            efficiencyUp && (strengthStable || strengthUp) -> {
+                "Your efficiency is improving - you're getting stronger with less effort. This is a great sign of neurological adaptation. Keep training smart."
+            }
+            
+            // All stable
+            volumeStable && strengthStable && efficiencyStable -> {
+                "Maintaining current level across all metrics. Consider progressive overload - add weight, reps, or sets to continue making progress."
+            }
+            
+            // All trending down
+            volumeDown && strengthDown && (efficiencyDown || efficiencyStable) -> {
+                "All metrics are trending down. A deload week is strongly recommended. Allow your body to recover - this will set you up for better gains afterward."
+            }
+            
+            // Volume down but strength stable
+            volumeDown && strengthStable -> {
+                "Volume has decreased but strength is maintained. This could be a planned deload or indicate fatigue. Monitor recovery and adjust training accordingly."
+            }
+            
+            // Mixed signals
+            else -> {
+                val parts = mutableListOf<String>()
+                if (volumeUp) parts.add("volume is trending up")
+                if (strengthUp) parts.add("strength is improving")
+                if (efficiencyUp) parts.add("efficiency is increasing")
+                if (volumeDown) parts.add("volume is declining")
+                if (strengthDown) parts.add("strength is decreasing")
+                if (efficiencyDown) parts.add("efficiency is dropping")
+                
+                if (parts.isEmpty()) {
+                    "Insufficient data for trend analysis. Keep training consistently to build a meaningful progress picture."
+                } else {
+                    "Mixed signals: ${parts.joinToString(", ")}. Review your training program and recovery to optimize all dimensions of progress."
+                }
+            }
+        }
     }
 }
 

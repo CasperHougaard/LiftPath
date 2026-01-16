@@ -960,6 +960,15 @@ class ActiveTrainingActivity : AppCompatActivity() {
         }
         // Pause workout timer updates (but keep tracking time)
         stopWorkoutTimer()
+        // Save workout state when app goes to background
+        persistDraftIfHasEntries()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // Additional safety net: save workout state when activity is no longer visible
+        // This ensures state is persisted even if activity is destroyed while backgrounded
+        persistDraftIfHasEntries()
     }
 
     override fun onDestroy() {

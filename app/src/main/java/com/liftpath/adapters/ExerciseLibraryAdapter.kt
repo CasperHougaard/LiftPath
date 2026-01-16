@@ -3,6 +3,7 @@ package com.liftpath.adapters
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.RecyclerView
@@ -16,6 +17,7 @@ class ExerciseLibraryAdapter(
 
     class ExerciseViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val exerciseName: TextView = view.findViewById(R.id.text_exercise_name)
+        val favoriteStar: ImageView = view.findViewById(R.id.image_favorite_star)
         val editButton: CardView = view.findViewById(R.id.button_edit_exercise)
     }
 
@@ -28,6 +30,14 @@ class ExerciseLibraryAdapter(
     override fun onBindViewHolder(holder: ExerciseViewHolder, position: Int) {
         val exercise = exercises[position]
         holder.exerciseName.text = exercise.name
+        
+        // Show/hide star icon for favorites
+        if (exercise.isFavorite) {
+            holder.favoriteStar.visibility = View.VISIBLE
+        } else {
+            holder.favoriteStar.visibility = View.GONE
+        }
+        
         holder.editButton.setOnClickListener {
             onEditClicked(exercise)
         }

@@ -22,6 +22,11 @@ import com.liftpath.helpers.showWithTransparentWindow
 import com.liftpath.R
 import android.widget.EditText
 import androidx.core.content.ContextCompat
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.UUID
+import com.liftpath.models.WorkoutPlan
 
 class TrainingDetailActivity : AppCompatActivity() {
 
@@ -153,6 +158,10 @@ class TrainingDetailActivity : AppCompatActivity() {
 
         binding.buttonAddExercise.setOnClickListener {
             launchSelectExerciseActivity()
+        }
+
+        binding.buttonSaveAsPlan.setOnClickListener {
+            showSaveAsPlanDialog()
         }
     }
 
@@ -364,5 +373,69 @@ class TrainingDetailActivity : AppCompatActivity() {
         persistTrainingSession()
         setupRecyclerView()
         Toast.makeText(this, "Set added to workout", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun showSaveAsPlanDialog() {
+        val input = EditText(this)
+        input.hint = "Enter plan name"
+        input.setTextColor(ContextCompat.getColor(this, R.color.fitness_text_primary))
+        input.setHintTextColor(ContextCompat.getColor(this, R.color.fitness_text_secondary))
+        input.setTextSize(16f)
+        input.setPadding(16, 16, 16, 16)
+
+        DialogHelper.createBuilder(this)
+            .setTitle("Save as Plan")
+            .setMessage("Enter a name for this workout plan")
+            .setView(input)
+            .setPositiveButton("Save") { _, _ ->
+                val planName = input.text.toString().trim()
+                if (planName.isEmpty()) {
+                    Toast.makeText(this, "Please enter a plan name", Toast.LENGTH_SHORT).show()
+                } else {
+                    saveWorkoutAsPlan(planName)
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .showWithTransparentWindow()
+    }
+
+    private fun saveWorkoutAsPlan(planName: String) {
+        // Check if workout has exercises
+        if (trainingSession.exercises.isEmpty()) {
+            Toast.makeText(this, "Cannot save plan: workout has no exercises", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // Extract unique exercise IDs in order (preserve order of first appearance)
+        val exerciseIds = trainingSession.exercises
+            .distinctBy { it.exerciseId }
+            .map { it.exerciseId }
+            .toMutableList()
+
+        // Get workout type from session
+        val workoutType = trainingSession.defaultWorkoutType ?: "heavy"
+
+        // Create WorkoutPlan
+        val dateFormat = SimpleDateFormat("yyyy/MM/dd", Locale.getDefault())
+        val newPlan = WorkoutPlan(
+            id = UUID.randomUUID().toString(),
+            name = planName,
+            exerciseIds = exerciseIds,
+            workoutType = workoutType,
+            notes = null,
+            createdDate = dateFormat.format(Date())
+        )
+
+        // Read current training data
+        val trainingData = jsonHelper.readTrainingData()
+
+        // Add new plan
+        trainingData.workoutPlans.add(newPlan)
+
+        // Save to disk
+        jsonHelper.writeTrainingData(trainingData)
+
+        // Show success message
+        Toast.makeText(this, "Plan saved successfully", Toast.LENGTH_SHORT).show()
     }
 }

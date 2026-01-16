@@ -23,6 +23,7 @@
         <activity android:exported="false" android:name="com.liftpath.activities.SelectExerciseActivity" android:screenOrientation="portrait"/>
         <activity android:exported="false" android:name="com.liftpath.activities.ActiveTrainingActivity" android:screenOrientation="portrait"/>
         <activity android:exported="false" android:name="com.liftpath.activities.ExercisesActivity" android:screenOrientation="portrait"/>
+        <activity android:exported="false" android:name="com.liftpath.activities.ManageFavoritesActivity" android:screenOrientation="portrait"/>
         <activity android:exported="false" android:name="com.liftpath.activities.WorkoutPlansActivity" android:screenOrientation="portrait"/>
         <activity android:exported="false" android:name="com.liftpath.activities.EditWorkoutPlanActivity" android:screenOrientation="portrait"/>
         <activity android:exported="false" android:name="com.liftpath.activities.SelectExercisesForPlanActivity" android:screenOrientation="portrait"/>

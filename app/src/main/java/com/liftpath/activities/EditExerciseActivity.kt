@@ -30,6 +30,7 @@ class EditExerciseActivity : AppCompatActivity() {
     private var exerciseId: Int = -1
     // Flag to ensure muscle map update only happens after WebView is ready
     private var isWebViewReady = false
+    private var isFavorite: Boolean = false
 
     companion object {
         const val EXTRA_EXERCISE_ID = "extra_exercise_id"
@@ -308,6 +309,10 @@ class EditExerciseActivity : AppCompatActivity() {
 
                 // Set Target Muscle Chips
                 setSelectedTargetMuscles(exercise.primaryTargets, exercise.secondaryTargets)
+                
+                // Load favorite status
+                isFavorite = exercise.isFavorite
+                updateFavoriteStarIcon()
                 // updateMuscleMap() is called automatically via onPageFinished or chip listener
             }
         } else {
@@ -321,6 +326,22 @@ class EditExerciseActivity : AppCompatActivity() {
         binding.cardDelete.setOnClickListener { showDeleteConfirmationDialog() }
         binding.buttonBack.setOnClickListener { finish() }
         binding.buttonCancel.setOnClickListener { finish() }
+        binding.buttonFavorite.setOnClickListener { toggleFavorite() }
+    }
+    
+    private fun toggleFavorite() {
+        isFavorite = !isFavorite
+        updateFavoriteStarIcon()
+    }
+    
+    private fun updateFavoriteStarIcon() {
+        if (isFavorite) {
+            binding.imageFavoriteStar.setImageResource(R.drawable.ic_star)
+            binding.imageFavoriteStar.setColorFilter(getColor(R.color.fitness_primary), android.graphics.PorterDuff.Mode.SRC_IN)
+        } else {
+            binding.imageFavoriteStar.setImageResource(R.drawable.ic_star_outline)
+            binding.imageFavoriteStar.setColorFilter(getColor(R.color.fitness_primary), android.graphics.PorterDuff.Mode.SRC_IN)
+        }
     }
 
     private fun showDeleteConfirmationDialog() {
@@ -412,7 +433,8 @@ class EditExerciseActivity : AppCompatActivity() {
                         tier = selectedTier,
                         manualMechanics = selectedMechanics,
                         primaryTargets = selectedPrimaryTargets,
-                        secondaryTargets = selectedSecondaryTargets
+                        secondaryTargets = selectedSecondaryTargets,
+                        isFavorite = isFavorite
                     )
                 }
                 // Legacy name update
@@ -432,7 +454,8 @@ class EditExerciseActivity : AppCompatActivity() {
                 tier = selectedTier,
                 manualMechanics = selectedMechanics,
                 primaryTargets = selectedPrimaryTargets,
-                secondaryTargets = selectedSecondaryTargets
+                secondaryTargets = selectedSecondaryTargets,
+                isFavorite = isFavorite
             )
             trainingData.exerciseLibrary.add(newExercise)
             exerciseId = nextId

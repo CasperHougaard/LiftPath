@@ -8,7 +8,10 @@
     android:paddingStart="16dp"
     android:paddingEnd="16dp"
     android:paddingTop="16dp"
-    android:paddingBottom="8dp">
+    android:paddingBottom="8dp"
+    android:background="?android:attr/selectableItemBackground"
+    android:clickable="true"
+    android:focusable="true">
 
     <!-- Left line -->
     <View
@@ -24,11 +27,20 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="12dp"
-        android:layout_marginEnd="12dp"
         android:text="Section"
         android:textColor="@color/fitness_text_primary"
         android:textSize="14sp"
         android:textStyle="bold" />
+
+    <!-- Expand/Collapse icon -->
+    <ImageView
+        android:id="@+id/image_expand_icon"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_marginStart="8dp"
+        android:src="@drawable/ic_arrow_drop_down_24"
+        android:contentDescription="Expand/Collapse"
+        app:tint="@color/fitness_text_secondary" />
 
     <!-- Right line -->
     <View

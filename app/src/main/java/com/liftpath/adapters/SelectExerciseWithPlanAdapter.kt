@@ -12,8 +12,13 @@ import com.liftpath.R
 import com.liftpath.models.ExerciseLibraryItem
 
 sealed class ListItem {
-    data class ExerciseItem(val exercise: ExerciseLibraryItem) : ListItem()
-    data class SectionHeader(val title: String) : ListItem()
+    data class ExerciseItem(val exercise: ExerciseLibraryItem, val isVisible: Boolean = true) : ListItem()
+    data class SectionHeader(
+        val title: String,
+        val sectionId: String,
+        val isCollapsed: Boolean = false,
+        val onHeaderClick: ((String) -> Unit)? = null
+    ) : ListItem()
 }
 
 class SelectExerciseWithPlanAdapter(
@@ -33,10 +38,12 @@ class SelectExerciseWithPlanAdapter(
         val itemViewContainer: View = view.findViewById(R.id.card_view_exercise_item)
         val exerciseName: TextView = view.findViewById(R.id.text_exercise_name)
         val planBadge: ImageView = view.findViewById(R.id.image_plan_badge)
+        val favoriteStar: ImageView = view.findViewById(R.id.image_favorite_star)
     }
 
     class SectionHeaderViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val sectionTitle: TextView = view.findViewById(R.id.text_section_header)
+        val expandIcon: ImageView = view.findViewById(R.id.image_expand_icon)
     }
 
     override fun getItemViewType(position: Int): Int {
@@ -74,6 +81,13 @@ class SelectExerciseWithPlanAdapter(
                 val exercise = item.exercise
                 exerciseHolder.exerciseName.text = exercise.name
 
+                // Show/hide favorite star
+                if (exercise.isFavorite) {
+                    exerciseHolder.favoriteStar.visibility = View.VISIBLE
+                } else {
+                    exerciseHolder.favoriteStar.visibility = View.GONE
+                }
+
                 // Check if exercise is in plan
                 val isInPlan = planExerciseIds.contains(exercise.id)
                 
@@ -88,6 +102,10 @@ class SelectExerciseWithPlanAdapter(
                     exerciseHolder.itemViewContainer.background = defaultBackground?.constantState?.newDrawable()
                 }
 
+                // Hide item if section is collapsed
+                holder.itemView.visibility = if (item.isVisible) View.VISIBLE else View.GONE
+                holder.itemView.layoutParams.height = if (item.isVisible) ViewGroup.LayoutParams.WRAP_CONTENT else 0
+
                 exerciseHolder.itemView.setOnClickListener {
                     onExerciseClicked(exercise)
                 }
@@ -95,6 +113,14 @@ class SelectExerciseWithPlanAdapter(
             is ListItem.SectionHeader -> {
                 val headerHolder = holder as SectionHeaderViewHolder
                 headerHolder.sectionTitle.text = item.title
+                
+                // Update expand/collapse icon
+                headerHolder.expandIcon.rotation = if (item.isCollapsed) 0f else 180f
+                
+                // Set click listener
+                holder.itemView.setOnClickListener {
+                    item.onHeaderClick?.invoke(item.sectionId)
+                }
             }
         }
     }

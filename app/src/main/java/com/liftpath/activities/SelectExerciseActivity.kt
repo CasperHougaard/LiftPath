@@ -59,6 +59,9 @@ class SelectExerciseActivity : AppCompatActivity() {
     private var selectedMuscleGroups: Set<TargetMuscle> = emptySet()
     private var isAdvancedFiltersExpanded: Boolean = false
     
+    // Collapsible sections state
+    private val collapsedSections = mutableSetOf<String>()
+    
     // Muscle Activation State
     private var workoutExercises: List<ExerciseLibraryItem> = emptyList()
     private var muscleActivationState: MuscleActivationHelper.MuscleActivationState? = null
@@ -496,41 +499,177 @@ class SelectExerciseActivity : AppCompatActivity() {
             }
         }
 
-        // 7. Sort alphabetically by name
-        result = result.sortedBy { it.name.lowercase() }
+        // 7. Sort: Favorites first, then alphabetically within each group
+        val favorites = result.filter { it.isFavorite }.sortedBy { it.name.lowercase() }
+        val nonFavorites = result.filter { !it.isFavorite }.sortedBy { it.name.lowercase() }
 
         displayedExercises = result
         
-        // 8. Create list items with section headers if muscle group filters are applied
-        val listItems = if (selectedMuscleGroups.isNotEmpty()) {
-            // Split into primary and secondary
-            val primaryExercises = result.filter { exercise ->
+        // 8. Create list items with favorites first, then collapsible non-favorites section
+        val listItems = mutableListOf<ListItem>()
+        
+        // Add favorites section (always visible)
+        if (favorites.isNotEmpty()) {
+            listItems.add(ListItem.SectionHeader(
+                title = "Favorites",
+                sectionId = "favorites",
+                isCollapsed = false,
+                onHeaderClick = null
+            ))
+            favorites.forEach { exercise ->
+                listItems.add(ListItem.ExerciseItem(exercise, isVisible = true))
+            }
+        }
+        
+        // Add non-favorites section (collapsible, starts collapsed if favorites exist)
+        if (nonFavorites.isNotEmpty()) {
+            // Initialize collapsed state: if favorites exist and section hasn't been toggled yet, default to collapsed
+            // We check if the section is NOT in the set at all - if not, and favorites exist, add it to mark as collapsed
+            if (favorites.isNotEmpty() && "non_favorites" !in collapsedSections && "non_favorites_expanded" !in collapsedSections) {
+                collapsedSections.add("non_favorites")
+            }
+            
+            val isNonFavoritesCollapsed = "non_favorites" in collapsedSections
+            
+            listItems.add(ListItem.SectionHeader(
+                title = "All Exercises",
+                sectionId = "non_favorites",
+                isCollapsed = isNonFavoritesCollapsed,
+                onHeaderClick = { sectionId ->
+                    if (sectionId in collapsedSections) {
+                        // Currently collapsed, so expand it
+                        collapsedSections.remove(sectionId)
+                        // Mark as explicitly expanded so we don't re-collapse it
+                        collapsedSections.add("non_favorites_expanded")
+                    } else {
+                        // Currently expanded, so collapse it
+                        collapsedSections.remove("non_favorites_expanded")
+                        collapsedSections.add(sectionId)
+                    }
+                    applyFilters() // Rebuild list with new collapsed state
+                }
+            ))
+            nonFavorites.forEach { exercise ->
+                listItems.add(ListItem.ExerciseItem(exercise, isVisible = !isNonFavoritesCollapsed))
+            }
+        } else if (favorites.isEmpty() && result.isNotEmpty()) {
+            // If no favorites but have results, show all exercises without collapsible section
+            result.forEach { exercise ->
+                listItems.add(ListItem.ExerciseItem(exercise, isVisible = true))
+            }
+        }
+        
+        // 9. If muscle group filters are applied, apply primary/secondary sections but still maintain favorites
+        val finalListItems = if (selectedMuscleGroups.isNotEmpty()) {
+            // Group by muscle filter match, but still split by favorites
+            val primaryFavorites = favorites.filter { exercise ->
                 exercise.primaryTargets.intersect(selectedMuscleGroups).isNotEmpty()
             }.sortedBy { it.name.lowercase() }
             
-            val secondaryExercises = result.filter { exercise ->
+            val primaryNonFavorites = nonFavorites.filter { exercise ->
+                exercise.primaryTargets.intersect(selectedMuscleGroups).isNotEmpty()
+            }.sortedBy { it.name.lowercase() }
+            
+            val secondaryFavorites = favorites.filter { exercise ->
+                exercise.primaryTargets.intersect(selectedMuscleGroups).isEmpty() &&
+                exercise.secondaryTargets.intersect(selectedMuscleGroups).isNotEmpty()
+            }.sortedBy { it.name.lowercase() }
+            
+            val secondaryNonFavorites = nonFavorites.filter { exercise ->
                 exercise.primaryTargets.intersect(selectedMuscleGroups).isEmpty() &&
                 exercise.secondaryTargets.intersect(selectedMuscleGroups).isNotEmpty()
             }.sortedBy { it.name.lowercase() }
             
             mutableListOf<ListItem>().apply {
-                if (primaryExercises.isNotEmpty()) {
-                    add(ListItem.SectionHeader("Primary"))
-                    primaryExercises.forEach { add(ListItem.ExerciseItem(it)) }
+                // Primary favorites first
+                if (primaryFavorites.isNotEmpty()) {
+                    add(ListItem.SectionHeader(
+                        title = "Favorites - Primary",
+                        sectionId = "primary_favorites",
+                        isCollapsed = false,
+                        onHeaderClick = null
+                    ))
+                    primaryFavorites.forEach { add(ListItem.ExerciseItem(it, isVisible = true)) }
                 }
-                if (secondaryExercises.isNotEmpty()) {
-                    add(ListItem.SectionHeader("Secondary"))
-                    secondaryExercises.forEach { add(ListItem.ExerciseItem(it)) }
+                
+                // Primary non-favorites (collapsible)
+                if (primaryNonFavorites.isNotEmpty()) {
+                    // Initialize collapsed state: if primary favorites exist, default to collapsed
+                    val hasBeenToggled = "primary_non_favorites" in collapsedSections || 
+                        "primary_non_favorites_expanded" in collapsedSections
+                    if (primaryFavorites.isNotEmpty() && !hasBeenToggled) {
+                        collapsedSections.add("primary_non_favorites")
+                    }
+                    val isCollapsed = "primary_non_favorites" in collapsedSections
+                    
+                    add(ListItem.SectionHeader(
+                        title = "Primary",
+                        sectionId = "primary_non_favorites",
+                        isCollapsed = isCollapsed,
+                        onHeaderClick = { sectionId ->
+                            if (sectionId in collapsedSections) {
+                                collapsedSections.remove(sectionId)
+                                if (primaryFavorites.isNotEmpty()) {
+                                    collapsedSections.add("primary_non_favorites_expanded")
+                                }
+                            } else {
+                                collapsedSections.remove("primary_non_favorites_expanded")
+                                collapsedSections.add(sectionId)
+                            }
+                            applyFilters()
+                        }
+                    ))
+                    primaryNonFavorites.forEach { add(ListItem.ExerciseItem(it, isVisible = !isCollapsed)) }
+                }
+                
+                // Secondary favorites
+                if (secondaryFavorites.isNotEmpty()) {
+                    add(ListItem.SectionHeader(
+                        title = "Favorites - Secondary",
+                        sectionId = "secondary_favorites",
+                        isCollapsed = false,
+                        onHeaderClick = null
+                    ))
+                    secondaryFavorites.forEach { add(ListItem.ExerciseItem(it, isVisible = true)) }
+                }
+                
+                // Secondary non-favorites (collapsible)
+                if (secondaryNonFavorites.isNotEmpty()) {
+                    // Initialize collapsed state: if secondary favorites exist, default to collapsed
+                    val hasBeenToggled = "secondary_non_favorites" in collapsedSections || 
+                        "secondary_non_favorites_expanded" in collapsedSections
+                    if (secondaryFavorites.isNotEmpty() && !hasBeenToggled) {
+                        collapsedSections.add("secondary_non_favorites")
+                    }
+                    val isCollapsed = "secondary_non_favorites" in collapsedSections
+                    
+                    add(ListItem.SectionHeader(
+                        title = "Secondary",
+                        sectionId = "secondary_non_favorites",
+                        isCollapsed = isCollapsed,
+                        onHeaderClick = { sectionId ->
+                            if (sectionId in collapsedSections) {
+                                collapsedSections.remove(sectionId)
+                                if (secondaryFavorites.isNotEmpty()) {
+                                    collapsedSections.add("secondary_non_favorites_expanded")
+                                }
+                            } else {
+                                collapsedSections.remove("secondary_non_favorites_expanded")
+                                collapsedSections.add(sectionId)
+                            }
+                            applyFilters()
+                        }
+                    ))
+                    secondaryNonFavorites.forEach { add(ListItem.ExerciseItem(it, isVisible = !isCollapsed)) }
                 }
             }
         } else {
-            // No section headers, just exercises
-            result.map { ListItem.ExerciseItem(it) }
+            listItems
         }
         
         // Update Adapter
         try {
-            adapter.updateItems(listItems)
+            adapter.updateItems(finalListItems)
         } catch (e: Exception) {
             android.util.Log.e("SelectExerciseActivity", "Error updating adapter", e)
             // Fallback: update with empty list to prevent crash
@@ -540,7 +679,21 @@ class SelectExerciseActivity : AppCompatActivity() {
             android.util.Log.e("SelectExerciseActivity", "Error in applyFilters", e)
             // On error, show all exercises to prevent activity from closing
             try {
-                adapter.updateItems(allExercises.map { ListItem.ExerciseItem(it) })
+                val favorites = allExercises.filter { it.isFavorite }.sortedBy { it.name.lowercase() }
+                val nonFavorites = allExercises.filter { !it.isFavorite }.sortedBy { it.name.lowercase() }
+                val fallbackItems = mutableListOf<ListItem>()
+                
+                if (favorites.isNotEmpty()) {
+                    fallbackItems.add(ListItem.SectionHeader("Favorites", "favorites", false, null))
+                    favorites.forEach { fallbackItems.add(ListItem.ExerciseItem(it, true)) }
+                }
+                
+                if (nonFavorites.isNotEmpty()) {
+                    fallbackItems.add(ListItem.SectionHeader("All Exercises", "non_favorites", true, null))
+                    nonFavorites.forEach { fallbackItems.add(ListItem.ExerciseItem(it, false)) }
+                }
+                
+                adapter.updateItems(fallbackItems)
             } catch (e2: Exception) {
                 android.util.Log.e("SelectExerciseActivity", "Error in fallback update", e2)
             }

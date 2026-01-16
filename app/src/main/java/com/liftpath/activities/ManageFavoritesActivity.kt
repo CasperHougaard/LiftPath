@@ -6,50 +6,44 @@ import android.graphics.drawable.Animatable
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.liftpath.databinding.ActivityExercisesBinding
+import com.liftpath.R
+import com.liftpath.databinding.ActivityManageFavoritesBinding
 import com.liftpath.helpers.JsonHelper
-import com.liftpath.adapters.ExerciseLibraryAdapter
+import com.liftpath.adapters.SelectExercisesAdapter
 import com.liftpath.models.ExerciseLibraryItem
 
-class ExercisesActivity : AppCompatActivity() {
+class ManageFavoritesActivity : AppCompatActivity() {
 
-    private lateinit var binding: ActivityExercisesBinding
+    private lateinit var binding: ActivityManageFavoritesBinding
     private lateinit var jsonHelper: JsonHelper
-    private lateinit var adapter: ExerciseLibraryAdapter
+    private lateinit var adapter: SelectExercisesAdapter
+    private var selectedCount = 0
     private var allExercises: List<ExerciseLibraryItem> = emptyList()
     private var searchQuery: String = ""
 
-    private val addExerciseLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            // An exercise was either created or added from default. We just need to reload the list.
-            loadExercises()
-        }
-    }
-
-    private val manageFavoritesLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            // Favorites were updated, reload the list
-            loadExercises()
-        }
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityExercisesBinding.inflate(layoutInflater)
+        binding = ActivityManageFavoritesBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        jsonHelper = JsonHelper(this)
-
+        // Setup background animation
         setupBackgroundAnimation()
-        setupRecyclerView()
-        setupSearchField()
-        loadExercises()
-        setupClickListeners()
-    }
 
+        jsonHelper = JsonHelper(this)
+        
+        // Get current favorite IDs
+        val trainingData = jsonHelper.readTrainingData()
+        val favoriteIds = trainingData.exerciseLibrary.filter { it.isFavorite }.map { it.id }.toSet()
+        selectedCount = favoriteIds.size
+        
+        setupRecyclerView(favoriteIds)
+        setupClickListeners()
+        setupSearchField()
+        updateSelectedCount()
+    }
+    
     private fun setupBackgroundAnimation() {
         val drawable = binding.imageBgAnimation.drawable
         if (drawable is Animatable) {
@@ -57,44 +51,20 @@ class ExercisesActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupClickListeners() {
-        binding.buttonAddExercise.setOnClickListener {
-            // Launch in create mode (no ID passed)
-            val intent = Intent(this, com.liftpath.activities.EditExerciseActivity::class.java)
-            addExerciseLauncher.launch(intent)
-        }
-
-        binding.buttonAddFavourites.setOnClickListener {
-            // Launch favorites management screen
-            val intent = Intent(this, com.liftpath.activities.ManageFavoritesActivity::class.java)
-            manageFavoritesLauncher.launch(intent)
-        }
-
-        binding.buttonBack.setOnClickListener {
-            finish()
-        }
-    }
-
-    private fun setupRecyclerView() {
-        adapter = ExerciseLibraryAdapter(
-            emptyList(),
-            onEditClicked = { exercise ->
-                // Launch in edit mode (pass the exercise ID)
-                val intent = Intent(this, com.liftpath.activities.EditExerciseActivity::class.java).apply {
-                    putExtra(com.liftpath.activities.EditExerciseActivity.EXTRA_EXERCISE_ID, exercise.id)
-                    putExtra(com.liftpath.activities.EditExerciseActivity.EXTRA_EXERCISE_NAME, exercise.name)
-                }
-                addExerciseLauncher.launch(intent)
+    private fun setupRecyclerView(preselectedIds: Set<Int>) {
+        val trainingData = jsonHelper.readTrainingData()
+        allExercises = trainingData.exerciseLibrary.sortedBy { it.name }
+        
+        adapter = SelectExercisesAdapter(
+            exercises = allExercises,
+            preselectedIds = preselectedIds,
+            onSelectionChanged = { _, isChecked ->
+                selectedCount += if (isChecked) 1 else -1
+                updateSelectedCount()
             }
         )
         binding.recyclerViewExercises.adapter = adapter
         binding.recyclerViewExercises.layoutManager = LinearLayoutManager(this)
-    }
-
-    private fun loadExercises() {
-        val trainingData = jsonHelper.readTrainingData()
-        allExercises = trainingData.exerciseLibrary.sortedBy { it.name }
-        applySearchFilter()
     }
     
     private fun applySearchFilter() {
@@ -106,7 +76,7 @@ class ExercisesActivity : AppCompatActivity() {
                         try {
                             exercise.name.lowercase().contains(query)
                         } catch (e: Exception) {
-                            android.util.Log.e("ExercisesActivity", "Error filtering exercise: ${exercise.name}", e)
+                            android.util.Log.e("ManageFavoritesActivity", "Error filtering exercise: ${exercise.name}", e)
                             false
                         }
                     }
@@ -119,9 +89,44 @@ class ExercisesActivity : AppCompatActivity() {
             
             adapter.updateExercises(filtered)
         } catch (e: Exception) {
-            android.util.Log.e("ExercisesActivity", "Error in applySearchFilter", e)
+            android.util.Log.e("ManageFavoritesActivity", "Error in applySearchFilter", e)
             adapter.updateExercises(allExercises)
         }
+    }
+
+    private fun setupClickListeners() {
+        binding.buttonBack.setOnClickListener {
+            finish()
+        }
+        
+        binding.buttonCancel.setOnClickListener {
+            finish()
+        }
+        
+        binding.buttonSave.setOnClickListener {
+            saveFavorites()
+        }
+    }
+    
+    private fun saveFavorites() {
+        val selectedIds = adapter.getSelectedIds().toSet()
+        val trainingData = jsonHelper.readTrainingData()
+        
+        // Update favorite status for all exercises
+        trainingData.exerciseLibrary.forEachIndexed { index, exercise ->
+            val isFavorite = exercise.id in selectedIds
+            if (exercise.isFavorite != isFavorite) {
+                trainingData.exerciseLibrary[index] = exercise.copy(isFavorite = isFavorite)
+            }
+        }
+        
+        jsonHelper.writeTrainingData(trainingData)
+        
+        val intent = Intent().apply {
+            // No extra data needed, just indicate success
+        }
+        setResult(Activity.RESULT_OK, intent)
+        finish()
     }
     
     private fun setupSearchField() {
@@ -133,7 +138,7 @@ class ExercisesActivity : AppCompatActivity() {
                     searchQuery = s?.toString() ?: ""
                     applySearchFilter()
                 } catch (e: Exception) {
-                    android.util.Log.e("ExercisesActivity", "Error in search filter", e)
+                    android.util.Log.e("ManageFavoritesActivity", "Error in search filter", e)
                 }
             }
             override fun afterTextChanged(s: Editable?) {}
@@ -151,5 +156,9 @@ class ExercisesActivity : AppCompatActivity() {
                 false
             }
         }
+    }
+
+    private fun updateSelectedCount() {
+        binding.textSelectedCount.text = "$selectedCount selected"
     }
 }

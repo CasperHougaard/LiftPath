@@ -24,6 +24,16 @@
         android:contentDescription="In plan"
         app:tint="@color/fitness_primary" />
 
+    <ImageView
+        android:id="@+id/image_favorite_star"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_marginStart="12dp"
+        android:src="@drawable/ic_star"
+        android:visibility="gone"
+        android:contentDescription="Favorite"
+        app:tint="@color/fitness_primary" />
+
     <TextView
         android:id="@+id/text_exercise_name"
         android:layout_width="0dp"

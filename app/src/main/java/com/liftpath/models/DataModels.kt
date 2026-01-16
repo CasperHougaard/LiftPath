@@ -77,7 +77,9 @@ data class ExerciseLibraryItem(
     val secondaryTargets: List<TargetMuscle> = emptyList(),
     
     // Renamed from 'mechanics' to 'manualMechanics' to avoid conflict with computed property
-    val manualMechanics: Mechanics? = null
+    val manualMechanics: Mechanics? = null,
+    
+    val isFavorite: Boolean = false
 ) : Parcelable {
     val mechanics: Mechanics
         get() {

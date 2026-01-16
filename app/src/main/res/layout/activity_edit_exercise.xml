@@ -372,10 +372,34 @@
         </androidx.cardview.widget.CardView>
 
         <androidx.cardview.widget.CardView
+            android:id="@+id/button_favorite"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground"
+            app:cardBackgroundColor="@color/fitness_card_background"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="2dp"
+            app:strokeColor="@color/fitness_primary"
+            app:strokeWidth="1dp">
+
+            <ImageView
+                android:id="@+id/image_favorite_star"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="16dp"
+                android:src="@drawable/ic_star_outline"
+                android:contentDescription="Toggle Favorite"
+                app:tint="@color/fitness_primary" />
+        </androidx.cardview.widget.CardView>
+
+        <androidx.cardview.widget.CardView
             android:id="@+id/button_save_exercise"
             android:layout_width="0dp"
             android:layout_height="60dp"
-            android:layout_marginStart="8dp"
             android:layout_weight="1"
             android:clickable="true"
             android:focusable="true"
