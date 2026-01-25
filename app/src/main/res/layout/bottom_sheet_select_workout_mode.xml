@@ -48,11 +48,6 @@
             <include
                 android:id="@+id/tile_plan"
                 layout="@layout/item_workout_mode_tile" />
-
-            <!-- AUTO Tile -->
-            <include
-                android:id="@+id/tile_auto"
-                layout="@layout/item_workout_mode_tile" />
         </LinearLayout>
 
         <!-- Plan List Container (Initially Hidden) -->

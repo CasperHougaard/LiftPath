@@ -8,7 +8,6 @@ import android.os.Bundle
 import android.text.InputType
 import android.widget.EditText
 import android.widget.Toast
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.liftpath.R
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -93,11 +92,15 @@ class EditActivityActivity : AppCompatActivity() {
                 .toMutableList()
         }
 
-        title = "Edit $exerciseName"
-
         setupBackgroundAnimation()
+        setupHeader()
         setupRecyclerView()
         setupClickListeners()
+    }
+
+    private fun setupHeader() {
+        binding.textTitle.text = exerciseName
+        binding.textSubtitle.text = getString(R.string.edit_sets_subtitle, sets.size)
     }
 
     private fun setupBackgroundAnimation() {
@@ -128,8 +131,63 @@ class EditActivityActivity : AppCompatActivity() {
             },
             onNoteClicked = { position ->
                 showNoteDialog(position)
+            },
+            onWarmupChanged = { position, isWarmup ->
+                if (position < sets.size) {
+                    sets[position] = sets[position].copy(isWarmup = isWarmup)
+                    binding.recyclerViewSets.adapter?.notifyItemChanged(position)
+                }
+            },
+            onDeleteClicked = { position ->
+                showDeleteConfirmation(position)
             }
         )
+    }
+
+    private fun showDeleteConfirmation(position: Int) {
+        if (position >= sets.size) return
+        
+        val setNumber = sets[position].setNumber
+        
+        // Don't allow deleting the last set - user should remove the exercise instead
+        if (sets.size == 1) {
+            Toast.makeText(this, getString(R.string.dialog_message_cannot_delete_last_set), Toast.LENGTH_LONG).show()
+            return
+        }
+        
+        DialogHelper.createBuilder(this)
+            .setTitle(getString(R.string.dialog_title_delete_set))
+            .setMessage(getString(R.string.dialog_message_delete_set, setNumber))
+            .setPositiveButton(getString(R.string.button_delete)) { _, _ ->
+                deleteSet(position)
+            }
+            .setNegativeButton(getString(R.string.button_cancel), null)
+            .showWithTransparentWindow()
+    }
+
+    private fun deleteSet(position: Int) {
+        if (position >= sets.size) return
+        
+        // Remove the set
+        sets.removeAt(position)
+        
+        // Renumber remaining sets to be sequential
+        renumberSets()
+        
+        // Refresh the RecyclerView
+        binding.recyclerViewSets.adapter?.notifyDataSetChanged()
+        
+        // Update subtitle to reflect new count
+        binding.textSubtitle.text = getString(R.string.edit_sets_subtitle, sets.size)
+        
+        Toast.makeText(this, getString(R.string.toast_set_deleted), Toast.LENGTH_SHORT).show()
+    }
+
+    private fun renumberSets() {
+        // Reassign set numbers to be sequential starting from 1
+        sets.forEachIndexed { index, entry ->
+            sets[index] = entry.copy(setNumber = index + 1)
+        }
     }
 
     private fun showNoteDialog(position: Int) {
@@ -206,22 +264,11 @@ class EditActivityActivity : AppCompatActivity() {
             finish()
         } else {
             // Saved workout mode - update and persist to database
-            // Update the training session
-            // Create a map for quick lookup of edited sets
-            val editedSetsMap = sets.associateBy { it.setNumber }
+            // First, remove all existing sets for this exercise
+            trainingSession.exercises.removeAll { it.exerciseId == exerciseId }
             
-            val updatedExercises = trainingSession.exercises.map { entry ->
-                if (entry.exerciseId == exerciseId) {
-                    // Find the edited version of this set, preserving all original fields if not found
-                    editedSetsMap[entry.setNumber] ?: entry
-                } else {
-                    // Keep other exercises unchanged
-                    entry
-                }
-            }.toMutableList()
-
-            // Create updated training session with all other fields preserved
-            trainingSession = trainingSession.copy(exercises = updatedExercises)
+            // Add the updated/remaining sets
+            trainingSession.exercises.addAll(sets)
 
             // Persist changes - read fresh data to ensure we have latest state
             val trainingData = jsonHelper.readTrainingData()
@@ -240,4 +287,3 @@ class EditActivityActivity : AppCompatActivity() {
         }
     }
 }
-

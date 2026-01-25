@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -15,6 +16,7 @@ import com.liftpath.adapters.TrainingDetailAdapter
 import com.liftpath.models.ExerciseEntry
 import com.liftpath.models.GroupedExercise
 import com.liftpath.models.TrainingSession
+import com.liftpath.models.SetIntent
 import com.liftpath.utils.WorkoutTypeFormatter
 import com.liftpath.helpers.DurationHelper
 import com.liftpath.helpers.DialogHelper
@@ -33,8 +35,6 @@ class TrainingDetailActivity : AppCompatActivity() {
     private lateinit var binding: ActivityTrainingDetailBinding
     private lateinit var jsonHelper: JsonHelper
     private lateinit var trainingSession: TrainingSession
-    private val workoutTypeKeys = listOf("heavy", "light", "custom")
-    private val workoutTypeLabels = listOf("Heavy", "Light", "Custom")
 
     private var currentEditingEntry: ExerciseEntry? = null
 
@@ -78,11 +78,10 @@ class TrainingDetailActivity : AppCompatActivity() {
         if (result.resultCode == Activity.RESULT_OK) {
             val exerciseId = result.data?.getIntExtra(SelectExerciseActivity.EXTRA_EXERCISE_ID, -1) ?: -1
             val exerciseName = result.data?.getStringExtra(SelectExerciseActivity.EXTRA_EXERCISE_NAME) ?: ""
-            val exerciseType = result.data?.getStringExtra(SelectExerciseActivity.EXTRA_SELECTED_WORKOUT_TYPE) ?: trainingSession.defaultWorkoutType ?: "heavy"
 
             if (exerciseId != -1 && exerciseName.isNotEmpty()) {
-                // Launch LogSetActivity to add the first set for this new exercise
-                launchLogSetActivity(exerciseId, exerciseName, exerciseType, isNewExercise = true)
+                // Launch LogSetActivity to add the first set for this new exercise (default to BUILD intent)
+                launchLogSetActivity(exerciseId, exerciseName, SetIntent.BUILD, isNewExercise = true)
             }
         }
     }
@@ -108,8 +107,36 @@ class TrainingDetailActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Enable Edge-to-Edge
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
+        
         binding = ActivityTrainingDetailBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // Apply Window Insets
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, windowInsets ->
+            val insets = windowInsets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+            
+            // This activity doesn't have a toolbar, so we apply top padding to the main content
+            // inside the NestedScrollView to avoid overlap with the status bar.
+            binding.scrollContent.setPadding(
+                binding.scrollContent.paddingLeft,
+                insets.top + (24 * resources.displayMetrics.density).toInt(),
+                binding.scrollContent.paddingRight,
+                binding.scrollContent.paddingBottom
+            )
+            
+            // Apply bottom padding to the NestedScrollView to avoid overlap with the gesture bar
+            binding.scrollView.setPadding(
+                binding.scrollView.paddingLeft,
+                binding.scrollView.paddingTop,
+                binding.scrollView.paddingRight,
+                insets.bottom
+            )
+            
+            windowInsets
+        }
 
         jsonHelper = JsonHelper(this)
 
@@ -123,7 +150,7 @@ class TrainingDetailActivity : AppCompatActivity() {
         if (session != null) {
             trainingSession = session
             title = "Training #${trainingSession.trainingNumber} - ${trainingSession.date}"
-            setupSessionTypeControls()
+            setupDominantIntentBadge()
             setupDurationDisplay()
             setupRecyclerView()
             setupClickListeners()
@@ -186,9 +213,6 @@ class TrainingDetailActivity : AppCompatActivity() {
                 }
                 editSetLauncher.launch(intent)
             },
-            onChangeTypeClicked = { groupedExercise ->
-                showExerciseTypeDialog(groupedExercise)
-            },
             onEditActivityClicked = { groupedExercise ->
                 val intent = Intent(this, com.liftpath.activities.EditActivityActivity::class.java).apply {
                     putExtra(com.liftpath.activities.EditActivityActivity.EXTRA_TRAINING_SESSION_ID, trainingSession.id)
@@ -198,8 +222,10 @@ class TrainingDetailActivity : AppCompatActivity() {
                 editActivityLauncher.launch(intent)
             },
             onAddSetClicked = { groupedExercise ->
-                val exerciseType = groupedExercise.sets.firstOrNull()?.workoutType ?: trainingSession.defaultWorkoutType ?: "heavy"
-                launchLogSetActivity(groupedExercise.exerciseId, groupedExercise.exerciseName, exerciseType, isNewExercise = false)
+                // Get intent from last set or default to BUILD
+                val lastSet = groupedExercise.sets.lastOrNull()
+                val exerciseIntent = lastSet?.explicitIntent ?: SetIntent.BUILD
+                launchLogSetActivity(groupedExercise.exerciseId, groupedExercise.exerciseName, exerciseIntent, isNewExercise = false)
             }
         )
     }
@@ -225,56 +251,16 @@ class TrainingDetailActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupSessionTypeControls() {
-        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, workoutTypeLabels)
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        binding.spinnerSessionType.adapter = adapter
-
-        val normalizedType = WorkoutTypeFormatter.normalize(trainingSession.defaultWorkoutType)
-        val selectionIndex = workoutTypeKeys.indexOf(normalizedType).takeIf { it >= 0 } ?: 0
-        binding.spinnerSessionType.setSelection(selectionIndex)
-
-        binding.buttonApplySessionType.setOnClickListener {
-            val selectedType = workoutTypeKeys[binding.spinnerSessionType.selectedItemPosition]
-            applyTypeToEntireSession(selectedType)
+    private fun setupDominantIntentBadge() {
+        val dominantIntent = trainingSession.getDominantIntent()
+        val isLegacy = trainingSession.isLegacySession()
+        
+        binding.textDominantIntent.text = if (isLegacy) {
+            "${dominantIntent.displayName} (Legacy)"
+        } else {
+            dominantIntent.displayName
         }
-    }
-
-    private fun applyTypeToEntireSession(type: String) {
-        val updatedExercises = trainingSession.exercises.map { it.copy(workoutType = type) }.toMutableList()
-        trainingSession = trainingSession.copy(
-            exercises = updatedExercises,
-            defaultWorkoutType = type
-        )
-        persistTrainingSession()
-        setupRecyclerView()
-        Toast.makeText(this, "Applied ${WorkoutTypeFormatter.label(type)} to all exercises.", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun showExerciseTypeDialog(groupedExercise: GroupedExercise) {
-        val currentType = groupedExercise.sets.firstOrNull()?.workoutType ?: trainingSession.defaultWorkoutType
-        val normalized = WorkoutTypeFormatter.normalize(currentType)
-        val currentIndex = workoutTypeKeys.indexOf(normalized).takeIf { it >= 0 } ?: 0
-
-        DialogHelper.createBuilder(this)
-            .setTitle("Set type for ${groupedExercise.exerciseName}")
-            .setSingleChoiceItems(workoutTypeLabels.toTypedArray(), currentIndex) { dialog, which ->
-                val selectedType = workoutTypeKeys[which]
-                dialog.dismiss()
-                applyTypeToExercise(groupedExercise.exerciseId, selectedType)
-            }
-            .setNegativeButton("Cancel", null)
-            .showWithTransparentWindow()
-    }
-
-    private fun applyTypeToExercise(exerciseId: Int, type: String) {
-        val updatedExercises = trainingSession.exercises.map { entry ->
-            if (entry.exerciseId == exerciseId) entry.copy(workoutType = type) else entry
-        }.toMutableList()
-        trainingSession = trainingSession.copy(exercises = updatedExercises)
-        persistTrainingSession()
-        setupRecyclerView()
-        Toast.makeText(this, "${WorkoutTypeFormatter.label(type)} applied to exercise.", Toast.LENGTH_SHORT).show()
+        binding.textDominantIntent.visibility = View.VISIBLE
     }
 
     private fun persistTrainingSession() {
@@ -336,7 +322,7 @@ class TrainingDetailActivity : AppCompatActivity() {
         selectExerciseLauncher.launch(intent)
     }
 
-    private fun launchLogSetActivity(exerciseId: Int, exerciseName: String, workoutType: String, isNewExercise: Boolean) {
+    private fun launchLogSetActivity(exerciseId: Int, exerciseName: String, exerciseIntent: SetIntent, isNewExercise: Boolean) {
         val setNumber = if (isNewExercise) {
             1
         } else {
@@ -357,7 +343,8 @@ class TrainingDetailActivity : AppCompatActivity() {
             putExtra(LogSetActivity.EXTRA_EXERCISE_ID, exerciseId)
             putExtra(LogSetActivity.EXTRA_EXERCISE_NAME, exerciseName)
             putExtra(LogSetActivity.EXTRA_SET_NUMBER, setNumber)
-            putExtra(LogSetActivity.EXTRA_WORKOUT_TYPE, workoutType)
+            putExtra(LogSetActivity.EXTRA_WORKOUT_TYPE, trainingSession.defaultWorkoutType ?: "custom")  // Keep for legacy compatibility
+            putExtra(LogSetActivity.EXTRA_INTENT, exerciseIntent.name)
             
             // Pass last logged values if available
             lastEntry?.let {

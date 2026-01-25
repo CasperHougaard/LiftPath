@@ -19,18 +19,13 @@ import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.core.view.isVisible
-import com.liftpath.helpers.DialogHelper
 import com.liftpath.helpers.JsonHelper
 import com.liftpath.helpers.MuscleActivationHelper
-import com.liftpath.helpers.ProgressionHelper
-import com.liftpath.helpers.ProgressionSettingsManager
-import com.liftpath.helpers.showWithTransparentWindow
 import com.liftpath.models.BodyRegion
 import com.liftpath.models.ExerciseLibraryItem
 import com.liftpath.models.MovementPattern
 import com.liftpath.models.TargetMuscle
 import kotlinx.coroutines.*
-import java.util.Locale
 
 class SelectExerciseActivity : AppCompatActivity() {
 
@@ -44,7 +39,6 @@ class SelectExerciseActivity : AppCompatActivity() {
     private lateinit var adapter: SelectExerciseWithPlanAdapter
     
     // Intent / Context Data
-    private var sessionWorkoutType: String = "heavy"
     private var planId: String? = null
     private var planExerciseIds: Set<Int> = emptySet()
     private var alreadyAddedExerciseIds: Set<Int> = emptySet()
@@ -75,8 +69,7 @@ class SelectExerciseActivity : AppCompatActivity() {
     companion object {
         const val EXTRA_EXERCISE_ID = "extra_exercise_id"
         const val EXTRA_EXERCISE_NAME = "extra_exercise_name"
-        const val EXTRA_WORKOUT_TYPE = "extra_workout_type"
-        const val EXTRA_SELECTED_WORKOUT_TYPE = "extra_selected_workout_type"
+        const val EXTRA_WORKOUT_TYPE = "extra_workout_type"  // Keep for legacy compatibility
         const val EXTRA_PLAN_ID = "extra_plan_id"
         const val EXTRA_ALREADY_ADDED_EXERCISE_IDS = "extra_already_added_exercise_ids"
     }
@@ -93,7 +86,7 @@ class SelectExerciseActivity : AppCompatActivity() {
             // Find the newly created exercise to auto-select it
             val newExercise = allExercises.find { it.id == newId }
             if (newExercise != null) {
-                onExerciseSelected(newExercise, sessionWorkoutType)
+                onExerciseSelected(newExercise)
             }
         }
     }
@@ -108,7 +101,6 @@ class SelectExerciseActivity : AppCompatActivity() {
         jsonHelper = JsonHelper(this)
         
         // Unpack Intent
-        sessionWorkoutType = intent.getStringExtra(EXTRA_WORKOUT_TYPE) ?: "heavy"
         planId = intent.getStringExtra(EXTRA_PLAN_ID)
         alreadyAddedExerciseIds = intent.getIntArrayExtra(EXTRA_ALREADY_ADDED_EXERCISE_IDS)?.toSet() ?: emptySet()
         
@@ -182,7 +174,7 @@ class SelectExerciseActivity : AppCompatActivity() {
             items = emptyList(),
             planExerciseIds = planExerciseIds,
             onExerciseClicked = { exercise ->
-                onExerciseSelected(exercise, sessionWorkoutType)
+                onExerciseSelected(exercise)
             }
         )
         binding.recyclerViewSelectExercise.adapter = adapter
@@ -700,123 +692,20 @@ class SelectExerciseActivity : AppCompatActivity() {
         }
     }
 
-    private fun onExerciseSelected(exercise: ExerciseLibraryItem, requestedType: String? = null) {
-        val workoutType = requestedType ?: sessionWorkoutType
-        val trainingData = jsonHelper.readTrainingData()
-        val settingsManager = ProgressionSettingsManager(this)
-        val userSettings = settingsManager.getSettings()
-        
-        val suggestion = ProgressionHelper.getSuggestion(
-            exerciseId = exercise.id,
-            requestedType = workoutType,
-            trainingData = trainingData,
-            settings = userSettings
-        )
-
-        if (suggestion.isFirstTime) {
-            showFirstTimeDialog(exercise, workoutType)
-        } else {
-            showSuggestionDialog(exercise, suggestion, workoutType)
-        }
+    private fun onExerciseSelected(exercise: ExerciseLibraryItem) {
+        // Add exercise directly to workout without any dialogs
+        returnExercise(exercise)
     }
 
-    // --- DIALOGS (Unchanged Logic, just ensuring compatibility) ---
-
-    private fun showFirstTimeDialog(exercise: ExerciseLibraryItem, workoutType: String) {
-        DialogHelper.createBuilder(this)
-            .setTitle(exercise.name)
-            .setMessage(getString(R.string.dialog_message_first_time_exercise, formatTypeLabel(workoutType)))
-            .setPositiveButton(getString(R.string.button_add_exercise)) { _, _ ->
-                returnExercise(exercise, workoutType)
-            }
-            .setNeutralButton(getString(R.string.button_change_type)) { _, _ ->
-                showTypeOverrideDialog(exercise, workoutType)
-            }
-            .setNegativeButton(getString(R.string.button_cancel), null)
-            .showWithTransparentWindow()
-    }
-
-    private fun showSuggestionDialog(
-        exercise: ExerciseLibraryItem,
-        suggestion: ProgressionHelper.ProgressionSuggestion,
-        workoutType: String
-    ) {
-        val suggestedWeight = suggestion.proposedWeight
-
-        val message = buildString {
-            suggestion.badge?.let { append("$it\n\n") }
-            suggestion.lastHeavyRpe?.let {
-                append(getString(R.string.dialog_message_last_rpe, it))
-                append("\n")
-            }
-            suggestion.daysSinceLastWorkout?.let { days ->
-                if (days >= 14) {
-                    append(getString(R.string.dialog_message_days_since_last, days))
-                    append("\n")
-                }
-            }
-            append(suggestion.humanExplanation)
-            append("\n\n")
-            
-            if (suggestedWeight != null) {
-                append(getString(R.string.dialog_message_suggested_weight, suggestedWeight))
-            } else {
-                append(getString(R.string.dialog_message_custom_workout))
-            }
-        }
-
-        DialogHelper.createBuilder(this)
-            .setTitle(exercise.name)
-            .setMessage(message)
-            .setPositiveButton(getString(R.string.button_add_exercise)) { _, _ ->
-                returnExercise(exercise, workoutType)
-            }
-            .setNeutralButton(getString(R.string.button_change_type)) { _, _ ->
-                showTypeOverrideDialog(exercise, workoutType)
-            }
-            .setNegativeButton(getString(R.string.button_cancel), null)
-            .showWithTransparentWindow()
-    }
-
-    private fun showTypeOverrideDialog(exercise: ExerciseLibraryItem, currentType: String) {
-        val types = arrayOf("Heavy", "Light", "Custom")
-        val currentIndex = when (currentType) {
-            "heavy" -> 0
-            "light" -> 1
-            else -> 2
-        }
-
-        DialogHelper.createBuilder(this)
-            .setTitle(getString(R.string.dialog_title_override_workout_type, exercise.name))
-            .setSingleChoiceItems(types, currentIndex) { dialog, which ->
-                val newType = when (which) {
-                    0 -> "heavy"
-                    1 -> "light"
-                    else -> "custom"
-                }
-                dialog.dismiss()
-                onExerciseSelected(exercise, newType)
-            }
-            .setNegativeButton(getString(R.string.button_cancel), null)
-            .showWithTransparentWindow()
-    }
-
-    private fun returnExercise(exercise: ExerciseLibraryItem, workoutType: String) {
+    private fun returnExercise(exercise: ExerciseLibraryItem) {
         val intent = Intent().apply {
             putExtra(EXTRA_EXERCISE_ID, exercise.id)
             putExtra(EXTRA_EXERCISE_NAME, exercise.name)
-            putExtra(EXTRA_SELECTED_WORKOUT_TYPE, workoutType)
         }
         setResult(Activity.RESULT_OK, intent)
         finish()
     }
 
-    private fun formatTypeLabel(type: String): String {
-        return type.replaceFirstChar {
-            if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
-        }
-    }
-    
     override fun onDestroy() {
         super.onDestroy()
         scope.cancel()

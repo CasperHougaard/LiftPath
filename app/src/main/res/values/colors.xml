@@ -25,13 +25,30 @@
     <color name="fitness_highlight_border">#10B981</color>
     <color name="fitness_error_background">#FEE2E2</color>
     <color name="fitness_error_border">#EF4444</color>
+    <color name="fitness_error">#EF4444</color>
     <color name="fitness_badge_blue">#3B82F6</color>
-    <color name="fitness_light_blue">#60A5FA</color> <!-- Light blue for light workouts -->
-    <color name="fitness_dark_blue">#1E40AF</color> <!-- Dark blue for heavy workouts -->
+    <color name="fitness_light_blue">#60A5FA</color> <!-- Light blue for light workouts (legacy) -->
+    <color name="fitness_dark_blue">#1E40AF</color> <!-- Dark blue for heavy workouts (legacy) -->
+    
+    <!-- Intent Colors -->
+    <color name="intent_strength">#DC2626</color>  <!-- Red-600 -->
+    <color name="intent_build">#F59E0B</color>     <!-- Amber-500 -->
+    <color name="intent_flush">#10B981</color>     <!-- Emerald-500 -->
+    <color name="intent_warmup">#6B7280</color>    <!-- Gray-500 -->
     
     <!-- Mesh Animation Color (visible in both light and dark) -->
     <color name="mesh_color">#50000000</color> <!-- Semi-transparent black - works on light bg -->
     
     <!-- Chart Grid Lines -->
     <color name="fitness_chart_grid">#E0E0E0</color> <!-- Light gray for light mode -->
+    
+    <!-- Suggestion Color (for progression suggestions in active workout) -->
+    <color name="fitness_suggestion">#0EA5E9</color>  <!-- Sky-500 -->
+    
+    <!-- Chip Colors -->
+    <color name="chip_filter_background">#FFFFFF</color>
+    <color name="chip_choice_background">#FFFFFF</color>
+    
+    <!-- Divider -->
+    <color name="fitness_divider">#E5E7EB</color>  <!-- Gray-200 -->
 </resources>

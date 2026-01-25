@@ -13,13 +13,13 @@ import com.liftpath.databinding.ItemSetDetailBinding
 import com.liftpath.databinding.ItemGroupedExerciseBinding
 import com.liftpath.models.ExerciseEntry
 import com.liftpath.models.GroupedExercise
+import com.liftpath.models.SetIntent
 import com.liftpath.utils.WorkoutTypeFormatter
 
 class TrainingDetailAdapter(
     private val groupedExercises: List<GroupedExercise>,
     private val sessionDefaultType: String?,
     private val onEditSetClicked: (ExerciseEntry) -> Unit,
-    private val onChangeTypeClicked: (GroupedExercise) -> Unit,
     private val onEditActivityClicked: (GroupedExercise) -> Unit,
     private val onAddSetClicked: (GroupedExercise) -> Unit
 ) : RecyclerView.Adapter<TrainingDetailAdapter.ViewHolder>() {
@@ -32,14 +32,18 @@ class TrainingDetailAdapter(
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val groupedExercise = groupedExercises[position]
         holder.binding.textExerciseName.text = groupedExercise.exerciseName
-        val exerciseType = groupedExercise.sets.firstOrNull()?.workoutType ?: sessionDefaultType
-        holder.binding.textExerciseType.text = "Type: ${WorkoutTypeFormatter.label(exerciseType)}"
+        // Show dominant intent per exercise instead of workout type
+        val dominantIntent = groupedExercise.sets
+            .filterNot { it.isWarmup }
+            .groupingBy { it.getEffectiveIntent(sessionDefaultType) }
+            .eachCount()
+            .maxByOrNull { it.value }?.key ?: com.liftpath.models.SetIntent.BUILD
+        holder.binding.textExerciseType.text = "Intent: ${dominantIntent.displayName}"
         holder.binding.buttonEditActivity.setOnClickListener {
             onEditActivityClicked(groupedExercise)
         }
-        holder.binding.buttonChangeType.setOnClickListener {
-            onChangeTypeClicked(groupedExercise)
-        }
+        // Remove buttonChangeType - intent is now shown per-set or per-exercise
+        holder.binding.buttonChangeType?.visibility = android.view.View.GONE
         holder.binding.buttonAddSet?.setOnClickListener {
             onAddSetClicked(groupedExercise)
         }
@@ -67,47 +71,37 @@ class TrainingDetailAdapter(
     }
 
     private fun formatSetDetails(set: ExerciseEntry): SpannableString {
-        val text = buildString {
-            append("Set ${set.setNumber}: ${set.kg}kg × ${set.reps} reps")
-
-            // Show RPE if available (new data)
-            set.rpe?.let {
-                append(" • RPE ${String.format("%.1f", it)}")
-            }
-
-            // Show legacy rating if no RPE (old data)
-            if (set.rpe == null && set.rating != null) {
-                append(" • Rating ${set.rating}/5")
-            }
+        val suffix = when {
+            set.isWarmup -> " (W)"
+            set.rpe != null -> " (${"%.1f".format(set.rpe)})"
+            else -> ""
         }
+        val base = "Set ${set.setNumber}: ${set.kg}kg × ${set.reps} reps"
+        val text = base + suffix
 
         val spannable = SpannableString(text)
 
-        // Color-code by RPE
-        set.rpe?.let { rpe ->
+        // Color-code (W) / (RPE) suffix: warmup stays default, RPE by difficulty
+        if (suffix.isNotEmpty() && set.rpe != null) {
+            val rpe = set.rpe
             val color = when {
                 rpe < 7.0f -> Color.parseColor("#4CAF50")  // Green - easy
                 rpe < 8.5f -> Color.parseColor("#FF9800")  // Orange - moderate
                 rpe < 9.5f -> Color.parseColor("#F44336")  // Red - hard
                 else -> Color.parseColor("#9C27B0")        // Purple - max effort
             }
-
-            val rpeStart = text.indexOf("RPE")
-            if (rpeStart >= 0) {
-                val rpeEnd = rpeStart + 8  // "RPE X.X"
-                spannable.setSpan(
-                    ForegroundColorSpan(color),
-                    rpeStart,
-                    minOf(rpeEnd, text.length),
-                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
-                )
-                spannable.setSpan(
-                    StyleSpan(Typeface.BOLD),
-                    rpeStart,
-                    minOf(rpeEnd, text.length),
-                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
-                )
-            }
+            spannable.setSpan(
+                ForegroundColorSpan(color),
+                base.length,
+                text.length,
+                Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+            spannable.setSpan(
+                StyleSpan(Typeface.BOLD),
+                base.length,
+                text.length,
+                Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
         }
 
         return spannable

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:paddingEnd="20dp"
+    android:clipChildren="false"
+    android:clipToPadding="false">
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/action_finish_workout_button"
+        android:layout_width="wrap_content"
+        android:layout_height="40dp"
+        android:contentDescription="@string/button_finish"
+        android:minWidth="0dp"
+        android:minHeight="0dp"
+        android:paddingStart="18dp"
+        android:paddingEnd="18dp"
+        android:text="@string/button_finish"
+        android:textAllCaps="false"
+        android:textColor="@android:color/white"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:letterSpacing="0.02"
+        app:backgroundTint="@color/fitness_primary"
+        app:rippleColor="#40FFFFFF"
+        app:icon="@drawable/ic_check"
+        app:iconGravity="textStart"
+        app:iconPadding="8dp"
+        app:iconSize="20dp"
+        app:iconTint="@android:color/white"
+        app:cornerRadius="20dp" />
+</FrameLayout>

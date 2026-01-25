@@ -4,6 +4,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
+import com.liftpath.R
 import com.liftpath.databinding.ItemEditSetBinding
 import com.liftpath.models.ExerciseEntry
 import java.util.Locale
@@ -13,7 +14,9 @@ class EditActivityAdapter(
     private val onKgChanged: (Int, Float) -> Unit,
     private val onRepsChanged: (Int, Int) -> Unit,
     private val onRpeChanged: (Int, Float?) -> Unit,
-    private val onNoteClicked: (Int) -> Unit
+    private val onNoteClicked: (Int) -> Unit,
+    private val onWarmupChanged: (Int, Boolean) -> Unit,
+    private val onDeleteClicked: (Int) -> Unit
 ) : RecyclerView.Adapter<EditActivityAdapter.ViewHolder>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -23,7 +26,9 @@ class EditActivityAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val set = sets[position]
-        holder.binding.textSetNumber.text = "Set ${set.setNumber}"
+        val context = holder.itemView.context
+        
+        holder.binding.textSetNumber.text = context.getString(R.string.set_number_format, set.setNumber)
 
         // Set kg value
         holder.binding.editTextKg.setText(String.format(Locale.US, "%.1f", set.kg))
@@ -53,7 +58,6 @@ class EditActivityAdapter(
 
         // Set RPE value
         holder.binding.editTextRpe.setText(set.rpe?.let { String.format(Locale.US, "%.1f", it) } ?: "")
-        holder.binding.editTextRpe.hint = "RPE (6-10)"
         holder.binding.editTextRpe.setOnFocusChangeListener { _, hasFocus ->
             if (!hasFocus) {
                 val rpeText = holder.binding.editTextRpe.text.toString()
@@ -64,27 +68,49 @@ class EditActivityAdapter(
                 }
                 if (rpe == null && rpeText.isNotBlank()) {
                     holder.binding.editTextRpe.setText("")
-                    holder.binding.editTextRpe.error = "RPE must be 6.0-10.0"
+                    holder.binding.textInputLayoutRpe.error = context.getString(R.string.validation_rpe_range)
                 } else {
                     onRpeChanged(position, rpe)
-                    holder.binding.editTextRpe.error = null
+                    holder.binding.textInputLayoutRpe.error = null
                 }
             }
         }
 
         // Note button and preview
-        val hasNote = set.note != null && set.note.isNotBlank()
-        holder.binding.buttonNote.text = if (hasNote) "Note ✓" else "+"
+        val hasNote = !set.note.isNullOrBlank()
+        holder.binding.buttonNote.text = if (hasNote) {
+            context.getString(R.string.button_edit_note)
+        } else {
+            context.getString(R.string.button_add_note)
+        }
         holder.binding.buttonNote.setOnClickListener {
             onNoteClicked(position)
         }
         
         // Show note preview if it exists
         if (hasNote) {
-            holder.binding.textNotePreview.text = "Note: ${set.note}"
+            holder.binding.textNotePreview.text = set.note
             holder.binding.textNotePreview.visibility = View.VISIBLE
         } else {
             holder.binding.textNotePreview.visibility = View.GONE
+        }
+
+        // Warmup checkbox
+        holder.binding.cbWarmup.setOnCheckedChangeListener(null)
+        holder.binding.cbWarmup.isChecked = set.isWarmup
+        holder.binding.cbWarmup.setOnCheckedChangeListener { _, isChecked ->
+            onWarmupChanged(position, isChecked)
+        }
+        
+        // Dim inputs when warmup
+        val alpha = if (set.isWarmup) 0.6f else 1.0f
+        holder.binding.textInputLayoutKg.alpha = alpha
+        holder.binding.textInputLayoutReps.alpha = alpha
+        holder.binding.textInputLayoutRpe.alpha = alpha
+
+        // Delete button
+        holder.binding.buttonDelete.setOnClickListener {
+            onDeleteClicked(position)
         }
     }
 
@@ -92,4 +118,3 @@ class EditActivityAdapter(
 
     class ViewHolder(val binding: ItemEditSetBinding) : RecyclerView.ViewHolder(binding.root)
 }
-

@@ -124,6 +124,9 @@ class RestTimerService : Service() {
     private fun startCountdown(durationSeconds: Int, exerciseName: String, showDialog: Boolean = true) {
         stopCountdown()
         
+        // Cancel all previous timing notifications to avoid multiple notifications
+        cancelAllNotifications()
+        
         currentExerciseName = exerciseName
         remainingSeconds = durationSeconds
         isTimerRunning = true
@@ -436,6 +439,18 @@ class RestTimerService : Service() {
         } catch (e: SecurityException) {
             // Permission not granted, skip notification (vibration will still work)
             android.util.Log.w("RestTimerService", "Cannot show notification: permission denied", e)
+        }
+    }
+    
+    private fun cancelAllNotifications() {
+        try {
+            val notificationManager = NotificationManagerCompat.from(this)
+            // Cancel timer notification
+            notificationManager.cancel(NOTIFICATION_ID)
+            // Cancel completion notification
+            notificationManager.cancel(COMPLETION_NOTIFICATION_ID)
+        } catch (e: SecurityException) {
+            android.util.Log.w("RestTimerService", "Cannot cancel notifications: permission denied", e)
         }
     }
     

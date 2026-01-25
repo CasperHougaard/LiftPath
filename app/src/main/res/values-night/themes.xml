@@ -17,8 +17,13 @@
         <item name="android:textColorPrimary">@color/fitness_text_primary</item>
         <item name="android:textColorSecondary">@color/fitness_text_secondary</item>
         <!-- Status bar color. -->
-        <item name="android:statusBarColor">@color/fitness_background</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">false</item>
+        
+        <!-- Navigation bar - transparent for edge-to-edge -->
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">false</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
         
         <!-- MaterialAlertDialog Theme - Links to custom dialog overlay -->
         <item name="materialAlertDialogTheme">@style/ThemeOverlay.Fitness.MaterialAlertDialog</item>

@@ -7,5 +7,10 @@
     <dimen name="card_padding">16dp</dimen>
     <dimen name="list_item_spacing">12dp</dimen>
     <dimen name="dialog_corner_radius">24dp</dimen>
+    
+    <!-- Progress Tab Dimensions -->
+    <dimen name="pr_card_width">140dp</dimen>
+    <dimen name="card_margin">12dp</dimen>
+    <dimen name="card_elevation">4dp</dimen>
 </resources>
 

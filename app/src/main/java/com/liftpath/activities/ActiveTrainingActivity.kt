@@ -10,7 +10,6 @@ import android.graphics.drawable.Animatable
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
-import android.view.MenuItem
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
@@ -27,11 +26,14 @@ import com.liftpath.helpers.DurationHelper
 import com.liftpath.models.*
 import com.liftpath.services.RestTimerService
 import com.liftpath.components.MuscleMapDialog
+import com.liftpath.components.AddSpecialBottomSheet
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 import android.os.Handler
 import android.os.Looper
+import android.view.Menu
+import android.view.MenuItem
 
 class ActiveTrainingActivity : AppCompatActivity() {
 
@@ -44,10 +46,14 @@ class ActiveTrainingActivity : AppCompatActivity() {
     private val currentExerciseEntries = mutableListOf<ExerciseEntry>()
     private val groupedExercises = mutableListOf<GroupedExercise>()
     private val exerciseWorkoutTypes = mutableMapOf<Int, String>()
+    private val exerciseIntents = mutableMapOf<Int, SetIntent>()
+    private val lockedIntents = mutableMapOf<Int, SetIntent>() // Track locked intent per exercise (locked when first set is logged)
     private val exerciseRecommendations = mutableMapOf<Int, WorkoutGenerator.RecommendedExercise>()
     private val lastSetsCount = mutableMapOf<Int, Int>()
     private val lastLoggedKg = mutableMapOf<Int, Float>()
     private val lastLoggedReps = mutableMapOf<Int, Int>()
+    private val lastWorkoutData = mutableMapOf<Int, MutableMap<SetIntent, List<ExerciseEntry>>>()
+    private val lastIntents = mutableMapOf<Int, SetIntent>() // Track last intent used for each exercise
 
     private lateinit var adapter: ActiveExercisesAdapter
     private val selectedDate = Calendar.getInstance()
@@ -96,17 +102,33 @@ class ActiveTrainingActivity : AppCompatActivity() {
                 val data = result.data
                 val exerciseId = data?.getIntExtra(SelectExerciseActivity.EXTRA_EXERCISE_ID, -1) ?: -1
                 val exerciseName = data?.getStringExtra(SelectExerciseActivity.EXTRA_EXERCISE_NAME) ?: ""
-                val exerciseType = data?.getStringExtra(SelectExerciseActivity.EXTRA_SELECTED_WORKOUT_TYPE) ?: workoutType
 
                 if (exerciseId != -1 && exerciseName.isNotEmpty()) {
-                    exerciseWorkoutTypes[exerciseId] = exerciseType
+                    // Don't set default intent when exercise is added
+                    // The adapter will show the last intent used with "(Last + emoji)" label
                     val existingGroup = groupedExercises.find { it.exerciseId == exerciseId }
                     if (existingGroup == null) {
+                        // Initialize last workout data for this exercise (for all intents)
+                        if (!lastWorkoutData.containsKey(exerciseId)) {
+                            lastWorkoutData[exerciseId] = mutableMapOf()
+                        }
+                        // Pre-fetch last workout data for all intents to show in adapter
+                        for (intent in listOf(SetIntent.STRENGTH, SetIntent.BUILD, SetIntent.FLUSH)) {
+                            val lastSets = fetchLastWorkoutSets(exerciseId, intent)
+                            lastWorkoutData[exerciseId]!![intent] = lastSets
+                        }
+                        
+                        // Get and store the last intent used for this exercise
+                        val lastIntent = getLastIntentForExercise(exerciseId)
+                        if (lastIntent != null) {
+                            lastIntents[exerciseId] = lastIntent
+                        }
+                        
                         val newGroup = GroupedExercise(exerciseId, exerciseName, emptyList())
                         groupedExercises.add(newGroup)
                         adapter.notifyItemInserted(groupedExercises.size - 1)
                     }
-                    launchLogSetActivity(exerciseId, exerciseName)
+                    // Exercise added - user can log sets by clicking on the exercise
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error processing result from SelectExerciseActivity", e)
@@ -144,8 +166,34 @@ class ActiveTrainingActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Enable Edge-to-Edge
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
+        
         binding = ActivityActiveTrainingBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // Apply Window Insets
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, windowInsets ->
+            val insets = windowInsets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+            
+            // Apply top padding to toolbar
+            val typedValue = android.util.TypedValue()
+            var actionBarHeight = 0
+            if (theme.resolveAttribute(android.R.attr.actionBarSize, typedValue, true)) {
+                actionBarHeight = android.util.TypedValue.complexToDimensionPixelSize(typedValue.data, resources.displayMetrics)
+            }
+            binding.toolbar.setPadding(0, insets.top, 0, 0)
+            binding.toolbar.layoutParams.height = actionBarHeight + insets.top
+            
+            // Apply bottom margin to the timer card so it doesn't get hidden by the gesture bar
+            val timerLayoutParams = binding.cardTimerContainer.layoutParams as android.view.ViewGroup.MarginLayoutParams
+            val baseMargin = (16 * resources.displayMetrics.density).toInt()
+            timerLayoutParams.bottomMargin = insets.bottom + baseMargin
+            binding.cardTimerContainer.layoutParams = timerLayoutParams
+            
+            windowInsets
+        }
 
         setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
@@ -195,6 +243,28 @@ class ActiveTrainingActivity : AppCompatActivity() {
 
     // --- NAVIGATION ---
 
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.menu_active_training, menu)
+        val finishItem = menu?.findItem(R.id.action_complete_workout)
+        val finishButton = finishItem?.actionView?.findViewById<android.view.View>(R.id.action_finish_workout_button)
+        finishButton?.setOnClickListener { showCompleteWorkoutDialog() }
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.action_complete_workout -> {
+                showCompleteWorkoutDialog()
+                true
+            }
+            android.R.id.home -> {
+                handleBackButton()
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
+
     // Replaces onCreateOptionsMenu to handle the back arrow correctly without needing menu XML
     override fun onSupportNavigateUp(): Boolean {
         handleBackButton()
@@ -212,8 +282,8 @@ class ActiveTrainingActivity : AppCompatActivity() {
             .setSingleChoiceItems(focusOptions, 0) { _, which ->
                 selectedFocus = which
             }
-            .setPositiveButton("Next") { _, _ ->
-                showIntensityDialog(selectedFocus)
+            .setPositiveButton("Create Workout") { _, _ ->
+                generateSmartWorkout(selectedFocus)
             }
             .setNegativeButton(getString(R.string.button_cancel)) { _, _ ->
                 finish()
@@ -222,38 +292,17 @@ class ActiveTrainingActivity : AppCompatActivity() {
             .showWithTransparentWindow()
     }
 
-    private fun showIntensityDialog(focusIndex: Int) {
-        val intensityOptions = arrayOf("Heavy (Strength)", "Light (Volume/Hypertrophy)")
-        var selectedIntensityIndex = 0
-
-        DialogHelper.createBuilder(this)
-            .setTitle("Select Intensity")
-            .setSingleChoiceItems(intensityOptions, 0) { _, which ->
-                selectedIntensityIndex = which
-            }
-            .setPositiveButton("Create Workout") { _, _ ->
-                generateSmartWorkout(focusIndex, selectedIntensityIndex)
-            }
-            .setNeutralButton("Back") { _, _ ->
-                showSmartWorkoutSetupDialog()
-            }
-            .setCancelable(false)
-            .showWithTransparentWindow()
-    }
-
-    private fun generateSmartWorkout(focusIndex: Int, intensityIndex: Int) {
+    private fun generateSmartWorkout(focusIndex: Int) {
         try {
             val focus = when(focusIndex) {
                 0 -> SessionFocus.UPPER
                 1 -> SessionFocus.LOWER
                 else -> SessionFocus.FULL
             }
-            val intensity = when(intensityIndex) {
-                0 -> SessionIntensity.HEAVY
-                else -> SessionIntensity.LIGHT
-            }
+            // Default to BUILD intent for all exercises (user can adjust per-exercise)
+            val intensity = SessionIntensity.LIGHT  // Use LIGHT as default for WorkoutGenerator compatibility
 
-            this.workoutType = if (intensity == SessionIntensity.HEAVY) "heavy" else "light"
+            this.workoutType = "custom"  // Use custom since we're not using heavy/light anymore
             updateTitle()
 
             val trainingData = jsonHelper.readTrainingData()
@@ -269,7 +318,10 @@ class ActiveTrainingActivity : AppCompatActivity() {
             currentExerciseEntries.clear()
             groupedExercises.clear()
             exerciseWorkoutTypes.clear()
+            exerciseIntents.clear()
             exerciseRecommendations.clear()
+            lastWorkoutData.clear()
+            lastIntents.clear()
 
             if (recommendedExercises.isNotEmpty()) {
                 // Add exercises without sets - user will add sets manually
@@ -282,6 +334,25 @@ class ActiveTrainingActivity : AppCompatActivity() {
                     
                     // Set workout type
                     exerciseWorkoutTypes[exerciseId] = recommendation.workoutType
+                    
+                    // Don't set default intent when exercise is added
+                    // The adapter will show the last intent used with "(Last + emoji)" label
+                    
+                    // Initialize last workout data for this exercise (for all intents)
+                    if (!lastWorkoutData.containsKey(exerciseId)) {
+                        lastWorkoutData[exerciseId] = mutableMapOf()
+                    }
+                    // Pre-fetch last workout data for all intents to show in adapter
+                    for (intent in listOf(SetIntent.STRENGTH, SetIntent.BUILD, SetIntent.FLUSH)) {
+                        val lastSets = fetchLastWorkoutSets(exerciseId, intent)
+                        lastWorkoutData[exerciseId]!![intent] = lastSets
+                    }
+                    
+                    // Get and store the last intent used for this exercise
+                    val lastIntent = getLastIntentForExercise(exerciseId)
+                    if (lastIntent != null) {
+                        lastIntents[exerciseId] = lastIntent
+                    }
                     
                     // Add exercise as empty GroupedExercise (no sets yet)
                     groupedExercises.add(GroupedExercise(exerciseId, exerciseName, emptyList()))
@@ -403,6 +474,23 @@ class ActiveTrainingActivity : AppCompatActivity() {
                     groupedExercises.add(GroupedExercise(exerciseId, exercise.name, emptyList()))
                     // If workout is custom, use custom for exercise type, otherwise use plan's workout type
                     exerciseWorkoutTypes[exerciseId] = if (workoutType == "custom") "custom" else plan.workoutType
+                    // Initialize intent from plan config if available, otherwise BUILD (handle legacy plans)
+                    val planConfig = plan.exerciseConfigs?.find { it.exerciseId == exerciseId }
+                    val intent = planConfig?.defaultIntent ?: SetIntent.BUILD
+                    exerciseIntents[exerciseId] = intent
+                    
+                    // Initialize last workout data for this exercise and intent
+                    if (!lastWorkoutData.containsKey(exerciseId)) {
+                        lastWorkoutData[exerciseId] = mutableMapOf()
+                    }
+                    val lastSets = fetchLastWorkoutSets(exerciseId, intent)
+                    lastWorkoutData[exerciseId]!![intent] = lastSets
+                    
+                    // Get and store the last intent used for this exercise
+                    val lastIntent = getLastIntentForExercise(exerciseId)
+                    if (lastIntent != null) {
+                        lastIntents[exerciseId] = lastIntent
+                    }
                 }
             }
         }
@@ -459,12 +547,96 @@ class ActiveTrainingActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Fetches the last workout sets for an exercise filtered by intent.
+     * Returns empty list if no matching session found.
+     * For legacy sessions, uses smart exercise-level intent evaluation.
+     */
+    private fun fetchLastWorkoutSets(exerciseId: Int, intent: SetIntent): List<ExerciseEntry> {
+        val trainingData = jsonHelper.readTrainingData()
+        
+        // Find last session containing this exercise with matching intent
+        val lastSession = trainingData.trainings
+            .sortedByDescending { it.trainingNumber }
+            .firstOrNull { session ->
+                session.exercises.any { entry ->
+                    entry.exerciseId == exerciseId && 
+                    getExerciseIntentInSession(entry, session, exerciseId) == intent
+                }
+            }
+        
+        return lastSession?.exercises
+            ?.filter { it.exerciseId == exerciseId && 
+                       getExerciseIntentInSession(it, lastSession, exerciseId) == intent }
+            ?.sortedBy { it.setNumber }
+            ?: emptyList()
+    }
+    
+    /**
+     * Gets the last intent used for an exercise from training history.
+     * Returns null if the exercise has never been done before.
+     */
+    private fun getLastIntentForExercise(exerciseId: Int): SetIntent? {
+        val trainingData = jsonHelper.readTrainingData()
+        
+        // Find last session containing this exercise
+        val lastSession = trainingData.trainings
+            .sortedByDescending { it.trainingNumber }
+            .firstOrNull { session ->
+                session.exercises.any { entry ->
+                    entry.exerciseId == exerciseId && 
+                    !entry.isWarmup && 
+                    entry.rpe != 6.0f // Exclude warmups
+                }
+            }
+        
+        return lastSession?.let { session ->
+            // Get the intent of the exercise in this session
+            val exerciseEntries = session.exercises
+                .filter { it.exerciseId == exerciseId && !it.isWarmup && it.rpe != 6.0f }
+            
+            if (exerciseEntries.isNotEmpty()) {
+                // Use the first non-warmup entry to determine intent
+                getExerciseIntentInSession(exerciseEntries.first(), session, exerciseId)
+            } else {
+                null
+            }
+        }
+    }
+    
+    /**
+     * Gets the effective intent of an exercise entry, using smart evaluation for legacy sessions.
+     */
+    private fun getExerciseIntentInSession(
+        entry: ExerciseEntry, 
+        session: TrainingSession, 
+        exerciseId: Int
+    ): SetIntent {
+        // RPE 6.0 = warmup for legacy data
+        if (entry.explicitIntent == null && entry.rpe == 6.0f) {
+            return SetIntent.WARMUP
+        }
+        
+        // isWarmup flag
+        if (entry.isWarmup) return SetIntent.WARMUP
+        
+        // Explicit intent (modern data)
+        if (entry.explicitIntent != null) return entry.explicitIntent
+        
+        // Legacy session: use smart exercise-level evaluation
+        if (session.isLegacySession()) {
+            return session.getLegacyExerciseIntent(exerciseId)
+        }
+        
+        // Fallback to per-set evaluation
+        return entry.getEffectiveIntent(session.defaultWorkoutType)
+    }
+
     private fun updateTitle() {
-        val displayType = workoutType.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
         val title = if (appliedPlanName != null) {
-            "Active Workout ($displayType) - $appliedPlanName"
+            "Active Workout - $appliedPlanName"
         } else {
-            "Active Workout ($displayType)"
+            "Active Workout"
         }
         supportActionBar?.title = title
     }
@@ -487,6 +659,10 @@ class ActiveTrainingActivity : AppCompatActivity() {
             lastSetsCount,
             lastLoggedKg,
             lastLoggedReps,
+            exerciseIntents,
+            lockedIntents,
+            lastWorkoutData,
+            lastIntents,
             onAddSetClicked = { exerciseId, exerciseName ->
                 launchLogSetActivity(exerciseId, exerciseName)
             },
@@ -498,6 +674,30 @@ class ActiveTrainingActivity : AppCompatActivity() {
             },
             onDeleteExerciseClicked = { exerciseId ->
                 deleteExercise(exerciseId)
+            },
+            onIntentChanged = { exerciseId, intent ->
+                exerciseIntents[exerciseId] = intent
+                
+                // Refresh last workout data for new intent
+                val lastSets = fetchLastWorkoutSets(exerciseId, intent)
+                if (!lastWorkoutData.containsKey(exerciseId)) {
+                    lastWorkoutData[exerciseId] = mutableMapOf()
+                }
+                lastWorkoutData[exerciseId]!![intent] = lastSets
+                
+                // Notify adapter to refresh this exercise
+                val position = groupedExercises.indexOfFirst { it.exerciseId == exerciseId }
+                if (position >= 0) {
+                    adapter.notifyItemChanged(position)
+                }
+                
+                persistDraft()
+            },
+            onAddExerciseClicked = {
+                handleAddExercise()
+            },
+            onAddSpecialClicked = {
+                showAddSpecialBottomSheet()
             }
         )
         binding.recyclerViewActiveWorkout.adapter = adapter
@@ -505,19 +705,8 @@ class ActiveTrainingActivity : AppCompatActivity() {
     }
 
     private fun setupClickListeners() {
-        binding.buttonAddExercise.setOnClickListener {
-            val alreadyAddedExerciseIds = groupedExercises.map { it.exerciseId }.toIntArray()
-            val intent = Intent(this, SelectExerciseActivity::class.java).apply {
-                putExtra(SelectExerciseActivity.EXTRA_WORKOUT_TYPE, workoutType)
-                putExtra(SelectExerciseActivity.EXTRA_PLAN_ID, appliedPlanId)
-                putExtra(SelectExerciseActivity.EXTRA_ALREADY_ADDED_EXERCISE_IDS, alreadyAddedExerciseIds)
-            }
-            selectExerciseLauncher.launch(intent)
-        }
-
-        binding.buttonFinishWorkout.setOnClickListener {
-            finishWorkout()
-        }
+        // Removed button_add_exercise and button_finish_workout click listeners
+        // They are now handled via adapter callbacks and toolbar menu
 
         binding.layoutDate.setOnClickListener {
             showDatePickerDialog()
@@ -634,11 +823,13 @@ class ActiveTrainingActivity : AppCompatActivity() {
                 .maxByOrNull { it.setNumber }
             val setNumber = (previousSet?.setNumber ?: 0) + 1
             val setWorkoutType = exerciseWorkoutTypes[exerciseId] ?: workoutType
+            val exerciseIntent = exerciseIntents[exerciseId] ?: SetIntent.BUILD
             val intent = Intent(this, LogSetActivity::class.java).apply {
                 putExtra(LogSetActivity.EXTRA_EXERCISE_ID, exerciseId)
                 putExtra(LogSetActivity.EXTRA_EXERCISE_NAME, exerciseName)
                 putExtra(LogSetActivity.EXTRA_SET_NUMBER, setNumber)
                 putExtra(LogSetActivity.EXTRA_WORKOUT_TYPE, setWorkoutType)
+                putExtra(LogSetActivity.EXTRA_INTENT, exerciseIntent.name)
                 previousSet?.let {
                     putExtra(LogSetActivity.EXTRA_PREVIOUS_SET_REPS, it.reps)
                 }
@@ -657,13 +848,25 @@ class ActiveTrainingActivity : AppCompatActivity() {
     }
 
     private fun updateExercises(loggedSet: ExerciseEntry) {
-        currentExerciseEntries.add(loggedSet)
+        // If explicitIntent is not set, use the exercise's intent
+        val setWithIntent = if (loggedSet.explicitIntent == null) {
+            val exerciseIntent = exerciseIntents[loggedSet.exerciseId] ?: SetIntent.BUILD
+            loggedSet.copy(explicitIntent = exerciseIntent)
+        } else {
+            loggedSet
+        }
+        currentExerciseEntries.add(setWithIntent)
         loggedSet.workoutType?.let { exerciseWorkoutTypes[loggedSet.exerciseId] = it }
+        
+        // Lock the intent when the first set is logged for this exercise
+        if (!lockedIntents.containsKey(loggedSet.exerciseId)) {
+            lockedIntents[loggedSet.exerciseId] = setWithIntent.explicitIntent ?: SetIntent.BUILD
+        }
 
         val groupIndex = groupedExercises.indexOfFirst { it.exerciseId == loggedSet.exerciseId }
         if (groupIndex != -1) {
             val oldGroup = groupedExercises[groupIndex]
-            val newSets = oldGroup.sets + loggedSet
+            val newSets = oldGroup.sets + setWithIntent
             val newGroup = oldGroup.copy(sets = newSets.sortedBy { it.setNumber })
             groupedExercises[groupIndex] = newGroup
             adapter.notifyItemChanged(groupIndex)
@@ -687,6 +890,8 @@ class ActiveTrainingActivity : AppCompatActivity() {
             groupedExercises.removeAt(groupIndex)
             currentExerciseEntries.removeAll { it.exerciseId == exerciseId }
             exerciseWorkoutTypes.remove(exerciseId)
+            exerciseIntents.remove(exerciseId)
+            lockedIntents.remove(exerciseId)
             exerciseRecommendations.remove(exerciseId)
             lastSetsCount.remove(exerciseId)
             lastLoggedKg.remove(exerciseId)
@@ -727,6 +932,64 @@ class ActiveTrainingActivity : AppCompatActivity() {
         persistDraftIfHasEntries()
     }
 
+    private fun handleAddExercise() {
+        val alreadyAddedExerciseIds = groupedExercises.map { it.exerciseId }.toIntArray()
+        val intent = Intent(this, SelectExerciseActivity::class.java).apply {
+            putExtra(SelectExerciseActivity.EXTRA_WORKOUT_TYPE, workoutType)
+            putExtra(SelectExerciseActivity.EXTRA_PLAN_ID, appliedPlanId)
+            putExtra(SelectExerciseActivity.EXTRA_ALREADY_ADDED_EXERCISE_IDS, alreadyAddedExerciseIds)
+        }
+        selectExerciseLauncher.launch(intent)
+    }
+
+    private fun showAddSpecialBottomSheet() {
+        val bottomSheet = AddSpecialBottomSheet.newInstance(
+            onWarmupSelected = {
+                startWarmupTimer()
+            },
+            onCooldownSelected = {
+                Toast.makeText(this, "Cooldown feature coming soon", Toast.LENGTH_SHORT).show()
+            }
+        )
+        bottomSheet.show(supportFragmentManager, "AddSpecialBottomSheet")
+    }
+
+    private fun startWarmupTimer() {
+        val settings = settingsManager.getSettings()
+        if (!settings.restTimerEnabled) {
+            Toast.makeText(this, getString(R.string.toast_rest_timer_disabled), Toast.LENGTH_SHORT).show()
+            return
+        }
+        
+        // Check and request notification permission for Android 13+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS)
+                != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                pendingTimerTime = 300 // 5 minutes
+                notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                return
+            }
+        }
+        
+        startWarmupTimerAfterPermissionCheck()
+    }
+
+    private fun startWarmupTimerAfterPermissionCheck() {
+        RestTimerService.startTimer(this, 300, getString(R.string.warmup_timer_title), showDialog = false)
+        setTimerState(TimerState.RUNNING)
+    }
+
+    private fun showCompleteWorkoutDialog() {
+        DialogHelper.createBuilder(this)
+            .setTitle(getString(R.string.dialog_title_complete_workout))
+            .setMessage(getString(R.string.dialog_message_complete_workout))
+            .setPositiveButton(getString(R.string.button_complete)) { _, _ ->
+                finishWorkout()
+            }
+            .setNegativeButton(getString(R.string.button_return), null)
+            .showWithTransparentWindow()
+    }
+
     private fun finishWorkout() {
         try {
             // Calculate duration before stopping timer
@@ -753,6 +1016,15 @@ class ActiveTrainingActivity : AppCompatActivity() {
             trainingData.trainings.add(newSession)
             jsonHelper.writeTrainingData(trainingData)
             draftManager.clearDraft()
+            // Clear entries so onPause/onStop don't re-persist the draft during activity teardown
+            currentExerciseEntries.clear()
+            groupedExercises.clear()
+
+            // Launch workout report activity
+            val reportIntent = Intent(this, WorkoutReportActivity::class.java).apply {
+                putExtra(WorkoutReportActivity.EXTRA_TRAINING_SESSION, newSession)
+            }
+            startActivity(reportIntent)
 
             setResult(Activity.RESULT_OK)
             finish()
@@ -811,8 +1083,43 @@ class ActiveTrainingActivity : AppCompatActivity() {
         currentExerciseEntries.addAll(draft.entries.map { it.copy() })
 
         exerciseWorkoutTypes.clear()
+        exerciseIntents.clear()
+        lockedIntents.clear()
         currentExerciseEntries.forEach { entry ->
             entry.workoutType?.let { exerciseWorkoutTypes[entry.exerciseId] = it }
+            entry.explicitIntent?.let { exerciseIntents[entry.exerciseId] = it }
+        }
+        // Initialize intents for exercises that don't have one yet
+        groupedExercises.forEach { group ->
+            if (!exerciseIntents.containsKey(group.exerciseId)) {
+                exerciseIntents[group.exerciseId] = SetIntent.BUILD
+            }
+        }
+        // Restore locked intents (first set's intent for each exercise)
+        currentExerciseEntries
+            .groupBy { it.exerciseId }
+            .forEach { (exerciseId, entries) ->
+                val firstSet = entries.minByOrNull { it.setNumber }
+                firstSet?.explicitIntent?.let { intent ->
+                    lockedIntents[exerciseId] = intent
+                }
+            }
+
+        // Initialize last workout data for all exercises with intents
+        lastWorkoutData.clear()
+        lastIntents.clear()
+        exerciseIntents.forEach { (exerciseId, intent) ->
+            if (!lastWorkoutData.containsKey(exerciseId)) {
+                lastWorkoutData[exerciseId] = mutableMapOf()
+            }
+            val lastSets = fetchLastWorkoutSets(exerciseId, intent)
+            lastWorkoutData[exerciseId]!![intent] = lastSets
+            
+            // Get and store the last intent used for this exercise
+            val lastIntent = getLastIntentForExercise(exerciseId)
+            if (lastIntent != null) {
+                lastIntents[exerciseId] = lastIntent
+            }
         }
 
         // Restore last sets count and last logged kg/reps if plan was applied
@@ -1048,17 +1355,19 @@ class ActiveTrainingActivity : AppCompatActivity() {
         val actualTime = pendingTimerTime ?: useCustomTime
         pendingTimerTime = null
         
+        // Check if this is a warmup timer (300 seconds = 5 minutes)
+        if (actualTime == 300) {
+            startWarmupTimerAfterPermissionCheck()
+            return
+        }
+        
         var restSeconds = actualTime ?: let {
             val currentTime = RestTimerService.getRemainingSeconds(this)
             if (currentTime > 0) {
                 currentTime
             } else {
-                when (workoutType) {
-                    "heavy" -> settings.heavyRestSeconds
-                    "light" -> settings.lightRestSeconds
-                    "custom" -> settings.customRestSeconds
-                    else -> settings.customRestSeconds
-                }
+                // Default to BUILD rest time for manual timer (no exercise context)
+                settings.buildRestSeconds
             }
         }
         RestTimerService.startTimer(this, restSeconds, "Rest", showDialog = false)

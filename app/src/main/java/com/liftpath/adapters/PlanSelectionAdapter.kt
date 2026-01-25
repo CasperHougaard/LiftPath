@@ -33,19 +33,8 @@ class PlanSelectionAdapter(
         holder.planName.text = plan.name
         holder.exerciseCount.text = "${plan.exerciseIds.size} exercise${if (plan.exerciseIds.size != 1) "s" else ""}"
 
-        // Set workout type badge
-        val typeLabel = plan.workoutType.replaceFirstChar {
-            if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
-        }
-        holder.workoutTypeBadge.text = typeLabel
-        
-        // Set badge color based on workout type
-        val badgeColor = when (plan.workoutType) {
-            "heavy" -> android.graphics.Color.parseColor("#2196F3") // Blue
-            "light" -> android.graphics.Color.parseColor("#FF9800") // Orange
-            else -> android.graphics.Color.parseColor("#757575") // Gray
-        }
-        holder.workoutTypeBadge.backgroundTintList = android.content.res.ColorStateList.valueOf(badgeColor)
+        // Hide workout type badge (removed from UI)
+        holder.workoutTypeBadge.visibility = View.GONE
 
         // Set click listener on the entire card
         holder.cardView.setOnClickListener {

@@ -1,19 +1,27 @@
 package com.liftpath.adapters
 
 import android.content.Context
+import android.text.SpannableStringBuilder
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.cardview.widget.CardView
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.liftpath.R
+import com.liftpath.helpers.DialogHelper
 import com.liftpath.helpers.JsonHelper
 import com.liftpath.helpers.ProgressionHelper
 import com.liftpath.helpers.ProgressionSettingsManager
 import com.liftpath.helpers.WorkoutGenerator
+import com.liftpath.helpers.showWithTransparentWindow
 import com.liftpath.models.GroupedExercise
+import com.liftpath.models.SetIntent
+import com.google.android.material.chip.ChipGroup
 
 class ActiveExercisesAdapter(
     private val groupedExercises: List<GroupedExercise>,
@@ -23,34 +31,223 @@ class ActiveExercisesAdapter(
     private val lastSetsCount: Map<Int, Int>,
     private val lastLoggedKg: Map<Int, Float>,
     private val lastLoggedReps: Map<Int, Int>,
+    private val exerciseIntents: MutableMap<Int, SetIntent>,
+    private val lockedIntents: MutableMap<Int, SetIntent>,
+    private val lastWorkoutData: Map<Int, Map<SetIntent, List<com.liftpath.models.ExerciseEntry>>>,
+    private val lastIntents: Map<Int, SetIntent>,
     private val onAddSetClicked: (exerciseId: Int, exerciseName: String) -> Unit,
     private val onEditActivityClicked: (GroupedExercise) -> Unit,
     private val onDuplicateSetClicked: (exerciseId: Int) -> Unit,
-    private val onDeleteExerciseClicked: (exerciseId: Int) -> Unit
-) : RecyclerView.Adapter<ActiveExercisesAdapter.GroupedExerciseViewHolder>() {
+    private val onDeleteExerciseClicked: (exerciseId: Int) -> Unit,
+    private val onIntentChanged: (exerciseId: Int, intent: SetIntent) -> Unit,
+    private val onAddExerciseClicked: () -> Unit,
+    private val onAddSpecialClicked: () -> Unit
+) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+    
+    companion object {
+        private const val VIEW_TYPE_EXERCISE = 0
+        private const val VIEW_TYPE_ADD_BUTTONS = 1
+    }
+    
 
     class GroupedExerciseViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val exerciseName: TextView = view.findViewById(R.id.text_exercise_name)
         val recommendedInfo: TextView = view.findViewById(R.id.text_recommended_info)
         val setsCount: TextView = view.findViewById(R.id.text_sets_count)
         val loggedSets: TextView = view.findViewById(R.id.text_logged_sets)
+        val lastWorkoutSets: TextView = view.findViewById(R.id.text_last_workout_sets)
         val completionCheck: ImageView = view.findViewById(R.id.image_completion_check)
         val addSetButton: CardView = view.findViewById(R.id.button_add_set)
         val duplicateSetButton: CardView = view.findViewById(R.id.button_duplicate_set)
         val editActivityButton: CardView = view.findViewById(R.id.button_edit_activity)
         val deleteExerciseButton: CardView = view.findViewById(R.id.button_delete_exercise)
+        val chipGroupIntent: ChipGroup = view.findViewById(R.id.chip_group_intent)
+        val chipStrength: com.google.android.material.chip.Chip = view.findViewById(R.id.chip_strength)
+        val chipBuild: com.google.android.material.chip.Chip = view.findViewById(R.id.chip_build)
+        val chipFlush: com.google.android.material.chip.Chip = view.findViewById(R.id.chip_flush)
+        val noteTooltipButton: android.widget.ImageButton = view.findViewById(R.id.button_note_tooltip)
+    }
+    
+    class AddButtonsViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val regularPlusButton: CardView = view.findViewById(R.id.button_add_exercise_regular)
+        val bonusPlusButton: CardView = view.findViewById(R.id.button_add_exercise_bonus)
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): GroupedExerciseViewHolder {
-        val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.list_item_active_exercise, parent, false)
-        return GroupedExerciseViewHolder(view)
+    override fun getItemViewType(position: Int): Int {
+        return if (position == groupedExercises.size) {
+            VIEW_TYPE_ADD_BUTTONS
+        } else {
+            VIEW_TYPE_EXERCISE
+        }
     }
 
-    override fun onBindViewHolder(holder: GroupedExerciseViewHolder, position: Int) {
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+        return when (viewType) {
+            VIEW_TYPE_EXERCISE -> {
+                val view = LayoutInflater.from(parent.context)
+                    .inflate(R.layout.list_item_active_exercise, parent, false)
+                GroupedExerciseViewHolder(view)
+            }
+            VIEW_TYPE_ADD_BUTTONS -> {
+                val view = LayoutInflater.from(parent.context)
+                    .inflate(R.layout.item_add_buttons_row, parent, false)
+                AddButtonsViewHolder(view)
+            }
+            else -> throw IllegalArgumentException("Unknown view type: $viewType")
+        }
+    }
+
+    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+        when (holder) {
+            is GroupedExerciseViewHolder -> {
+                bindExerciseViewHolder(holder, position)
+            }
+            is AddButtonsViewHolder -> {
+                bindAddButtonsViewHolder(holder)
+            }
+        }
+    }
+    
+    private fun bindAddButtonsViewHolder(holder: AddButtonsViewHolder) {
+        holder.regularPlusButton.setOnClickListener {
+            onAddExerciseClicked()
+        }
+        holder.bonusPlusButton.setOnClickListener {
+            onAddSpecialClicked()
+        }
+    }
+    
+    private fun bindExerciseViewHolder(holder: GroupedExerciseViewHolder, position: Int) {
         val groupedExercise = groupedExercises[position]
         holder.exerciseName.text = groupedExercise.exerciseName
 
+        // Get exercise note from library
+        val trainingData = jsonHelper.readTrainingData()
+        val exerciseLibraryItem = trainingData.exerciseLibrary.find { it.id == groupedExercise.exerciseId }
+        val exerciseNoteText = exerciseLibraryItem?.note?.takeIf { it.isNotEmpty() }
+        
+        // Show/hide note tooltip button based on whether note exists
+        if (exerciseNoteText != null) {
+            holder.noteTooltipButton.visibility = View.VISIBLE
+            
+            // Set up note tooltip popup dialog
+            holder.noteTooltipButton.setOnClickListener {
+                showNoteDialog(holder.itemView.context, groupedExercise.exerciseName, exerciseNoteText)
+            }
+        } else {
+            holder.noteTooltipButton.visibility = View.GONE
+        }
+
+        // Setup Intent Selection ChipGroup
+        val currentIntent = exerciseIntents[groupedExercise.exerciseId]
+        val lastIntent = lastIntents[groupedExercise.exerciseId]
+        
+        // Check if intent is locked (first set has been logged)
+        val lockedIntent = lockedIntents[groupedExercise.exerciseId]
+        val isLocked = lockedIntent != null
+        
+        // Clear previous selection listeners to avoid RecyclerView bugs
+        holder.chipGroupIntent.setOnCheckedChangeListener(null)
+        
+        // Set initial selection - only check if currentIntent is set (not null)
+        if (currentIntent != null) {
+            when (currentIntent) {
+                SetIntent.STRENGTH -> holder.chipGroupIntent.check(R.id.chip_strength)
+                SetIntent.BUILD -> holder.chipGroupIntent.check(R.id.chip_build)
+                SetIntent.FLUSH -> holder.chipGroupIntent.check(R.id.chip_flush)
+                else -> holder.chipGroupIntent.clearCheck()
+            }
+        } else {
+            // No default selection - clear any checked state
+            holder.chipGroupIntent.clearCheck()
+        }
+        
+        // Emoji icons can't be reliably tinted, so grey the WHOLE chip for the two not chosen.
+        run {
+            val grey = ContextCompat.getColor(holder.itemView.context, R.color.fitness_text_secondary)
+            val normal = ContextCompat.getColor(holder.itemView.context, R.color.fitness_text_primary)
+
+            fun applyChipState(
+                chip: com.google.android.material.chip.Chip,
+                baseLabel: String,
+                intent: SetIntent,
+            ) {
+                // Add "(Last)" if this is the last intent used
+                val label = if (lastIntent == intent) {
+                    "$baseLabel (Last)"
+                } else {
+                    baseLabel
+                }
+                chip.text = label
+
+                val shouldGrey = isLocked && lockedIntent != intent
+                chip.alpha = if (shouldGrey) 0.45f else 1.0f
+                chip.setTextColor(if (shouldGrey) grey else normal)
+            }
+
+            applyChipState(holder.chipStrength, "Strength 💥", SetIntent.STRENGTH)
+            applyChipState(holder.chipBuild, "Build 🛡️", SetIntent.BUILD)
+            applyChipState(holder.chipFlush, "Flush 🩸", SetIntent.FLUSH)
+        }
+        
+        // Handle selection changes
+        holder.chipGroupIntent.setOnCheckedChangeListener { group, checkedId ->
+            val selectedIntent = when (checkedId) {
+                R.id.chip_strength -> SetIntent.STRENGTH
+                R.id.chip_build -> SetIntent.BUILD
+                R.id.chip_flush -> SetIntent.FLUSH
+                else -> SetIntent.BUILD
+            }
+            
+            // If intent is locked and user is trying to change to a different intent, show warning
+            if (isLocked && selectedIntent != lockedIntent) {
+                // Temporarily revert selection to prevent UI change
+                group.setOnCheckedChangeListener(null)
+                when (lockedIntent) {
+                    SetIntent.STRENGTH -> group.check(R.id.chip_strength)
+                    SetIntent.BUILD -> group.check(R.id.chip_build)
+                    SetIntent.FLUSH -> group.check(R.id.chip_flush)
+                    else -> group.check(R.id.chip_build)
+                }
+                // Show warning dialog - if confirmed, it will update the intent
+                showIntentChangeWarning(holder.itemView.context, groupedExercise.exerciseId, selectedIntent, holder)
+                // Re-attach listener after dialog is shown
+                holder.chipGroupIntent.setOnCheckedChangeListener { g, cId ->
+                    val selIntent = when (cId) {
+                        R.id.chip_strength -> SetIntent.STRENGTH
+                        R.id.chip_build -> SetIntent.BUILD
+                        R.id.chip_flush -> SetIntent.FLUSH
+                        else -> SetIntent.BUILD
+                    }
+                    val locked = lockedIntents[groupedExercise.exerciseId]
+                    if (locked != null && selIntent != locked) {
+                        g.setOnCheckedChangeListener(null)
+                        when (locked) {
+                            SetIntent.STRENGTH -> g.check(R.id.chip_strength)
+                            SetIntent.BUILD -> g.check(R.id.chip_build)
+                            SetIntent.FLUSH -> g.check(R.id.chip_flush)
+                            else -> g.check(R.id.chip_build)
+                        }
+                        showIntentChangeWarning(holder.itemView.context, groupedExercise.exerciseId, selIntent, holder)
+                    } else {
+                        exerciseIntents[groupedExercise.exerciseId] = selIntent
+                        onIntentChanged(groupedExercise.exerciseId, selIntent)
+                    }
+                }
+            } else {
+                exerciseIntents[groupedExercise.exerciseId] = selectedIntent
+                onIntentChanged(groupedExercise.exerciseId, selectedIntent)
+            }
+        }
+
+        // Get last workout data only if user has selected an intent
+        // Don't show data for "Last" intent - it's just informational, not a selection
+        val lastWorkoutSets = if (currentIntent != null) {
+            lastWorkoutData[groupedExercise.exerciseId]?.get(currentIntent) ?: emptyList()
+        } else {
+            emptyList()
+        }
+        
         // Check if exercise has completed sets (non-zero weight or explicitly completed)
         val completedSets = groupedExercise.sets.filter { set ->
             set.kg > 0f || set.completed == true
@@ -61,68 +258,236 @@ class ActiveExercisesAdapter(
         // Get recommendation to check if sets are complete
         val recommendation = exerciseRecommendations[groupedExercise.exerciseId]
         val recommendedSetsCount = recommendation?.recommendedSets
-        val lastSets = lastSetsCount[groupedExercise.exerciseId]
+        
+        // Count only working sets (exclude warmup)
+        val currentWorkingSets = completedSets.count { !it.isWarmup && (it.kg > 0f || it.completed == true) }
+        val lastWorkingSets = lastWorkoutSets.count { !it.isWarmup }
         
         // Show completion checkmark if user has logged the recommended number of sets
         // or if they've logged the last number of sets (when no recommendation exists)
-        val targetSetsCount = recommendedSetsCount ?: lastSets
-        val isComplete = targetSetsCount != null && loggedSetsCount >= targetSetsCount
+        val targetSetsCount = recommendedSetsCount ?: lastWorkingSets
+        val isComplete = targetSetsCount != null && targetSetsCount > 0 && currentWorkingSets >= targetSetsCount
         holder.completionCheck.visibility = if (isComplete) View.VISIBLE else View.GONE
 
-        // Show sets count: "(x of y sets)"
-        if (recommendedSetsCount != null) {
-            holder.setsCount.text = "($loggedSetsCount of $recommendedSetsCount sets)"
+        // Show sets count: "(N of X sets)" where both count only working sets
+        val targetSets = recommendedSetsCount ?: lastWorkingSets
+        if (targetSets > 0) {
+            holder.setsCount.text = "($currentWorkingSets of $targetSets sets)"
+        } else if (currentWorkingSets > 0) {
+            holder.setsCount.text = "($currentWorkingSets sets)"
         } else {
-            // Check if we have last sets count from plan
-            val lastSets = lastSetsCount[groupedExercise.exerciseId]
-            if (lastSets != null) {
-                holder.setsCount.text = "($loggedSetsCount of $lastSets sets)"
-            } else {
-                // If no recommendation or last sets count, just show logged count
-                if (loggedSetsCount > 0) {
-                    holder.setsCount.text = "($loggedSetsCount sets)"
-                } else {
-                    holder.setsCount.text = ""
-                }
-            }
+            holder.setsCount.text = ""
         }
 
-        // Show recommended kg × reps (only when no sets logged)
-        val recommendedText = getRecommendedText(holder.itemView.context, groupedExercise.exerciseId)
-        if (hasSets) {
-            // Hide recommended info when sets are logged
-            holder.recommendedInfo.visibility = View.GONE
-        } else {
-            // Show recommended info when no sets logged
-            if (recommendedText.isNotEmpty()) {
-                holder.recommendedInfo.text = recommendedText
-                holder.recommendedInfo.visibility = View.VISIBLE
-            } else {
-                holder.recommendedInfo.visibility = View.GONE
-            }
-        }
+        // Hide recommended info (replaced by inline last workout data)
+        holder.recommendedInfo.visibility = View.GONE
 
-        // Show actual logged sets
+        // Show actual logged sets with last workout data
         if (hasSets && completedSets.isNotEmpty()) {
-            val setsText = completedSets.sortedBy { it.setNumber }.joinToString("\n") { set ->
-                // Clean formatting: remove decimal if whole number (e.g., 50.0 -> 50)
-                val weightString = if (set.kg % 1 == 0f) {
-                    set.kg.toInt().toString()
-                } else {
-                    set.kg.toString()
+            val sortedCurrentSets = completedSets.sortedBy { it.setNumber }
+            
+            // Separate into warmup and working sets (detect warmup from RPE 6.0 for legacy data)
+            val currentWarmupSets = sortedCurrentSets.filter { it.isWarmup || it.rpe == 6.0f }
+            val currentWorkingSets = sortedCurrentSets.filter { !it.isWarmup && it.rpe != 6.0f }
+            val lastWarmupSets = lastWorkoutSets.filter { it.isWarmup || it.rpe == 6.0f }
+            val lastWorkingSets = lastWorkoutSets.filter { !it.isWarmup && it.rpe != 6.0f }
+            
+            // Build display text with matching
+            val currentSetsText = mutableListOf<String>()
+            val lastSetsText = mutableListOf<String>()
+            
+            // Handle warmup section alignment
+            val maxWarmupSets = maxOf(currentWarmupSets.size, lastWarmupSets.size)
+            if (maxWarmupSets > 0) {
+                for (i in 0 until maxWarmupSets) {
+                    // Current side
+                    if (i < currentWarmupSets.size) {
+                        val currentSet = currentWarmupSets[i]
+                        val weightString = if (currentSet.kg % 1 == 0f) {
+                            currentSet.kg.toInt().toString()
+                        } else {
+                            currentSet.kg.toString()
+                        }
+                        currentSetsText.add("Warmup: ${weightString}kg × ${currentSet.reps}")
+                    } else {
+                        currentSetsText.add("(No warmup)")
+                    }
+                    
+                    // Last side
+                    if (i < lastWarmupSets.size) {
+                        val lastSet = lastWarmupSets[i]
+                        val lastWeightString = if (lastSet.kg % 1 == 0f) {
+                            lastSet.kg.toInt().toString()
+                        } else {
+                            lastSet.kg.toString()
+                        }
+                        val lastSuffix = when {
+                            lastSet.rpe != null -> " (${"%.1f".format(lastSet.rpe)})"
+                            else -> ""
+                        }
+                        lastSetsText.add("Last: $lastWeightString kg × ${lastSet.reps}$lastSuffix")
+                    } else {
+                        lastSetsText.add("(No warmup)")
+                    }
                 }
-                "Set ${set.setNumber}: ${weightString}kg × ${set.reps}"
             }
-            holder.loggedSets.text = setsText
+            
+            // Handle working sets alignment
+            val maxWorkingSets = maxOf(currentWorkingSets.size, lastWorkingSets.size)
+            for (i in 0 until maxWorkingSets) {
+                // Current side
+                if (i < currentWorkingSets.size) {
+                    val currentSet = currentWorkingSets[i]
+                    val weightString = if (currentSet.kg % 1 == 0f) {
+                        currentSet.kg.toInt().toString()
+                    } else {
+                        currentSet.kg.toString()
+                    }
+                    val suffix = when {
+                        currentSet.rpe != null -> " (${"%.1f".format(currentSet.rpe)})"
+                        else -> ""
+                    }
+                    // Use sequential working set number (1, 2, 3...) excluding warmups
+                    val workingSetNumber = i + 1
+                    currentSetsText.add("Set $workingSetNumber: ${weightString}kg × ${currentSet.reps}$suffix")
+                } else {
+                    currentSetsText.add("")
+                }
+                
+                // Last side
+                if (i < lastWorkingSets.size) {
+                    val lastSet = lastWorkingSets[i]
+                    val lastWeightString = if (lastSet.kg % 1 == 0f) {
+                        lastSet.kg.toInt().toString()
+                    } else {
+                        lastSet.kg.toString()
+                    }
+                    val lastSuffix = when {
+                        lastSet.rpe != null -> " (${"%.1f".format(lastSet.rpe)})"
+                        else -> ""
+                    }
+                    lastSetsText.add("Last: $lastWeightString kg × ${lastSet.reps}$lastSuffix")
+                } else {
+                    lastSetsText.add("")
+                }
+            }
+            
+            // Get progression suggestion if intent is selected (STRENGTH or BUILD only)
+            val suggestionInfo = getSuggestionInfo(holder.itemView.context, groupedExercise.exerciseId, currentIntent)
+            val currentWorkingSetsCount = currentWorkingSets.size
+            val lastWorkoutWorkingSetsCount = lastWorkingSets.size
+            
+            // Only show suggestion if we haven't completed the suggested number of sets
+            // Also hide if we've done as many sets as last workout
+            val suggestedSetsCount = suggestionInfo?.suggestedSets ?: 3
+            val shouldShowSuggestion = suggestionInfo != null && 
+                currentWorkingSetsCount < suggestedSetsCount &&
+                (lastWorkoutWorkingSetsCount == 0 || currentWorkingSetsCount < lastWorkoutWorkingSetsCount)
+            
+            // Find the line index of the last logged working set
+            // Working sets are added after warmup sets, so we need to find the last non-empty working set line
+            val lastLoggedWorkingSetIndex = if (currentWorkingSetsCount > 0) {
+                // Find the index of the last working set in currentSetsText
+                // Warmup sets come first, then working sets
+                val warmupLinesCount = if (maxWarmupSets > 0) maxWarmupSets else 0
+                // The last working set is at: warmupLinesCount + (index of last logged working set in the loop)
+                // Since we iterate up to maxWorkingSets, but only log when i < currentWorkingSets.size,
+                // the last logged set is at warmupLinesCount + currentWorkingSetsCount - 1
+                warmupLinesCount + currentWorkingSetsCount - 1
+            } else {
+                // No working sets logged yet - insert after warmup if any, otherwise at start
+                if (maxWarmupSets > 0) maxWarmupSets - 1 else -1
+            }
+            
+            // Build spannable text with colored suggestion inserted after last logged working set
+            val displayText = if (shouldShowSuggestion && lastLoggedWorkingSetIndex >= 0) {
+                buildSpannableWithSuggestion(
+                    holder.itemView.context,
+                    currentSetsText.joinToString("\n"),
+                    suggestionInfo.text,
+                    insertAfterLine = lastLoggedWorkingSetIndex  // Insert after last logged working set
+                )
+            } else if (shouldShowSuggestion) {
+                // No sets logged yet - append at end
+                buildSpannableWithSuggestion(
+                    holder.itemView.context,
+                    currentSetsText.joinToString("\n"),
+                    suggestionInfo.text,
+                    insertAfterLine = -1  // Append at end
+                )
+            } else {
+                currentSetsText.joinToString("\n")
+            }
+            
+            holder.loggedSets.text = displayText
             holder.loggedSets.visibility = View.VISIBLE
+            
+            // Always show last workout data when available
+            if (lastWorkoutSets.isNotEmpty()) {
+                holder.lastWorkoutSets.text = lastSetsText.joinToString("\n")
+                holder.lastWorkoutSets.visibility = View.VISIBLE
+            } else {
+                holder.lastWorkoutSets.visibility = View.GONE
+            }
         } else {
-            holder.loggedSets.visibility = View.GONE
+            // No sets logged yet - show suggestion if intent is selected
+            val suggestionText = getSuggestionForIntent(holder.itemView.context, groupedExercise.exerciseId, currentIntent)
+            
+            if (suggestionText != null) {
+                // Show suggestion in the logged sets area with colored text
+                val displayText = buildSpannableWithSuggestion(holder.itemView.context, "", suggestionText)
+                holder.loggedSets.text = displayText
+                holder.loggedSets.visibility = View.VISIBLE
+            } else {
+                holder.loggedSets.visibility = View.GONE
+            }
+            
+            if (lastWorkoutSets.isNotEmpty()) {
+                // Show all last workout sets (detect warmup from RPE 6.0 for legacy data)
+                val lastWarmupSets = lastWorkoutSets.filter { it.isWarmup || it.rpe == 6.0f }
+                val lastWorkingSets = lastWorkoutSets.filter { !it.isWarmup && it.rpe != 6.0f }
+                val lastSetsText = mutableListOf<String>()
+                
+                // Format warmup sets
+                lastWarmupSets.forEach { lastSet ->
+                    val lastWeightString = if (lastSet.kg % 1 == 0f) {
+                        lastSet.kg.toInt().toString()
+                    } else {
+                        lastSet.kg.toString()
+                    }
+                    val lastSuffix = when {
+                        lastSet.rpe != null -> " (${"%.1f".format(lastSet.rpe)})"
+                        else -> ""
+                    }
+                    lastSetsText.add("Last: $lastWeightString kg × ${lastSet.reps}$lastSuffix")
+                }
+                
+                // Format working sets
+                lastWorkingSets.forEach { lastSet ->
+                    val lastWeightString = if (lastSet.kg % 1 == 0f) {
+                        lastSet.kg.toInt().toString()
+                    } else {
+                        lastSet.kg.toString()
+                    }
+                    val lastSuffix = when {
+                        lastSet.rpe != null -> " (${"%.1f".format(lastSet.rpe)})"
+                        else -> ""
+                    }
+                    lastSetsText.add("Last: $lastWeightString kg × ${lastSet.reps}$lastSuffix")
+                }
+                
+                holder.lastWorkoutSets.text = lastSetsText.joinToString("\n")
+                holder.lastWorkoutSets.visibility = View.VISIBLE
+            } else {
+                // Don't show anything if no intent selected or no data
+                holder.lastWorkoutSets.visibility = View.GONE
+            }
         }
 
         // Visibility logic
         holder.duplicateSetButton.visibility = if (hasSets) View.VISIBLE else View.GONE
         holder.editActivityButton.visibility = if (hasSets) View.VISIBLE else View.GONE
-        holder.deleteExerciseButton.visibility = if (hasSets) View.VISIBLE else View.GONE
+        holder.deleteExerciseButton.visibility = View.VISIBLE // Always show delete button
 
         // --- CLICK LISTENERS ---
 
@@ -157,232 +522,174 @@ class ActiveExercisesAdapter(
         }
     }
 
-    override fun getItemCount() = groupedExercises.size
-
-    private fun getRecommendedText(context: Context, exerciseId: Int): String {
-        // For custom workouts, only show last logged values, no progression suggestions
-        if (workoutType == "custom") {
-            // First check if we have last logged values from plan
-            var lastKg = lastLoggedKg[exerciseId]
-            var lastReps = lastLoggedReps[exerciseId]
-            
-            // If not from plan, try to get from training history
-            if (lastKg == null || lastReps == null) {
-                val trainingData = jsonHelper.readTrainingData()
-                val lastEntry = trainingData.trainings
-                    .flatMap { it.exercises }
-                    .filter { it.exerciseId == exerciseId }
-                    .lastOrNull()
-                
-                if (lastEntry != null) {
-                    lastKg = lastEntry.kg
-                    lastReps = lastEntry.reps
+    override fun getItemCount() = groupedExercises.size + 1
+    
+    private fun showNoteDialog(context: Context, exerciseName: String, noteText: String) {
+        DialogHelper.createBuilder(context)
+            .setTitle(exerciseName)
+            .setMessage(noteText)
+            .setPositiveButton(context.getString(R.string.button_ok), null)
+            .showWithTransparentWindow()
+    }
+    
+    private fun showIntentChangeWarning(context: Context, exerciseId: Int, newIntent: SetIntent, holder: GroupedExerciseViewHolder) {
+        DialogHelper.createBuilder(context)
+            .setTitle(context.getString(R.string.dialog_title_intent_change_warning))
+            .setMessage(context.getString(R.string.dialog_message_intent_change_warning))
+            .setPositiveButton(context.getString(R.string.button_change)) { _, _ ->
+                // User confirmed - allow the change and update locked intent
+                exerciseIntents[exerciseId] = newIntent
+                lockedIntents[exerciseId] = newIntent
+                onIntentChanged(exerciseId, newIntent)
+                // Update chip selection to reflect the change
+                holder.chipGroupIntent.setOnCheckedChangeListener(null)
+                when (newIntent) {
+                    SetIntent.STRENGTH -> holder.chipGroupIntent.check(R.id.chip_strength)
+                    SetIntent.BUILD -> holder.chipGroupIntent.check(R.id.chip_build)
+                    SetIntent.FLUSH -> holder.chipGroupIntent.check(R.id.chip_flush)
+                    else -> holder.chipGroupIntent.check(R.id.chip_build)
+                }
+                // Notify adapter to update UI (to refresh greyed out state)
+                val position = groupedExercises.indexOfFirst { it.exerciseId == exerciseId }
+                if (position >= 0) {
+                    notifyItemChanged(position)
                 }
             }
-            
-            if (lastKg != null && lastReps != null) {
-                // Use last logged values as placeholders
-                val weightString = if (lastKg % 1 == 0f) {
-                    lastKg.toInt().toString()
-                } else {
-                    lastKg.toString()
-                }
-                return "${weightString}kg × $lastReps reps"
-            }
-            // No suggestions for custom workouts if no last logged values
-            return ""
+            .setNegativeButton(context.getString(R.string.button_cancel), null)
+            .showWithTransparentWindow()
+    }
+    
+    /**
+     * Data class to hold suggestion info including suggested sets count
+     */
+    private data class SuggestionInfo(
+        val text: String,
+        val suggestedSets: Int?
+    )
+    
+    /**
+     * Get progression suggestion for an exercise based on selected intent.
+     * Returns null for FLUSH intent (no progression suggestions).
+     */
+    private fun getSuggestionForIntent(context: Context, exerciseId: Int, intent: SetIntent?): String? {
+        return getSuggestionInfo(context, exerciseId, intent)?.text
+    }
+    
+    /**
+     * Get progression suggestion info including suggested sets count.
+     * Returns null for FLUSH intent (no progression suggestions).
+     */
+    private fun getSuggestionInfo(context: Context, exerciseId: Int, intent: SetIntent?): SuggestionInfo? {
+        // No suggestion for FLUSH, WARMUP, or if no intent selected
+        if (intent == null || intent == SetIntent.FLUSH || intent == SetIntent.WARMUP) {
+            return null
         }
         
-        // If we have last logged kg/reps (from plan), use those instead of progression suggestions
-        val lastKg = lastLoggedKg[exerciseId]
-        val lastReps = lastLoggedReps[exerciseId]
-        
-        if (lastKg != null && lastReps != null) {
-            // Use last logged values
-            val weightString = if (lastKg % 1 == 0f) {
-                lastKg.toInt().toString()
-            } else {
-                lastKg.toString()
-            }
-            return "${weightString}kg × $lastReps reps"
+        val trainingData = jsonHelper.readTrainingData()
+        val settings = try {
+            ProgressionSettingsManager(context).getSettings()
+        } catch (e: Exception) {
+            ProgressionHelper.ProgressionSettings()
         }
         
-        val recommendation = exerciseRecommendations[exerciseId]
+        val suggestion = ProgressionHelper.getIntentSuggestion(
+            exerciseId = exerciseId,
+            intent = intent,
+            trainingData = trainingData,
+            settings = settings
+        )
         
-        if (recommendation == null) {
-            // Try to get from ProgressionHelper
-            val trainingData = jsonHelper.readTrainingData()
-            val settings = try {
-                ProgressionSettingsManager(context).getSettings()
-            } catch (e: Exception) {
-                ProgressionHelper.ProgressionSettings(userLevel = trainingData.userLevel)
+        // Don't show suggestion if no action needed
+        if (suggestion.weightAction == ProgressionHelper.WeightAction.NONE) {
+            return null
+        }
+        
+        // Build display text based on suggestion
+        val displayText = when {
+            suggestion.isFirstTime -> {
+                val (minReps, _) = ProgressionHelper.getRepRange(intent, settings)
+                val targetRpe = ProgressionHelper.getTargetRpe(intent, settings)
+                "Target: ${suggestion.suggestedSets ?: 3}×$minReps @ RPE ${"%.1f".format(targetRpe)}"
             }
+            suggestion.displayText.isNotEmpty() -> {
+                val badge = suggestion.badge?.let { "[$it] " } ?: ""
+                "${badge}Next: ${suggestion.displayText}"
+            }
+            else -> return null
+        }
+        
+        return SuggestionInfo(
+            text = displayText,
+            suggestedSets = suggestion.suggestedSets
+        )
+    }
+    
+    /**
+     * Build a SpannableStringBuilder with the logged sets text and a colored suggestion line.
+     * @param insertAfterLine If >= 0, inserts suggestion after that line number. Otherwise appends at end.
+     */
+    private fun buildSpannableWithSuggestion(
+        context: Context,
+        setsText: String,
+        suggestionText: String?,
+        insertAfterLine: Int = -1
+    ): CharSequence {
+        if (suggestionText == null) {
+            return setsText
+        }
+        
+        val builder = SpannableStringBuilder()
+        
+        if (setsText.isEmpty()) {
+            // No sets logged yet - just show suggestion
+            val suggestionStart = builder.length
+            builder.append(suggestionText)
+            val suggestionEnd = builder.length
             
-            val suggestion = ProgressionHelper.getSuggestion(
-                exerciseId = exerciseId,
-                requestedType = workoutType,
-                trainingData = trainingData,
-                settings = settings
+            val suggestionColor = ContextCompat.getColor(context, R.color.fitness_suggestion)
+            builder.setSpan(
+                ForegroundColorSpan(suggestionColor),
+                suggestionStart,
+                suggestionEnd,
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
             )
-            
-            val parts = mutableListOf<String>()
-            
-            // Weight suggestion
-            if (suggestion.proposedWeight != null) {
-                val weightString = if (suggestion.proposedWeight % 1 == 0f) {
-                    suggestion.proposedWeight.toInt().toString()
-                } else {
-                    suggestion.proposedWeight.toString()
-                }
-                parts.add("${weightString}kg")
-            }
-            
-            // Reps suggestion
-            suggestion.proposedReps?.let {
-                parts.add("× $it reps")
-            }
-            
-            return if (parts.isNotEmpty()) parts.joinToString(" ") else ""
-        }
-
-        // Get weight suggestion from ProgressionHelper
-        val trainingData = jsonHelper.readTrainingData()
-        val settings = try {
-            ProgressionSettingsManager(context).getSettings()
-        } catch (e: Exception) {
-            ProgressionHelper.ProgressionSettings(userLevel = trainingData.userLevel)
+            return builder
         }
         
-        val suggestion = ProgressionHelper.getSuggestion(
-            exerciseId = exerciseId,
-            requestedType = recommendation.workoutType,
-            trainingData = trainingData,
-            settings = settings
-        )
-
-        val parts = mutableListOf<String>()
+        // Split sets text into lines
+        val lines = setsText.split("\n")
         
-        // Weight suggestion
-        if (suggestion.proposedWeight != null) {
-            val weightString = if (suggestion.proposedWeight % 1 == 0f) {
-                suggestion.proposedWeight.toInt().toString()
-            } else {
-                suggestion.proposedWeight.toString()
-            }
-            parts.add("${weightString}kg")
+        // Insert suggestion after specified line, or at end if insertAfterLine is invalid
+        val insertIndex = if (insertAfterLine >= 0 && insertAfterLine < lines.size) {
+            insertAfterLine + 1
         } else {
-            return "" // Don't show if no weight suggestion
+            lines.size
         }
         
-        // Reps suggestion
-        val suggestedReps = suggestion.proposedReps ?: recommendation.recommendedReps
-        parts.add("× $suggestedReps reps")
-        
-        return parts.joinToString(" ")
-    }
-
-    private fun getSuggestionText(context: Context, exerciseId: Int, exerciseName: String): String {
-        val recommendation = exerciseRecommendations[exerciseId]
-        
-        if (recommendation == null) {
-            // No recommendation from blueprint - try to get from ProgressionHelper
-            return getProgressionSuggestionText(context, exerciseId, exerciseName)
-        }
-
-        // Get weight suggestion from ProgressionHelper
-        val trainingData = jsonHelper.readTrainingData()
-        val settings = try {
-            ProgressionSettingsManager(context).getSettings()
-        } catch (e: Exception) {
-            ProgressionHelper.ProgressionSettings(userLevel = trainingData.userLevel) // Use defaults
-        }
-        
-        val suggestion = ProgressionHelper.getSuggestion(
-            exerciseId = exerciseId,
-            requestedType = recommendation.workoutType,
-            trainingData = trainingData,
-            settings = settings
-        )
-
-        val nextSetNumber = 1 // First set
-        
-        val suggestionParts = mutableListOf<String>()
-        
-        // Show recommended sets count
-        suggestionParts.add("Recommended: ${recommendation.recommendedSets} sets")
-        suggestionParts.add("\nSet $nextSetNumber:")
-        
-        // Weight suggestion
-        if (suggestion.proposedWeight != null) {
-            val weightString = if (suggestion.proposedWeight % 1 == 0f) {
-                suggestion.proposedWeight.toInt().toString()
-            } else {
-                suggestion.proposedWeight.toString()
+        // Build text with suggestion inserted
+        for (i in lines.indices) {
+            if (i > 0) {
+                builder.append("\n")
             }
-            suggestionParts.add("${weightString}kg")
-        } else {
-            suggestionParts.add("kg (not estimated)")
-        }
-        
-        // Reps suggestion
-        val suggestedReps = suggestion.proposedReps ?: recommendation.recommendedReps
-        suggestionParts.add("× $suggestedReps reps")
-        
-        // Add badge if available
-        suggestion.badge?.let {
-            suggestionParts.add("($it)")
-        }
-        
-        return suggestionParts.joinToString(" ")
-    }
-
-    private fun getProgressionSuggestionText(context: Context, exerciseId: Int, exerciseName: String): String {
-        val trainingData = jsonHelper.readTrainingData()
-        val settings = try {
-            ProgressionSettingsManager(context).getSettings()
-        } catch (e: Exception) {
-            ProgressionHelper.ProgressionSettings(userLevel = trainingData.userLevel) // Use defaults
-        }
-        
-        val suggestion = ProgressionHelper.getSuggestion(
-            exerciseId = exerciseId,
-            requestedType = workoutType,
-            trainingData = trainingData,
-            settings = settings
-        )
-
-        val nextSetNumber = 1
-        
-        val suggestionParts = mutableListOf<String>()
-        suggestionParts.add("Set $nextSetNumber:")
-        
-        // Weight suggestion
-        if (suggestion.proposedWeight != null) {
-            val weightString = if (suggestion.proposedWeight % 1 == 0f) {
-                suggestion.proposedWeight.toInt().toString()
-            } else {
-                suggestion.proposedWeight.toString()
+            builder.append(lines[i])
+            
+            // Insert suggestion after this line if it's the insertion point
+            if (i == insertIndex - 1) {
+                builder.append("\n")
+                val suggestionStart = builder.length
+                builder.append(suggestionText)
+                val suggestionEnd = builder.length
+                
+                val suggestionColor = ContextCompat.getColor(context, R.color.fitness_suggestion)
+                builder.setSpan(
+                    ForegroundColorSpan(suggestionColor),
+                    suggestionStart,
+                    suggestionEnd,
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
             }
-            suggestionParts.add("${weightString}kg")
-        } else {
-            suggestionParts.add("kg (not estimated)")
         }
         
-        // Reps suggestion
-        val suggestedReps = suggestion.proposedReps
-        if (suggestedReps != null) {
-            suggestionParts.add("× $suggestedReps reps")
-        }
-        
-        // Add badge if available
-        suggestion.badge?.let {
-            suggestionParts.add("($it)")
-        }
-        
-        return if (suggestionParts.size > 1) {
-            suggestionParts.joinToString(" ")
-        } else {
-            "Tap to add set"
-        }
+        return builder
     }
 }

@@ -16,23 +16,25 @@ object WorkoutGenerator {
     )
 
     /**
-     * Generates a full workout based on Focus (Upper/Lower) and Intensity (Heavy/Light).
+     * Generates a full workout based on Focus (Upper/Lower).
      * Returns a list of RecommendedExercise objects - exercises that fit the blueprint
      * without pre-filled sets. Sets should be added manually with suggestions shown in tooltips.
+     * All exercises default to BUILD intent (user can adjust per-exercise).
      */
     fun generate(
         library: List<ExerciseLibraryItem>,
         userLevel: UserLevel, // Kept for future scaling (e.g. volume adjustments)
         focus: SessionFocus,
-        intensity: SessionIntensity
+        intensity: SessionIntensity  // Legacy parameter, kept for compatibility but ignored
     ): List<RecommendedExercise> {
         
-        val blueprint = getBlueprint(focus, intensity)
+        // Use LIGHT intensity for blueprint (maps to BUILD intent volume suggestions)
+        val blueprint = getBlueprint(focus, SessionIntensity.LIGHT)
         val workout = mutableListOf<RecommendedExercise>()
 
         // To avoid picking the same exercise twice in one session
         val selectedIds = mutableSetOf<Int>()
-        val workoutType = if (intensity == SessionIntensity.HEAVY) "heavy" else "light"
+        val workoutType = "custom"  // Use custom since we're not using heavy/light anymore
 
         for (slot in blueprint) {
             // 1. Find valid candidates in the library

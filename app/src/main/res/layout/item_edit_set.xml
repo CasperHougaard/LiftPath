@@ -3,103 +3,158 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="8dp"
-    app:cardCornerRadius="8dp"
+    android:layout_marginHorizontal="4dp"
+    android:layout_marginVertical="6dp"
+    app:cardBackgroundColor="@color/fitness_card_background"
+    app:cardCornerRadius="12dp"
     app:cardElevation="2dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="12dp">
 
-        <TextView
-            android:id="@+id/text_set_number"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Set 1"
-            android:textAppearance="@style/TextAppearance.AppCompat.Subhead"
-            android:textStyle="bold"
-            android:textColor="@color/fitness_text_primary"
-            android:layout_marginBottom="8dp" />
-
+        <!-- Row 1: Set Header with Delete Button -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:weightSum="4">
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
 
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/text_input_layout_kg"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            <TextView
+                android:id="@+id/text_set_number"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:layout_marginEnd="4dp"
-                android:hint="Kg">
+                android:text="Set 1"
+                android:textAppearance="@style/TextAppearance.AppCompat.Subhead"
+                android:textStyle="bold"
+                android:textColor="@color/fitness_text_primary" />
+
+            <!-- Warmup Toggle - compact inline -->
+            <CheckBox
+                android:id="@+id/cb_warmup"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:buttonTint="@color/fitness_primary"
+                android:text="Warmup"
+                android:textColor="@color/fitness_text_secondary"
+                android:textSize="12sp"
+                android:minHeight="0dp"
+                android:minWidth="0dp"
+                android:paddingStart="4dp" />
+
+            <!-- Delete Button -->
+            <ImageButton
+                android:id="@+id/button_delete"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginStart="8dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/button_delete"
+                android:src="@drawable/ic_delete"
+                app:tint="@color/fitness_error" />
+
+        </LinearLayout>
+
+        <!-- Row 2: Weight, Reps, RPE inputs -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:baselineAligned="false">
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/text_input_layout_kg"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:hint="@string/hint_kg">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/edit_text_kg"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="numberDecimal" />
+                    android:inputType="numberDecimal"
+                    android:textSize="14sp" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/text_input_layout_reps"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:layout_marginEnd="4dp"
-                android:hint="Reps">
+                android:layout_marginHorizontal="6dp"
+                android:hint="@string/hint_reps">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/edit_text_reps"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="number" />
+                    android:inputType="number"
+                    android:textSize="14sp" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/text_input_layout_rpe"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:layout_marginEnd="4dp"
-                android:hint="RPE">
+                android:layout_marginStart="6dp"
+                android:hint="@string/hint_rpe">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/edit_text_rpe"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="numberDecimal" />
+                    android:inputType="numberDecimal"
+                    android:textSize="14sp" />
             </com.google.android.material.textfield.TextInputLayout>
-
-            <Button
-                android:id="@+id/button_note"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="+"
-                android:minHeight="56dp" />
 
         </LinearLayout>
 
-        <TextView
-            android:id="@+id/text_note_preview"
+        <!-- Row 3: Note Button (only when no note, otherwise show preview) -->
+        <LinearLayout
+            android:id="@+id/layout_note_row"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:visibility="gone"
-            android:textColor="@color/fitness_text_secondary"
-            android:textSize="12sp"
-            android:maxLines="2"
-            android:ellipsize="end" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="8dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/button_note"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/button_add_note"
+                android:textSize="12sp"
+                android:minHeight="32dp"
+                app:icon="@drawable/ic_note"
+                app:iconSize="16dp"
+                app:iconTint="@color/fitness_primary" />
+
+            <TextView
+                android:id="@+id/text_note_preview"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:visibility="gone"
+                android:textColor="@color/fitness_text_secondary"
+                android:textSize="12sp"
+                android:textStyle="italic"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+        </LinearLayout>
 
     </LinearLayout>
 
 </androidx.cardview.widget.CardView>
-

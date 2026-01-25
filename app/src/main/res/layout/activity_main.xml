@@ -19,6 +19,7 @@
         app:srcCompat="@drawable/avd_background_flow" />
 
     <androidx.core.widget.NestedScrollView
+        android:id="@+id/scroll_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="@android:color/transparent"
@@ -316,6 +317,7 @@
             android:clickable="true"
             android:focusable="true"
             android:foreground="?attr/selectableItemBackground"
+            android:visibility="gone"
             app:cardBackgroundColor="@color/fitness_card_background"
             app:cardCornerRadius="20dp"
             app:cardElevation="4dp"
@@ -376,7 +378,7 @@
             android:textSize="20sp"
             android:textStyle="bold"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/card_readiness" />
+            app:layout_constraintTop_toBottomOf="@id/layout_grid" />
 
         <!-- Stats Row -->
         <LinearLayout
@@ -571,53 +573,23 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:layout_marginTop="8dp">
-                    <LinearLayout
-                        android:layout_width="0dp"
+                    android:layout_marginTop="8dp"
+                    android:gravity="center">
+                    <TextView
+                        android:id="@+id/text_days_since_workout"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:gravity="center"
-                        android:orientation="vertical">
-                        <TextView
-                            android:id="@+id/text_days_heavy"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="--"
-                            android:textSize="20sp"
-                            android:textStyle="bold"
-                            android:textColor="@color/fitness_primary_dark"/>
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="days since heavy"
-                            android:textSize="12sp"
-                            android:textColor="@color/fitness_text_secondary"/>
-                    </LinearLayout>
-                    <View
-                        android:layout_width="1dp"
-                        android:layout_height="match_parent"
-                        android:background="#1F000000" />
-                    <LinearLayout
-                        android:layout_width="0dp"
+                        android:text="--"
+                        android:textSize="20sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/fitness_primary"/>
+                    <TextView
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:gravity="center"
-                        android:orientation="vertical">
-                        <TextView
-                            android:id="@+id/text_days_light"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="--"
-                            android:textSize="20sp"
-                            android:textStyle="bold"
-                            android:textColor="@color/fitness_accent"/>
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="days since light"
-                            android:textSize="12sp"
-                            android:textColor="@color/fitness_text_secondary"/>
-                    </LinearLayout>
+                        android:layout_marginStart="8dp"
+                        android:text="days since last workout"
+                        android:textSize="12sp"
+                        android:textColor="@color/fitness_text_secondary"/>
                 </LinearLayout>
             </LinearLayout>
         </androidx.cardview.widget.CardView>

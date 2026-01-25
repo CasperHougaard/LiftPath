@@ -36,7 +36,7 @@ object DurationHelper {
                     hours * 3600 + minutes * 60 + seconds
                 }
                 else -> null
-            }
+            }w
         } catch (e: Exception) {
             null
         }

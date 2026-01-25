@@ -146,68 +146,6 @@
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
-            <!-- WORKOUT TYPE CARD -->
-            <androidx.cardview.widget.CardView
-                android:id="@+id/card_workout_type"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                app:cardBackgroundColor="@color/fitness_card_background"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="4dp"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/card_plan_name">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-
-                    <TextView
-                        android:id="@+id/text_workout_type_label"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Default Workout Type"
-                        android:textColor="@color/fitness_text_primary"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
-
-                    <RadioGroup
-                        android:id="@+id/radio_group_workout_type"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:orientation="horizontal">
-
-                        <RadioButton
-                            android:id="@+id/radio_heavy"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Heavy"
-                            android:textColor="@color/fitness_text_primary" />
-
-                        <RadioButton
-                            android:id="@+id/radio_light"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Light"
-                            android:textColor="@color/fitness_text_primary" />
-
-                        <RadioButton
-                            android:id="@+id/radio_custom"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Custom"
-                            android:textColor="@color/fitness_text_primary" />
-                    </RadioGroup>
-                </LinearLayout>
-            </androidx.cardview.widget.CardView>
-
             <!-- EXERCISES CARD -->
             <androidx.cardview.widget.CardView
                 android:id="@+id/card_exercises"
@@ -219,7 +157,7 @@
                 app:cardElevation="4dp"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/card_workout_type">
+                app:layout_constraintTop_toBottomOf="@id/card_plan_name">
 
                 <LinearLayout
                     android:layout_width="match_parent"

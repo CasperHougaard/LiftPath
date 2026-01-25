@@ -1,0 +1,497 @@
+package com.liftpath.fragments
+
+import android.graphics.Color
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
+import androidx.fragment.app.Fragment
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.github.mikephil.charting.components.Legend
+import com.github.mikephil.charting.components.XAxis
+import com.github.mikephil.charting.components.YAxis
+import com.github.mikephil.charting.data.BarData
+import com.github.mikephil.charting.data.BarDataSet
+import com.github.mikephil.charting.data.BarEntry
+import com.github.mikephil.charting.data.CombinedData
+import com.github.mikephil.charting.data.Entry
+import com.github.mikephil.charting.data.LineData
+import com.github.mikephil.charting.data.LineDataSet
+import com.github.mikephil.charting.formatter.ValueFormatter
+import com.liftpath.R
+import com.liftpath.databinding.FragmentProgressMusclesBinding
+import com.liftpath.helpers.JsonHelper
+import com.liftpath.models.ExerciseLibraryItem
+import com.liftpath.models.TargetMuscle
+import com.liftpath.models.TrainingSession
+import java.text.SimpleDateFormat
+import java.util.*
+
+class ProgressMusclesFragment : Fragment() {
+
+    private var _binding: FragmentProgressMusclesBinding? = null
+    private val binding get() = _binding!!
+    private lateinit var jsonHelper: JsonHelper
+    private val dateFormat = SimpleDateFormat("yyyy/MM/dd", Locale.getDefault())
+
+    private var selectedMuscleGroup = "All"
+    private var currentTimeRangeMonths = 3
+    private var useWeightedVolume = false
+
+    private val muscleGroupMap = mapOf(
+        "All" to TargetMuscle.values().toList(),
+        "Chest" to listOf(TargetMuscle.CHEST_UPPER, TargetMuscle.CHEST_MIDDLE, TargetMuscle.CHEST_LOWER),
+        "Back" to listOf(TargetMuscle.LATS, TargetMuscle.TRAPS_MID, TargetMuscle.TRAPS_UPPER, TargetMuscle.LOWER_BACK),
+        "Shoulders" to listOf(TargetMuscle.DELT_FRONT, TargetMuscle.DELT_SIDE, TargetMuscle.DELT_REAR),
+        "Arms" to listOf(TargetMuscle.BICEPS, TargetMuscle.TRICEPS_LONG, TargetMuscle.TRICEPS_LATERAL, TargetMuscle.FOREARMS),
+        "Legs" to listOf(TargetMuscle.QUADS, TargetMuscle.HAMSTRINGS, TargetMuscle.GLUTES, TargetMuscle.CALVES),
+        "Core" to listOf(TargetMuscle.ABS, TargetMuscle.OBLIQUES)
+    )
+
+    private val muscleGroupColors = mapOf(
+        "Chest" to Color.parseColor("#DC2626"),
+        "Back" to Color.parseColor("#2563EB"),
+        "Shoulders" to Color.parseColor("#F59E0B"),
+        "Arms" to Color.parseColor("#9333EA"),
+        "Legs" to Color.parseColor("#10B981"),
+        "Core" to Color.parseColor("#14B8A6")
+    )
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentProgressMusclesBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        jsonHelper = JsonHelper(requireContext())
+
+        setupMuscleChips()
+        setupTimeRangeSpinner()
+        setupWeightedVolumeToggle()
+        loadMuscleData()
+    }
+
+    private fun setupMuscleChips() {
+        binding.chipGroupMuscles.setOnCheckedStateChangeListener { _, checkedIds ->
+            selectedMuscleGroup = when (checkedIds.firstOrNull()) {
+                R.id.chip_all -> "All"
+                R.id.chip_chest -> "Chest"
+                R.id.chip_back -> "Back"
+                R.id.chip_shoulders -> "Shoulders"
+                R.id.chip_arms -> "Arms"
+                R.id.chip_legs -> "Legs"
+                R.id.chip_core -> "Core"
+                else -> "All"
+            }
+            loadMuscleData()
+        }
+    }
+
+    private fun setupWeightedVolumeToggle() {
+        binding.switchWeightedVolume.setOnCheckedChangeListener { _, isChecked ->
+            useWeightedVolume = isChecked
+            loadMuscleData()
+        }
+    }
+
+    private fun setupTimeRangeSpinner() {
+        val timeRanges = arrayOf("1 month", "3 months", "12 months")
+        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, timeRanges)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        binding.spinnerTimeRange.adapter = adapter
+        binding.spinnerTimeRange.setSelection(1)
+
+        binding.spinnerTimeRange.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
+                currentTimeRangeMonths = when (position) {
+                    0 -> 1
+                    1 -> 3
+                    2 -> 12
+                    else -> 3
+                }
+                loadMuscleData()
+            }
+            override fun onNothingSelected(parent: AdapterView<*>) {}
+        }
+    }
+
+    private fun loadMuscleData() {
+        val trainingData = jsonHelper.readTrainingData()
+        val sessions = trainingData.trainings
+        val exerciseLibrary = trainingData.exerciseLibrary
+
+        val targetMuscles = muscleGroupMap[selectedMuscleGroup] ?: return
+
+        val volumeType = if (useWeightedVolume) "Weighted " else ""
+        binding.textMuscleTitle.text = "$volumeType$selectedMuscleGroup Volume"
+        binding.textMuscleSubtitle.text = "Weekly volume over last $currentTimeRangeMonths months"
+
+        // Filter sessions by time range
+        val cutoffDate = Calendar.getInstance().apply {
+            add(Calendar.MONTH, -currentTimeRangeMonths)
+        }.time
+
+        val filteredSessions = sessions.filter { session ->
+            try {
+                val date = dateFormat.parse(session.date)
+                date != null && date.time >= cutoffDate.time
+            } catch (e: Exception) {
+                false
+            }
+        }.sortedBy { it.date }
+
+        if (filteredSessions.isEmpty()) {
+            binding.textEmptyState.visibility = View.VISIBLE
+            binding.chartMuscleVolume.visibility = View.GONE
+            binding.cardMuscleStats.visibility = View.GONE
+            binding.recyclerContributingExercises.visibility = View.GONE
+            binding.textNoExercises.visibility = View.GONE
+            return
+        }
+
+        binding.textEmptyState.visibility = View.GONE
+        binding.chartMuscleVolume.visibility = View.VISIBLE
+        binding.cardMuscleStats.visibility = View.VISIBLE
+
+        // Calculate weekly volumes
+        if (selectedMuscleGroup == "All") {
+            // Calculate volumes for each muscle group separately
+            val allMuscleGroups = listOf("Chest", "Back", "Shoulders", "Arms", "Legs", "Core")
+            val weeklyVolumesByGroup = allMuscleGroups.associateWith { groupName ->
+                val groupMuscles = muscleGroupMap[groupName] ?: emptyList()
+                calculateWeeklyVolumes(filteredSessions, groupMuscles, exerciseLibrary, useWeightedVolume)
+            }
+            setupMultiLineChart(weeklyVolumesByGroup)
+            // For stats, sum all volumes
+            val combinedVolumes = mutableMapOf<String, Float>()
+            weeklyVolumesByGroup.values.forEach { volumes ->
+                volumes.forEach { (week, volume) ->
+                    combinedVolumes[week] = (combinedVolumes[week] ?: 0f) + volume
+                }
+            }
+            updateStats(combinedVolumes)
+            // For contributing exercises, use all muscles
+            updateContributingExercises(filteredSessions, targetMuscles, exerciseLibrary, useWeightedVolume)
+        } else {
+            val weeklyVolumes = calculateWeeklyVolumes(filteredSessions, targetMuscles, exerciseLibrary, useWeightedVolume)
+            
+            if (weeklyVolumes.isEmpty()) {
+                binding.textEmptyState.visibility = View.VISIBLE
+                binding.chartMuscleVolume.visibility = View.GONE
+                return
+            }
+
+            setupVolumeChart(weeklyVolumes)
+            updateStats(weeklyVolumes)
+            updateContributingExercises(filteredSessions, targetMuscles, exerciseLibrary, useWeightedVolume)
+        }
+    }
+
+    private fun calculateWeeklyVolumes(
+        sessions: List<TrainingSession>,
+        targetMuscles: List<TargetMuscle>,
+        exerciseLibrary: List<ExerciseLibraryItem>,
+        useWeighted: Boolean = false
+    ): Map<String, Float> {
+        val weeklyVolumes = mutableMapOf<String, Float>()
+        val calendar = Calendar.getInstance()
+        val weekFormat = SimpleDateFormat("MM/dd", Locale.getDefault())
+
+        sessions.forEach { session ->
+            try {
+                val date = dateFormat.parse(session.date) ?: return@forEach
+                calendar.time = date
+                // Set to start of week (Monday)
+                val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
+                val daysFromMonday = if (dayOfWeek == Calendar.SUNDAY) 6 else dayOfWeek - Calendar.MONDAY
+                calendar.add(Calendar.DAY_OF_MONTH, -daysFromMonday)
+                calendar.set(Calendar.HOUR_OF_DAY, 0)
+                calendar.set(Calendar.MINUTE, 0)
+                calendar.set(Calendar.SECOND, 0)
+                calendar.set(Calendar.MILLISECOND, 0)
+                val weekKey = weekFormat.format(calendar.time)
+
+                val sessionVolume = session.exercises
+                    .filterNot { it.isWarmup }
+                    .filter { entry ->
+                        val exercise = exerciseLibrary.find { it.id == entry.exerciseId }
+                        exercise?.let { ex ->
+                            ex.primaryTargets.any { it in targetMuscles } ||
+                            ex.secondaryTargets.any { it in targetMuscles }
+                        } ?: false
+                    }
+                    .sumOf { entry ->
+                        if (useWeighted && entry.rpe != null) {
+                            val rir = 10f - entry.rpe
+                            val effectiveReps = entry.reps + rir
+                            (entry.kg * effectiveReps).toDouble()
+                        } else {
+                            (entry.kg * entry.reps).toDouble()
+                        }
+                    }
+                    .toFloat()
+
+                weeklyVolumes[weekKey] = (weeklyVolumes[weekKey] ?: 0f) + sessionVolume
+            } catch (e: Exception) {
+                // Skip invalid dates
+            }
+        }
+
+        return weeklyVolumes
+    }
+
+    private fun setupVolumeChart(weeklyVolumes: Map<String, Float>) {
+        val sortedWeeks = weeklyVolumes.keys.sorted()
+        val entries = sortedWeeks.mapIndexed { index, _ ->
+            BarEntry(index.toFloat(), weeklyVolumes[sortedWeeks[index]] ?: 0f)
+        }
+
+        val dataSet = BarDataSet(entries, "Volume (kg)").apply {
+            color = Color.parseColor("#2563EB")
+            setDrawValues(false)
+        }
+
+        val barData = BarData(dataSet).apply {
+            barWidth = 0.7f
+        }
+
+        val combinedData = CombinedData()
+        combinedData.setData(barData)
+
+        binding.chartMuscleVolume.apply {
+            // Clear previous data
+            clear()
+            data = null
+            
+            data = combinedData
+            description.isEnabled = false
+            setBackgroundColor(Color.WHITE)
+            setDrawGridBackground(false)
+            legend.isEnabled = false
+
+            xAxis.apply {
+                position = XAxis.XAxisPosition.BOTTOM
+                setDrawGridLines(false)
+                labelRotationAngle = -45f
+                valueFormatter = object : ValueFormatter() {
+                    override fun getFormattedValue(value: Float): String {
+                        val index = value.toInt()
+                        return if (index in sortedWeeks.indices) sortedWeeks[index] else ""
+                    }
+                }
+            }
+
+            axisLeft.apply {
+                setDrawGridLines(true)
+                gridColor = Color.parseColor("#E0E0E0")
+                axisMinimum = 0f
+            }
+
+            axisRight.isEnabled = false
+
+            setTouchEnabled(true)
+            setDragEnabled(true)
+            setScaleEnabled(true)
+            animateY(800)
+            invalidate()
+        }
+    }
+
+    private fun setupMultiLineChart(weeklyVolumesByGroup: Map<String, Map<String, Float>>) {
+        // Get all unique weeks across all muscle groups and sort them
+        val allWeeks = weeklyVolumesByGroup.values.flatMap { it.keys }.distinct().sorted()
+        
+        if (allWeeks.isEmpty()) {
+            binding.textEmptyState.visibility = View.VISIBLE
+            binding.chartMuscleVolume.visibility = View.GONE
+            return
+        }
+
+        val lineDataSets = mutableListOf<com.github.mikephil.charting.interfaces.datasets.ILineDataSet>()
+        
+        // Create a line dataset for each muscle group
+        val muscleGroups = listOf("Chest", "Back", "Shoulders", "Arms", "Legs", "Core")
+        muscleGroups.forEach { groupName ->
+            val volumes = weeklyVolumesByGroup[groupName] ?: emptyMap()
+            if (volumes.isNotEmpty()) {
+                val entries = allWeeks.mapIndexed { index, week ->
+                    Entry(index.toFloat(), volumes[week] ?: 0f)
+                }
+                
+                val color = muscleGroupColors[groupName] ?: Color.parseColor("#2563EB")
+                val dataSet = LineDataSet(entries, groupName).apply {
+                    this.color = color
+                    setCircleColor(color)
+                    circleRadius = 4f
+                    lineWidth = 2.5f
+                    setDrawValues(false)
+                    axisDependency = YAxis.AxisDependency.LEFT
+                    mode = LineDataSet.Mode.CUBIC_BEZIER
+                }
+                lineDataSets.add(dataSet)
+            }
+        }
+
+        if (lineDataSets.isEmpty()) {
+            binding.textEmptyState.visibility = View.VISIBLE
+            binding.chartMuscleVolume.visibility = View.GONE
+            return
+        }
+
+        val combinedData = CombinedData()
+        combinedData.setData(LineData(lineDataSets.toList()))
+
+        binding.chartMuscleVolume.apply {
+            // Clear previous data
+            data = null
+            notifyDataSetChanged()
+            invalidate()
+            
+            data = combinedData
+            description.isEnabled = false
+            setBackgroundColor(Color.WHITE)
+            setDrawGridBackground(false)
+            legend.isEnabled = true
+            legend.verticalAlignment = Legend.LegendVerticalAlignment.BOTTOM
+            legend.horizontalAlignment = Legend.LegendHorizontalAlignment.CENTER
+            legend.orientation = Legend.LegendOrientation.HORIZONTAL
+            legend.setDrawInside(false)
+            legend.textSize = 11f
+
+            xAxis.apply {
+                position = XAxis.XAxisPosition.BOTTOM
+                setDrawGridLines(false)
+                labelRotationAngle = -45f
+                valueFormatter = object : ValueFormatter() {
+                    override fun getFormattedValue(value: Float): String {
+                        val index = value.toInt()
+                        return if (index in allWeeks.indices) allWeeks[index] else ""
+                    }
+                }
+            }
+
+            axisLeft.apply {
+                setDrawGridLines(true)
+                gridColor = Color.parseColor("#E0E0E0")
+                axisMinimum = 0f
+            }
+
+            axisRight.isEnabled = false
+
+            setTouchEnabled(true)
+            setDragEnabled(true)
+            setScaleEnabled(true)
+            animateY(800)
+            invalidate()
+        }
+    }
+
+    private fun updateStats(weeklyVolumes: Map<String, Float>) {
+        val totalVolume = weeklyVolumes.values.sum()
+        val avgWeekly = if (weeklyVolumes.isNotEmpty()) totalVolume / weeklyVolumes.size else 0f
+
+        binding.textTotalVolume.text = String.format(Locale.US, "%,.0f", totalVolume)
+        binding.textAvgWeekly.text = String.format(Locale.US, "%,.0f", avgWeekly)
+
+        // Calculate trend
+        val volumes = weeklyVolumes.values.toList()
+        if (volumes.size >= 2) {
+            val firstHalf = volumes.take(volumes.size / 2).average()
+            val secondHalf = volumes.drop(volumes.size / 2).average()
+            val trend = if (firstHalf > 0) ((secondHalf - firstHalf) / firstHalf) * 100 else 0.0
+            binding.textTrend.text = String.format(Locale.US, "%+.0f%%", trend)
+            binding.textTrend.setTextColor(when {
+                trend > 5 -> Color.parseColor("#10B981")
+                trend < -5 -> Color.parseColor("#EF4444")
+                else -> Color.parseColor("#6B7280")
+            })
+        } else {
+            binding.textTrend.text = "--"
+        }
+    }
+
+    private fun updateContributingExercises(
+        sessions: List<TrainingSession>,
+        targetMuscles: List<TargetMuscle>,
+        exerciseLibrary: List<ExerciseLibraryItem>,
+        useWeighted: Boolean = false
+    ) {
+        // Calculate total volume per exercise for this muscle group
+        // Map: exerciseId -> (exerciseName, totalVolume)
+        val exerciseVolumes = mutableMapOf<Int, Pair<String, Float>>()
+        
+        sessions.forEach { session ->
+            session.exercises
+                .filterNot { it.isWarmup }
+                .forEach { entry ->
+                    val exercise = exerciseLibrary.find { it.id == entry.exerciseId }
+                    if (exercise != null) {
+                        val targetsMuscle = exercise.primaryTargets.any { it in targetMuscles } ||
+                                exercise.secondaryTargets.any { it in targetMuscles }
+                        
+                        if (targetsMuscle) {
+                            val volume = if (useWeighted && entry.rpe != null) {
+                                val rir = 10f - entry.rpe
+                                val effectiveReps = entry.reps + rir
+                                entry.kg * effectiveReps
+                            } else {
+                                entry.kg * entry.reps
+                            }
+                            val current = exerciseVolumes[entry.exerciseId]
+                            exerciseVolumes[entry.exerciseId] = Pair(
+                                exercise.name,
+                                (current?.second ?: 0f) + volume
+                            )
+                        }
+                    }
+                }
+        }
+        
+        // Sort by volume descending and take top 5
+        // Convert to list of (exerciseId, exerciseName, volume) tuples
+        val topExercises = exerciseVolumes.entries
+            .sortedByDescending { it.value.second }
+            .take(5)
+            .map { (exerciseId, nameVolume) -> Triple(exerciseId, nameVolume.first, nameVolume.second) }
+        
+        if (topExercises.isEmpty()) {
+            binding.recyclerContributingExercises.visibility = View.GONE
+            binding.textNoExercises.visibility = View.VISIBLE
+        } else {
+            binding.recyclerContributingExercises.visibility = View.VISIBLE
+            binding.textNoExercises.visibility = View.GONE
+            
+            // Use ExerciseTrendAdapter with simplified data
+            val trends = topExercises.map { (exerciseId, name, volume) ->
+                com.liftpath.models.ExerciseTrendData(
+                    exerciseId = exerciseId,
+                    exerciseName = name,
+                    intent = com.liftpath.models.SetIntent.BUILD,
+                    currentVolume = volume,
+                    previousVolume = null,
+                    currentEstimated1RM = null,
+                    previousEstimated1RM = null,
+                    currentTopSet = null,
+                    previousTopSet = null,
+                    isPR = false
+                )
+            }
+            
+            val adapter = com.liftpath.adapters.ExerciseTrendAdapter(trends)
+            binding.recyclerContributingExercises.layoutManager = LinearLayoutManager(requireContext())
+            binding.recyclerContributingExercises.adapter = adapter
+        }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+}

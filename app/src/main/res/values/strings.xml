@@ -266,6 +266,7 @@
     <string name="dialog_title_set_type_for_exercise">Set type for %1$s</string>
     <string name="dialog_title_override_workout_type">Override Workout Type for %1$s</string>
     <string name="dialog_title_edit_note">Edit Note for Set %1$d</string>
+    <string name="dialog_title_intent_change_warning">Change Intent?</string>
     
     <!-- Dialog Messages -->
     <string name="dialog_message_reset_data">Are you sure you want to reset all your data? This action cannot be undone.</string>
@@ -284,22 +285,24 @@
     <string name="dialog_message_custom_workout">Custom workout - enter your own weight.</string>
     <string name="dialog_message_last_rpe">Last RPE: %1$.1f</string>
     <string name="dialog_message_days_since_last">Days since last: %1$d</string>
+    <string name="dialog_message_intent_change_warning">Are you sure you want to change the intent? This affects data analysis.</string>
     
     <!-- RPE Scale Dialog -->
-    <string name="dialog_message_rpe_scale">RPE Scale (Rate of Perceived Exertion)
-Based on Reps in Reserve (RIR):
-
-10  - Max effort, could not do another rep
-9.5 - Could maybe do 1 more rep
-9   - Could definitely do 1 more rep
-8   - Could do 2 more reps
-7   - Could do 3 more reps
-6   - Could do 4+ reps
-
-For strength (heavy): aim for RPE 7.5-8.5
-For volume (light): aim for RPE 7-8
-
-Leave blank if you\'re not sure - the app will use the "Completed?" checkbox instead.</string>
+    <string name="dialog_message_rpe_scale"><![CDATA[RPE Scale (Rate of Perceived Exertion)<br/>
+Based on Reps in Reserve (RIR):<br/><br/>
+<ul>
+<li>10  - Max effort, could not do another rep</li>
+<li>9.5 - Could maybe do 1 more rep</li>
+<li>9   - Could definitely do 1 more rep</li>
+<li>8   - Could do 2 more reps</li>
+<li>7   - Could do 3 more reps</li>
+<li>6   - Could do 4+ reps</li>
+</ul>
+<ul>
+<li>For strength (heavy): aim for RPE 7.5-8.5</li>
+<li>For volume (light): aim for RPE 7-8</li>
+</ul>
+Leave blank if you\'re not sure.]]></string>
     
     <!-- Button Labels -->
     <string name="button_cancel">Cancel</string>
@@ -311,12 +314,27 @@ Leave blank if you\'re not sure - the app will use the "Completed?" checkbox ins
     <string name="button_got_it">Got it</string>
     <string name="button_add_exercise">Add Exercise</string>
     <string name="button_change_type">Change Type</string>
+    <string name="button_change">Change</string>
     <string name="button_cancel_workout">Cancel Workout</string>
     <string name="button_continue">Continue</string>
     <string name="button_resume">Resume</string>
     <string name="button_start_new">Start new</string>
     <string name="button_discard">Discard</string>
     <string name="button_clear_plan">Clear Plan</string>
+    <string name="button_add_note">Add Note</string>
+    <string name="button_edit_note">Edit Note</string>
+    <string name="hint_kg">Kg</string>
+    <string name="hint_reps">Reps</string>
+    <string name="hint_rpe">RPE</string>
+    
+    <!-- Delete Set Dialog -->
+    <string name="dialog_title_delete_set">Delete Set?</string>
+    <string name="dialog_message_delete_set">Are you sure you want to delete Set %1$d? This cannot be undone.</string>
+    <string name="dialog_message_cannot_delete_last_set">Cannot delete the last set. Use the exercise menu to remove the exercise instead.</string>
+    <string name="toast_set_deleted">Set deleted</string>
+    <string name="set_number_format">Set %1$d</string>
+    <string name="validation_rpe_range">RPE: 6.0-10.0</string>
+    <string name="edit_sets_subtitle">Edit %1$d sets</string>
     
     <!-- Notification Messages -->
     <string name="notification_rest_timer_title">Rest Timer</string>
@@ -327,4 +345,142 @@ Leave blank if you\'re not sure - the app will use the "Completed?" checkbox ins
     <string name="notification_channel_timer_completion">Timer Completion</string>
     <string name="notification_channel_description_background">Background timer service</string>
     <string name="notification_channel_description_completion">Notifications when rest timer completes</string>
+    
+    <!-- Complete Workout Dialog -->
+    <string name="dialog_title_complete_workout">Complete Workout?</string>
+    <string name="dialog_message_complete_workout">Are you sure you\'re done with this workout?</string>
+    <string name="button_return">Return</string>
+    <string name="button_complete">Complete</string>
+    <string name="button_finish">Finish</string>
+    <string name="button_add_special">Add Special</string>
+    <string name="tile_warmup">Warmup</string>
+    <string name="tile_cooldown">Cooldown</string>
+    <string name="warmup_timer_title">Warmup Timer</string>
+    
+    <!-- Workout Report -->
+    <string name="workout_complete_title">Workout Complete!</string>
+    <string name="total_volume_label">Total Volume</string>
+    <string name="total_sets_label">Sets</string>
+    <string name="total_reps_label">Reps</string>
+    <string name="duration_label">Duration</string>
+    <string name="exercises_label">Exercises</string>
+    <string name="prs_label">PRs</string>
+    <string name="muscles_worked_title">Muscles Worked</string>
+    <string name="legend_improved">Improved</string>
+    <string name="legend_stable">Stable</string>
+    <string name="legend_decreased">Decreased</string>
+    <string name="legend_first_time">First time</string>
+    <string name="exercise_trends_title">Exercise Trends</string>
+    <string name="muscle_groups_title">Muscle Groups</string>
+    <string name="vs_previous_label">vs previous</string>
+    <string name="no_previous_data">First time</string>
+    <string name="done_button">Done</string>
+    <string name="volume_label">Volume</string>
+    <string name="estimated_1rm_label">Est. 1RM</string>
+    <string name="top_set_label">Top Set</string>
+    <string name="pr_badge">PR!</string>
+    <string name="kg_unit">kg</string>
+    <string name="reps_format">x%d</string>
+    <string name="percent_change_format">%+.1f%%</string>
+    
+    <!-- Progress Tabs -->
+    <string name="tab_overview">Overview</string>
+    <string name="tab_exercises">Exercises</string>
+    <string name="tab_muscles">Muscles</string>
+    <string name="tab_sessions">Sessions</string>
+    <string name="tab_prs">PRs</string>
+    
+    <!-- Progress Overview -->
+    <string name="progress_recent_prs">Recent PRs</string>
+    <string name="progress_no_recent_prs">No PRs in the last 30 days. Keep training!</string>
+    <string name="progress_this_week">This Week</string>
+    <string name="progress_sessions">Sessions</string>
+    <string name="progress_volume_kg">kg Volume</string>
+    <string name="progress_prs">PRs</string>
+    <string name="progress_training_focus">Training Focus</string>
+    <string name="progress_last_30_days">Last 30 days</string>
+    <string name="progress_coach_analysis">Coach\'s Analysis</string>
+    
+    <!-- Intent Labels -->
+    <string name="intent_strength">Strength</string>
+    <string name="intent_build">Build</string>
+    <string name="intent_flush">Flush</string>
+    
+    <!-- Progress Exercises -->
+    <string name="progress_time_range">Time Range</string>
+    <string name="progress_est_1rm">Est. 1RM</string>
+    <string name="progress_avg_volume">Avg Volume</string>
+    <string name="progress_total_reps">Total Reps</string>
+    <string name="progress_1rm_estimation">1RM Progression Estimation</string>
+    <string name="progress_estimation_info">Estimation Logic Info</string>
+    <string name="progress_projection_period">Projection Period</string>
+    <string name="progress_current_1rm">Current 1RM</string>
+    <string name="progress_expected_1rm">Expected 1RM</string>
+    <string name="progress_projected_improvement">Projected Improvement</string>
+    <string name="progress_trend_analysis">Trend Analysis</string>
+    <string name="progress_last_sessions">Last 4-6 sessions trend</string>
+    <string name="progress_volume_trend">Volume Trend</string>
+    <string name="progress_strength_trend">Strength Trend</string>
+    <string name="progress_efficiency_trend">Efficiency Trend</string>
+    
+    <!-- Progress Muscles -->
+    <string name="muscle_all">All</string>
+    <string name="muscle_chest">Chest</string>
+    <string name="muscle_back">Back</string>
+    <string name="muscle_shoulders">Shoulders</string>
+    <string name="muscle_arms">Arms</string>
+    <string name="muscle_legs">Legs</string>
+    <string name="muscle_core">Core</string>
+    <string name="weighted_volume_label">Weighted Volume (RPE-adjusted)</string>
+    <string name="progress_muscle_volume">Muscle Volume</string>
+    <string name="progress_summary">Summary</string>
+    <string name="progress_total_volume_kg">Total Volume (kg)</string>
+    <string name="progress_avg_weekly">Avg Weekly</string>
+    <string name="progress_trend">Trend</string>
+    <string name="progress_contributing_exercises">Contributing Exercises</string>
+    <string name="progress_no_muscle_data">No training data for this muscle group</string>
+    <string name="progress_muscle_trends">Muscle Trends</string>
+    <string name="progress_last_4_weeks">Last 4 weeks (1RM > Volume > Strength)</string>
+    <string name="muscle_legend_improving">Improving</string>
+    <string name="muscle_legend_stable">Stable</string>
+    <string name="muscle_legend_declining">Declining</string>
+    <string name="muscle_legend_first_time">First Time</string>
+    <string name="muscle_legend_no_data">No Data</string>
+    <string name="progress_no_exercises">No exercises found</string>
+    
+    <!-- Progress Sessions -->
+    <string name="progress_sessions_title">Training Sessions</string>
+    <string name="progress_compare_mode">Compare Mode</string>
+    <string name="progress_select_session">Select session</string>
+    <string name="progress_no_sessions">No sessions found</string>
+    <string name="vs">vs</string>
+    <string name="cancel">Cancel</string>
+    <string name="volume">Volume</string>
+    
+    <!-- Progress PRs -->
+    <string name="filter_all">All</string>
+    <string name="progress_volume">Volume</string>
+    <string name="progress_1rm">1RM</string>
+    <string name="progress_pr_summary">PR Summary</string>
+    <string name="progress_total_prs">Total PRs</string>
+    <string name="progress_this_month">This Month</string>
+    <string name="progress_week_streak">Week Streak</string>
+    <string name="progress_pr_timeline">PR Timeline</string>
+    <string name="progress_no_prs">No PRs recorded yet. Keep training!</string>
+    
+    <!-- Intent Progression Settings -->
+    <string name="settings_intent_progression_title">Intent Progression</string>
+    <string name="settings_strength_intent">Strength Intent</string>
+    <string name="settings_build_intent">Build Intent</string>
+    <string name="settings_min_reps">Min Reps</string>
+    <string name="settings_max_reps">Max Reps</string>
+    <string name="settings_target_rpe">Target RPE</string>
+    <string name="settings_increase_threshold">Increase When RPE Below</string>
+    <string name="settings_strength_hint">Low reps (3-6), heavy weight. Focus on strength gains.</string>
+    <string name="settings_build_hint">Moderate reps (8-12), hypertrophy focus. Double progression.</string>
+    <string name="settings_progression_info_title">How Progression Works</string>
+    <string name="settings_progression_info_body">STRENGTH/BUILD: If you hit max reps with RPE below threshold, increase weight and reset to min reps. Otherwise, aim for +1 rep.\n\nFLUSH: No progression - just high reps for pump and recovery.</string>
+    <string name="settings_fallback_days">Intent Fallback Days</string>
+    <string name="settings_fallback_days_hint">Days before using data from other intent (default: 30)</string>
 </resources>
+

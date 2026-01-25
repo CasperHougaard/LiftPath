@@ -24,4 +24,7 @@
     
     <!-- Chart Grid Lines -->
     <color name="fitness_chart_grid">#374151</color> <!-- Cool Gray 700 - visible on dark bg -->
+    
+    <!-- Suggestion Color (for progression suggestions in active workout) -->
+    <color name="fitness_suggestion">#38BDF8</color>  <!-- Sky-400 - brighter for dark mode -->
 </resources>

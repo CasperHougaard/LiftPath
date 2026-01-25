@@ -5,6 +5,7 @@ import android.content.Intent
 import android.graphics.drawable.Animatable
 import android.os.Build
 import android.os.Bundle
+import android.text.Html
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -18,6 +19,7 @@ import com.liftpath.helpers.ProgressionHelper
 import com.liftpath.helpers.ProgressionSettingsManager
 import com.liftpath.helpers.showWithTransparentWindow
 import com.liftpath.models.ExerciseEntry
+import com.liftpath.models.SetIntent
 import java.util.Locale
 import kotlin.math.max // <--- FIXED: IMPORT ADDED
 
@@ -34,9 +36,10 @@ class LogSetActivity : AppCompatActivity() {
     private var lastLoggedReps: Int? = null
 
     private var pendingTimerRpe: Float? = null
-    private var pendingTimerWorkoutType: String? = null
+    private var pendingTimerIntent: SetIntent? = null
     private var pendingTimerExerciseName: String? = null
     private var shouldFinishAfterTimer = false
+    private var originalRpeHint: CharSequence? = null
 
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -61,6 +64,7 @@ class LogSetActivity : AppCompatActivity() {
         const val EXTRA_PREVIOUS_SET_REPS = "extra_previous_set_reps"
         const val EXTRA_LAST_LOGGED_KG = "extra_last_logged_kg"
         const val EXTRA_LAST_LOGGED_REPS = "extra_last_logged_reps"
+        const val EXTRA_INTENT = "extra_intent"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -76,7 +80,14 @@ class LogSetActivity : AppCompatActivity() {
         previousSetReps = intent.getIntExtra(EXTRA_PREVIOUS_SET_REPS, -1).takeIf { it > 0 }
         lastLoggedKg = intent.getFloatExtra(EXTRA_LAST_LOGGED_KG, -1f).takeIf { it > 0 }
         lastLoggedReps = intent.getIntExtra(EXTRA_LAST_LOGGED_REPS, -1).takeIf { it > 0 }
-        binding.textLogSetTitle.text = "$exerciseName (${formatTypeLabel(workoutType)})"
+        // Get intent for title display
+        val intentName = intent.getStringExtra(EXTRA_INTENT)
+        val displayIntent = try {
+            if (intentName != null) SetIntent.valueOf(intentName) else SetIntent.BUILD
+        } catch (e: Exception) {
+            SetIntent.BUILD
+        }
+        binding.textLogSetTitle.text = "$exerciseName (${displayIntent.displayName})"
 
         setupBackgroundAnimation()
 
@@ -95,6 +106,17 @@ class LogSetActivity : AppCompatActivity() {
         binding.buttonBack.setOnClickListener {
             finish()
         }
+
+        // Store original RPE hint
+        originalRpeHint = binding.textInputLayoutRpe.hint
+        
+        // Setup warmup checkbox listener
+        binding.cbWarmup.setOnCheckedChangeListener { _, isChecked ->
+            updateRpeFieldForWarmup(isChecked)
+        }
+        
+        // Initialize RPE field state based on initial warmup state
+        updateRpeFieldForWarmup(binding.cbWarmup.isChecked)
     }
 
     private fun setupBackgroundAnimation() {
@@ -112,7 +134,7 @@ class LogSetActivity : AppCompatActivity() {
             binding.editTextKg.setText(lastLoggedKg.toString())
             binding.editTextReps.setText(lastLoggedReps.toString())
             
-            // Still try to get RPE and note from last set if available
+            // Still try to get RPE from last set if available (note always starts empty)
             val trainingData = jsonHelper.readTrainingData()
             val lastSet = trainingData.trainings
                 .flatMap { it.exercises }
@@ -123,9 +145,6 @@ class LogSetActivity : AppCompatActivity() {
                 if (binding.editTextRpe.text.isNullOrBlank()) {
                     binding.editTextRpe.setText(it.toString())
                 }
-            }
-            lastSet?.note?.let {
-                binding.editTextNote.setText(it)
             }
         } else {
             // Fall back to looking up from training history
@@ -144,9 +163,6 @@ class LogSetActivity : AppCompatActivity() {
                         binding.editTextRpe.setText(it.toString())
                     }
                 }
-                lastSet.note?.let {
-                    binding.editTextNote.setText(it)
-                }
             }
         }
     }
@@ -158,12 +174,29 @@ class LogSetActivity : AppCompatActivity() {
     }
 
     private fun showWeightSuggestion() {
-        // For custom workouts, don't show progression suggestions
-        if (workoutType == "custom") {
+        // Get intent from extra
+        val intentName = intent.getStringExtra(EXTRA_INTENT)
+        val setIntent = try {
+            if (intentName != null) SetIntent.valueOf(intentName) else SetIntent.BUILD
+        } catch (e: Exception) {
+            SetIntent.BUILD
+        }
+        
+        // For FLUSH or custom workouts, don't show progression suggestions
+        if (workoutType == "custom" || setIntent == SetIntent.FLUSH) {
             // Only prefill from last set (already done in prefillLastSetFallback)
-            // Don't show suggestion text or RPE hint
+            // Don't show suggestion text, but still show RPE hint for FLUSH
             binding.tvSuggestionHint.visibility = View.GONE
-            binding.textRpeHint.visibility = View.GONE
+            if (setIntent == SetIntent.FLUSH) {
+                // Show low RPE suggestion for FLUSH
+                val suggestedRpe = 7.0f
+                if (binding.editTextRpe.text.isNullOrBlank()) {
+                    binding.editTextRpe.setText(suggestedRpe.toString())
+                    updateRpeHint(suggestedRpe)
+                }
+            } else {
+                binding.textRpeHint.visibility = View.GONE
+            }
             return
         }
         
@@ -171,54 +204,78 @@ class LogSetActivity : AppCompatActivity() {
         val settingsManager = ProgressionSettingsManager(this)
         val userSettings = settingsManager.getSettings()
 
-        val suggestion = ProgressionHelper.getSuggestion(
+        // Use new intent-based progression API
+        val suggestion = ProgressionHelper.getIntentSuggestion(
             exerciseId = exerciseId,
-            requestedType = workoutType,
+            intent = setIntent,
             trainingData = trainingData,
             settings = userSettings
         )
 
+        // Get target RPE from settings
+        val suggestedRpe = ProgressionHelper.getTargetRpe(setIntent, userSettings)
+
         if (!suggestion.isFirstTime) {
-            val suggestedWeight = suggestion.proposedWeight
+            val suggestedReps = suggestion.suggestedReps
 
-            if (suggestedWeight != null) {
-                if (binding.editTextKg.text.isNullOrBlank()) {
-                    binding.editTextKg.setText(suggestedWeight.toString())
-                }
-
-                val suggestedReps = suggestion.proposedReps ?: 5
-
-                val suggestedRpe = ProgressionHelper.suggestRpe(userSettings.userLevel, workoutType)
-
-                val hintText = buildString {
-                    append("Suggested: ${suggestedWeight}kg")
-
-                    if (suggestedReps > 0) {
-                        append(" ($suggestedReps reps)")
+            // Build hint text based on intent suggestion
+            val hintText = buildString {
+                when (suggestion.weightAction) {
+                    ProgressionHelper.WeightAction.INCREASE -> {
+                        append("Increase weight, ")
+                        if (suggestedReps != null) {
+                            append("aim for $suggestedReps reps")
+                        }
                     }
-
-                    append(" @ RPE $suggestedRpe")
-
-                    suggestion.badge?.let {
-                        append(" $it")
+                    ProgressionHelper.WeightAction.MAINTAIN -> {
+                        if (suggestedReps != null) {
+                            append("Aim for $suggestedReps reps")
+                        } else {
+                            append("Same weight")
+                        }
                     }
+                    ProgressionHelper.WeightAction.DECREASE -> {
+                        append("Reduce weight, ")
+                        if (suggestedReps != null) {
+                            append("aim for $suggestedReps reps")
+                        }
+                    }
+                    else -> {}
                 }
-
-                binding.textSuggestionContent.text = hintText
-
-                if (binding.editTextReps.text.isNullOrBlank() && suggestedReps > 0) {
-                    binding.editTextReps.setText(suggestedReps.toString())
+                
+                append(" @ RPE ${"%.1f".format(suggestedRpe)}")
+                
+                suggestion.badge?.let {
+                    append(" [$it]")
                 }
-
-                if (binding.editTextRpe.text.isNullOrBlank()) {
-                    binding.editTextRpe.setText(suggestedRpe.toString())
-                    updateRpeHint(suggestedRpe)
-                }
-
-                binding.tvSuggestionHint.visibility = View.VISIBLE
             }
+
+            binding.textSuggestionContent.text = hintText
+
+            // Prefill reps if empty
+            if (binding.editTextReps.text.isNullOrBlank() && suggestedReps != null && suggestedReps > 0) {
+                binding.editTextReps.setText(suggestedReps.toString())
+            }
+
+            // Prefill RPE if empty
+            if (binding.editTextRpe.text.isNullOrBlank()) {
+                binding.editTextRpe.setText(suggestedRpe.toString())
+                updateRpeHint(suggestedRpe)
+            }
+
+            binding.tvSuggestionHint.visibility = View.VISIBLE
         } else {
-            val suggestedRpe = ProgressionHelper.suggestRpe(userSettings.userLevel, workoutType)
+            // First time - show suggested reps and RPE from settings
+            val (minReps, _) = ProgressionHelper.getRepRange(setIntent, userSettings)
+            
+            val hintText = "First time! Start light, aim for $minReps reps @ RPE ${"%.1f".format(suggestedRpe)}"
+            binding.textSuggestionContent.text = hintText
+            binding.tvSuggestionHint.visibility = View.VISIBLE
+            
+            if (binding.editTextReps.text.isNullOrBlank()) {
+                binding.editTextReps.setText(minReps.toString())
+            }
+            
             if (binding.editTextRpe.text.isNullOrBlank()) {
                 binding.editTextRpe.setText(suggestedRpe.toString())
                 updateRpeHint(suggestedRpe)
@@ -240,9 +297,16 @@ class LogSetActivity : AppCompatActivity() {
     }
 
     private fun showRpeHelpDialog() {
+        val message = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            Html.fromHtml(getString(R.string.dialog_message_rpe_scale), Html.FROM_HTML_MODE_LEGACY)
+        } else {
+            @Suppress("DEPRECATION")
+            Html.fromHtml(getString(R.string.dialog_message_rpe_scale))
+        }
+        
         DialogHelper.createBuilder(this)
             .setTitle(getString(R.string.dialog_title_rpe_scale))
-            .setMessage(getString(R.string.dialog_message_rpe_scale))
+            .setMessage(message)
             .setPositiveButton(getString(R.string.button_got_it), null)
             .showWithTransparentWindow()
     }
@@ -270,7 +334,22 @@ class LogSetActivity : AppCompatActivity() {
         }
 
         val note = binding.editTextNote.text.toString()
-        val completed = binding.cbCompleted.isChecked
+        val isWarmup = binding.cbWarmup.isChecked
+
+        // Logged sets count as completed (hadFailure = false); no checkbox
+        val completed = true
+
+        // Get intent from Intent extra, or default to BUILD
+        val intentName = intent.getStringExtra(EXTRA_INTENT)
+        val explicitIntent = try {
+            if (intentName != null) {
+                SetIntent.valueOf(intentName)
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            null
+        }
 
         val newEntry = ExerciseEntry(
             exerciseId = exerciseId,
@@ -282,7 +361,9 @@ class LogSetActivity : AppCompatActivity() {
             rating = null,
             workoutType = workoutType,
             rpe = rpe,
-            completed = completed
+            completed = completed,
+            isWarmup = isWarmup,
+            explicitIntent = explicitIntent
         )
 
         val resultIntent = Intent().apply {
@@ -314,7 +395,12 @@ class LogSetActivity : AppCompatActivity() {
                 != android.content.pm.PackageManager.PERMISSION_GRANTED) {
                 // Store the timer parameters to use after permission is granted
                 pendingTimerRpe = rpe
-                pendingTimerWorkoutType = workoutType
+                val intentName = intent.getStringExtra(EXTRA_INTENT)
+                pendingTimerIntent = try {
+                    if (intentName != null) SetIntent.valueOf(intentName) else SetIntent.BUILD
+                } catch (e: Exception) {
+                    SetIntent.BUILD
+                }
                 pendingTimerExerciseName = exerciseName
                 notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
                 return true // Permission request needed
@@ -330,20 +416,26 @@ class LogSetActivity : AppCompatActivity() {
         
         // Use pending values if available (from permission request), otherwise use current values
         val actualRpe = pendingTimerRpe ?: rpe
-        val actualWorkoutType = pendingTimerWorkoutType ?: workoutType
+        val intentName = intent.getStringExtra(EXTRA_INTENT)
+        val actualIntent = pendingTimerIntent ?: try {
+            if (intentName != null) SetIntent.valueOf(intentName) else SetIntent.BUILD
+        } catch (e: Exception) {
+            SetIntent.BUILD
+        }
         val actualExerciseName = pendingTimerExerciseName ?: exerciseName
         
         // Clear pending values
         pendingTimerRpe = null
-        pendingTimerWorkoutType = null
+        pendingTimerIntent = null
         pendingTimerExerciseName = null
 
-        // Calculate base rest time based on workout type (heavy/light/custom)
-        var restSeconds = when (actualWorkoutType) {
-            "heavy" -> settings.heavyRestSeconds
-            "light" -> settings.lightRestSeconds
-            "custom" -> settings.customRestSeconds
-            else -> settings.customRestSeconds
+        // Calculate base rest time based on intent
+        var restSeconds = when (actualIntent) {
+            SetIntent.STRENGTH -> settings.strengthRestSeconds
+            SetIntent.BUILD -> settings.buildRestSeconds
+            SetIntent.FLUSH -> settings.flushRestSeconds
+            SetIntent.WARMUP -> settings.flushRestSeconds  // Warmups use shorter rest
+            else -> settings.buildRestSeconds
         }
 
         // Apply RPE-based adjustments if enabled
@@ -354,7 +446,7 @@ class LogSetActivity : AppCompatActivity() {
             }
 
             // Adjust based on deviation from suggested RPE
-            val suggestedRpe = ProgressionHelper.suggestRpe(settings.userLevel, actualWorkoutType)
+            val suggestedRpe = ProgressionHelper.getTargetRpe(actualIntent, settings)
             val rpeDifference = actualRpe - suggestedRpe
 
             if (rpeDifference >= settings.rpeDeviationThreshold) {
@@ -378,6 +470,51 @@ class LogSetActivity : AppCompatActivity() {
     private fun formatTypeLabel(type: String): String {
         return type.replaceFirstChar {
             if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
+        }
+    }
+
+    private fun updateRpeFieldForWarmup(isWarmup: Boolean) {
+        val greyColor = ContextCompat.getColor(this, R.color.fitness_text_secondary)
+        val normalTextColor = ContextCompat.getColor(this, R.color.fitness_text_primary)
+        val normalHintColor = ContextCompat.getColor(this, R.color.fitness_primary)
+        
+        if (isWarmup) {
+            // Grey out RPE field and text
+            binding.editTextRpe.setTextColor(greyColor)
+            binding.editTextRpe.isEnabled = false
+            
+            // Set placeholder to "(Warmup)" on TextInputLayout
+            binding.textInputLayoutRpe.hint = "(Warmup)"
+            
+            // Grey out RPE label
+            binding.textRpeLabel.setTextColor(greyColor)
+            
+            // Grey out RPE hint
+            binding.textRpeHint.setTextColor(greyColor)
+            
+            // Clear RPE value
+            binding.editTextRpe.setText("")
+            
+            // Update TextInputLayout hint color
+            binding.textInputLayoutRpe.hintTextColor = android.content.res.ColorStateList.valueOf(greyColor)
+            binding.textInputLayoutRpe.boxStrokeColor = greyColor
+        } else {
+            // Restore normal colors
+            binding.editTextRpe.setTextColor(normalTextColor)
+            binding.editTextRpe.isEnabled = true
+            
+            // Restore original hint
+            binding.textInputLayoutRpe.hint = originalRpeHint
+            
+            // Restore RPE label color
+            binding.textRpeLabel.setTextColor(normalTextColor)
+            
+            // Restore RPE hint color
+            binding.textRpeHint.setTextColor(ContextCompat.getColor(this, R.color.fitness_text_secondary))
+            
+            // Restore TextInputLayout hint and stroke colors
+            binding.textInputLayoutRpe.hintTextColor = android.content.res.ColorStateList.valueOf(normalHintColor)
+            binding.textInputLayoutRpe.boxStrokeColor = normalHintColor
         }
     }
 }

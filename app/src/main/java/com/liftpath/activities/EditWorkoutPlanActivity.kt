@@ -14,7 +14,11 @@ import com.liftpath.databinding.ActivityEditWorkoutPlanBinding
 import com.liftpath.helpers.JsonHelper
 import com.liftpath.models.ExerciseLibraryItem
 import com.liftpath.models.WorkoutPlan
+import com.liftpath.models.PlanExerciseConfig
+import com.liftpath.models.SetIntent
 import com.liftpath.adapters.PlanExerciseAdapter
+import com.liftpath.helpers.DialogHelper
+import com.liftpath.helpers.showWithTransparentWindow
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -27,6 +31,7 @@ class EditWorkoutPlanActivity : AppCompatActivity() {
     private var selectedExercises: MutableList<ExerciseLibraryItem> = mutableListOf()
     private var planId: String? = null
     private var isEditing = false
+    private var exerciseIntents: MutableMap<Int, SetIntent> = mutableMapOf()  // exerciseId -> intent
 
     companion object {
         const val EXTRA_PLAN_ID = "extra_plan_id"
@@ -75,10 +80,16 @@ class EditWorkoutPlanActivity : AppCompatActivity() {
     private fun setupRecyclerView() {
         adapter = PlanExerciseAdapter(
             exercises = selectedExercises,
+            exerciseIntents = exerciseIntents,
             onRemoveClicked = { position ->
+                val exerciseId = selectedExercises[position].id
                 selectedExercises.removeAt(position)
+                exerciseIntents.remove(exerciseId)
                 adapter.notifyItemRemoved(position)
                 adapter.notifyItemRangeChanged(position, selectedExercises.size)
+            },
+            onExerciseClicked = { position ->
+                showIntentDialog(selectedExercises[position])
             }
         )
         binding.recyclerViewPlanExercises.adapter = adapter
@@ -110,27 +121,23 @@ class EditWorkoutPlanActivity : AppCompatActivity() {
             if (plan != null) {
                 binding.editTextPlanName.setText(plan.name)
                 
-                // Set workout type radio button
-                when (plan.workoutType) {
-                    "heavy" -> binding.radioHeavy.isChecked = true
-                    "light" -> binding.radioLight.isChecked = true
-                    "custom" -> binding.radioCustom.isChecked = true
-                }
-                
                 // Load exercises
                 val exerciseMap = trainingData.exerciseLibrary.associateBy { it.id }
                 selectedExercises.clear()
+                exerciseIntents.clear()
                 plan.exerciseIds.forEach { id ->
-                    exerciseMap[id]?.let { selectedExercises.add(it) }
+                    exerciseMap[id]?.let { exercise ->
+                        selectedExercises.add(exercise)
+                        // Load intent from plan config if available (handle legacy plans without exerciseConfigs)
+                        val config = plan.exerciseConfigs?.find { it.exerciseId == id }
+                        exerciseIntents[id] = config?.defaultIntent ?: SetIntent.BUILD
+                    }
                 }
                 adapter.notifyDataSetChanged()
                 
                 // Load notes
                 plan.notes?.let { binding.editTextNotes.setText(it) }
             }
-        } else {
-            // Default to heavy
-            binding.radioHeavy.isChecked = true
         }
     }
 
@@ -145,7 +152,11 @@ class EditWorkoutPlanActivity : AppCompatActivity() {
         // Add new exercises in the order they appear in selectedIds
         selectedIds.forEach { id ->
             if (id !in existingIds) {
-                exerciseMap[id]?.let { selectedExercises.add(it) }
+                exerciseMap[id]?.let { 
+                    selectedExercises.add(it)
+                    // Initialize intent to BUILD for new exercises
+                    exerciseIntents[id] = SetIntent.BUILD
+                }
             }
         }
         
@@ -168,16 +179,18 @@ class EditWorkoutPlanActivity : AppCompatActivity() {
             return
         }
         
-        val selectedRadioId = binding.radioGroupWorkoutType.checkedRadioButtonId
-        val workoutType = when (selectedRadioId) {
-            R.id.radio_heavy -> "heavy"
-            R.id.radio_light -> "light"
-            R.id.radio_custom -> "custom"
-            else -> "heavy"
-        }
+        // Keep workoutType for legacy compatibility (default to "custom")
+        val workoutType = "custom"
         
         val notes = binding.editTextNotes.text.toString().trim().takeIf { it.isNotEmpty() }
         val exerciseIds = selectedExercises.map { it.id }.toMutableList()
+        
+        // Build exercise configs from intents
+        val exerciseConfigs = exerciseIds.mapNotNull { exerciseId ->
+            exerciseIntents[exerciseId]?.let { intent ->
+                PlanExerciseConfig(exerciseId = exerciseId, defaultIntent = intent)
+            }
+        }
         
         val trainingData = jsonHelper.readTrainingData()
         
@@ -189,7 +202,8 @@ class EditWorkoutPlanActivity : AppCompatActivity() {
                 val updatedPlan = existingPlan.copy(
                     name = planName,
                     exerciseIds = exerciseIds,
-                    workoutType = workoutType,
+                    workoutType = existingPlan.workoutType,  // Keep existing for legacy
+                    exerciseConfigs = exerciseConfigs,
                     notes = notes
                 )
                 trainingData.workoutPlans[planIndex] = updatedPlan
@@ -201,6 +215,7 @@ class EditWorkoutPlanActivity : AppCompatActivity() {
                 name = planName,
                 exerciseIds = exerciseIds,
                 workoutType = workoutType,
+                exerciseConfigs = exerciseConfigs,
                 notes = notes,
                 createdDate = dateFormat.format(Date())
             )
@@ -210,6 +225,37 @@ class EditWorkoutPlanActivity : AppCompatActivity() {
         jsonHelper.writeTrainingData(trainingData)
         setResult(Activity.RESULT_OK)
         finish()
+    }
+    
+    private fun showIntentDialog(exercise: ExerciseLibraryItem) {
+        val currentIntent = exerciseIntents[exercise.id] ?: SetIntent.BUILD
+        val intentOptions = arrayOf("Strength", "Build", "Flush", "None")
+        val currentIndex = when (currentIntent) {
+            SetIntent.STRENGTH -> 0
+            SetIntent.BUILD -> 1
+            SetIntent.FLUSH -> 2
+            else -> 3
+        }
+        
+        DialogHelper.createBuilder(this)
+            .setTitle("Set Intent for ${exercise.name}")
+            .setSingleChoiceItems(intentOptions, currentIndex) { dialog, which ->
+                val selectedIntent = when (which) {
+                    0 -> SetIntent.STRENGTH
+                    1 -> SetIntent.BUILD
+                    2 -> SetIntent.FLUSH
+                    else -> null
+                }
+                if (selectedIntent != null) {
+                    exerciseIntents[exercise.id] = selectedIntent
+                } else {
+                    exerciseIntents.remove(exercise.id)
+                }
+                adapter.notifyDataSetChanged()
+                dialog.dismiss()
+            }
+            .setNegativeButton("Cancel", null)
+            .showWithTransparentWindow()
     }
 }
 

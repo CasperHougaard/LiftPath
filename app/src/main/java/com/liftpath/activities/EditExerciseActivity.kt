@@ -313,6 +313,10 @@ class EditExerciseActivity : AppCompatActivity() {
                 // Load favorite status
                 isFavorite = exercise.isFavorite
                 updateFavoriteStarIcon()
+                
+                // Load note
+                binding.editTextNote.setText(exercise.note ?: "")
+                
                 // updateMuscleMap() is called automatically via onPageFinished or chip listener
             }
         } else {
@@ -419,6 +423,9 @@ class EditExerciseActivity : AppCompatActivity() {
         val selectedPrimaryTargets = getSelectedTargetMuscles(binding.chipGroupPrimaryTargets)
         val selectedSecondaryTargets = getSelectedTargetMuscles(binding.chipGroupSecondaryTargets)
 
+        // Get note
+        val note = binding.editTextNote.text.toString().trim().takeIf { it.isNotEmpty() }
+
         val trainingData = jsonHelper.readTrainingData()
 
         if (exerciseId != -1) {
@@ -434,7 +441,8 @@ class EditExerciseActivity : AppCompatActivity() {
                         manualMechanics = selectedMechanics,
                         primaryTargets = selectedPrimaryTargets,
                         secondaryTargets = selectedSecondaryTargets,
-                        isFavorite = isFavorite
+                        isFavorite = isFavorite,
+                        note = note
                     )
                 }
                 // Legacy name update
@@ -455,7 +463,8 @@ class EditExerciseActivity : AppCompatActivity() {
                 manualMechanics = selectedMechanics,
                 primaryTargets = selectedPrimaryTargets,
                 secondaryTargets = selectedSecondaryTargets,
-                isFavorite = isFavorite
+                isFavorite = isFavorite,
+                note = note
             )
             trainingData.exerciseLibrary.add(newExercise)
             exerciseId = nextId

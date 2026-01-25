@@ -6,7 +6,6 @@ import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
-import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.animation.doOnEnd
@@ -16,7 +15,6 @@ import com.liftpath.helpers.DialogHelper
 import com.liftpath.helpers.ProgressionHelper
 import com.liftpath.helpers.ProgressionSettingsManager
 import com.liftpath.helpers.showWithTransparentWindow
-import com.liftpath.models.UserLevel
 
 class ProgressionSettingsActivity : AppCompatActivity() {
 
@@ -47,7 +45,6 @@ class ProgressionSettingsActivity : AppCompatActivity() {
         collapseViewImmediate(binding.contentRestTimer)
         collapseViewImmediate(binding.contentDeload)
 
-        setupUserLevelSpinner()
         loadSettings()
         setupListeners()
         setupExpandCollapseListeners()
@@ -65,49 +62,6 @@ class ProgressionSettingsActivity : AppCompatActivity() {
         }
     }
     
-    private fun setupUserLevelSpinner() {
-        val userLevels = UserLevel.values()
-        val displayNames = userLevels.map { it.displayName }.toTypedArray()
-        
-        val adapter = ArrayAdapter(
-            this,
-            android.R.layout.simple_spinner_item,
-            displayNames
-        )
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        binding.spinnerUserLevel.adapter = adapter
-        
-        binding.spinnerUserLevel.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: android.view.View?, position: Int, id: Long) {
-                updateRpeSuggestions(userLevels[position])
-            }
-            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
-        }
-    }
-    
-    private fun updateRpeSuggestions(userLevel: UserLevel) {
-        val heavyRpe = when (userLevel) {
-            UserLevel.NOVICE -> "8.0"
-            UserLevel.INTERMEDIATE -> "8.5"
-        }
-        val lightRpe = when (userLevel) {
-            UserLevel.NOVICE -> "7.0"
-            UserLevel.INTERMEDIATE -> "7.5"
-        }
-        
-        val levelName = when (userLevel) {
-            UserLevel.NOVICE -> "Novice"
-            UserLevel.INTERMEDIATE -> "Intermediate"
-        }
-        
-        val text = "Suggested RPE values (for $levelName):\n" +
-                "• Heavy workouts: RPE $heavyRpe\n" +
-                "• Light workouts: RPE $lightRpe\n\n" +
-                "The Timer adjusts based on your logged RPE vs these targets."
-        
-        binding.textRpeSuggestions.text = text
-    }
-    
     private fun updateTimerCalculationInfo() {
         try {
             val settings = settingsManager.getSettings()
@@ -118,7 +72,7 @@ class ProgressionSettingsActivity : AppCompatActivity() {
             val positiveAdjustment = binding.etRpePositiveAdjustment.text.toString().toIntOrNull() ?: settings.rpePositiveAdjustmentSeconds
             val negativeAdjustment = binding.etRpeNegativeAdjustment.text.toString().toIntOrNull() ?: settings.rpeNegativeAdjustmentSeconds
             
-            val calculationText = "1. Start with base rest time (Heavy/Light/Custom)\n" +
+            val calculationText = "1. Start with base rest time (Strength/Build/Flush)\n" +
                     "2. If RPE ≥ ${highThreshold}: +${highBonus}s\n" +
                     "3. If logged RPE ≥ suggested+${deviationThreshold}: +${positiveAdjustment}s\n" +
                     "4. If logged RPE ≤ suggested-${deviationThreshold}: -${negativeAdjustment}s"
@@ -132,28 +86,31 @@ class ProgressionSettingsActivity : AppCompatActivity() {
     private fun loadSettings() {
         val settings = settingsManager.getSettings()
 
-        // 1. Core settings
-        val userLevels = UserLevel.values()
-        val selectedIndex = userLevels.indexOf(settings.userLevel)
-        if (selectedIndex >= 0) {
-            binding.spinnerUserLevel.setSelection(selectedIndex)
-            updateRpeSuggestions(settings.userLevel)
-        }
+        // 1. Intent Progression settings (NEW)
+        // STRENGTH
+        binding.etStrengthMinReps.setText(settings.strengthMinReps.toString())
+        binding.etStrengthMaxReps.setText(settings.strengthMaxReps.toString())
+        binding.etStrengthTargetRpe.setText(settings.strengthTargetRpe.toString())
+        binding.etStrengthIncreaseThreshold.setText(settings.strengthIncreaseRpeThreshold.toString())
         
-        binding.etLookbackCount.setText(settings.lookbackCount.toString())
-        binding.etIncreaseStep.setText(settings.increaseStep.toString())
-        binding.etSmallStep.setText(settings.smallStep.toString())
+        // BUILD
+        binding.etBuildMinReps.setText(settings.buildMinReps.toString())
+        binding.etBuildMaxReps.setText(settings.buildMaxReps.toString())
+        binding.etBuildTargetRpe.setText(settings.buildTargetRpe.toString())
+        binding.etBuildIncreaseThreshold.setText(settings.buildIncreaseRpeThreshold.toString())
+        
+        // Cross-intent fallback
+        binding.etIntentFallbackDays.setText(settings.intentFallbackDays.toString())
 
         // 2. Deload settings
         binding.etDeloadThreshold.setText(settings.deloadThreshold.toString())
         binding.etDeloadRPE.setText(settings.deloadRPEThreshold.toString())
-        //binding.etDeloadPercent.setText((settings.deloadPercent * 100).toInt().toString()) // If you kept deloadPercent
 
         // 3. Rest timer settings
         binding.switchRestTimer.isChecked = settings.restTimerEnabled
-        binding.etHeavyRest.setText(settings.heavyRestSeconds.toString())
-        binding.etLightRest.setText(settings.lightRestSeconds.toString())
-        binding.etCustomRest.setText(settings.customRestSeconds.toString())
+        binding.etStrengthRest.setText(settings.strengthRestSeconds.toString())
+        binding.etBuildRest.setText(settings.buildRestSeconds.toString())
+        binding.etFlushRest.setText(settings.flushRestSeconds.toString())
         
         binding.switchRpeAdjustment.isChecked = settings.rpeAdjustmentEnabled
         binding.etRpeThreshold.setText(settings.rpeHighThreshold.toString())
@@ -289,29 +246,42 @@ class ProgressionSettingsActivity : AppCompatActivity() {
 
     private fun saveSettings() {
         try {
-            val selectedUserLevel = UserLevel.values()[binding.spinnerUserLevel.selectedItemPosition]
-            
-            // Create settings using ONLY the fields that exist in our new Data Class
+            // Create settings with new intent-based progression fields
+            @Suppress("DEPRECATION")
             val settings = ProgressionHelper.ProgressionSettings(
-                userLevel = selectedUserLevel,
-                lookbackCount = binding.etLookbackCount.text.toString().toInt(),
-                increaseStep = binding.etIncreaseStep.text.toString().toFloat(),
-                smallStep = binding.etSmallStep.text.toString().toFloat(),
+                // Intent Progression Settings (NEW)
+                strengthMinReps = binding.etStrengthMinReps.text.toString().toInt(),
+                strengthMaxReps = binding.etStrengthMaxReps.text.toString().toInt(),
+                strengthTargetRpe = binding.etStrengthTargetRpe.text.toString().toFloat(),
+                strengthIncreaseRpeThreshold = binding.etStrengthIncreaseThreshold.text.toString().toFloat(),
                 
+                buildMinReps = binding.etBuildMinReps.text.toString().toInt(),
+                buildMaxReps = binding.etBuildMaxReps.text.toString().toInt(),
+                buildTargetRpe = binding.etBuildTargetRpe.text.toString().toFloat(),
+                buildIncreaseRpeThreshold = binding.etBuildIncreaseThreshold.text.toString().toFloat(),
+                
+                // Cross-intent fallback
+                intentFallbackDays = binding.etIntentFallbackDays.text.toString().toInt(),
+                
+                // Deload settings
                 deloadThreshold = binding.etDeloadThreshold.text.toString().toInt(),
                 deloadRPEThreshold = binding.etDeloadRPE.text.toString().toFloat(),
                 
+                // Rest timer settings
                 restTimerEnabled = binding.switchRestTimer.isChecked,
-                heavyRestSeconds = binding.etHeavyRest.text.toString().toInt(),
-                lightRestSeconds = binding.etLightRest.text.toString().toInt(),
-                customRestSeconds = binding.etCustomRest.text.toString().toInt(),
+                strengthRestSeconds = binding.etStrengthRest.text.toString().toInt(),
+                buildRestSeconds = binding.etBuildRest.text.toString().toInt(),
+                flushRestSeconds = binding.etFlushRest.text.toString().toInt(),
                 
+                // RPE adjustment settings
                 rpeAdjustmentEnabled = binding.switchRpeAdjustment.isChecked,
                 rpeHighThreshold = binding.etRpeThreshold.text.toString().toFloat(),
                 rpeHighBonusSeconds = binding.etRpeBonus.text.toString().toInt(),
                 rpeDeviationThreshold = binding.etRpeDeviationThreshold.text.toString().toFloat(),
                 rpePositiveAdjustmentSeconds = binding.etRpePositiveAdjustment.text.toString().toInt(),
                 rpeNegativeAdjustmentSeconds = binding.etRpeNegativeAdjustment.text.toString().toInt(),
+                
+                // Notification settings
                 notificationLiveCountdown = binding.switchNotificationLiveCountdown.isChecked,
                 notificationAutoDismissEnabled = binding.switchNotificationAutoDismiss.isChecked,
                 notificationAutoDismissSeconds = binding.etNotificationAutoDismiss.text.toString().toInt()
@@ -334,24 +304,54 @@ class ProgressionSettingsActivity : AppCompatActivity() {
 
     private fun validateSettings(settings: ProgressionHelper.ProgressionSettings): Boolean {
         when {
-            settings.lookbackCount < 1 || settings.lookbackCount > 10 -> {
-                Toast.makeText(this, getString(R.string.validation_lookback_sessions), Toast.LENGTH_LONG).show()
+            // Intent progression validation
+            settings.strengthMinReps < 1 || settings.strengthMinReps > 20 -> {
+                Toast.makeText(this, "Strength min reps must be between 1 and 20", Toast.LENGTH_LONG).show()
                 return false
             }
-            settings.increaseStep < 0 || settings.increaseStep > 10 -> {
-                Toast.makeText(this, getString(R.string.validation_increase_step), Toast.LENGTH_LONG).show()
+            settings.strengthMaxReps < settings.strengthMinReps || settings.strengthMaxReps > 30 -> {
+                Toast.makeText(this, "Strength max reps must be >= min reps and <= 30", Toast.LENGTH_LONG).show()
                 return false
             }
-            settings.smallStep < 0 || settings.smallStep > 5 -> {
-                Toast.makeText(this, getString(R.string.validation_small_step), Toast.LENGTH_LONG).show()
+            settings.strengthTargetRpe < 5f || settings.strengthTargetRpe > 10f -> {
+                Toast.makeText(this, "Strength target RPE must be between 5 and 10", Toast.LENGTH_LONG).show()
                 return false
             }
-            settings.heavyRestSeconds < 5 || settings.heavyRestSeconds > 600 -> {
-                Toast.makeText(this, getString(R.string.validation_heavy_rest), Toast.LENGTH_LONG).show()
+            settings.strengthIncreaseRpeThreshold < 5f || settings.strengthIncreaseRpeThreshold > 10f -> {
+                Toast.makeText(this, "Strength increase threshold must be between 5 and 10", Toast.LENGTH_LONG).show()
                 return false
             }
-            settings.lightRestSeconds < 5 || settings.lightRestSeconds > 600 -> {
-                Toast.makeText(this, getString(R.string.validation_light_rest), Toast.LENGTH_LONG).show()
+            settings.buildMinReps < 1 || settings.buildMinReps > 30 -> {
+                Toast.makeText(this, "Build min reps must be between 1 and 30", Toast.LENGTH_LONG).show()
+                return false
+            }
+            settings.buildMaxReps < settings.buildMinReps || settings.buildMaxReps > 50 -> {
+                Toast.makeText(this, "Build max reps must be >= min reps and <= 50", Toast.LENGTH_LONG).show()
+                return false
+            }
+            settings.buildTargetRpe < 5f || settings.buildTargetRpe > 10f -> {
+                Toast.makeText(this, "Build target RPE must be between 5 and 10", Toast.LENGTH_LONG).show()
+                return false
+            }
+            settings.buildIncreaseRpeThreshold < 5f || settings.buildIncreaseRpeThreshold > 10f -> {
+                Toast.makeText(this, "Build increase threshold must be between 5 and 10", Toast.LENGTH_LONG).show()
+                return false
+            }
+            settings.intentFallbackDays < 7 || settings.intentFallbackDays > 90 -> {
+                Toast.makeText(this, "Intent fallback days must be between 7 and 90", Toast.LENGTH_LONG).show()
+                return false
+            }
+            // Rest timer validation
+            settings.strengthRestSeconds < 5 || settings.strengthRestSeconds > 600 -> {
+                Toast.makeText(this, "Strength rest must be between 5 and 600 seconds", Toast.LENGTH_LONG).show()
+                return false
+            }
+            settings.buildRestSeconds < 5 || settings.buildRestSeconds > 600 -> {
+                Toast.makeText(this, "Build rest must be between 5 and 600 seconds", Toast.LENGTH_LONG).show()
+                return false
+            }
+            settings.flushRestSeconds < 5 || settings.flushRestSeconds > 600 -> {
+                Toast.makeText(this, "Flush rest must be between 5 and 600 seconds", Toast.LENGTH_LONG).show()
                 return false
             }
             settings.notificationAutoDismissEnabled && (settings.notificationAutoDismissSeconds < 1 || settings.notificationAutoDismissSeconds > 60) -> {

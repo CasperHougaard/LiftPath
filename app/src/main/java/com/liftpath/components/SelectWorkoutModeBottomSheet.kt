@@ -23,14 +23,13 @@ import com.liftpath.helpers.JsonHelper
 import com.liftpath.models.WorkoutPlan
 
 /**
- * Top sheet dialog for selecting workout mode: Custom, Plan, or AUTO.
+ * Top sheet dialog for selecting workout mode: Manual or Plan.
  * Slides down from the top. When Plan is selected, expands to show a list of available workout plans.
  */
 class SelectWorkoutModeBottomSheet : DialogFragment() {
 
     private var onCustomSelected: (() -> Unit)? = null
     private var onPlanSelected: ((WorkoutPlan) -> Unit)? = null
-    private var onAutoSelected: (() -> Unit)? = null
 
     private lateinit var jsonHelper: JsonHelper
     private lateinit var planAdapter: PlanSelectionAdapter
@@ -43,13 +42,11 @@ class SelectWorkoutModeBottomSheet : DialogFragment() {
          */
         fun newInstance(
             onCustomSelected: () -> Unit,
-            onPlanSelected: (WorkoutPlan) -> Unit,
-            onAutoSelected: () -> Unit
+            onPlanSelected: (WorkoutPlan) -> Unit
         ): SelectWorkoutModeBottomSheet {
             return SelectWorkoutModeBottomSheet().apply {
                 this.onCustomSelected = onCustomSelected
                 this.onPlanSelected = onPlanSelected
-                this.onAutoSelected = onAutoSelected
             }
         }
     }
@@ -120,12 +117,12 @@ class SelectWorkoutModeBottomSheet : DialogFragment() {
     }
 
     private fun setupTiles(view: View) {
-        // Custom Tile
+        // Manual Tile
         val customTile = view.findViewById<View>(R.id.tile_custom)
         val customIcon = customTile.findViewById<ImageView>(R.id.icon_tile)
         val customTitle = customTile.findViewById<TextView>(R.id.text_tile_title)
         customIcon.setImageResource(R.drawable.ic_dumbbell)
-        customTitle.text = "Custom"
+        customTitle.text = "Manual"
         customTile.setOnClickListener {
             dismiss()
             onCustomSelected?.invoke()
@@ -139,20 +136,6 @@ class SelectWorkoutModeBottomSheet : DialogFragment() {
         planTitle.text = "Plan"
         planTile.setOnClickListener {
             togglePlanList(view)
-        }
-
-        // AUTO Tile
-        val autoTile = view.findViewById<View>(R.id.tile_auto)
-        val autoIcon = autoTile.findViewById<ImageView>(R.id.icon_tile)
-        val autoTitle = autoTile.findViewById<TextView>(R.id.text_tile_title)
-        val autoSubtitle = autoTile.findViewById<TextView>(R.id.text_tile_subtitle)
-        autoIcon.setImageResource(R.drawable.ic_refresh)
-        autoTitle.text = "AUTO"
-        autoSubtitle.text = "Auto-detect next workout"
-        autoSubtitle.visibility = View.VISIBLE
-        autoTile.setOnClickListener {
-            dismiss()
-            onAutoSelected?.invoke()
         }
     }
 
@@ -186,13 +169,11 @@ class SelectWorkoutModeBottomSheet : DialogFragment() {
 
         if (isPlanListExpanded) {
             planListLayout.visibility = View.VISIBLE
-            // Collapse main tiles slightly by hiding Custom and AUTO
+            // Collapse main tiles slightly by hiding Manual
             view.findViewById<View>(R.id.tile_custom).visibility = View.GONE
-            view.findViewById<View>(R.id.tile_auto).visibility = View.GONE
         } else {
             planListLayout.visibility = View.GONE
             view.findViewById<View>(R.id.tile_custom).visibility = View.VISIBLE
-            view.findViewById<View>(R.id.tile_auto).visibility = View.VISIBLE
         }
     }
 }

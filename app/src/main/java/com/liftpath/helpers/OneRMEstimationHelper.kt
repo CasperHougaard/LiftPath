@@ -1,6 +1,8 @@
 package com.liftpath.helpers
 
 import com.liftpath.models.ExerciseSet
+import com.liftpath.models.ExerciseEntry
+import com.liftpath.models.SetIntent
 import com.liftpath.utils.WorkoutTypeFormatter
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -411,40 +413,24 @@ object OneRMEstimationHelper {
     }
 
     /**
-     * Calculate 1RM per session with context filtering.
-     * Default: Only "heavy" workout sessions included.
-     * If includeLightSessions is true, includes both "heavy" and "light" sessions.
-     * Always excludes "custom" sessions from E1RM calculation.
+     * Calculate 1RM per session, filtering by STRENGTH intent only.
+     * Note: Sets passed to this function should already be filtered to STRENGTH intent.
+     * This function calculates 1RM for all provided sets (assumes they're all STRENGTH intent).
      * 
-     * @param sets List of ExerciseSet objects
-     * @param sessionWorkoutTypes Map of date string -> workout type
-     * @param includeLightSessions Whether to include light sessions (default: false)
+     * @param sets List of ExerciseSet objects (should be pre-filtered to STRENGTH intent)
+     * @param sessionWorkoutTypes Map of date string -> workout type (kept for legacy compatibility)
+     * @param includeLightSessions Legacy parameter (ignored, kept for backward compatibility)
      * @return Map of date string -> max 1RM for that session
      */
     fun calculateOneRMPerSession(
         sets: List<ExerciseSet>,
         sessionWorkoutTypes: Map<String, String>,
-        includeLightSessions: Boolean = false
+        includeLightSessions: Boolean = false  // Legacy parameter, ignored
     ): Map<String, Float> {
-        val dateFormat = SimpleDateFormat("yyyy/MM/dd", Locale.getDefault())
-        
+        // All sets passed should already be STRENGTH intent (filtered by caller)
+        // Just calculate 1RM for all provided sets
         return sets.groupBy { it.date }
             .mapNotNull { (dateStr, sessionSets) ->
-                // Get workout type and normalize it
-                val rawWorkoutType = sessionWorkoutTypes[dateStr]
-                val workoutType = WorkoutTypeFormatter.normalize(rawWorkoutType)
-                
-                // Context filtering for E1RM (Strength)
-                val shouldInclude = when (workoutType) {
-                    WorkoutTypeFormatter.HEAVY -> true
-                    WorkoutTypeFormatter.LIGHT -> includeLightSessions
-                    else -> false // Always exclude custom/other sessions
-                }
-                
-                if (!shouldInclude) {
-                    return@mapNotNull null
-                }
-                
                 // Calculate 1RM for each set with RPE normalization
                 val valid1RMs = sessionSets.mapNotNull { set ->
                     calculateOneRM(set.kg, set.reps, set.rpe)
@@ -749,6 +735,89 @@ object OneRMEstimationHelper {
                 } else {
                     "Mixed signals: ${parts.joinToString(", ")}. Review your training program and recovery to optimize all dimensions of progress."
                 }
+            }
+        }
+    }
+
+    /**
+     * Data class representing metrics for a specific intent within a session.
+     */
+    data class IntentMetrics(
+        val oneRM: Float?,           // For STRENGTH
+        val volume: Float,           // For BUILD (weight * reps)
+        val totalReps: Int,          // For FLUSH
+        val avgRPE: Float?,
+        val setCount: Int
+    )
+
+    /**
+     * Calculate metrics per session grouped by intent.
+     * Returns Map<date, Map<SetIntent, IntentMetrics>>
+     * 
+     * @param allSets List of all exercise sets for a specific exercise
+     * @param sessionWorkoutTypes Map of session date to workout type
+     * @return Map of date to intent-grouped metrics
+     */
+    fun calculateMetricsPerSessionByIntent(
+        allSets: List<ExerciseSet>,
+        sessionWorkoutTypes: Map<String, String>
+    ): Map<String, Map<SetIntent, IntentMetrics>> {
+        val result = mutableMapOf<String, MutableMap<SetIntent, IntentMetrics>>()
+        
+        // Group sets by date
+        val setsByDate = allSets.groupBy { it.date }
+        
+        setsByDate.forEach { (date, sets) ->
+            val workoutType = sessionWorkoutTypes[date]
+            val intentMap = mutableMapOf<SetIntent, IntentMetrics>()
+            
+            // Group sets by intent
+            val setsByIntent = sets.groupBy { set ->
+                inferIntent(set.reps, set.rpe, workoutType)
+            }
+            
+            setsByIntent.forEach { (intent, intentSets) ->
+                // Calculate metrics for this intent
+                val oneRMs = intentSets.mapNotNull { set ->
+                    calculateOneRM(set.kg, set.reps, set.rpe)
+                }
+                val maxOneRM = oneRMs.maxOrNull()
+                
+                val volume = intentSets.sumOf { (it.kg * it.reps).toDouble() }.toFloat()
+                val totalReps = intentSets.sumOf { it.reps }
+                
+                val rpes = intentSets.mapNotNull { it.rpe }
+                val avgRPE = if (rpes.isNotEmpty()) rpes.average().toFloat() else null
+                
+                intentMap[intent] = IntentMetrics(
+                    oneRM = maxOneRM,
+                    volume = volume,
+                    totalReps = totalReps,
+                    avgRPE = avgRPE,
+                    setCount = intentSets.size
+                )
+            }
+            
+            result[date] = intentMap
+        }
+        
+        return result
+    }
+
+    /**
+     * Infer intent from set properties (mirrors getEffectiveIntent logic from ExerciseEntry).
+     */
+    private fun inferIntent(reps: Int, rpe: Float?, workoutType: String?): SetIntent {
+        // RPE 6 is warmup
+        if (rpe == 6.0f) return SetIntent.WARMUP
+        
+        return when (workoutType?.lowercase()) {
+            "heavy" -> if (reps <= 7) SetIntent.STRENGTH else SetIntent.BUILD
+            "light" -> if (reps >= 15) SetIntent.FLUSH else SetIntent.BUILD
+            else -> when {
+                reps <= 6 -> SetIntent.STRENGTH
+                reps <= 15 -> SetIntent.BUILD
+                else -> SetIntent.FLUSH
             }
         }
     }

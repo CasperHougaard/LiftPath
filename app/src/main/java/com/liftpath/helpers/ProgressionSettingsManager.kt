@@ -35,6 +35,7 @@ class ProgressionSettingsManager(context: Context) {
     /**
      * Migrates settings from old default values to new default values.
      * Ensures users transition from 3min/1.5min -> 2.5min/1min automatically.
+     * Also migrates heavy/light rest times to intent-based rest times.
      */
     private fun migrateSettings(settings: ProgressionSettings): ProgressionSettings {
         val oldHeavyRest = 180
@@ -58,10 +59,26 @@ class ProgressionSettingsManager(context: Context) {
             needsMigration = true
         }
         
+        // Migrate heavy/light rest times to intent-based rest times if not already set
+        var newStrengthRestSeconds = settings.strengthRestSeconds
+        var newBuildRestSeconds = settings.buildRestSeconds
+        var newFlushRestSeconds = settings.flushRestSeconds
+        
+        // If intent-based rest times are at defaults, migrate from heavy/light
+        if (settings.strengthRestSeconds == 180 && settings.buildRestSeconds == 90 && settings.flushRestSeconds == 45) {
+            newStrengthRestSeconds = settings.heavyRestSeconds
+            newBuildRestSeconds = settings.lightRestSeconds
+            newFlushRestSeconds = 45  // Default for flush
+            needsMigration = true
+        }
+        
         return if (needsMigration) {
             settings.copy(
                 heavyRestSeconds = newHeavyRestSeconds,
-                lightRestSeconds = newLightRestSeconds
+                lightRestSeconds = newLightRestSeconds,
+                strengthRestSeconds = newStrengthRestSeconds,
+                buildRestSeconds = newBuildRestSeconds,
+                flushRestSeconds = newFlushRestSeconds
             )
         } else {
             settings

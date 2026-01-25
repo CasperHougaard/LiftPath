@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/fitness_background">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:fitsSystemWindows="false">
+
+        <!-- Header -->
+        <TextView
+            android:id="@+id/text_header_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/button_add_special"
+            android:textColor="@color/fitness_text_primary"
+            android:textSize="24sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/text_header_subtitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="24dp"
+            android:text="Choose an option"
+            android:textColor="@color/fitness_text_secondary"
+            android:textSize="14sp" />
+
+        <!-- Tiles Container -->
+        <LinearLayout
+            android:id="@+id/layout_main_tiles"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Warmup Tile -->
+            <include
+                android:id="@+id/tile_warmup"
+                layout="@layout/item_workout_mode_tile" />
+
+            <!-- Cooldown Tile -->
+            <include
+                android:id="@+id/tile_cooldown"
+                layout="@layout/item_workout_mode_tile" />
+        </LinearLayout>
+    </LinearLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

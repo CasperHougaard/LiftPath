@@ -17,6 +17,7 @@ import com.github.mikephil.charting.data.BarEntry
 import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.formatter.ValueFormatter
 import android.graphics.Color
+import com.liftpath.models.SetIntent
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -34,7 +35,8 @@ data class ChartData(
     val title: String,
     val color: Int,
     val yAxisLabel: String,
-    val workoutTypes: List<String?>? = null // For fatigue chart: workout type per entry (heavy/light/custom/null)
+    val workoutTypes: List<String?>? = null, // Legacy: kept for backward compatibility
+    val dominantIntents: List<com.liftpath.models.SetIntent>? = null // For fatigue chart: dominant intent per entry
 )
 
 class ChartCarouselAdapter(
@@ -137,36 +139,39 @@ class ChartCarouselAdapter(
 
             val dataSet = BarDataSet(barEntries, chartData.yAxisLabel)
             
-            // Color code bars based on workout type for fatigue chart
-            if (chartData.type == ChartType.FATIGUE && chartData.workoutTypes != null) {
+            // Color code bars based on dominant intent for fatigue chart
+            if (chartData.type == ChartType.FATIGUE && chartData.dominantIntents != null) {
+                val context = binding.root.context
+                val colors = chartData.dominantIntents.map { intent ->
+                    when (intent) {
+                        SetIntent.STRENGTH -> {
+                            // Red for strength
+                            Color.parseColor("#DC2626") // Red-600
+                        }
+                        SetIntent.BUILD -> {
+                            // Amber for build
+                            Color.parseColor("#F59E0B") // Amber-500
+                        }
+                        SetIntent.FLUSH -> {
+                            // Green for flush
+                            Color.parseColor("#10B981") // Emerald-500
+                        }
+                        else -> {
+                            // Default color
+                            ContextCompat.getColor(context, R.color.fitness_text_secondary)
+                        }
+                    }
+                }
+                dataSet.colors = colors
+            } else if (chartData.type == ChartType.FATIGUE && chartData.workoutTypes != null) {
+                // Legacy fallback: use workoutType if dominantIntents not available
                 val context = binding.root.context
                 val colors = chartData.workoutTypes.map { workoutType ->
                     when (workoutType?.lowercase(Locale.getDefault())) {
-                        "heavy" -> {
-                            // Red that works in both light and dark mode
-                            // Using a vibrant red that's visible on both backgrounds
-                            Color.parseColor("#EF4444") // Red-500 - good contrast in both modes
-                        }
-                        "light" -> {
-                            // Orange/Amber that works in both modes
-                            ContextCompat.getColor(context, R.color.fitness_accent) // Uses theme-aware accent color
-                        }
-                        "custom" -> {
-                            // Gray that's visible in both modes
-                            ContextCompat.getColor(context, R.color.fitness_text_secondary) // Uses theme-aware secondary text
-                        }
-                        else -> {
-                            // Subtle color for no workout - visible but not prominent
-                            // Use a color that contrasts with card background in both modes
-                            val isDarkMode = (context.resources.configuration.uiMode and 
-                                android.content.res.Configuration.UI_MODE_NIGHT_MASK) == 
-                                android.content.res.Configuration.UI_MODE_NIGHT_YES
-                            if (isDarkMode) {
-                                Color.parseColor("#4B5563") // Gray-600 for dark mode
-                            } else {
-                                Color.parseColor("#D1D5DB") // Gray-300 for light mode
-                            }
-                        }
+                        "heavy" -> Color.parseColor("#DC2626") // Red-600 (Strength)
+                        "light" -> Color.parseColor("#F59E0B") // Amber-500 (Build)
+                        "custom" -> Color.parseColor("#10B981") // Emerald-500 (Flush)
+                        else -> ContextCompat.getColor(context, R.color.fitness_text_secondary)
                     }
                 }
                 dataSet.colors = colors

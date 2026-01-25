@@ -8,10 +8,13 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.liftpath.R
 import com.liftpath.models.ExerciseLibraryItem
+import com.liftpath.models.SetIntent
 
 class PlanExerciseAdapter(
     private var exercises: MutableList<ExerciseLibraryItem>,
-    private val onRemoveClicked: (Int) -> Unit
+    private val exerciseIntents: MutableMap<Int, SetIntent>,
+    private val onRemoveClicked: (Int) -> Unit,
+    private val onExerciseClicked: (Int) -> Unit
 ) : RecyclerView.Adapter<PlanExerciseAdapter.ExerciseViewHolder>() {
 
     class ExerciseViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -30,9 +33,22 @@ class PlanExerciseAdapter(
         val exercise = exercises[position]
         holder.exerciseNumber.text = (position + 1).toString()
         holder.exerciseName.text = exercise.name
+        
+        // Show intent badge if configured
+        val intent = exerciseIntents[exercise.id]
+        if (intent != null) {
+            holder.exerciseName.text = "${exercise.name} (${intent.displayName})"
+        } else {
+            holder.exerciseName.text = exercise.name
+        }
 
         holder.removeButton.setOnClickListener {
             onRemoveClicked(position)
+        }
+        
+        // Make exercise row clickable to configure intent
+        holder.itemView.setOnClickListener {
+            onExerciseClicked(position)
         }
     }
 

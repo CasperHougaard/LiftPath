@@ -2,6 +2,7 @@ package com.liftpath.models
 
 import android.os.Parcelable
 import kotlinx.parcelize.Parcelize
+import com.google.gson.annotations.SerializedName
 import java.util.UUID
 
 // --- ENUMS ---
@@ -32,6 +33,14 @@ enum class SessionFocus(val displayName: String) {
 }
 
 enum class SessionIntensity { HEAVY, LIGHT }
+
+enum class SetIntent(val value: String, val displayName: String) {
+    @SerializedName("strength") STRENGTH("strength", "Strength"),
+    @SerializedName("build") BUILD("build", "Build"),
+    @SerializedName("flush") FLUSH("flush", "Flush"),
+    @SerializedName("warmup") WARMUP("warmup", "Warmup"),
+    @SerializedName("unknown") UNKNOWN("unknown", "Unknown")
+}
 
 enum class TargetMuscle(val displayName: String) {
     CHEST_UPPER("Upper Chest"), CHEST_MIDDLE("Middle Chest"), CHEST_LOWER("Lower Chest"),
@@ -64,6 +73,13 @@ enum class Mechanics(val displayName: String) {
 // --- DATA CLASSES ---
 
 @Parcelize
+data class PlanExerciseConfig(
+    val exerciseId: Int,
+    val defaultIntent: SetIntent? = null,
+    val notes: String? = null
+) : Parcelable
+
+@Parcelize
 data class ExerciseLibraryItem(
     val id: Int,
     val name: String,
@@ -79,7 +95,8 @@ data class ExerciseLibraryItem(
     // Renamed from 'mechanics' to 'manualMechanics' to avoid conflict with computed property
     val manualMechanics: Mechanics? = null,
     
-    val isFavorite: Boolean = false
+    val isFavorite: Boolean = false,
+    val note: String? = null
 ) : Parcelable {
     val mechanics: Mechanics
         get() {
@@ -101,8 +118,34 @@ data class ExerciseEntry(
     val rating: Int? = null,
     val workoutType: String? = null,
     val rpe: Float? = null,
-    val completed: Boolean? = null
-) : Parcelable
+    val completed: Boolean? = null,
+    val isWarmup: Boolean = false,
+    val explicitIntent: SetIntent? = null
+) : Parcelable {
+    fun getEffectiveIntent(parentSessionType: String?): SetIntent {
+        // Priority 1: RPE 6.0 indicates warmup for legacy data
+        if (explicitIntent == null && rpe == 6.0f) {
+            return SetIntent.WARMUP
+        }
+        
+        // Priority 2: isWarmup flag
+        if (isWarmup) return SetIntent.WARMUP
+        
+        // Priority 3: Explicit intent (modern data)
+        if (explicitIntent != null) return explicitIntent
+        
+        // Priority 4: Legacy inference based on reps (fallback, overridden by session-level logic)
+        return when (parentSessionType?.lowercase()) {
+            "heavy" -> if (reps <= 7) SetIntent.STRENGTH else SetIntent.BUILD
+            "light" -> if (reps >= 15) SetIntent.FLUSH else SetIntent.BUILD
+            else -> when {
+                reps <= 6 -> SetIntent.STRENGTH
+                reps <= 15 -> SetIntent.BUILD
+                else -> SetIntent.FLUSH
+            }
+        }
+    }
+}
 
 @Parcelize
 data class TrainingSession(
@@ -114,14 +157,69 @@ data class TrainingSession(
     val planId: String? = null,
     val planName: String? = null,
     val durationSeconds: Long? = null
-) : Parcelable
+) : Parcelable {
+    fun getDominantIntent(): SetIntent {
+        val intentCounts = exercises
+            .filterNot { it.isWarmup }
+            .groupingBy { it.getEffectiveIntent(defaultWorkoutType) }
+            .eachCount()
+        return intentCounts.maxByOrNull { it.value }?.key ?: SetIntent.BUILD
+    }
+    
+    fun isLegacySession(): Boolean {
+        return exercises.all { it.explicitIntent == null }
+    }
+    
+    /**
+     * For legacy sessions, evaluates the intent of an exercise based on the rep patterns
+     * of its non-warmup sets.
+     */
+    fun getLegacyExerciseIntent(exerciseId: Int): SetIntent {
+        val exerciseSets = exercises
+            .filter { it.exerciseId == exerciseId }
+            .filterNot { it.rpe == 6.0f || it.isWarmup } // Exclude warmups (RPE 6 or isWarmup flag)
+        
+        if (exerciseSets.isEmpty()) return SetIntent.BUILD
+        
+        // Count sets by rep ranges based on workout type
+        val workoutTypeLower = defaultWorkoutType?.lowercase()
+        
+        return when (workoutTypeLower) {
+            "heavy" -> {
+                // Heavy: STRENGTH (≤7 reps) vs BUILD (8+ reps)
+                val strengthCount = exerciseSets.count { it.reps <= 7 }
+                val buildCount = exerciseSets.count { it.reps >= 8 }
+                if (strengthCount >= buildCount) SetIntent.STRENGTH else SetIntent.BUILD
+            }
+            "light" -> {
+                // Light: BUILD (8-15 reps) vs FLUSH (16+ reps)
+                val buildCount = exerciseSets.count { it.reps in 8..15 }
+                val flushCount = exerciseSets.count { it.reps >= 16 }
+                if (flushCount > buildCount) SetIntent.FLUSH else SetIntent.BUILD
+            }
+            else -> {
+                // Custom/unknown: Full spectrum
+                val strengthCount = exerciseSets.count { it.reps <= 6 }
+                val buildCount = exerciseSets.count { it.reps in 7..15 }
+                val flushCount = exerciseSets.count { it.reps >= 16 }
+                
+                when {
+                    strengthCount >= buildCount && strengthCount >= flushCount -> SetIntent.STRENGTH
+                    flushCount > buildCount && flushCount > strengthCount -> SetIntent.FLUSH
+                    else -> SetIntent.BUILD
+                }
+            }
+        }
+    }
+}
 
 @Parcelize
 data class WorkoutPlan(
     val id: String = UUID.randomUUID().toString(),
     val name: String,
     val exerciseIds: MutableList<Int>,
-    val workoutType: String,
+    val workoutType: String,  // KEEP for legacy compatibility (hidden in UI)
+    val exerciseConfigs: List<PlanExerciseConfig>? = null, // NEW - nullable for legacy plans
     val notes: String? = null,
     val createdDate: String
 ) : Parcelable
@@ -152,4 +250,43 @@ data class ExerciseSet(
     val kg: Float,
     val reps: Int,
     val rpe: Float? = null
+)
+
+// Workout Report Data Classes
+data class WorkoutSummary(
+    val totalVolume: Float,
+    val totalSets: Int,
+    val totalReps: Int,
+    val exerciseCount: Int,
+    val durationSeconds: Long?,
+    val prCount: Int
+)
+
+data class ExerciseTrendData(
+    val exerciseId: Int,
+    val exerciseName: String,
+    val intent: SetIntent,
+    val currentVolume: Float,
+    val previousVolume: Float?,
+    val currentEstimated1RM: Float?,
+    val previousEstimated1RM: Float?,
+    val currentTopSet: Pair<Float, Int>?,  // kg, reps
+    val previousTopSet: Pair<Float, Int>?,
+    val isPR: Boolean
+)
+
+data class MuscleGroupTrend(
+    val muscleGroup: String,  // "Chest", "Back", etc.
+    val currentVolume: Float,
+    val previousVolume: Float?,
+    val changePercent: Float?
+)
+
+// For the muscle figure coloring (per individual TargetMuscle)
+data class MuscleProgress(
+    val muscle: TargetMuscle,
+    val wasWorked: Boolean,
+    val currentVolume: Float,
+    val previousVolume: Float?,
+    val changePercent: Float?  // null if first time working this muscle
 )

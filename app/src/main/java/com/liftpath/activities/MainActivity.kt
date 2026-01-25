@@ -26,6 +26,7 @@ import kotlinx.coroutines.launch
 import com.liftpath.models.ActiveWorkoutDraft
 import com.liftpath.models.ExerciseLibraryItem
 import com.liftpath.models.TrainingData
+import com.liftpath.models.SetIntent
 import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
@@ -72,11 +73,17 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Apply Window Insets to Root View
-        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, windowInsets ->
+        // Apply Window Insets to handle system bars (status/nav)
+        // We apply padding only to the content container, not the root,
+        // so the background animation can bleed under the system bars.
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, windowInsets ->
             val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
-            view.setPadding(insets.left, insets.top, insets.right, insets.bottom)
-            WindowInsetsCompat.CONSUMED
+            
+            // Apply padding to the ScrollView content or the ScrollView itself
+            // but NOT the root view (which contains the background)
+            binding.scrollView.setPadding(insets.left, insets.top, insets.right, insets.bottom)
+            
+            windowInsets
         }
 
         jsonHelper = JsonHelper(this)
@@ -253,37 +260,6 @@ class MainActivity : AppCompatActivity() {
         showDraftPromptBeforeWorkoutType(existingDraft)
     }
 
-    /**
-     * Detects the last registered workout type and determines the next type.
-     * Alternates between heavy and light for periodized progression.
-     * If last was heavy, next is light; if last was light, next is heavy.
-     * If no history exists, defaults to heavy.
-     */
-    private fun detectNextWorkoutType(): String {
-        val trainingData = jsonHelper.readTrainingData()
-        
-        // Find the most recent workout that has a workout type (heavy or light, not custom)
-        val lastWorkout = trainingData.trainings
-            .filter { session ->
-                val type = session.defaultWorkoutType
-                type == "heavy" || type == "light"
-            }
-            .maxByOrNull { it.date }
-        
-        if (lastWorkout == null) {
-            // No history, default to heavy
-            return "heavy"
-        }
-        
-        val lastType = lastWorkout.defaultWorkoutType ?: "heavy"
-        
-        // Alternate for periodized progression: if last was heavy, next is light; if last was light, next is heavy
-        return when (lastType) {
-            "heavy" -> "light"
-            "light" -> "heavy"
-            else -> "heavy"
-        }
-    }
 
     private fun showWorkoutModeDialog() {
         showWorkoutModeBottomSheet()
@@ -296,10 +272,6 @@ class MainActivity : AppCompatActivity() {
             },
             onPlanSelected = { plan ->
                 launchActiveWorkout(plan.workoutType, resumeDraft = false, autoGenerate = false, planId = plan.id)
-            },
-            onAutoSelected = {
-                val detectedType = detectNextWorkoutType()
-                launchActiveWorkout(detectedType, resumeDraft = false, autoGenerate = true, planId = null)
             }
         )
         bottomSheet.show(supportFragmentManager, "SelectWorkoutModeBottomSheet")
@@ -387,12 +359,9 @@ class MainActivity : AppCompatActivity() {
         val rightExerciseTrend = calculateProgressionTrend(rightExercise, trainingData)
         update1RMDisplay(binding.textSquat1rm, binding.textSquatIndicator, rightExercise1RM, rightExerciseTrend)
         
-        // Calculate days since last heavy and light workouts
-        val daysSinceHeavy = calculateDaysSinceLastWorkout(trainingData, "heavy")
-        val daysSinceLight = calculateDaysSinceLastWorkout(trainingData, "light")
-        
-        binding.textDaysHeavy.text = if (daysSinceHeavy != null) daysSinceHeavy.toString() else "--"
-        binding.textDaysLight.text = if (daysSinceLight != null) daysSinceLight.toString() else "--"
+        // Calculate days since last workout
+        val daysSinceLastWorkout = calculateDaysSinceLastWorkout(trainingData)
+        binding.textDaysSinceWorkout.text = if (daysSinceLastWorkout != null) daysSinceLastWorkout.toString() else "--"
         
         // Setup charts carousel
         setupChartsCarousel(trainingData)
@@ -427,7 +396,7 @@ class MainActivity : AppCompatActivity() {
         val allSets = trainingData.trainings.flatMap { session ->
             session.exercises.filter { entry ->
                 entry.exerciseName == exerciseName && 
-                (entry.workoutType == "heavy" || (entry.workoutType == null && session.defaultWorkoutType == "heavy"))
+                entry.getEffectiveIntent(session.defaultWorkoutType) == SetIntent.STRENGTH
             }
         }
         
@@ -446,12 +415,12 @@ class MainActivity : AppCompatActivity() {
     }
     
     private fun calculateProgressionTrend(exerciseName: String, trainingData: TrainingData): String {
-        // Get all sessions with this exercise (only heavy workouts), sorted by date
+        // Get all sessions with this exercise (only STRENGTH intent sets), sorted by date
         val sessionsWithExercise = trainingData.trainings
             .filter { session ->
                 session.exercises.any { entry ->
                     entry.exerciseName == exerciseName &&
-                    (entry.workoutType == "heavy" || (entry.workoutType == null && session.defaultWorkoutType == "heavy"))
+                    entry.getEffectiveIntent(session.defaultWorkoutType) == SetIntent.STRENGTH
                 }
             }
             .sortedBy { it.date }
@@ -461,11 +430,11 @@ class MainActivity : AppCompatActivity() {
         // Get last 3 sessions for trend analysis
         val recentSessions = sessionsWithExercise.takeLast(3)
         
-        // Calculate max 1RM per session (only from heavy sets)
+        // Calculate max 1RM per session (only from STRENGTH intent sets)
         val oneRMsPerSession = recentSessions.mapNotNull { session ->
             val exerciseSets = session.exercises.filter { entry ->
                 entry.exerciseName == exerciseName &&
-                (entry.workoutType == "heavy" || (entry.workoutType == null && session.defaultWorkoutType == "heavy"))
+                entry.getEffectiveIntent(session.defaultWorkoutType) == SetIntent.STRENGTH
             }
             exerciseSets.maxOfOrNull { calculateOneRM(it.kg, it.reps) }
         }
@@ -510,14 +479,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
     
-    private fun calculateDaysSinceLastWorkout(trainingData: TrainingData, workoutType: String): Int? {
-        // Find the most recent workout of the specified type
-        val lastWorkout = trainingData.trainings
-            .filter { session ->
-                session.defaultWorkoutType == workoutType || 
-                session.exercises.any { it.workoutType == workoutType }
-            }
-            .maxByOrNull { it.date }
+    private fun calculateDaysSinceLastWorkout(trainingData: TrainingData): Int? {
+        // Find the most recent workout (any type)
+        val lastWorkout = trainingData.trainings.maxByOrNull { it.date }
         
         if (lastWorkout == null) return null
         
@@ -582,8 +546,8 @@ class MainActivity : AppCompatActivity() {
         // Calculate raw fatigue per session - show all dates from last 28 days
         val config = ReadinessConfig() // Use default config
         
-        // Create a map of date -> (fatigue, workoutType)
-        val fatigueByDate = mutableMapOf<String, Pair<Float, String?>>()
+        // Create a map of date -> (fatigue, dominantIntent)
+        val fatigueByDate = mutableMapOf<String, Pair<Float, SetIntent>>()
         
         trainingData.trainings.forEach { session ->
             try {
@@ -591,7 +555,8 @@ class MainActivity : AppCompatActivity() {
                 val fatigueScores = ReadinessHelper.calculateFatigueScores(session, trainingData, config)
                 val rawFatigue = fatigueScores.systemicFatigue
                 if (rawFatigue > 0) {
-                    fatigueByDate[session.date] = Pair(rawFatigue, session.defaultWorkoutType)
+                    val dominantIntent = session.getDominantIntent()
+                    fatigueByDate[session.date] = Pair(rawFatigue, dominantIntent)
                 }
             } catch (e: Exception) {
                 // Skip invalid dates
@@ -601,7 +566,7 @@ class MainActivity : AppCompatActivity() {
         // Generate all dates for the last 28 days
         val calendar = java.util.Calendar.getInstance()
         val today = calendar.time
-        val allDates = mutableListOf<Pair<Long, Pair<Float, String?>>>()
+        val allDates = mutableListOf<Pair<Long, Pair<Float, SetIntent>>>()
         
         for (i in 0 until 28) {
             calendar.time = today
@@ -610,8 +575,8 @@ class MainActivity : AppCompatActivity() {
             val dateStr = dateFormat.format(date)
             val dateMillis = date.time
             
-            val (fatigue, workoutType) = fatigueByDate[dateStr] ?: Pair(0f, null)
-            allDates.add(Pair(dateMillis, Pair(fatigue, workoutType)))
+            val (fatigue, intent) = fatigueByDate[dateStr] ?: Pair(0f, SetIntent.BUILD)
+            allDates.add(Pair(dateMillis, Pair(fatigue, intent)))
         }
         
         // Sort by date (oldest first)
@@ -621,7 +586,7 @@ class MainActivity : AppCompatActivity() {
             Entry(dateMillis.toFloat(), fatigueData.first)
         }
         
-        val workoutTypes = allDates.map { it.second.second }
+        val dominantIntents = allDates.map { it.second.second }
         
         // Create chart data list
         val charts = listOf(
@@ -652,7 +617,7 @@ class MainActivity : AppCompatActivity() {
                 title = "Raw Fatigue",
                 color = Color.parseColor("#F44336"), // Red (default, but will be overridden by color coding)
                 yAxisLabel = "Fatigue",
-                workoutTypes = workoutTypes
+                dominantIntents = dominantIntents
             )
         )
         

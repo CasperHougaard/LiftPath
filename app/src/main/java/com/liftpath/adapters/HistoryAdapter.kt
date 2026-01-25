@@ -6,6 +6,7 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.liftpath.databinding.ItemHistoryBinding
 import com.liftpath.models.TrainingSession
+import com.liftpath.models.SetIntent
 import com.liftpath.utils.WorkoutTypeFormatter
 import com.liftpath.activities.TrainingDetailActivity
 import com.liftpath.helpers.DurationHelper
@@ -32,15 +33,22 @@ class HistoryAdapter(private val trainings: List<TrainingSession>) : RecyclerVie
         val durationText = training.durationSeconds?.let { DurationHelper.formatDuration(it) } ?: "N/A"
         holder.binding.textTrainingVolume.text = "$volumeText • $durationText"
         
-        // Format type as uppercase badge with color based on workout type
-        val workoutType = training.defaultWorkoutType ?: "heavy"
-        holder.binding.textTrainingType.text = workoutType.uppercase()
+        // Show dominant intent badge with legacy indicator if applicable
+        val isLegacy = training.isLegacySession()
+        val dominantIntent = training.getDominantIntent()
         
-        // Set badge color: light blue for light, dark blue for heavy
-        val badgeColor = when (workoutType.lowercase()) {
-            "light" -> ContextCompat.getColor(holder.itemView.context, R.color.fitness_light_blue)
-            "heavy" -> ContextCompat.getColor(holder.itemView.context, R.color.fitness_dark_blue)
-            else -> ContextCompat.getColor(holder.itemView.context, R.color.fitness_dark_blue) // Default to dark blue
+        holder.binding.textTrainingType.text = if (isLegacy) {
+            "${dominantIntent.displayName} (L)"
+        } else {
+            dominantIntent.displayName
+        }
+        
+        // Set badge color based on intent
+        val badgeColor = when (dominantIntent) {
+            SetIntent.STRENGTH -> ContextCompat.getColor(holder.itemView.context, R.color.intent_strength)
+            SetIntent.BUILD -> ContextCompat.getColor(holder.itemView.context, R.color.intent_build)
+            SetIntent.FLUSH -> ContextCompat.getColor(holder.itemView.context, R.color.intent_flush)
+            else -> ContextCompat.getColor(holder.itemView.context, R.color.intent_build)
         }
         holder.binding.textTrainingType.setBackgroundTintList(android.content.res.ColorStateList.valueOf(badgeColor))
 
@@ -57,7 +65,17 @@ class HistoryAdapter(private val trainings: List<TrainingSession>) : RecyclerVie
         val totalSets = training.exercises.size
         holder.binding.textExercisesSummary.text = "$uniqueExercises exercise${if (uniqueExercises > 1) "s" else ""} • $totalSets set${if (totalSets > 1) "s" else ""} • Avg RPE: $avgRpe"
 
-        holder.itemView.setOnClickListener {
+        // View Report button
+        holder.binding.buttonViewReport.setOnClickListener {
+            val context = holder.itemView.context
+            val intent = Intent(context, com.liftpath.activities.WorkoutReportActivity::class.java).apply {
+                putExtra(com.liftpath.activities.WorkoutReportActivity.EXTRA_TRAINING_SESSION, training)
+            }
+            context.startActivity(intent)
+        }
+
+        // View Details button
+        holder.binding.buttonViewDetails.setOnClickListener {
             val context = holder.itemView.context
             val intent = Intent(context, TrainingDetailActivity::class.java).apply {
                 putExtra(TrainingDetailActivity.EXTRA_TRAINING_SESSION, training)
