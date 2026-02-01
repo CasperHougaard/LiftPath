@@ -30,6 +30,7 @@ import com.liftpath.components.AddSpecialBottomSheet
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
+import java.util.UUID
 import android.os.Handler
 import android.os.Looper
 import android.view.Menu
@@ -52,6 +53,7 @@ class ActiveTrainingActivity : AppCompatActivity() {
     private val lastSetsCount = mutableMapOf<Int, Int>()
     private val lastLoggedKg = mutableMapOf<Int, Float>()
     private val lastLoggedReps = mutableMapOf<Int, Int>()
+    private val lastLoggedRpe = mutableMapOf<Int, Float>()
     private val lastWorkoutData = mutableMapOf<Int, MutableMap<SetIntent, List<ExerciseEntry>>>()
     private val lastIntents = mutableMapOf<Int, SetIntent>() // Track last intent used for each exercise
 
@@ -64,6 +66,8 @@ class ActiveTrainingActivity : AppCompatActivity() {
     private var appliedPlanId: String? = null
     private var appliedPlanName: String? = null
     private var hasRestoredDraft = false
+    private var addAsSupersetPartner = false
+    private val selectedForSupersetPositions = mutableSetOf<Int>()
 
     // Timer state
     private var isActivityVisible = false
@@ -127,8 +131,26 @@ class ActiveTrainingActivity : AppCompatActivity() {
                         val newGroup = GroupedExercise(exerciseId, exerciseName, emptyList())
                         groupedExercises.add(newGroup)
                         adapter.notifyItemInserted(groupedExercises.size - 1)
+                        
+                        // If added as superset partner, link last two exercises
+                        if (addAsSupersetPartner && groupedExercises.size >= 2) {
+                            addAsSupersetPartner = false
+                            val supersetGroupId = UUID.randomUUID().toString()
+                            val lastIndex = groupedExercises.size - 1
+                            val prevIndex = lastIndex - 1
+                            val prevGroup = groupedExercises[prevIndex]
+                            val lastGroup = groupedExercises[lastIndex]
+                            groupedExercises[prevIndex] = prevGroup.copy(supersetGroupId = supersetGroupId, groupType = GroupType.SUPERSET)
+                            groupedExercises[lastIndex] = lastGroup.copy(supersetGroupId = supersetGroupId, groupType = GroupType.SUPERSET)
+                            adapter.notifyItemChanged(prevIndex)
+                            adapter.notifyItemChanged(lastIndex)
+                        }
+                    } else {
+                        addAsSupersetPartner = false
                     }
                     // Exercise added - user can log sets by clicking on the exercise
+                } else {
+                    addAsSupersetPartner = false
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error processing result from SelectExerciseActivity", e)
@@ -443,16 +465,17 @@ class ActiveTrainingActivity : AppCompatActivity() {
                 // Check if exercise already exists in workout
                 val existingGroup = groupedExercises.find { it.exerciseId == exerciseId }
                 if (existingGroup == null) {
-                    // Find the last logged exercise entry for this exercise
-                    val lastEntry = trainingData.trainings
+                    // Find the last working set for this exercise (exclude warmup)
+                    val lastWorkingEntry = trainingData.trainings
                         .flatMap { it.exercises }
-                        .filter { it.exerciseId == exerciseId }
+                        .filter { it.exerciseId == exerciseId && !it.isEffectivelyWarmup() }
                         .lastOrNull()
                     
-                    if (lastEntry != null) {
-                        // Store last logged kg and reps
-                        lastLoggedKg[exerciseId] = lastEntry.kg
-                        lastLoggedReps[exerciseId] = lastEntry.reps
+                    if (lastWorkingEntry != null) {
+                        // Store last logged kg, reps, and RPE from last working set
+                        lastLoggedKg[exerciseId] = lastWorkingEntry.kg
+                        lastLoggedReps[exerciseId] = lastWorkingEntry.reps
+                        lastWorkingEntry.rpe?.let { lastLoggedRpe[exerciseId] = it }
                         
                         // Find the last number of sets for this exercise
                         val lastSession = trainingData.trainings
@@ -508,6 +531,7 @@ class ActiveTrainingActivity : AppCompatActivity() {
         lastSetsCount.clear()
         lastLoggedKg.clear()
         lastLoggedReps.clear()
+        lastLoggedRpe.clear()
         updatePlanButtonState()
         updateTitle()
         adapter.notifyDataSetChanged()
@@ -585,15 +609,14 @@ class ActiveTrainingActivity : AppCompatActivity() {
             .firstOrNull { session ->
                 session.exercises.any { entry ->
                     entry.exerciseId == exerciseId && 
-                    !entry.isWarmup && 
-                    entry.rpe != 6.0f // Exclude warmups
+                    !entry.isEffectivelyWarmup()
                 }
             }
         
         return lastSession?.let { session ->
             // Get the intent of the exercise in this session
             val exerciseEntries = session.exercises
-                .filter { it.exerciseId == exerciseId && !it.isWarmup && it.rpe != 6.0f }
+                .filter { it.exerciseId == exerciseId && !it.isEffectivelyWarmup() }
             
             if (exerciseEntries.isNotEmpty()) {
                 // Use the first non-warmup entry to determine intent
@@ -612,10 +635,8 @@ class ActiveTrainingActivity : AppCompatActivity() {
         session: TrainingSession, 
         exerciseId: Int
     ): SetIntent {
-        // RPE 6.0 = warmup for legacy data
-        if (entry.explicitIntent == null && entry.rpe == 6.0f) {
-            return SetIntent.WARMUP
-        }
+        // Legacy data: RPE 6 = warmup (new data uses isWarmup flag)
+        if (entry.isLegacyWarmup()) return SetIntent.WARMUP
         
         // isWarmup flag
         if (entry.isWarmup) return SetIntent.WARMUP
@@ -698,7 +719,11 @@ class ActiveTrainingActivity : AppCompatActivity() {
             },
             onAddSpecialClicked = {
                 showAddSpecialBottomSheet()
-            }
+            },
+            isRestTimerRunning = { RestTimerService.isTimerRunning(this) },
+            onUnlinkSuperset = { supersetGroupId -> unlinkSupersetGroup(supersetGroupId) },
+            selectedForSupersetPositions = { selectedForSupersetPositions },
+            onExerciseLongPress = { position -> handleExerciseLongPress(position) }
         )
         binding.recyclerViewActiveWorkout.adapter = adapter
         binding.recyclerViewActiveWorkout.layoutManager = LinearLayoutManager(this)
@@ -818,28 +843,52 @@ class ActiveTrainingActivity : AppCompatActivity() {
 
     private fun launchLogSetActivity(exerciseId: Int, exerciseName: String) {
         try {
-            val previousSet = currentExerciseEntries
-                .filter { it.exerciseId == exerciseId }
+            val lastWorkingSet = currentExerciseEntries
+                .filter { it.exerciseId == exerciseId && !it.isWarmup }
                 .maxByOrNull { it.setNumber }
-            val setNumber = (previousSet?.setNumber ?: 0) + 1
+            val setNumber = (lastWorkingSet?.setNumber ?: currentExerciseEntries
+                .filter { it.exerciseId == exerciseId }
+                .maxByOrNull { it.setNumber }?.setNumber ?: 0) + 1
             val setWorkoutType = exerciseWorkoutTypes[exerciseId] ?: workoutType
             val exerciseIntent = exerciseIntents[exerciseId] ?: SetIntent.BUILD
+            val index = groupedExercises.indexOfFirst { it.exerciseId == exerciseId }
+            val settings = settingsManager.getSettings()
+            var restOverride: Int? = null
+            if (index >= 0 && settings.restTimerEnabled) {
+                val group = groupedExercises[index]
+                val prevGroup = if (index > 0) groupedExercises[index - 1] else null
+                val nextGroup = if (index < groupedExercises.size - 1) groupedExercises[index + 1] else null
+                when {
+                    group.supersetGroupId != null && nextGroup?.supersetGroupId == group.supersetGroupId -> {
+                        restOverride = settings.supersetTransitionSeconds
+                    }
+                    group.supersetGroupId != null && prevGroup?.supersetGroupId == group.supersetGroupId -> {
+                        val standardRest = when (exerciseIntent) {
+                            SetIntent.STRENGTH -> settings.strengthRestSeconds
+                            SetIntent.BUILD -> settings.buildRestSeconds
+                            SetIntent.FLUSH -> settings.flushRestSeconds
+                            else -> settings.buildRestSeconds
+                        }
+                        restOverride = standardRest + settings.supersetRestBonusSeconds
+                    }
+                }
+            }
             val intent = Intent(this, LogSetActivity::class.java).apply {
                 putExtra(LogSetActivity.EXTRA_EXERCISE_ID, exerciseId)
                 putExtra(LogSetActivity.EXTRA_EXERCISE_NAME, exerciseName)
                 putExtra(LogSetActivity.EXTRA_SET_NUMBER, setNumber)
                 putExtra(LogSetActivity.EXTRA_WORKOUT_TYPE, setWorkoutType)
                 putExtra(LogSetActivity.EXTRA_INTENT, exerciseIntent.name)
-                previousSet?.let {
+                restOverride?.let { putExtra(LogSetActivity.EXTRA_REST_SECONDS_OVERRIDE, it) }
+                lastWorkingSet?.let {
                     putExtra(LogSetActivity.EXTRA_PREVIOUS_SET_REPS, it.reps)
                 }
-                // Pass last logged values if available (from plan)
-                lastLoggedKg[exerciseId]?.let {
-                    putExtra(LogSetActivity.EXTRA_LAST_LOGGED_KG, it)
-                }
-                lastLoggedReps[exerciseId]?.let {
-                    putExtra(LogSetActivity.EXTRA_LAST_LOGGED_REPS, it)
-                }
+                val kgToPass = lastWorkingSet?.kg ?: lastLoggedKg[exerciseId]
+                val repsToPass = lastWorkingSet?.reps ?: lastLoggedReps[exerciseId]
+                val rpeToPass = lastWorkingSet?.rpe ?: lastLoggedRpe[exerciseId]
+                kgToPass?.let { putExtra(LogSetActivity.EXTRA_LAST_LOGGED_KG, it) }
+                repsToPass?.let { putExtra(LogSetActivity.EXTRA_LAST_LOGGED_REPS, it) }
+                rpeToPass?.let { putExtra(LogSetActivity.EXTRA_LAST_LOGGED_RPE, it) }
             }
             logSetLauncher.launch(intent)
         } catch (e: Exception) {
@@ -848,28 +897,45 @@ class ActiveTrainingActivity : AppCompatActivity() {
     }
 
     private fun updateExercises(loggedSet: ExerciseEntry) {
+        val groupIndex = groupedExercises.indexOfFirst { it.exerciseId == loggedSet.exerciseId }
+        val group = if (groupIndex != -1) groupedExercises[groupIndex] else null
         // If explicitIntent is not set, use the exercise's intent
-        val setWithIntent = if (loggedSet.explicitIntent == null) {
+        var setWithIntent = if (loggedSet.explicitIntent == null) {
             val exerciseIntent = exerciseIntents[loggedSet.exerciseId] ?: SetIntent.BUILD
             loggedSet.copy(explicitIntent = exerciseIntent)
         } else {
             loggedSet
         }
+        setWithIntent = setWithIntent.copy(
+            groupId = group?.supersetGroupId,
+            groupType = group?.groupType ?: group?.supersetGroupId?.let { GroupType.SUPERSET }
+        )
         currentExerciseEntries.add(setWithIntent)
         loggedSet.workoutType?.let { exerciseWorkoutTypes[loggedSet.exerciseId] = it }
+
+        // Update last logged values for working sets (exclude warmup)
+        if (!loggedSet.isWarmup) {
+            lastLoggedKg[loggedSet.exerciseId] = loggedSet.kg
+            lastLoggedReps[loggedSet.exerciseId] = loggedSet.reps
+            loggedSet.rpe?.let { lastLoggedRpe[loggedSet.exerciseId] = it }
+        }
         
         // Lock the intent when the first set is logged for this exercise
         if (!lockedIntents.containsKey(loggedSet.exerciseId)) {
             lockedIntents[loggedSet.exerciseId] = setWithIntent.explicitIntent ?: SetIntent.BUILD
         }
 
-        val groupIndex = groupedExercises.indexOfFirst { it.exerciseId == loggedSet.exerciseId }
         if (groupIndex != -1) {
             val oldGroup = groupedExercises[groupIndex]
             val newSets = oldGroup.sets + setWithIntent
             val newGroup = oldGroup.copy(sets = newSets.sortedBy { it.setNumber })
             groupedExercises[groupIndex] = newGroup
             adapter.notifyItemChanged(groupIndex)
+            oldGroup.supersetGroupId?.let { gid ->
+                groupedExercises.forEachIndexed { i, g ->
+                    if (g.supersetGroupId == gid && i != groupIndex) adapter.notifyItemChanged(i)
+                }
+            }
         }
         persistDraft()
     }
@@ -887,6 +953,16 @@ class ActiveTrainingActivity : AppCompatActivity() {
     private fun deleteExercise(exerciseId: Int) {
         val groupIndex = groupedExercises.indexOfFirst { it.exerciseId == exerciseId }
         if (groupIndex != -1) {
+            val removedGroup = groupedExercises[groupIndex]
+            val supersetGroupId = removedGroup.supersetGroupId
+            if (supersetGroupId != null) {
+                val partnerIndex = groupedExercises.indexOfFirst { it.supersetGroupId == supersetGroupId && it.exerciseId != exerciseId }
+                if (partnerIndex != -1) {
+                    val partner = groupedExercises[partnerIndex]
+                    groupedExercises[partnerIndex] = partner.copy(supersetGroupId = null, groupType = null)
+                    adapter.notifyItemChanged(partnerIndex)
+                }
+            }
             groupedExercises.removeAt(groupIndex)
             currentExerciseEntries.removeAll { it.exerciseId == exerciseId }
             exerciseWorkoutTypes.remove(exerciseId)
@@ -896,6 +972,7 @@ class ActiveTrainingActivity : AppCompatActivity() {
             lastSetsCount.remove(exerciseId)
             lastLoggedKg.remove(exerciseId)
             lastLoggedReps.remove(exerciseId)
+            lastLoggedRpe.remove(exerciseId)
             adapter.notifyItemRemoved(groupIndex)
             persistDraft()
         }
@@ -919,8 +996,15 @@ class ActiveTrainingActivity : AppCompatActivity() {
 
         val groupIndex = groupedExercises.indexOfFirst { it.exerciseId == exerciseId }
         if (groupIndex != -1) {
+            val existingGroup = groupedExercises[groupIndex]
             val sortedSets = updatedSets.sortedBy { it.setNumber }
-            val updatedGroup = GroupedExercise(exerciseId, updatedSets.first().exerciseName, sortedSets)
+            val updatedGroup = GroupedExercise(
+                exerciseId,
+                updatedSets.first().exerciseName,
+                sortedSets,
+                supersetGroupId = existingGroup.supersetGroupId,
+                groupType = existingGroup.groupType
+            )
             groupedExercises[groupIndex] = updatedGroup
             adapter.notifyItemChanged(groupIndex)
         }
@@ -949,9 +1033,91 @@ class ActiveTrainingActivity : AppCompatActivity() {
             },
             onCooldownSelected = {
                 Toast.makeText(this, "Cooldown feature coming soon", Toast.LENGTH_SHORT).show()
+            },
+            onSuperSetSelected = {
+                handleAddExerciseAsSupersetPartner()
             }
         )
         bottomSheet.show(supportFragmentManager, "AddSpecialBottomSheet")
+    }
+
+    private fun handleAddExerciseAsSupersetPartner() {
+        if (groupedExercises.isEmpty()) {
+            Toast.makeText(this, getString(R.string.toast_add_exercise_first), Toast.LENGTH_SHORT).show()
+            return
+        }
+        addAsSupersetPartner = true
+        val alreadyAddedExerciseIds = groupedExercises.map { it.exerciseId }.toIntArray()
+        val intent = Intent(this, SelectExerciseActivity::class.java).apply {
+            putExtra(SelectExerciseActivity.EXTRA_WORKOUT_TYPE, workoutType)
+            putExtra(SelectExerciseActivity.EXTRA_PLAN_ID, appliedPlanId)
+            putExtra(SelectExerciseActivity.EXTRA_ALREADY_ADDED_EXERCISE_IDS, alreadyAddedExerciseIds)
+        }
+        selectExerciseLauncher.launch(intent)
+    }
+
+    private fun unlinkSupersetGroup(supersetGroupId: String) {
+        val indices = groupedExercises.mapIndexed { i, g -> if (g.supersetGroupId == supersetGroupId) i else -1 }.filter { it >= 0 }
+        for (i in indices) {
+            val g = groupedExercises[i]
+            groupedExercises[i] = g.copy(supersetGroupId = null, groupType = null)
+            adapter.notifyItemChanged(i)
+        }
+        persistDraft()
+    }
+
+    private fun handleExerciseLongPress(position: Int) {
+        if (position < 0 || position >= groupedExercises.size) return
+        when {
+            selectedForSupersetPositions.isEmpty() -> {
+                selectedForSupersetPositions.add(position)
+                adapter.notifyItemChanged(position)
+                Toast.makeText(this, getString(R.string.toast_longpress_another_superset), Toast.LENGTH_SHORT).show()
+            }
+            position in selectedForSupersetPositions -> {
+                selectedForSupersetPositions.remove(position)
+                adapter.notifyItemChanged(position)
+            }
+            else -> {
+                selectedForSupersetPositions.add(position)
+                val sorted = selectedForSupersetPositions.sorted()
+                val min = sorted.first()
+                val max = sorted.last()
+                val consecutive = sorted == (min..max).toList()
+                if (!consecutive) {
+                    Toast.makeText(this, getString(R.string.toast_select_consecutive_superset), Toast.LENGTH_SHORT).show()
+                    selectedForSupersetPositions.remove(position)
+                    adapter.notifyItemChanged(position)
+                    return
+                }
+                for (i in selectedForSupersetPositions) adapter.notifyItemChanged(i)
+                val names = (min..max).map { groupedExercises[it].exerciseName }
+                val message = getString(R.string.dialog_message_connect_superset, names.joinToString(", "))
+                com.liftpath.helpers.DialogHelper.createBuilder(this)
+                    .setTitle(getString(R.string.dialog_title_connect_superset))
+                    .setMessage(message)
+                    .setPositiveButton(getString(R.string.button_ok)) { _, _ ->
+                        linkSelectedAsSuperset(min, max)
+                        selectedForSupersetPositions.clear()
+                        for (i in min..max) adapter.notifyItemChanged(i)
+                    }
+                    .setNegativeButton(getString(R.string.button_cancel)) { _, _ ->
+                        selectedForSupersetPositions.clear()
+                        for (i in min..max) adapter.notifyItemChanged(i)
+                    }
+                    .showWithTransparentWindow()
+            }
+        }
+    }
+
+    private fun linkSelectedAsSuperset(min: Int, max: Int) {
+        val supersetGroupId = UUID.randomUUID().toString()
+        for (i in min..max) {
+            val g = groupedExercises[i]
+            groupedExercises[i] = g.copy(supersetGroupId = supersetGroupId, groupType = GroupType.SUPERSET)
+        }
+        adapter.notifyItemRangeChanged(min, max - min + 1)
+        persistDraft()
     }
 
     private fun startWarmupTimer() {
@@ -1122,23 +1288,25 @@ class ActiveTrainingActivity : AppCompatActivity() {
             }
         }
 
-        // Restore last sets count and last logged kg/reps if plan was applied
+        // Restore last sets count and last logged kg/reps/rpe if plan was applied
         if (appliedPlanId != null) {
             val trainingData = jsonHelper.readTrainingData()
             lastSetsCount.clear()
             lastLoggedKg.clear()
             lastLoggedReps.clear()
+            lastLoggedRpe.clear()
             val exerciseIds = currentExerciseEntries.map { it.exerciseId }.distinct()
             exerciseIds.forEach { exerciseId ->
-                // Find the last logged exercise entry
-                val lastEntry = trainingData.trainings
+                // Find the last working set for this exercise (exclude warmup)
+                val lastWorkingEntry = trainingData.trainings
                     .flatMap { it.exercises }
-                    .filter { it.exerciseId == exerciseId }
+                    .filter { it.exerciseId == exerciseId && !it.isEffectivelyWarmup() }
                     .lastOrNull()
                 
-                if (lastEntry != null) {
-                    lastLoggedKg[exerciseId] = lastEntry.kg
-                    lastLoggedReps[exerciseId] = lastEntry.reps
+                if (lastWorkingEntry != null) {
+                    lastLoggedKg[exerciseId] = lastWorkingEntry.kg
+                    lastLoggedReps[exerciseId] = lastWorkingEntry.reps
+                    lastWorkingEntry.rpe?.let { lastLoggedRpe[exerciseId] = it }
                 }
                 
                 // Find the last number of sets
@@ -1160,9 +1328,24 @@ class ActiveTrainingActivity : AppCompatActivity() {
             lastSetsCount.clear()
             lastLoggedKg.clear()
             lastLoggedReps.clear()
+            lastLoggedRpe.clear()
         }
 
         rebuildGroupedExercisesFromEntries()
+        draft.supersetPairs?.forEach { pair ->
+            val g1 = groupedExercises.find { it.exerciseId == pair.exerciseId1 }
+            val g2 = groupedExercises.find { it.exerciseId == pair.exerciseId2 }
+            if (g1 != null && g2 != null) {
+                val id = UUID.randomUUID().toString()
+                val idx1 = groupedExercises.indexOf(g1)
+                val idx2 = groupedExercises.indexOf(g2)
+                groupedExercises[idx1] = g1.copy(supersetGroupId = id, groupType = GroupType.SUPERSET)
+                groupedExercises[idx2] = g2.copy(supersetGroupId = id, groupType = GroupType.SUPERSET)
+            }
+        }
+        if (!draft.supersetPairs.isNullOrEmpty()) {
+            adapter.notifyDataSetChanged()
+        }
         updatePlanButtonState()
         
         // Restore workout timer if it was started
@@ -1186,7 +1369,13 @@ class ActiveTrainingActivity : AppCompatActivity() {
         groupedByExercise.values.forEach { sets ->
             val sortedSets = sets.sortedBy { it.setNumber }
             val first = sortedSets.first()
-            groupedExercises.add(GroupedExercise(first.exerciseId, first.exerciseName, sortedSets))
+            groupedExercises.add(GroupedExercise(
+                first.exerciseId,
+                first.exerciseName,
+                sortedSets,
+                supersetGroupId = first.groupId,
+                groupType = first.groupType
+            ))
         }
         adapter.notifyDataSetChanged()
     }
@@ -1197,13 +1386,22 @@ class ActiveTrainingActivity : AppCompatActivity() {
             return
         }
         val entriesCopy = currentExerciseEntries.map { it.copy() }
+        val supersetPairs = mutableListOf<SupersetPair>()
+        for (i in 0 until groupedExercises.size - 1) {
+            val a = groupedExercises[i]
+            val b = groupedExercises[i + 1]
+            if (a.supersetGroupId != null && a.supersetGroupId == b.supersetGroupId) {
+                supersetPairs.add(SupersetPair(a.exerciseId, b.exerciseId))
+            }
+        }
         val draft = ActiveWorkoutDraft(
             workoutType = workoutType,
             date = binding.textDate.text.toString(),
             appliedPlanId = appliedPlanId,
             appliedPlanName = appliedPlanName,
             entries = entriesCopy,
-            startTimeMillis = workoutStartTimeMillis
+            startTimeMillis = workoutStartTimeMillis,
+            supersetPairs = supersetPairs.ifEmpty { null }
         )
         draftManager.saveDraft(draft)
     }
@@ -1233,6 +1431,7 @@ class ActiveTrainingActivity : AppCompatActivity() {
                     "com.liftpath.REST_TIMER_COMPLETE" -> {
                         updateTimerDisplay(0)
                         setTimerState(TimerState.COMPLETED)
+                        adapter.notifyDataSetChanged()
                     }
                 }
             }

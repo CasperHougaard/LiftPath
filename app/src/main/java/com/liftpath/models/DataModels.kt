@@ -70,6 +70,12 @@ enum class Mechanics(val displayName: String) {
     COMPOUND("Compound"), ISOLATION("Isolation")
 }
 
+/** Group types for linked exercises (e.g. superset, circuit). Used for analytics. */
+object GroupType {
+    const val SUPERSET = "SUPERSET"
+    const val CIRCUIT = "CIRCUIT"
+}
+
 // --- DATA CLASSES ---
 
 @Parcelize
@@ -120,11 +126,24 @@ data class ExerciseEntry(
     val rpe: Float? = null,
     val completed: Boolean? = null,
     val isWarmup: Boolean = false,
-    val explicitIntent: SetIntent? = null
+    val explicitIntent: SetIntent? = null,
+    val groupId: String? = null,
+    val groupType: String? = null
 ) : Parcelable {
+    /**
+     * True only for old/pre-migration data: RPE 6 was used to denote warmup before we had
+     * explicit intent. For new data (explicitIntent set), RPE 6 is valid and NOT warmup.
+     */
+    fun isLegacyWarmup(): Boolean = explicitIntent == null && rpe == 6.0f
+
+    /**
+     * True if this set is warmup: either via isWarmup flag (new) or legacy RPE 6 convention (old).
+     */
+    fun isEffectivelyWarmup(): Boolean = isWarmup || isLegacyWarmup()
+
     fun getEffectiveIntent(parentSessionType: String?): SetIntent {
-        // Priority 1: RPE 6.0 indicates warmup for legacy data
-        if (explicitIntent == null && rpe == 6.0f) {
+        // Priority 1: RPE 6.0 indicates warmup for legacy data only
+        if (isLegacyWarmup()) {
             return SetIntent.WARMUP
         }
         
@@ -177,7 +196,7 @@ data class TrainingSession(
     fun getLegacyExerciseIntent(exerciseId: Int): SetIntent {
         val exerciseSets = exercises
             .filter { it.exerciseId == exerciseId }
-            .filterNot { it.rpe == 6.0f || it.isWarmup } // Exclude warmups (RPE 6 or isWarmup flag)
+            .filterNot { it.isEffectivelyWarmup() } // Exclude warmups (isWarmup flag or legacy RPE 6)
         
         if (exerciseSets.isEmpty()) return SetIntent.BUILD
         
@@ -232,17 +251,26 @@ data class TrainingData(
     var userLevel: UserLevel = UserLevel.NOVICE
 ) : Parcelable
 
-// Helper Classes
+// Helper Classes (SupersetPair for Gson-safe draft serialization)
+data class SupersetPair(val exerciseId1: Int, val exerciseId2: Int)
+
 data class ActiveWorkoutDraft(
     val workoutType: String,
     val date: String,
     val appliedPlanId: String?,
     val appliedPlanName: String?,
     val entries: List<ExerciseEntry>,
-    val startTimeMillis: Long? = null
+    val startTimeMillis: Long? = null,
+    val supersetPairs: List<SupersetPair>? = null
 )
 
-data class GroupedExercise(val exerciseId: Int, val exerciseName: String, val sets: List<ExerciseEntry>)
+data class GroupedExercise(
+    val exerciseId: Int,
+    val exerciseName: String,
+    val sets: List<ExerciseEntry>,
+    val supersetGroupId: String? = null,
+    val groupType: String? = null
+)
 
 data class ExerciseSet(
     val date: String,
@@ -272,7 +300,15 @@ data class ExerciseTrendData(
     val previousEstimated1RM: Float?,
     val currentTopSet: Pair<Float, Int>?,  // kg, reps
     val previousTopSet: Pair<Float, Int>?,
-    val isPR: Boolean
+    val isPR: Boolean,
+    val prWeight: Float?,  // Best weight PR for this exercise
+    val prWeightDate: Long,  // Timestamp of weight PR
+    val prVolume: Float?,  // Best volume PR for this exercise
+    val prVolumeDate: Long,  // Timestamp of volume PR
+    val pr1RM: Float?,  // Best 1RM PR for this exercise
+    val pr1RMDate: Long,  // Timestamp of 1RM PR
+    val prReps: String?,  // Best reps PR (formatted: "22 reps @ 52.5kg")
+    val prRepsDate: Long  // Timestamp of reps PR
 )
 
 data class MuscleGroupTrend(

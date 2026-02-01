@@ -34,6 +34,7 @@ class LogSetActivity : AppCompatActivity() {
     private var previousSetReps: Int? = null
     private var lastLoggedKg: Float? = null
     private var lastLoggedReps: Int? = null
+    private var lastLoggedRpe: Float? = null
 
     private var pendingTimerRpe: Float? = null
     private var pendingTimerIntent: SetIntent? = null
@@ -64,7 +65,9 @@ class LogSetActivity : AppCompatActivity() {
         const val EXTRA_PREVIOUS_SET_REPS = "extra_previous_set_reps"
         const val EXTRA_LAST_LOGGED_KG = "extra_last_logged_kg"
         const val EXTRA_LAST_LOGGED_REPS = "extra_last_logged_reps"
+        const val EXTRA_LAST_LOGGED_RPE = "extra_last_logged_rpe"
         const val EXTRA_INTENT = "extra_intent"
+        const val EXTRA_REST_SECONDS_OVERRIDE = "extra_rest_seconds_override"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -80,6 +83,7 @@ class LogSetActivity : AppCompatActivity() {
         previousSetReps = intent.getIntExtra(EXTRA_PREVIOUS_SET_REPS, -1).takeIf { it > 0 }
         lastLoggedKg = intent.getFloatExtra(EXTRA_LAST_LOGGED_KG, -1f).takeIf { it > 0 }
         lastLoggedReps = intent.getIntExtra(EXTRA_LAST_LOGGED_REPS, -1).takeIf { it > 0 }
+        lastLoggedRpe = intent.getFloatExtra(EXTRA_LAST_LOGGED_RPE, -1f).takeIf { it in 6.0f..10.0f }
         // Get intent for title display
         val intentName = intent.getStringExtra(EXTRA_INTENT)
         val displayIntent = try {
@@ -128,43 +132,75 @@ class LogSetActivity : AppCompatActivity() {
 
     private fun prefillLastSetFallback() {
         if (binding.editTextKg.text?.isNotBlank() == true) return
-        
-        // Use passed last logged values if available (from plan), otherwise look up from history
+
+        // 1. Use passed last logged values (from last working set)
         if (lastLoggedKg != null && lastLoggedReps != null) {
             binding.editTextKg.setText(lastLoggedKg.toString())
             binding.editTextReps.setText(lastLoggedReps.toString())
-            
-            // Still try to get RPE from last set if available (note always starts empty)
-            val trainingData = jsonHelper.readTrainingData()
-            val lastSet = trainingData.trainings
-                .flatMap { it.exercises }
-                .filter { it.exerciseName == exerciseName }
-                .lastOrNull()
-            
-            lastSet?.rpe?.let {
+            lastLoggedRpe?.let {
                 if (binding.editTextRpe.text.isNullOrBlank()) {
                     binding.editTextRpe.setText(it.toString())
                 }
             }
-        } else {
-            // Fall back to looking up from training history
+            return
+        }
+
+        // 2. First working set: try ProgressionHelper suggestion
+        val intentName = intent.getStringExtra(EXTRA_INTENT)
+        val setIntent = try {
+            if (intentName != null) SetIntent.valueOf(intentName) else SetIntent.BUILD
+        } catch (e: Exception) {
+            SetIntent.BUILD
+        }
+        if (workoutType != "custom") {
             val trainingData = jsonHelper.readTrainingData()
-            val lastSet = trainingData.trainings
-                .flatMap { it.exercises }
-                .filter { it.exerciseName == exerciseName }
-                .lastOrNull()
+            val settings = ProgressionSettingsManager(this).getSettings()
+            val suggestion = ProgressionHelper.getIntentSuggestion(
+                exerciseId = exerciseId,
+                intent = setIntent,
+                trainingData = trainingData,
+                settings = settings
+            )
+            val weightToUse = suggestion.suggestedWeight ?: suggestion.lastWeight
+            val repsToUse = suggestion.suggestedReps ?: suggestion.lastReps
+            val rpeToUse = suggestion.suggestedRpe ?: suggestion.lastRpe
+            if (weightToUse != null && weightToUse > 0f) {
+                binding.editTextKg.setText(weightToUse.toString())
+            }
+            if (repsToUse != null && repsToUse > 0 && binding.editTextReps.text.isNullOrBlank()) {
+                binding.editTextReps.setText(repsToUse.toString())
+            }
+            if (rpeToUse != null && binding.editTextRpe.text.isNullOrBlank()) {
+                binding.editTextRpe.setText(rpeToUse.toString())
+            }
+            if (weightToUse != null && weightToUse > 0f) return
+        }
 
-            if (lastSet != null) {
-                binding.editTextKg.setText(lastSet.kg.toString())
-                binding.editTextReps.setText(lastSet.reps.toString())
-
-                lastSet.rpe?.let {
-                    if (binding.editTextRpe.text.isNullOrBlank()) {
-                        binding.editTextRpe.setText(it.toString())
-                    }
+        // 3. Fall back to last working set from training data
+        val lastWorkingSet = getLastWorkingSetFromHistory()
+        if (lastWorkingSet != null) {
+            binding.editTextKg.setText(lastWorkingSet.kg.toString())
+            if (binding.editTextReps.text.isNullOrBlank()) {
+                binding.editTextReps.setText(lastWorkingSet.reps.toString())
+            }
+            lastWorkingSet.rpe?.let {
+                if (binding.editTextRpe.text.isNullOrBlank()) {
+                    binding.editTextRpe.setText(it.toString())
                 }
             }
         }
+        // 4. No data: leave blank (nothing to do)
+    }
+
+    private fun getLastWorkingSetFromHistory(): ExerciseEntry? {
+        val trainingData = jsonHelper.readTrainingData()
+        return trainingData.trainings
+            .flatMap { it.exercises }
+            .filter {
+                it.exerciseId == exerciseId &&
+                !it.isEffectivelyWarmup()  // Exclude warmups (isWarmup or legacy RPE 6)
+            }
+            .lastOrNull()
     }
 
     private fun prefillRepsFromPreviousSet() {
@@ -182,20 +218,39 @@ class LogSetActivity : AppCompatActivity() {
             SetIntent.BUILD
         }
         
-        // For FLUSH or custom workouts, don't show progression suggestions
-        if (workoutType == "custom" || setIntent == SetIntent.FLUSH) {
-            // Only prefill from last set (already done in prefillLastSetFallback)
-            // Don't show suggestion text, but still show RPE hint for FLUSH
+        // For custom workouts, don't show progression suggestions
+        if (workoutType == "custom") {
             binding.tvSuggestionHint.visibility = View.GONE
-            if (setIntent == SetIntent.FLUSH) {
-                // Show low RPE suggestion for FLUSH
-                val suggestedRpe = 7.0f
-                if (binding.editTextRpe.text.isNullOrBlank()) {
-                    binding.editTextRpe.setText(suggestedRpe.toString())
-                    updateRpeHint(suggestedRpe)
-                }
-            } else {
-                binding.textRpeHint.visibility = View.GONE
+            binding.textRpeHint.visibility = View.GONE
+            return
+        }
+
+        // FLUSH: use dedicated suggestion (2×50% 1RM × 20 reps @ 6-7 RPE)
+        if (setIntent == SetIntent.FLUSH) {
+            val trainingData = jsonHelper.readTrainingData()
+            val userSettings = ProgressionSettingsManager(this).getSettings()
+            val suggestion = ProgressionHelper.getIntentSuggestion(
+                exerciseId = exerciseId,
+                intent = setIntent,
+                trainingData = trainingData,
+                settings = userSettings
+            )
+            if (suggestion.displayText.isNotEmpty()) {
+                binding.textSuggestionContent.text = suggestion.displayText
+                binding.tvSuggestionHint.visibility = View.VISIBLE
+            }
+            val weightToUse = suggestion.suggestedWeight ?: suggestion.lastWeight
+            val repsToUse = suggestion.suggestedReps ?: suggestion.lastReps
+            val rpeToUse = suggestion.suggestedRpe ?: suggestion.lastRpe
+            if (weightToUse != null && weightToUse > 0f && binding.editTextKg.text.isNullOrBlank()) {
+                binding.editTextKg.setText(weightToUse.toString())
+            }
+            if (repsToUse != null && repsToUse > 0 && binding.editTextReps.text.isNullOrBlank()) {
+                binding.editTextReps.setText(repsToUse.toString())
+            }
+            if (rpeToUse != null && binding.editTextRpe.text.isNullOrBlank()) {
+                binding.editTextRpe.setText(rpeToUse.toString())
+                updateRpeHint(rpeToUse)
             }
             return
         }
@@ -429,34 +484,32 @@ class LogSetActivity : AppCompatActivity() {
         pendingTimerIntent = null
         pendingTimerExerciseName = null
 
-        // Calculate base rest time based on intent
-        var restSeconds = when (actualIntent) {
-            SetIntent.STRENGTH -> settings.strengthRestSeconds
-            SetIntent.BUILD -> settings.buildRestSeconds
-            SetIntent.FLUSH -> settings.flushRestSeconds
-            SetIntent.WARMUP -> settings.flushRestSeconds  // Warmups use shorter rest
-            else -> settings.buildRestSeconds
-        }
-
-        // Apply RPE-based adjustments if enabled
-        if (settings.rpeAdjustmentEnabled && actualRpe != null) {
-            // Add bonus time if RPE is very high
-            if (actualRpe >= settings.rpeHighThreshold) {
-                restSeconds += settings.rpeHighBonusSeconds
+        val overrideSeconds = intent.getIntExtra(EXTRA_REST_SECONDS_OVERRIDE, -1).takeIf { it > 0 }
+        val restSeconds = if (overrideSeconds != null) {
+            overrideSeconds
+        } else {
+            // Calculate base rest time based on intent
+            var base = when (actualIntent) {
+                SetIntent.STRENGTH -> settings.strengthRestSeconds
+                SetIntent.BUILD -> settings.buildRestSeconds
+                SetIntent.FLUSH -> settings.flushRestSeconds
+                SetIntent.WARMUP -> settings.flushRestSeconds  // Warmups use shorter rest
+                else -> settings.buildRestSeconds
             }
-
-            // Adjust based on deviation from suggested RPE
-            val suggestedRpe = ProgressionHelper.getTargetRpe(actualIntent, settings)
-            val rpeDifference = actualRpe - suggestedRpe
-
-            if (rpeDifference >= settings.rpeDeviationThreshold) {
-                // Higher RPE than suggested = add more rest
-                restSeconds += settings.rpePositiveAdjustmentSeconds
+            // Apply RPE-based adjustments if enabled
+            if (settings.rpeAdjustmentEnabled && actualRpe != null) {
+                if (actualRpe >= settings.rpeHighThreshold) {
+                    base += settings.rpeHighBonusSeconds
+                }
+                val suggestedRpe = ProgressionHelper.getTargetRpe(actualIntent, settings)
+                val rpeDifference = actualRpe - suggestedRpe
+                if (rpeDifference >= settings.rpeDeviationThreshold) {
+                    base += settings.rpePositiveAdjustmentSeconds
+                } else if (rpeDifference <= -settings.rpeDeviationThreshold) {
+                    base = max(0, base - settings.rpeNegativeAdjustmentSeconds)
+                }
             }
-            else if (rpeDifference <= -settings.rpeDeviationThreshold) {
-                // Lower RPE than suggested = reduce rest
-                restSeconds = max(0, restSeconds - settings.rpeNegativeAdjustmentSeconds)
-            }
+            base
         }
 
         com.liftpath.services.RestTimerService.startTimer(this, restSeconds, actualExerciseName, showDialog = false)

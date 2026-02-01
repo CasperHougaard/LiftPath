@@ -311,9 +311,10 @@
                     android:id="@+id/webview_muscle_map"
                     android:layout_width="match_parent"
                     android:layout_height="300dp"
-                    android:layout_marginTop="16dp" />
+                    android:layout_marginTop="16dp"
+                    android:background="@android:color/transparent" />
 
-                <!-- Muscle Map Legend -->
+                <!-- Muscle Map Legend (matches getProgressColor: >5%, 1-5%, stable, -5 to -1%, <-5%, first time, no data) -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -321,7 +322,7 @@
                     android:gravity="center"
                     android:orientation="vertical">
 
-                    <!-- First row -->
+                    <!-- Row 1: improvement and decline gradients -->
                     <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -331,16 +332,38 @@
                         <LinearLayout
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginEnd="12dp"
+                            android:layout_marginEnd="10dp"
                             android:gravity="center_vertical"
                             android:orientation="horizontal">
 
                             <View
                                 android:layout_width="12dp"
                                 android:layout_height="12dp"
-                                android:layout_marginEnd="6dp"
+                                android:layout_marginEnd="5dp"
                                 android:background="@drawable/bg_circle_decoration"
                                 android:backgroundTint="#10B981" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/muscle_legend_strong_improvement"
+                                android:textColor="@color/fitness_text_secondary"
+                                android:textSize="11sp" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="10dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <View
+                                android:layout_width="12dp"
+                                android:layout_height="12dp"
+                                android:layout_marginEnd="5dp"
+                                android:background="@drawable/bg_circle_decoration"
+                                android:backgroundTint="#6EE7B7" />
 
                             <TextView
                                 android:layout_width="wrap_content"
@@ -353,14 +376,14 @@
                         <LinearLayout
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginEnd="12dp"
+                            android:layout_marginEnd="10dp"
                             android:gravity="center_vertical"
                             android:orientation="horizontal">
 
                             <View
                                 android:layout_width="12dp"
                                 android:layout_height="12dp"
-                                android:layout_marginEnd="6dp"
+                                android:layout_marginEnd="5dp"
                                 android:background="@drawable/bg_circle_decoration"
                                 android:backgroundTint="#9CA3AF" />
 
@@ -375,13 +398,14 @@
                         <LinearLayout
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
+                            android:layout_marginEnd="10dp"
                             android:gravity="center_vertical"
                             android:orientation="horizontal">
 
                             <View
                                 android:layout_width="12dp"
                                 android:layout_height="12dp"
-                                android:layout_marginEnd="6dp"
+                                android:layout_marginEnd="5dp"
                                 android:background="@drawable/bg_circle_decoration"
                                 android:backgroundTint="#FCA5A5" />
 
@@ -392,9 +416,30 @@
                                 android:textColor="@color/fitness_text_secondary"
                                 android:textSize="11sp" />
                         </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <View
+                                android:layout_width="12dp"
+                                android:layout_height="12dp"
+                                android:layout_marginEnd="5dp"
+                                android:background="@drawable/bg_circle_decoration"
+                                android:backgroundTint="#EF4444" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/muscle_legend_strong_decline"
+                                android:textColor="@color/fitness_text_secondary"
+                                android:textSize="11sp" />
+                        </LinearLayout>
                     </LinearLayout>
 
-                    <!-- Second row -->
+                    <!-- Row 2: first time and no data -->
                     <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"

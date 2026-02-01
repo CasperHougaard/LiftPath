@@ -7,7 +7,7 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.liftpath.R
-import com.liftpath.adapters.PRTimelineAdapter
+import com.liftpath.adapters.ExercisePRStatsAdapter
 import com.liftpath.databinding.FragmentProgressPrsBinding
 import com.liftpath.helpers.JsonHelper
 import com.liftpath.helpers.ProgressAnalysisHelper
@@ -15,12 +15,16 @@ import com.liftpath.helpers.ProgressAnalysisHelper.PRType
 import java.text.SimpleDateFormat
 import java.util.*
 
+/**
+ * PR page: "Player Stats Card" list of exercises with best 1RM, weight, volume, reps.
+ * Sorted by lastPrDate DESC (exercise with most recent PR at top).
+ */
 class ProgressPRsFragment : Fragment() {
 
     private var _binding: FragmentProgressPrsBinding? = null
     private val binding get() = _binding!!
     private lateinit var jsonHelper: JsonHelper
-    private lateinit var adapter: PRTimelineAdapter
+    private lateinit var adapter: ExercisePRStatsAdapter
     private val dateFormat = SimpleDateFormat("yyyy/MM/dd", Locale.getDefault())
 
     private var currentFilter: PRType? = null // null = All
@@ -50,6 +54,7 @@ class ProgressPRsFragment : Fragment() {
                 R.id.chip_strength_pr -> PRType.WEIGHT
                 R.id.chip_volume_pr -> PRType.VOLUME
                 R.id.chip_1rm_pr -> PRType.ONE_RM
+                R.id.chip_reps_pr -> PRType.REPS
                 else -> null
             }
             loadPRData()
@@ -57,7 +62,7 @@ class ProgressPRsFragment : Fragment() {
     }
 
     private fun setupRecyclerView() {
-        adapter = PRTimelineAdapter(emptyList())
+        adapter = ExercisePRStatsAdapter(emptyList())
         binding.recyclerPrTimeline.layoutManager = LinearLayoutManager(requireContext())
         binding.recyclerPrTimeline.adapter = adapter
     }
@@ -67,35 +72,42 @@ class ProgressPRsFragment : Fragment() {
         val sessions = trainingData.trainings
         val exerciseLibrary = trainingData.exerciseLibrary
 
-        // Get all PRs
-        val allPRs = ProgressAnalysisHelper.getRecentPRs(sessions, exerciseLibrary, 365)
-            .sortedByDescending { it.date }
+        // Player Stats Card list: one summary per exercise, sorted by lastPrDate DESC
+        var summaries = ProgressAnalysisHelper.getExerciseStatsSummaries(sessions, exerciseLibrary)
+            .sortedByDescending { it.lastPrDate }
 
-        // Filter by type if needed
-        val filteredPRs = if (currentFilter == null) {
-            allPRs
+        // Filter by type if needed (has this type of PR)
+        summaries = if (currentFilter == null) {
+            summaries
         } else {
-            allPRs.filter { it.prType == currentFilter }
+            summaries.filter { summary ->
+                when (currentFilter) {
+                    PRType.WEIGHT -> summary.bestWeight != null
+                    PRType.VOLUME -> summary.bestVolume != null
+                    PRType.ONE_RM -> summary.best1RM != null
+                    PRType.REPS -> summary.bestRepsRecord != null
+                    else -> true
+                }
+            }
         }
 
-        // Update summary
+        // Summary card: total PR count, this month, week streak (from PR events)
+        val allPRs = ProgressAnalysisHelper.getRecentPRs(sessions, exerciseLibrary, 365 * 10)
         updateSummary(allPRs)
 
-        // Update list
-        if (filteredPRs.isEmpty()) {
+        if (summaries.isEmpty()) {
             binding.textEmptyState.visibility = View.VISIBLE
             binding.recyclerPrTimeline.visibility = View.GONE
         } else {
             binding.textEmptyState.visibility = View.GONE
             binding.recyclerPrTimeline.visibility = View.VISIBLE
-            adapter.updatePRs(filteredPRs)
+            adapter.updateSummaries(summaries)
         }
     }
 
     private fun updateSummary(allPRs: List<ProgressAnalysisHelper.PRRecord>) {
         binding.textTotalPrs.text = allPRs.size.toString()
 
-        // This month
         val calendar = Calendar.getInstance()
         calendar.set(Calendar.DAY_OF_MONTH, 1)
         val startOfMonth = calendar.time
@@ -110,7 +122,6 @@ class ProgressPRsFragment : Fragment() {
         }
         binding.textThisMonth.text = thisMonthPRs.toString()
 
-        // Week streak (consecutive weeks with PRs)
         val weekStreak = calculateWeekStreak(allPRs)
         binding.textStreak.text = weekStreak.toString()
     }
@@ -130,13 +141,9 @@ class ProgressPRsFragment : Fragment() {
 
         var streak = 0
         val calendar = Calendar.getInstance()
-        
-        // Start from current week
         calendar.set(Calendar.DAY_OF_WEEK, calendar.firstDayOfWeek)
-        val currentWeekStart = calendar.time
-        
-        var checkWeek = currentWeekStart
-        
+        var checkWeek = calendar.time
+
         while (true) {
             val weekEnd = Calendar.getInstance().apply {
                 time = checkWeek
@@ -155,8 +162,6 @@ class ProgressPRsFragment : Fragment() {
             } else {
                 break
             }
-
-            // Safety limit
             if (streak > 52) break
         }
 

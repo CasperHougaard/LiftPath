@@ -27,4 +27,12 @@
     
     <!-- Suggestion Color (for progression suggestions in active workout) -->
     <color name="fitness_suggestion">#38BDF8</color>  <!-- Sky-400 - brighter for dark mode -->
+
+    <!-- Chip backgrounds - dark surface so theme text (light) has contrast -->
+    <color name="chip_choice_background">#1F2937</color>
+    <color name="chip_filter_background">#1F2937</color>
+
+    <!-- Superset borders (night) -->
+    <color name="superset_active_border">#60A5FA</color>
+    <color name="superset_waiting_border">#FCD34D</color>
 </resources>

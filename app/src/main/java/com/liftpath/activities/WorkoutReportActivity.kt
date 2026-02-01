@@ -155,6 +155,7 @@ class WorkoutReportActivity : AppCompatActivity() {
     }
 
     private fun setupMuscleMapWebView(muscleProgress: Map<TargetMuscle, Float?>) {
+        binding.webviewMuscleMap.setBackgroundColor(android.graphics.Color.TRANSPARENT)
         binding.webviewMuscleMap.settings.apply {
             javaScriptEnabled = true
             useWideViewPort = true

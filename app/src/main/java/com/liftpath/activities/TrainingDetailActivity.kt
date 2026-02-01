@@ -332,11 +332,14 @@ class TrainingDetailActivity : AppCompatActivity() {
             maxSetNumber + 1
         }
 
-        // Get last logged values for this exercise from training history
+        // Prefer last working set from current session, else from training history
+        val lastWorkingInSession = trainingSession.exercises
+            .filter { it.exerciseId == exerciseId && !it.isWarmup }
+            .maxByOrNull { it.setNumber }
         val trainingData = jsonHelper.readTrainingData()
-        val lastEntry = trainingData.trainings
+        val lastEntry = lastWorkingInSession ?: trainingData.trainings
             .flatMap { it.exercises }
-            .filter { it.exerciseId == exerciseId }
+            .filter { it.exerciseId == exerciseId && !it.isEffectivelyWarmup() }
             .lastOrNull()
 
         val intent = Intent(this, LogSetActivity::class.java).apply {
@@ -345,11 +348,13 @@ class TrainingDetailActivity : AppCompatActivity() {
             putExtra(LogSetActivity.EXTRA_SET_NUMBER, setNumber)
             putExtra(LogSetActivity.EXTRA_WORKOUT_TYPE, trainingSession.defaultWorkoutType ?: "custom")  // Keep for legacy compatibility
             putExtra(LogSetActivity.EXTRA_INTENT, exerciseIntent.name)
-            
-            // Pass last logged values if available
+            lastWorkingInSession?.let {
+                putExtra(LogSetActivity.EXTRA_PREVIOUS_SET_REPS, it.reps)
+            }
             lastEntry?.let {
                 putExtra(LogSetActivity.EXTRA_LAST_LOGGED_KG, it.kg)
                 putExtra(LogSetActivity.EXTRA_LAST_LOGGED_REPS, it.reps)
+                it.rpe?.let { rpe -> putExtra(LogSetActivity.EXTRA_LAST_LOGGED_RPE, rpe) }
             }
         }
         logSetLauncher.launch(intent)

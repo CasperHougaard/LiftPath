@@ -12,6 +12,7 @@ import android.widget.TextView
 import androidx.cardview.widget.CardView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.card.MaterialCardView
 import com.liftpath.R
 import com.liftpath.helpers.DialogHelper
 import com.liftpath.helpers.JsonHelper
@@ -41,7 +42,11 @@ class ActiveExercisesAdapter(
     private val onDeleteExerciseClicked: (exerciseId: Int) -> Unit,
     private val onIntentChanged: (exerciseId: Int, intent: SetIntent) -> Unit,
     private val onAddExerciseClicked: () -> Unit,
-    private val onAddSpecialClicked: () -> Unit
+    private val onAddSpecialClicked: () -> Unit,
+    private val isRestTimerRunning: () -> Boolean,
+    private val onUnlinkSuperset: (supersetGroupId: String) -> Unit,
+    private val selectedForSupersetPositions: () -> Set<Int>,
+    private val onExerciseLongPress: (position: Int) -> Unit
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     
     companion object {
@@ -66,6 +71,8 @@ class ActiveExercisesAdapter(
         val chipBuild: com.google.android.material.chip.Chip = view.findViewById(R.id.chip_build)
         val chipFlush: com.google.android.material.chip.Chip = view.findViewById(R.id.chip_flush)
         val noteTooltipButton: android.widget.ImageButton = view.findViewById(R.id.button_note_tooltip)
+        val supersetLinkButton: android.widget.ImageButton = view.findViewById(R.id.button_superset_link)
+        val cardExercise: MaterialCardView = view.findViewById(R.id.card_exercise)
     }
     
     class AddButtonsViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -120,6 +127,75 @@ class ActiveExercisesAdapter(
     private fun bindExerciseViewHolder(holder: GroupedExerciseViewHolder, position: Int) {
         val groupedExercise = groupedExercises[position]
         holder.exerciseName.text = groupedExercise.exerciseName
+
+        val groupId = groupedExercise.supersetGroupId
+        val groupIndices = if (groupId != null) {
+            groupedExercises.mapIndexed { i, g -> if (g.supersetGroupId == groupId) i else -1 }.filter { it >= 0 }
+        } else emptyList()
+        val positionInGroup = groupIndices.indexOf(position)
+        val isInSuperset = groupId != null && groupIndices.isNotEmpty()
+        val isFirstInSuperset = isInSuperset && positionInGroup == 0 && groupIndices.size > 1
+
+        holder.supersetLinkButton.visibility = if (isFirstInSuperset) View.VISIBLE else View.GONE
+        if (isFirstInSuperset && groupId != null) {
+            holder.supersetLinkButton.setOnClickListener {
+                showRemoveSupersetDialog(holder.itemView.context, groupId)
+            }
+        } else {
+            holder.supersetLinkButton.setOnClickListener(null)
+        }
+
+        val workingSetCount = { g: GroupedExercise ->
+            g.sets.count { !it.isWarmup }
+        }
+        val timerRunning = isRestTimerRunning()
+        val setCounts = groupIndices.map { workingSetCount(groupedExercises[it]) }
+        val minCount = setCounts.minOrNull() ?: 0
+        val activePositionInGroup = if (groupIndices.isNotEmpty()) setCounts.indexOfFirst { it == minCount } else -1
+        val nextPositionInGroup = if (activePositionInGroup >= 0 && groupIndices.size > 1) (activePositionInGroup + 1) % groupIndices.size else -1
+        val isActive = isInSuperset && positionInGroup >= 0 && positionInGroup == activePositionInGroup
+        val isWaitingForTimer = isInSuperset && timerRunning && nextPositionInGroup >= 0 && positionInGroup == nextPositionInGroup
+        val canAddSet = !isInSuperset || isActive || isWaitingForTimer
+
+        val isSelectedForSuperset = position in selectedForSupersetPositions()
+        val strokeWidthPx = (2 * holder.itemView.resources.displayMetrics.density).toInt()
+        when {
+            isSelectedForSuperset -> {
+                holder.cardExercise.strokeWidth = strokeWidthPx
+                holder.cardExercise.strokeColor = ContextCompat.getColor(holder.itemView.context, R.color.fitness_accent)
+                holder.cardExercise.alpha = 1f
+            }
+            isActive -> {
+                holder.cardExercise.strokeWidth = strokeWidthPx
+                holder.cardExercise.strokeColor = ContextCompat.getColor(holder.itemView.context, R.color.superset_active_border)
+                holder.cardExercise.alpha = 1f
+            }
+            isWaitingForTimer -> {
+                holder.cardExercise.strokeWidth = strokeWidthPx
+                holder.cardExercise.strokeColor = ContextCompat.getColor(holder.itemView.context, R.color.superset_waiting_border)
+                holder.cardExercise.alpha = 1f
+            }
+            isInSuperset && !canAddSet -> {
+                holder.cardExercise.strokeWidth = 0
+                holder.cardExercise.alpha = 0.5f
+            }
+            else -> {
+                holder.cardExercise.strokeWidth = 0
+                holder.cardExercise.alpha = 1f
+            }
+        }
+
+        holder.addSetButton.isEnabled = canAddSet
+        holder.addSetButton.alpha = if (canAddSet) 1f else 0.5f
+        holder.duplicateSetButton.isEnabled = canAddSet
+        holder.duplicateSetButton.alpha = if (canAddSet) 1f else 0.5f
+        holder.itemView.isClickable = canAddSet
+        holder.itemView.isFocusable = canAddSet
+
+        holder.itemView.setOnLongClickListener {
+            onExerciseLongPress(position)
+            true
+        }
 
         // Get exercise note from library
         val trainingData = jsonHelper.readTrainingData()
@@ -259,9 +335,9 @@ class ActiveExercisesAdapter(
         val recommendation = exerciseRecommendations[groupedExercise.exerciseId]
         val recommendedSetsCount = recommendation?.recommendedSets
         
-        // Count only working sets (exclude warmup)
-        val currentWorkingSets = completedSets.count { !it.isWarmup && (it.kg > 0f || it.completed == true) }
-        val lastWorkingSets = lastWorkoutSets.count { !it.isWarmup }
+        // Count only working sets (exclude warmup: isWarmup or legacy RPE 6)
+        val currentWorkingSets = completedSets.count { !it.isEffectivelyWarmup() && (it.kg > 0f || it.completed == true) }
+        val lastWorkingSets = lastWorkoutSets.count { !it.isEffectivelyWarmup() }
         
         // Show completion checkmark if user has logged the recommended number of sets
         // or if they've logged the last number of sets (when no recommendation exists)
@@ -286,11 +362,11 @@ class ActiveExercisesAdapter(
         if (hasSets && completedSets.isNotEmpty()) {
             val sortedCurrentSets = completedSets.sortedBy { it.setNumber }
             
-            // Separate into warmup and working sets (detect warmup from RPE 6.0 for legacy data)
-            val currentWarmupSets = sortedCurrentSets.filter { it.isWarmup || it.rpe == 6.0f }
-            val currentWorkingSets = sortedCurrentSets.filter { !it.isWarmup && it.rpe != 6.0f }
-            val lastWarmupSets = lastWorkoutSets.filter { it.isWarmup || it.rpe == 6.0f }
-            val lastWorkingSets = lastWorkoutSets.filter { !it.isWarmup && it.rpe != 6.0f }
+            // Separate into warmup and working sets (legacy: RPE 6 = warmup; new data: use isWarmup only)
+            val currentWarmupSets = sortedCurrentSets.filter { it.isEffectivelyWarmup() }
+            val currentWorkingSets = sortedCurrentSets.filter { !it.isEffectivelyWarmup() }
+            val lastWarmupSets = lastWorkoutSets.filter { it.isEffectivelyWarmup() }
+            val lastWorkingSets = lastWorkoutSets.filter { !it.isEffectivelyWarmup() }
             
             // Build display text with matching
             val currentSetsText = mutableListOf<String>()
@@ -443,9 +519,9 @@ class ActiveExercisesAdapter(
             }
             
             if (lastWorkoutSets.isNotEmpty()) {
-                // Show all last workout sets (detect warmup from RPE 6.0 for legacy data)
-                val lastWarmupSets = lastWorkoutSets.filter { it.isWarmup || it.rpe == 6.0f }
-                val lastWorkingSets = lastWorkoutSets.filter { !it.isWarmup && it.rpe != 6.0f }
+                // Show all last workout sets (legacy: RPE 6 = warmup; new: use isWarmup only)
+                val lastWarmupSets = lastWorkoutSets.filter { it.isEffectivelyWarmup() }
+                val lastWorkingSets = lastWorkoutSets.filter { !it.isEffectivelyWarmup() }
                 val lastSetsText = mutableListOf<String>()
                 
                 // Format warmup sets
@@ -491,14 +567,14 @@ class ActiveExercisesAdapter(
 
         // --- CLICK LISTENERS ---
 
-        // 1. Add Set (Plus button)
+        // 1. Add Set (Plus button) - only when canAddSet (active or waiting in superset)
         holder.addSetButton.setOnClickListener {
-            onAddSetClicked(groupedExercise.exerciseId, groupedExercise.exerciseName)
+            if (canAddSet) onAddSetClicked(groupedExercise.exerciseId, groupedExercise.exerciseName)
         }
 
-        // 2. Duplicate Last Set
+        // 2. Duplicate Last Set - only when canAddSet
         holder.duplicateSetButton.setOnClickListener {
-            onDuplicateSetClicked(groupedExercise.exerciseId)
+            if (canAddSet) onDuplicateSetClicked(groupedExercise.exerciseId)
         }
 
         // 3. Edit (Pencil button)
@@ -511,15 +587,26 @@ class ActiveExercisesAdapter(
             onDeleteExerciseClicked(groupedExercise.exerciseId)
         }
         
-        // 5. Card Body Click -> Trigger Edit
-        // This is a UX improvement: tapping the text allows editing the pre-filled targets
+        // 5. Card Body Click -> Trigger Edit or Add (only when canAddSet for add)
         holder.itemView.setOnClickListener {
+            if (!canAddSet) return@setOnClickListener
             if (hasSets) {
                 onEditActivityClicked(groupedExercise)
             } else {
                 onAddSetClicked(groupedExercise.exerciseId, groupedExercise.exerciseName)
             }
         }
+    }
+
+    private fun showRemoveSupersetDialog(context: Context, supersetGroupId: String) {
+        DialogHelper.createBuilder(context)
+            .setTitle(context.getString(R.string.dialog_title_remove_superset))
+            .setMessage(context.getString(R.string.dialog_message_remove_superset))
+            .setPositiveButton(context.getString(R.string.button_remove_superset)) { _, _ ->
+                onUnlinkSuperset(supersetGroupId)
+            }
+            .setNegativeButton(context.getString(R.string.button_cancel), null)
+            .showWithTransparentWindow()
     }
 
     override fun getItemCount() = groupedExercises.size + 1
@@ -569,7 +656,7 @@ class ActiveExercisesAdapter(
     
     /**
      * Get progression suggestion for an exercise based on selected intent.
-     * Returns null for FLUSH intent (no progression suggestions).
+     * Returns null for WARMUP or if no intent selected.
      */
     private fun getSuggestionForIntent(context: Context, exerciseId: Int, intent: SetIntent?): String? {
         return getSuggestionInfo(context, exerciseId, intent)?.text
@@ -577,11 +664,11 @@ class ActiveExercisesAdapter(
     
     /**
      * Get progression suggestion info including suggested sets count.
-     * Returns null for FLUSH intent (no progression suggestions).
+     * Returns null for WARMUP or if no intent selected.
      */
     private fun getSuggestionInfo(context: Context, exerciseId: Int, intent: SetIntent?): SuggestionInfo? {
-        // No suggestion for FLUSH, WARMUP, or if no intent selected
-        if (intent == null || intent == SetIntent.FLUSH || intent == SetIntent.WARMUP) {
+        // No suggestion for WARMUP or if no intent selected
+        if (intent == null || intent == SetIntent.WARMUP) {
             return null
         }
         

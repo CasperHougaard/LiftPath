@@ -62,7 +62,10 @@ object ProgressionHelper {
         // Last session context (for reference)
         val lastWeight: Float? = null,
         val lastReps: Int? = null,
-        val lastRpe: Float? = null
+        val lastRpe: Float? = null,
+
+        // Explicit suggested weight (e.g. for FLUSH: 50% of 1RM)
+        val suggestedWeight: Float? = null
     )
 
     // ============================================================================================
@@ -89,7 +92,15 @@ object ProgressionHelper {
         // --- 1RM ESTIMATION PERCENTAGES ---
         val strength1RMPercent: Float = 0.85f,  // ~5 rep max (85% of 1RM)
         val build1RMPercent: Float = 0.70f,     // ~10 rep max (70% of 1RM)
-        
+
+        // --- FLUSH intent (light, high rep, pump) ---
+        val flush1RMPercent: Float = 0.5f,       // 50% of 1RM
+        val flushTargetReps: Int = 20,
+        val flushTargetSets: Int = 2,
+        val flushTargetRpe: Float = 6.5f,        // 6-7 RPE midpoint
+        val flushRepsToIncrease: Int = 25,       // If hit 25+ reps @ 7 RPE, consider increase
+        val flushWeightIncrementKg: Float = 2.5f, // Bump when FLUSH-only progression triggers
+
         // --- TIME DECAY (kept for detraining detection) ---
         val timeDecayThresholds: List<Int> = listOf(14, 30, 60),
         val timeDecayMultipliers: List<Float> = listOf(0.95f, 0.90f, 0.85f),
@@ -103,6 +114,10 @@ object ProgressionHelper {
         val strengthRestSeconds: Int = 180,  // 3 minutes
         val buildRestSeconds: Int = 90,      // 1.5 minutes
         val flushRestSeconds: Int = 45,      // 45 seconds
+
+        // SuperSet timer: transition (first exercise) and rest bonus (second exercise)
+        val supersetTransitionSeconds: Int = 35,
+        val supersetRestBonusSeconds: Int = 45,
 
         // RPE Timer Adjustments (Smart Rest)
         val rpeAdjustmentEnabled: Boolean = true,
@@ -158,9 +173,13 @@ object ProgressionHelper {
         trainingData: TrainingData,
         settings: ProgressionSettings = ProgressionSettings()
     ): IntentSuggestion {
-        // FLUSH and WARMUP - no progression suggestions
-        if (intent == SetIntent.FLUSH || intent == SetIntent.WARMUP || intent == SetIntent.UNKNOWN) {
+        // WARMUP and UNKNOWN - no progression suggestions
+        if (intent == SetIntent.WARMUP || intent == SetIntent.UNKNOWN) {
             return createNoSuggestion(exerciseId, intent)
+        }
+        // FLUSH - dedicated suggestion logic
+        if (intent == SetIntent.FLUSH) {
+            return calculateFlushSuggestion(exerciseId, trainingData, settings)
         }
         
         // Get history with cross-intent fallback
@@ -207,7 +226,7 @@ object ProgressionHelper {
         return when (intent) {
             SetIntent.STRENGTH -> settings.strengthTargetRpe
             SetIntent.BUILD -> settings.buildTargetRpe
-            SetIntent.FLUSH -> 7.0f  // Fixed low RPE for flush
+            SetIntent.FLUSH -> settings.flushTargetRpe  // 6-7 RPE for flush
             else -> 7.5f
         }
     }
@@ -219,6 +238,7 @@ object ProgressionHelper {
         return when (intent) {
             SetIntent.STRENGTH -> settings.strengthMinReps to settings.strengthMaxReps
             SetIntent.BUILD -> settings.buildMinReps to settings.buildMaxReps
+            SetIntent.FLUSH -> settings.flushTargetReps to settings.flushTargetReps  // (20, 20)
             else -> 8 to 15  // Default range
         }
     }
@@ -490,7 +510,7 @@ object ProgressionHelper {
         }
     }
     
-    // --- Helper: No suggestion (FLUSH, WARMUP, etc.) ---
+    // --- Helper: No suggestion (WARMUP, etc.) ---
     private fun createNoSuggestion(exerciseId: Int, intent: SetIntent): IntentSuggestion {
         return IntentSuggestion(
             exerciseId = exerciseId,
@@ -504,6 +524,135 @@ object ProgressionHelper {
             isFirstTime = false,
             isEstimated = false
         )
+    }
+
+    // --- FLUSH suggestion: 2 sets × (50% of 1RM) × 20 reps @ 6-7 RPE ---
+    private fun calculateFlushSuggestion(
+        exerciseId: Int,
+        trainingData: TrainingData,
+        settings: ProgressionSettings
+    ): IntentSuggestion {
+        val targetReps = settings.flushTargetReps
+        val targetSets = settings.flushTargetSets
+        val targetRpe = settings.flushTargetRpe
+
+        // 1. Get 1RM estimate: STRENGTH → BUILD → FLUSH-only
+        val estimated1RM = getFlush1RM(exerciseId, trainingData, settings)
+        if (estimated1RM == null || estimated1RM <= 0f) {
+            return IntentSuggestion(
+                exerciseId = exerciseId,
+                intent = SetIntent.FLUSH,
+                suggestedSets = targetSets,
+                suggestedReps = targetReps,
+                suggestedRpe = targetRpe,
+                weightAction = WeightAction.START_LIGHT,
+                displayText = "Start light, 2×20 reps @ RPE 6-7",
+                badge = "NEW",
+                isFirstTime = true,
+                isEstimated = false,
+                suggestedWeight = null
+            )
+        }
+
+        // 2. Base suggestion: 50% of 1RM
+        var suggestedWeight = estimated1RM * settings.flush1RMPercent
+
+        // 3. FLUSH-only progression: if last session 25+ reps @ 7 RPE and 1RM unchanged → increase
+        val flushHistory = getFlushHistory(exerciseId, trainingData)
+        val hasStrengthOrBuildHistory = getFlush1RM(exerciseId, trainingData, settings, fromStrengthOrBuildOnly = true) != null
+        if (!hasStrengthOrBuildHistory && flushHistory.size >= 1) {
+            val lastSession = flushHistory.last()
+            val prevSession = flushHistory.getOrNull(flushHistory.size - 2)
+            val lastInferred1RM = estimate1RMFromHighReps(
+                lastSession.representativeWeight,
+                lastSession.representativeReps,
+                lastSession.representativeRpe
+            )
+            val prevInferred1RM = prevSession?.let {
+                estimate1RMFromHighReps(it.representativeWeight, it.representativeReps, it.representativeRpe)
+            }
+            val repsMet = lastSession.representativeReps >= settings.flushRepsToIncrease
+            val rpeMet = lastSession.representativeRpe <= 7.0f
+            val oneRMUnchanged = prevInferred1RM == null || kotlin.math.abs(lastInferred1RM - prevInferred1RM) / prevInferred1RM < 0.02f
+            if (repsMet && rpeMet && oneRMUnchanged) {
+                suggestedWeight += settings.flushWeightIncrementKg
+            }
+        }
+
+        val weightStr = formatWeight(suggestedWeight)
+        val displayText = "2×${weightStr}kg × $targetReps reps @ RPE 6-7"
+
+        return IntentSuggestion(
+            exerciseId = exerciseId,
+            intent = SetIntent.FLUSH,
+            suggestedSets = targetSets,
+            suggestedReps = targetReps,
+            suggestedRpe = targetRpe,
+            weightAction = WeightAction.MAINTAIN,
+            displayText = displayText,
+            badge = null,
+            isFirstTime = false,
+            isEstimated = false,
+            lastWeight = suggestedWeight,
+            lastReps = targetReps,
+            lastRpe = targetRpe,
+            suggestedWeight = suggestedWeight
+        )
+    }
+
+    /**
+     * Get estimated 1RM for FLUSH suggestion.
+     * Priority: STRENGTH history → BUILD history → FLUSH-only (inferred from high-rep sets).
+     */
+    private fun getFlush1RM(
+        exerciseId: Int,
+        data: TrainingData,
+        settings: ProgressionSettings,
+        fromStrengthOrBuildOnly: Boolean = false
+    ): Float? {
+        if (!fromStrengthOrBuildOnly) {
+            val strengthSets = extractRawSets(exerciseId, SetIntent.STRENGTH, data)
+            if (strengthSets.isNotEmpty()) {
+                val sessions = strengthSets.groupBy { it.date }.map { (date, sets) ->
+                    aggregateSessionSets(sets, SetIntent.STRENGTH)
+                }.sortedBy { it.date }
+                return sessions.maxByOrNull { it.estimated1RM }?.estimated1RM
+            }
+            val buildSets = extractRawSets(exerciseId, SetIntent.BUILD, data)
+            if (buildSets.isNotEmpty()) {
+                val sessions = buildSets.groupBy { it.date }.map { (date, sets) ->
+                    aggregateSessionSets(sets, SetIntent.BUILD)
+                }.sortedBy { it.date }
+                return sessions.maxByOrNull { it.estimated1RM }?.estimated1RM
+            }
+        } else {
+            val strengthSets = extractRawSets(exerciseId, SetIntent.STRENGTH, data)
+            val buildSets = extractRawSets(exerciseId, SetIntent.BUILD, data)
+            if (strengthSets.isNotEmpty() || buildSets.isNotEmpty()) return 1f
+            return null
+        }
+        val flushHistory = getFlushHistory(exerciseId, data)
+        return flushHistory.lastOrNull()?.let {
+            estimate1RMFromHighReps(it.representativeWeight, it.representativeReps, it.representativeRpe)
+        }
+    }
+
+    private fun getFlushHistory(exerciseId: Int, data: TrainingData): List<AggregatedSession> {
+        val flushSets = extractRawSets(exerciseId, SetIntent.FLUSH, data)
+        if (flushSets.isEmpty()) return emptyList()
+        return flushSets.groupBy { it.date }
+            .map { (_, sets) -> aggregateSessionSets(sets, SetIntent.FLUSH) }
+            .sortedBy { it.date }
+    }
+
+    /**
+     * Estimate 1RM from high-rep FLUSH sets (20-25 reps).
+     * Epley extended with RPE normalization.
+     */
+    private fun estimate1RMFromHighReps(weight: Float, reps: Int, rpe: Float): Float {
+        val repsInReserve = 10f - rpe
+        val effectiveReps = (reps + repsInReserve).toInt().coerceIn(1, 35)
+        return weight * (1 + effectiveReps / 30f)
     }
     
     // --- Helper: First time with this intent ---
@@ -1091,8 +1240,23 @@ object ProgressionHelper {
                     hadFailure = sets.any { it.hadFailure }
                 )
             }
+            SetIntent.FLUSH -> {
+                // Use set with highest inferred 1RM (estimate1RMFromHighReps with RPE)
+                val bestSet = sets.maxByOrNull {
+                    estimate1RMFromHighReps(it.weight, it.reps, it.rpe)
+                }!!
+                val est1RM = estimate1RMFromHighReps(bestSet.weight, bestSet.reps, bestSet.rpe)
+                AggregatedSession(
+                    date = bestSet.date,
+                    representativeWeight = bestSet.weight,
+                    representativeReps = bestSet.reps,
+                    representativeRpe = bestSet.rpe,
+                    estimated1RM = est1RM,
+                    hadFailure = sets.any { it.hadFailure }
+                )
+            }
             else -> {
-                // FLUSH/WARMUP - just use first set
+                // WARMUP etc - just use first set
                 val firstSet = sets.first()
                 AggregatedSession(
                     date = firstSet.date,

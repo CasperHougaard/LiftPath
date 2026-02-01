@@ -269,6 +269,10 @@ class ProgressOverviewFragment : Fragment() {
 
         binding.cardMuscleMap.visibility = View.VISIBLE
 
+        binding.webviewMuscleMap.apply {
+            setBackgroundColor(android.graphics.Color.TRANSPARENT)
+            setLayerType(View.LAYER_TYPE_HARDWARE, null)
+        }
         binding.webviewMuscleMap.settings.apply {
             javaScriptEnabled = true
             useWideViewPort = true

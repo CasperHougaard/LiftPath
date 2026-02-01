@@ -571,6 +571,56 @@
                                 android:text="Rest time for Flush intent sets (default: 45s)"
                                 android:textSize="12sp"
                                 android:textColor="@color/fitness_text_secondary" />
+
+                            <com.google.android.material.textfield.TextInputLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="12dp"
+                                android:hint="@string/settings_superset_transition_hint"
+                                app:boxBackgroundMode="outline"
+                                app:boxStrokeColor="@color/fitness_primary"
+                                app:hintTextColor="@color/fitness_primary">
+
+                                <com.google.android.material.textfield.TextInputEditText
+                                    android:id="@+id/etSupersetTransition"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:inputType="number"
+                                    android:textColor="@color/fitness_text_primary" />
+                            </com.google.android.material.textfield.TextInputLayout>
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="8dp"
+                                android:text="@string/settings_superset_transition_description"
+                                android:textSize="12sp"
+                                android:textColor="@color/fitness_text_secondary" />
+
+                            <com.google.android.material.textfield.TextInputLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="12dp"
+                                android:hint="@string/settings_superset_rest_bonus_hint"
+                                app:boxBackgroundMode="outline"
+                                app:boxStrokeColor="@color/fitness_primary"
+                                app:hintTextColor="@color/fitness_primary">
+
+                                <com.google.android.material.textfield.TextInputEditText
+                                    android:id="@+id/etSupersetRestBonus"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:inputType="number"
+                                    android:textColor="@color/fitness_text_primary" />
+                            </com.google.android.material.textfield.TextInputLayout>
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="8dp"
+                                android:text="@string/settings_superset_rest_bonus_description"
+                                android:textSize="12sp"
+                                android:textColor="@color/fitness_text_secondary" />
                         </LinearLayout>
 
                         <LinearLayout

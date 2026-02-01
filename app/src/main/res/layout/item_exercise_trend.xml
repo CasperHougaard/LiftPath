@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/card_exercise_trend"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginStart="4dp"
@@ -10,7 +11,9 @@
     android:layout_marginBottom="12dp"
     app:cardBackgroundColor="@color/fitness_card_background"
     app:cardCornerRadius="16dp"
-    app:cardElevation="2dp">
+    app:cardElevation="2dp"
+    app:strokeWidth="2dp"
+    app:strokeColor="@color/pr_older">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -216,6 +219,157 @@
                 tools:visibility="visible" />
         </LinearLayout>
 
+        <!-- Personal Records Section -->
+        <View
+            android:id="@+id/divider_prs"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="8dp"
+            android:background="@color/fitness_text_secondary"
+            android:alpha="0.2"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/text_prs_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/all_time_records"
+            android:textColor="@color/fitness_text_secondary"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+        <!-- PR Grid (2x2) -->
+        <LinearLayout
+            android:id="@+id/layout_pr_grid"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <!-- Left Column -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="8dp"
+                android:orientation="vertical">
+
+                <!-- Weight PR -->
+                <LinearLayout
+                    android:id="@+id/layout_pr_weight"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+                    
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/weight_pr_label"
+                        android:textColor="@color/fitness_text_secondary"
+                        android:textSize="11sp" />
+                    
+                    <TextView
+                        android:id="@+id/text_pr_weight"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/fitness_text_primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        tools:text="100kg" />
+                </LinearLayout>
+
+                <!-- Volume PR -->
+                <LinearLayout
+                    android:id="@+id/layout_pr_volume"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+                    
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/volume_pr_label"
+                        android:textColor="@color/fitness_text_secondary"
+                        android:textSize="11sp" />
+                    
+                    <TextView
+                        android:id="@+id/text_pr_volume"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/fitness_text_primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        tools:text="3,250kg" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Right Column -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:orientation="vertical">
+
+                <!-- 1RM PR -->
+                <LinearLayout
+                    android:id="@+id/layout_pr_1rm"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+                    
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/one_rm_pr_label"
+                        android:textColor="@color/fitness_text_secondary"
+                        android:textSize="11sp" />
+                    
+                    <TextView
+                        android:id="@+id/text_pr_1rm"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/fitness_text_primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        tools:text="125kg" />
+                </LinearLayout>
+
+                <!-- Reps PR -->
+                <LinearLayout
+                    android:id="@+id/layout_pr_reps"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+                    
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/reps_pr_label"
+                        android:textColor="@color/fitness_text_secondary"
+                        android:textSize="11sp" />
+                    
+                    <TextView
+                        android:id="@+id/text_pr_reps"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/fitness_text_primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        tools:text="22 @ 52.5kg" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+
         <!-- First Time Note -->
         <TextView
             android:id="@+id/text_first_time_note"
@@ -229,4 +383,4 @@
             android:visibility="gone"
             tools:visibility="gone" />
     </LinearLayout>
-</androidx.cardview.widget.CardView>
+</com.google.android.material.card.MaterialCardView>

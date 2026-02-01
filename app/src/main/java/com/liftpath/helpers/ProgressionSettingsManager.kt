@@ -72,13 +72,24 @@ class ProgressionSettingsManager(context: Context) {
             needsMigration = true
         }
         
+        // SuperSet timer defaults (old saved settings may have 0 from missing keys)
+        var newSupersetTransition = settings.supersetTransitionSeconds
+        var newSupersetRestBonus = settings.supersetRestBonusSeconds
+        if (settings.supersetTransitionSeconds == 0 && settings.supersetRestBonusSeconds == 0) {
+            newSupersetTransition = 35
+            newSupersetRestBonus = 45
+            needsMigration = true
+        }
+        
         return if (needsMigration) {
             settings.copy(
                 heavyRestSeconds = newHeavyRestSeconds,
                 lightRestSeconds = newLightRestSeconds,
                 strengthRestSeconds = newStrengthRestSeconds,
                 buildRestSeconds = newBuildRestSeconds,
-                flushRestSeconds = newFlushRestSeconds
+                flushRestSeconds = newFlushRestSeconds,
+                supersetTransitionSeconds = newSupersetTransition,
+                supersetRestBonusSeconds = newSupersetRestBonus
             )
         } else {
             settings

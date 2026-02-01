@@ -111,6 +111,8 @@ class ProgressionSettingsActivity : AppCompatActivity() {
         binding.etStrengthRest.setText(settings.strengthRestSeconds.toString())
         binding.etBuildRest.setText(settings.buildRestSeconds.toString())
         binding.etFlushRest.setText(settings.flushRestSeconds.toString())
+        binding.etSupersetTransition.setText(settings.supersetTransitionSeconds.toString())
+        binding.etSupersetRestBonus.setText(settings.supersetRestBonusSeconds.toString())
         
         binding.switchRpeAdjustment.isChecked = settings.rpeAdjustmentEnabled
         binding.etRpeThreshold.setText(settings.rpeHighThreshold.toString())
@@ -272,6 +274,8 @@ class ProgressionSettingsActivity : AppCompatActivity() {
                 strengthRestSeconds = binding.etStrengthRest.text.toString().toInt(),
                 buildRestSeconds = binding.etBuildRest.text.toString().toInt(),
                 flushRestSeconds = binding.etFlushRest.text.toString().toInt(),
+                supersetTransitionSeconds = binding.etSupersetTransition.text.toString().toInt(),
+                supersetRestBonusSeconds = binding.etSupersetRestBonus.text.toString().toInt(),
                 
                 // RPE adjustment settings
                 rpeAdjustmentEnabled = binding.switchRpeAdjustment.isChecked,
@@ -352,6 +356,14 @@ class ProgressionSettingsActivity : AppCompatActivity() {
             }
             settings.flushRestSeconds < 5 || settings.flushRestSeconds > 600 -> {
                 Toast.makeText(this, "Flush rest must be between 5 and 600 seconds", Toast.LENGTH_LONG).show()
+                return false
+            }
+            settings.supersetTransitionSeconds < 5 || settings.supersetTransitionSeconds > 300 -> {
+                Toast.makeText(this, "SuperSet transition must be between 5 and 300 seconds", Toast.LENGTH_LONG).show()
+                return false
+            }
+            settings.supersetRestBonusSeconds < 0 || settings.supersetRestBonusSeconds > 300 -> {
+                Toast.makeText(this, "SuperSet rest bonus must be between 0 and 300 seconds", Toast.LENGTH_LONG).show()
                 return false
             }
             settings.notificationAutoDismissEnabled && (settings.notificationAutoDismissSeconds < 1 || settings.notificationAutoDismissSeconds > 60) -> {

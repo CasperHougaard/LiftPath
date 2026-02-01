@@ -480,7 +480,15 @@ class ProgressMusclesFragment : Fragment() {
                     previousEstimated1RM = null,
                     currentTopSet = null,
                     previousTopSet = null,
-                    isPR = false
+                    isPR = false,
+                    prWeight = null,
+                    prWeightDate = 0L,
+                    prVolume = null,
+                    prVolumeDate = 0L,
+                    pr1RM = null,
+                    pr1RMDate = 0L,
+                    prReps = null,
+                    prRepsDate = 0L
                 )
             }
             

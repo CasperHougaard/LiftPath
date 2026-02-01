@@ -355,7 +355,22 @@ Leave blank if you\'re not sure.]]></string>
     <string name="button_add_special">Add Special</string>
     <string name="tile_warmup">Warmup</string>
     <string name="tile_cooldown">Cooldown</string>
+    <string name="tile_superset">SuperSet</string>
+    <string name="toast_add_exercise_first">Add an exercise first</string>
     <string name="warmup_timer_title">Warmup Timer</string>
+    <string name="settings_superset_transition_hint">SuperSet transition (seconds)</string>
+    <string name="settings_superset_transition_description">Short break after first exercise in superset (default: 35s)</string>
+    <string name="settings_superset_rest_bonus_hint">SuperSet rest bonus (seconds)</string>
+    <string name="settings_superset_rest_bonus_description">Extra rest added after second exercise in superset (default: 45s)</string>
+    <string name="superset_connector_content_description">Superset pair</string>
+    <string name="superset_link_remove">Remove superset link</string>
+    <string name="dialog_title_remove_superset">Remove superset link?</string>
+    <string name="dialog_message_remove_superset">Exercises will become separate. Logged sets are kept.</string>
+    <string name="button_remove_superset">Remove link</string>
+    <string name="toast_longpress_another_superset">Long-press another exercise to connect as SuperSet</string>
+    <string name="toast_select_consecutive_superset">Select consecutive exercises for SuperSet</string>
+    <string name="dialog_title_connect_superset">Connect as SuperSet?</string>
+    <string name="dialog_message_connect_superset">Connect these exercises as a SuperSet: %1$s</string>
     
     <!-- Workout Report -->
     <string name="workout_complete_title">Workout Complete!</string>
@@ -441,9 +456,11 @@ Leave blank if you\'re not sure.]]></string>
     <string name="progress_no_muscle_data">No training data for this muscle group</string>
     <string name="progress_muscle_trends">Muscle Trends</string>
     <string name="progress_last_4_weeks">Last 4 weeks (1RM > Volume > Strength)</string>
+    <string name="muscle_legend_strong_improvement">Strong +</string>
     <string name="muscle_legend_improving">Improving</string>
     <string name="muscle_legend_stable">Stable</string>
     <string name="muscle_legend_declining">Declining</string>
+    <string name="muscle_legend_strong_decline">Strong −</string>
     <string name="muscle_legend_first_time">First Time</string>
     <string name="muscle_legend_no_data">No Data</string>
     <string name="progress_no_exercises">No exercises found</string>
@@ -467,6 +484,11 @@ Leave blank if you\'re not sure.]]></string>
     <string name="progress_week_streak">Week Streak</string>
     <string name="progress_pr_timeline">PR Timeline</string>
     <string name="progress_no_prs">No PRs recorded yet. Keep training!</string>
+    <string name="progress_last_pr">Last PR</string>
+    <string name="progress_reps">Reps</string>
+    <string name="progress_today">Today</string>
+    <string name="progress_yesterday">Yesterday</string>
+    <string name="progress_days_ago">%d days ago</string>
     
     <!-- Intent Progression Settings -->
     <string name="settings_intent_progression_title">Intent Progression</string>
@@ -482,5 +504,12 @@ Leave blank if you\'re not sure.]]></string>
     <string name="settings_progression_info_body">STRENGTH/BUILD: If you hit max reps with RPE below threshold, increase weight and reset to min reps. Otherwise, aim for +1 rep.\n\nFLUSH: No progression - just high reps for pump and recovery.</string>
     <string name="settings_fallback_days">Intent Fallback Days</string>
     <string name="settings_fallback_days_hint">Days before using data from other intent (default: 30)</string>
+    
+    <!-- Workout Report PR Labels -->
+    <string name="all_time_records">All-Time Records</string>
+    <string name="weight_pr_label">Weight</string>
+    <string name="volume_pr_label">Volume</string>
+    <string name="one_rm_pr_label">1RM</string>
+    <string name="reps_pr_label">Reps</string>
 </resources>
 

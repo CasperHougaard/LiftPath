@@ -806,9 +806,11 @@ object OneRMEstimationHelper {
 
     /**
      * Infer intent from set properties (mirrors getEffectiveIntent logic from ExerciseEntry).
+     * Used only when we have ExerciseSet (no explicitIntent) - i.e. legacy/aggregated data.
+     * For legacy data, RPE 6 was used to denote warmup. New data uses isWarmup flag.
      */
     private fun inferIntent(reps: Int, rpe: Float?, workoutType: String?): SetIntent {
-        // RPE 6 is warmup
+        // Legacy only: RPE 6 = warmup (ExerciseSet has no explicitIntent, so this path is legacy)
         if (rpe == 6.0f) return SetIntent.WARMUP
         
         return when (workoutType?.lowercase()) {

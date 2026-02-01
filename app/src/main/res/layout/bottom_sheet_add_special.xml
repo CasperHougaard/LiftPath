@@ -48,6 +48,11 @@
             <include
                 android:id="@+id/tile_cooldown"
                 layout="@layout/item_workout_mode_tile" />
+
+            <!-- SuperSet Tile -->
+            <include
+                android:id="@+id/tile_superset"
+                layout="@layout/item_workout_mode_tile" />
         </LinearLayout>
     </LinearLayout>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

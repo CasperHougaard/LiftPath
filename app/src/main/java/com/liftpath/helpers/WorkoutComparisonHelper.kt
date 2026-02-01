@@ -145,6 +145,10 @@ object WorkoutComparisonHelper {
         // Get previous sessions (excluding current)
         val previousSessions = allSessions.filter { it.id != currentSession.id }
         
+        // Get exercise stats summaries (includes all-time PRs with dates)
+        val exerciseSummaries = ProgressAnalysisHelper.getExerciseStatsSummaries(allSessions, exerciseLibrary)
+        val summaryMap = exerciseSummaries.associateBy { it.exerciseId }
+        
         // Group current session exercises
         val exerciseGroups = currentSession.exercises.groupBy { it.exerciseId }
         
@@ -199,6 +203,9 @@ object WorkoutComparisonHelper {
                 exerciseId, exerciseIntent, previousSessions
             )
             
+            // Get PR data from summary (all-time bests)
+            val summary = summaryMap[exerciseId]
+            
             trends.add(ExerciseTrendData(
                 exerciseId = exerciseId,
                 exerciseName = exerciseName,
@@ -209,7 +216,15 @@ object WorkoutComparisonHelper {
                 previousEstimated1RM = previous1RM,
                 currentTopSet = currentTopSet,
                 previousTopSet = previousTopSet,
-                isPR = isPR
+                isPR = isPR,
+                prWeight = summary?.bestWeight,
+                prWeightDate = summary?.lastPrDate ?: 0L,
+                prVolume = summary?.bestVolume,
+                prVolumeDate = summary?.lastPrDate ?: 0L,
+                pr1RM = summary?.best1RM,
+                pr1RMDate = summary?.lastPrDate ?: 0L,
+                prReps = summary?.bestRepsRecord,
+                prRepsDate = summary?.lastPrDate ?: 0L
             ))
         }
         

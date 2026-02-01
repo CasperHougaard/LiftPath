@@ -2,287 +2,107 @@
 
 ## Overview
 
-The PR system tracks personal records across multiple dimensions to help users monitor their strength training progress. PRs are detected automatically as users log their workouts and are displayed in the Progress section of the app.
+The PR system tracks personal records across multiple dimensions for the "Hybrid Athlete" training style (Strength, Build, Flush). PRs are detected automatically as users log their workouts. The PR page shows a **Player Stats Card** list of exercises (one card per exercise with best 1RM, weight, volume, reps), sorted by most recent PR first.
 
 ## PR Types
 
 The system tracks four types of PRs:
 
-1. **WEIGHT PR** - Maximum weight lifted for a specific exercise
-2. **VOLUME PR** - Maximum total volume (weight × reps) for a specific exercise in a single session
-3. **ONE_RM PR** - Maximum estimated 1-rep max for a specific exercise
-4. **REPS PR** - Maximum reps performed (defined but not currently implemented)
+1. **WEIGHT PR** - Maximum weight lifted for a specific exercise (all intents)
+2. **VOLUME PR** - Maximum total session volume (weight × reps) for a specific exercise (all intents)
+3. **ONE_RM PR** - Maximum estimated 1-rep max (all intents; sets with effectiveReps > 15 excluded)
+4. **REPS PR** - Maximum reps at a specific weight (±1 kg bucket); display uses **actual weight** (e.g. "22 reps @ 52.5kg")
 
 ## PR Detection Algorithm
 
-### Core Function: `getRecentPRs()`
+### Core: `processSessionsForPRs()` (single chronological pass)
 
 **Location:** `ProgressAnalysisHelper.kt`
-
-**Parameters:**
-- `sessions: List<TrainingSession>` - All training sessions
-- `exerciseLibrary: List<ExerciseLibraryItem>` - Exercise definitions
-- `dayWindow: Int` - Time window for PR detection (default: 30 days)
 
 **Process:**
 
 1. **Chronological Processing**
    - Sessions are sorted by date (oldest first)
-   - PRs are tracked incrementally as the algorithm processes each session
-   - This ensures historical accuracy - a PR is only recorded when it's actually achieved
+   - Per-exercise state: `ExerciseBests` (maxWeight, max1RM, maxVolume, maxRepsAtWeight, sessionVolumes), and `lastPrDate` (Long, timestamp ms) per exercise
 
-2. **Exercise-Level Tracking**
-   - Best values are tracked per exercise ID
-   - Each exercise maintains its own PR history independently
-   - Uses `ExerciseBests` data structure to track:
-     - `maxWeight: Float?` - Highest weight lifted
-     - `max1RM: Float?` - Highest estimated 1RM
-     - `maxVolume: Float?` - Highest session volume
-     - `maxReps: Int?` - Highest reps (for future use)
+2. **Session Deduplication**
+   - At most **one PR per type per exercise per session**
+   - Session bests are buffered; at end of each session, one PRRecord per (exercise, type) that improved is emitted
 
-3. **Set Filtering**
+3. **Four Rules**
+   - **Volume PR (unlocked):** Session volume = sum(weight × reps) for all working sets of that exercise in the session. Eligible for **all intents** (Strength, Build, Flush).
+   - **1RM PR (gated by reps):** `OneRMEstimationHelper.calculateOneRM(entry.kg, entry.reps, entry.rpe)` is called for **all intents**. The helper returns `null` when effectiveReps > 15 or RPE < 6.5, so high-rep sets are excluded.
+   - **Weight PR:** Heaviest single set weight; all intents.
+   - **Reps PR:** Max reps at a given weight. Weight is bucketed with ±1 kg tolerance (bucket = round(weight)); internally stored as `Map<bucket, (maxReps, actualWeightKg)>`. Display string **always uses actual weight** (e.g. "20 reps @ 52.5kg"), not the bucket.
+
+4. **Set Filtering**
    - Warmup sets are excluded (`it.isWarmup == false`)
-   - Only working sets are considered for PR detection
 
-4. **Intent-Aware Processing**
-   - Uses `getEffectiveIntent()` to determine the intent of each set
-   - Intent affects which PR types are eligible:
-     - **STRENGTH intent**: Eligible for Weight PR and 1RM PR
-     - **BUILD intent**: Eligible for Weight PR and Volume PR
-     - **FLUSH intent**: Eligible for Weight PR only
-     - **WARMUP intent**: Excluded from PR detection
+### API
 
-## PR Type Details
+- **`getRecentPRs(sessions, exerciseLibrary, dayWindow)`**  
+  Returns `List<PRRecord>` filtered by `dayWindow` (PRs whose date is within the last `dayWindow` days). Used by Progress Overview "Recent PRs" and by PR page summary stats.
 
-### 1. Weight PR
-
-**Detection Logic:**
-```kotlin
-if (entry.kg > (current.maxWeight ?: 0f)) {
-    // Record PR if within day window
-    if (sessionDate.time >= cutoffDate.time) {
-        prs.add(PRRecord(
-            exerciseName = exerciseName,
-            intent = intent,
-            prType = PRType.WEIGHT,
-            value = entry.kg,
-            previousValue = current.maxWeight,
-            date = session.date
-        ))
-    }
-    current.maxWeight = entry.kg
-}
-```
-
-**Rules:**
-- Applies to ALL intents (STRENGTH, BUILD, FLUSH)
-- Compares current set weight against historical maximum
-- Records previous value for comparison display
-- Updates the exercise's max weight tracker
-
-**Example:**
-- Previous max: 100kg
-- Current set: 102.5kg
-- Result: Weight PR recorded (102.5kg)
-
-### 2. 1RM PR
-
-**Detection Logic:**
-```kotlin
-if (intent == SetIntent.STRENGTH) {
-    val oneRM = OneRMEstimationHelper.calculateOneRM(entry.kg, entry.reps, entry.rpe)
-    if (oneRM != null && oneRM > (current.max1RM ?: 0f)) {
-        // Record PR if within day window
-        if (sessionDate.time >= cutoffDate.time) {
-            prs.add(PRRecord(...))
-        }
-        current.max1RM = oneRM
-    }
-}
-```
-
-**Rules:**
-- **Only for STRENGTH intent sets**
-- Uses `OneRMEstimationHelper.calculateOneRM()` for estimation
-- 1RM calculation uses hybrid formula:
-  - **Epley's formula** (≤8 reps): `1RM = weight × (1 + reps/30)`
-  - **Brzycki's formula** (9-15 reps): `1RM = weight × (36 / (37 - reps))`
-- RPE normalization: If RPE is provided, calculates effective reps
-  - `effectiveReps = actualReps + (10 - RPE)` (reps in reserve)
-- Filters out sets with RPE < 6.5 (too light to be predictive)
-- Filters out sets with effective reps > 15 (unreliable for 1RM)
-
-**Example:**
-- Set: 100kg × 5 reps @ RPE 8.5
-- Effective reps: 5 + (10 - 8.5) = 6.5 → 6 reps
-- Estimated 1RM: 100 × (1 + 6/30) = 120kg
-- If previous max 1RM was 115kg → 1RM PR recorded (120kg)
-
-### 3. Volume PR
-
-**Detection Logic:**
-```kotlin
-if (intent == SetIntent.BUILD) {
-    val sessionVolumeKey = "${exerciseId}_${session.date}"
-    if (!current.sessionVolumes.contains(sessionVolumeKey)) {
-        current.sessionVolumes.add(sessionVolumeKey)
-        val sessionVolume = session.exercises
-            .filter { it.exerciseId == exerciseId && !it.isWarmup }
-            .sumOf { (it.kg * it.reps).toDouble() }
-            .toFloat()
-        
-        if (sessionVolume > (current.maxVolume ?: 0f)) {
-            // Record PR if within day window
-            if (sessionDate.time >= cutoffDate.time) {
-                prs.add(PRRecord(...))
-            }
-            current.maxVolume = sessionVolume
-        }
-    }
-}
-```
-
-**Rules:**
-- **Only for BUILD intent sets**
-- Calculated per session (sum of all sets for that exercise in the session)
-- Formula: `sessionVolume = Σ(weight × reps)` for all non-warmup sets
-- Uses session key to prevent duplicate calculations for the same session
-- Only one Volume PR per exercise per session
-
-**Example:**
-- Session sets for "Bench Press":
-  - Set 1: 80kg × 10 reps = 800kg
-  - Set 2: 80kg × 10 reps = 800kg
-  - Set 3: 80kg × 9 reps = 720kg
-  - Set 4: 80kg × 8 reps = 640kg
-- Total session volume: 2960kg
-- If previous max volume was 2800kg → Volume PR recorded (2960kg)
-
-### 4. Reps PR
-
-**Status:** Defined in `PRType` enum but not currently implemented in `getRecentPRs()`
-
-**Future Implementation:**
-- Would track maximum reps performed at a given weight
-- Could be intent-specific or weight-specific
+- **`getExerciseStatsSummaries(sessions, exerciseLibrary)`**  
+  Returns `List<ExerciseStatsSummary>` for the PR page. One summary per exercise that has at least one PR.  
+  **ExerciseStatsSummary:** `exerciseId`, `exerciseName`, `best1RM`, `bestWeight`, `bestVolume`, `bestRepsRecord` (e.g. "22 reps @ 52.5kg"), **`lastPrDate: Long`** (timestamp ms; 0 if no PRs).  
+  Caller sorts by `lastPrDate` DESC so the exercise with the most recent PR is at the top.
 
 ## PR Record Data Structure
 
 ```kotlin
 data class PRRecord(
-    val exerciseName: String,      // Display name of the exercise
-    val intent: SetIntent,          // Intent when PR was achieved
-    val prType: PRType,             // Type of PR (WEIGHT, VOLUME, ONE_RM, REPS)
-    val value: Float,               // The PR value
-    val previousValue: Float? = null, // Previous best (for comparison)
-    val date: String               // Date of PR (format: "yyyy/MM/dd")
+    val exerciseName: String,
+    val intent: SetIntent,
+    val prType: PRType,
+    val value: Float,
+    val previousValue: Float? = null,
+    val date: String
 )
 ```
 
-## Time Window Filtering
-
-PRs are only recorded if they occur within the specified `dayWindow`:
-
-- Default window: 30 days
-- Calculated from current date backwards
-- PRs outside the window are still tracked internally but not returned in results
-- This allows users to see "recent PRs" vs "all-time PRs"
-
-**Example:**
-- `dayWindow = 30`: Only PRs from the last 30 days
-- `dayWindow = 365`: PRs from the last year
-- `dayWindow = Int.MAX_VALUE`: All PRs ever
-
-## Deduplication
-
-The algorithm uses `distinctBy` to prevent duplicate PRs:
+## ExerciseStatsSummary (Player Stats Card)
 
 ```kotlin
-return prs.distinctBy { "${it.exerciseName}_${it.prType}_${it.date}" }
+data class ExerciseStatsSummary(
+    val exerciseId: Int,
+    val exerciseName: String,
+    val best1RM: Float?,
+    val bestWeight: Float?,
+    val bestVolume: Float?,
+    val bestRepsRecord: String?,  // e.g. "22 reps @ 52.5kg" (actual weight)
+    val lastPrDate: Long          // timestamp ms; 0 if no PRs
+)
 ```
 
-This ensures that if the same PR is detected multiple times (edge cases), only one record is kept.
+- **lastPrDate** is stored as **Long** (timestamp) so the adapter can format flexibly: e.g. "2 days ago" for recent, "Oct 24, 2025" for older. Sorting by Long is fast and unambiguous.
 
-## Weekly Summary Integration
+## Time Window Filtering
 
-The `getWeeklySummary()` function counts PRs for weekly statistics:
+- `getRecentPRs(..., dayWindow)` returns only PRs whose date falls within the last `dayWindow` days.
+- `getExerciseStatsSummaries()` returns **all** exercises that have at least one PR (no day window); the list is then sorted by `lastPrDate` DESC.
 
-- Currently returns `prCount = 0` (simplified implementation)
-- Full implementation would need to cross-reference with PR records
-- Used in Progress Overview to show "PRs this week"
+## UI
 
-## Display and UI
+### PR Page (ProgressPRsFragment)
 
-### PR Timeline View
-- Shows all PRs sorted by date (most recent first)
-- Filterable by PR type (All, Weight, Volume, 1RM)
-- Displays:
-  - Exercise name
-  - Intent badge (STRENGTH, BUILD, FLUSH)
-  - PR type and value
-  - Improvement vs previous value
-  - Date formatted as "MMM dd, yyyy"
+- **List:** One card per exercise (`item_exercise_pr_card.xml`), bound by **ExercisePRStatsAdapter**.
+- **Sorting:** By `lastPrDate` DESC (exercise with most recent PR at top).
+- **Card header:** Exercise name + "Last PR: [formatted date]" (adapter formats `lastPrDate` Long: e.g. "Today", "Yesterday", "3 days ago", "Oct 24, 2025").
+- **Card body:** Four stats in a row: 1RM | Weight | Volume | Reps (value or "—" if null).
+- **Filter chips:** All, Weight, Volume, 1RM, Reps (filter exercises that have that type of PR).
+- **Summary card:** Total PRs, This Month, Week Streak (computed from `getRecentPRs(..., large window)`).
 
-### Recent PRs Cards
-- Shows top 5 most recent PRs
-- Displayed in Progress Overview
-- Shows exercise name, value, intent, and date
+### Progress Overview
 
-### PR Statistics
-- Total PRs: Count of all PRs ever recorded
-- This Month: PRs recorded in current month
-- Week Streak: Consecutive weeks with at least one PR
-
-## Edge Cases and Special Considerations
-
-### Multiple PRs in Same Session
-- If a user achieves multiple PR types in the same session, all are recorded
-- Example: Weight PR (102.5kg) and 1RM PR (120kg) in same session → both recorded
-
-### Same Value PRs
-- If a user matches (but doesn't exceed) a previous PR, no new PR is recorded
-- Only improvements are tracked
-
-### Intent Changes
-- If an exercise is performed with different intents over time, PRs are tracked separately per intent
-- However, Weight PRs are universal (not intent-specific)
-
-### Data Quality
-- Invalid dates are skipped (try-catch around date parsing)
-- Missing exercise data is handled gracefully
-- Warmup sets are automatically excluded
-
-### 1RM Estimation Reliability
-- Sets with RPE < 6.5 are excluded (too light)
-- Sets with effective reps > 15 are excluded (unreliable)
-- RPE normalization improves accuracy for submaximal sets
-
-## Future Enhancements
-
-1. **Reps PR Implementation**
-   - Track maximum reps at a given weight
-   - Could be weight-specific (e.g., "PR for 100kg: 8 reps")
-
-2. **Intent-Specific Weight PRs**
-   - Separate Weight PRs by intent (STRENGTH weight PR vs BUILD weight PR)
-
-3. **Relative PRs**
-   - PRs adjusted for body weight
-   - PRs as percentage of estimated 1RM
-
-4. **PR Streaks**
-   - Track consecutive sessions with PRs
-   - Track PRs per week/month trends
-
-5. **PR Goals**
-   - Allow users to set PR goals
-   - Track progress toward goals
+- "Recent PRs" tiles still use `getRecentPRs(sessions, exerciseLibrary, 30)` and **PRTimelineAdapter** with `item_pr_timeline.xml` (list of PR events, not exercise summaries).
 
 ## Related Files
 
-- `ProgressAnalysisHelper.kt` - Main PR detection logic
-- `OneRMEstimationHelper.kt` - 1RM calculation formulas
-- `PRTimelineAdapter.kt` - UI adapter for PR timeline
-- `ProgressPRsFragment.kt` - Fragment displaying PR timeline
-- `ProgressOverviewFragment.kt` - Shows recent PRs cards
-- `DataModels.kt` - PRType enum and SetIntent enum definitions
+- `ProgressAnalysisHelper.kt` - PR detection, ExerciseStatsSummary, getExerciseStatsSummaries
+- `OneRMEstimationHelper.kt` - 1RM calculation (effectiveReps ≤ 15, RPE ≥ 6.5)
+- `ExercisePRStatsAdapter.kt` - Binds ExerciseStatsSummary to item_exercise_pr_card; formats lastPrDate (Long)
+- `ProgressPRsFragment.kt` - PR page; uses getExerciseStatsSummaries and ExercisePRStatsAdapter
+- `PRTimelineAdapter.kt` - Used by Overview for "Recent PRs" tiles (PRRecord list)
+- `item_exercise_pr_card.xml` - Player Stats Card layout
+- `item_pr_timeline.xml` - Timeline PR item layout (Overview)

@@ -25,6 +25,7 @@ class AddSpecialBottomSheet : DialogFragment() {
 
     private var onWarmupSelected: (() -> Unit)? = null
     private var onCooldownSelected: (() -> Unit)? = null
+    private var onSuperSetSelected: (() -> Unit)? = null
 
     companion object {
         /**
@@ -32,11 +33,13 @@ class AddSpecialBottomSheet : DialogFragment() {
          */
         fun newInstance(
             onWarmupSelected: () -> Unit,
-            onCooldownSelected: () -> Unit
+            onCooldownSelected: () -> Unit,
+            onSuperSetSelected: () -> Unit
         ): AddSpecialBottomSheet {
             return AddSpecialBottomSheet().apply {
                 this.onWarmupSelected = onWarmupSelected
                 this.onCooldownSelected = onCooldownSelected
+                this.onSuperSetSelected = onSuperSetSelected
             }
         }
     }
@@ -116,6 +119,17 @@ class AddSpecialBottomSheet : DialogFragment() {
         cooldownTile.setOnClickListener {
             dismiss()
             onCooldownSelected?.invoke()
+        }
+
+        // SuperSet Tile
+        val supersetTile = view.findViewById<View>(R.id.tile_superset)
+        val supersetIcon = supersetTile.findViewById<ImageView>(R.id.icon_tile)
+        val supersetTitle = supersetTile.findViewById<TextView>(R.id.text_tile_title)
+        supersetIcon.setImageResource(R.drawable.ic_fitness_center_24)
+        supersetTitle.text = getString(R.string.tile_superset)
+        supersetTile.setOnClickListener {
+            dismiss()
+            onSuperSetSelected?.invoke()
         }
     }
 }
