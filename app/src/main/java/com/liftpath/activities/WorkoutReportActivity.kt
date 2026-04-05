@@ -123,28 +123,6 @@ class WorkoutReportActivity : AppCompatActivity() {
                 allSessions,
                 exerciseLibrary
             )
-            
-            Log.d(TAG, "Exercise library has ${exerciseLibrary.size} exercises")
-            
-            // Debug: Check how many exercises have muscle targets
-            val withTargets = exerciseLibrary.filter { it.primaryTargets.isNotEmpty() }
-            Log.d(TAG, "Exercises with muscle targets: ${withTargets.size}")
-            
-            // Debug: Check exercises in this session
-            trainingSession.exercises.distinctBy { it.exerciseId }.forEach { entry ->
-                val ex = exerciseLibrary.find { it.id == entry.exerciseId }
-                Log.d(TAG, "Session exercise: ${entry.exerciseName} (id=${entry.exerciseId})")
-                Log.d(TAG, "  Found in library: ${ex != null}")
-                ex?.let {
-                    Log.d(TAG, "  Primary targets: ${it.primaryTargets}")
-                    Log.d(TAG, "  Secondary targets: ${it.secondaryTargets}")
-                }
-            }
-            
-            Log.d(TAG, "Muscle progress calculated: ${muscleProgress.size} muscles")
-            muscleProgress.forEach { (muscle, progress) ->
-                Log.d(TAG, "  $muscle: ${progress?.let { String.format("%.1f%%", it) } ?: "first time"}")
-            }
 
             // Setup muscle map WebView
             setupMuscleMapWebView(muscleProgress)
@@ -190,42 +168,22 @@ class WorkoutReportActivity : AppCompatActivity() {
     }
 
     private fun updateMuscleMap(muscleProgress: Map<TargetMuscle, Float?>) {
-        if (!isWebViewReady) {
-            Log.d(TAG, "WebView not ready yet")
-            return
-        }
+        if (!isWebViewReady) return
+        if (muscleProgress.isEmpty()) return
 
-        if (muscleProgress.isEmpty()) {
-            Log.d(TAG, "No muscle progress data - showing empty map")
-            return
-        }
+        val improvedMuscles = muscleProgress
+            .filter { (_, progress) -> progress != null && progress > 0 }
+            .keys.toList()
+        val otherMuscles = muscleProgress
+            .filter { (_, progress) -> progress == null || progress <= 0 }
+            .keys.toList()
 
-        Log.d(TAG, "Updating muscle map with ${muscleProgress.size} muscles")
-
-        // Split muscles into improved (primary) and others (secondary) for coloring
-        val improvedMuscles = muscleProgress.filter { (_, progress) -> 
-            progress != null && progress > 0 
-        }.keys.toList()
-        
-        val otherMuscles = muscleProgress.filter { (_, progress) -> 
-            progress == null || progress <= 0 
-        }.keys.toList()
-
-        // Convert to JavaScript arrays for setHighlights function
         val primaryArray = improvedMuscles.joinToString(
-            prefix = "[",
-            postfix = "]",
-            separator = ", "
+            prefix = "[", postfix = "]", separator = ", "
         ) { "'${it.name}'" }
-
         val secondaryArray = otherMuscles.joinToString(
-            prefix = "[",
-            postfix = "]",
-            separator = ", "
+            prefix = "[", postfix = "]", separator = ", "
         ) { "'${it.name}'" }
-
-        Log.d(TAG, "Primary (improved): $primaryArray")
-        Log.d(TAG, "Secondary (other): $secondaryArray")
 
         // Call JavaScript setHighlights function (from muscle_map.html)
         val jsCode = """
@@ -248,8 +206,6 @@ class WorkoutReportActivity : AppCompatActivity() {
             })();
         """.trimIndent()
 
-        binding.webviewMuscleMap.evaluateJavascript(jsCode) { result ->
-            Log.d(TAG, "JavaScript result: $result")
-        }
+        binding.webviewMuscleMap.evaluateJavascript(jsCode) { /* no-op */ }
     }
 }

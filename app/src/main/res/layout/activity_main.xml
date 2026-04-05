@@ -373,7 +373,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="32dp"
-            android:text="Your Progress"
+            android:text="@string/home_section_your_progress"
             android:textColor="@color/fitness_text_primary"
             android:textSize="20sp"
             android:textStyle="bold"
@@ -428,7 +428,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="(1RM)"
+                            android:text="@string/home_lift_est_1rm_label"
                             android:textColor="@color/fitness_text_secondary"
                             android:textSize="10sp"
                             android:layout_marginStart="4dp"/>
@@ -505,7 +505,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="(1RM)"
+                            android:text="@string/home_lift_est_1rm_label"
                             android:textColor="@color/fitness_text_secondary"
                             android:textSize="10sp"
                             android:layout_marginStart="4dp"/>
@@ -547,7 +547,7 @@
         </LinearLayout>
 
         <androidx.cardview.widget.CardView
-            android:id="@+id/card_days_since"
+            android:id="@+id/card_home_momentum"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
@@ -559,40 +559,142 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:padding="16dp"
-                android:orientation="vertical">
-                
+                android:orientation="vertical"
+                android:gravity="center_horizontal">
+
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Consistency"
+                    android:text="@string/home_this_week_so_far"
                     android:textColor="@color/fitness_text_secondary"
                     android:textSize="12sp"
-                    android:layout_gravity="center"/>
+                    android:layout_gravity="center_horizontal"/>
 
+                <TextView
+                    android:id="@+id/text_home_week_summary"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:gravity="center"
+                    android:text="@string/home_week_placeholder"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/fitness_primary"/>
+
+                <TextView
+                    android:id="@+id/text_home_week_insight"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:gravity="center"
+                    android:text="@string/home_week_insight_empty"
+                    android:textSize="12sp"
+                    android:textColor="@color/fitness_text_secondary"
+                    android:maxLines="2"/>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- INSIGHTS ROW -->
+        <LinearLayout
+            android:id="@+id/layout_home_insights"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:orientation="horizontal"
+            android:clipChildren="false"
+            android:clipToPadding="false"
+            app:layout_constraintTop_toBottomOf="@id/card_home_momentum">
+
+            <!-- Recent wins card -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/card_home_recent_wins"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="8dp"
+                app:cardBackgroundColor="@color/fitness_card_background"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="2dp">
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginTop="8dp"
-                    android:gravity="center">
+                    android:padding="16dp"
+                    android:orientation="vertical"
+                    android:gravity="center_horizontal">
                     <TextView
-                        android:id="@+id/text_days_since_workout"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="--"
-                        android:textSize="20sp"
+                        android:text="@string/home_recent_wins"
+                        android:textColor="@color/fitness_text_secondary"
+                        android:textSize="12sp"/>
+                    <TextView
+                        android:id="@+id/text_home_wins_headline"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:gravity="center"
+                        android:text="@string/home_wins_none_headline"
+                        android:textSize="22sp"
                         android:textStyle="bold"
                         android:textColor="@color/fitness_primary"/>
                     <TextView
+                        android:id="@+id/text_home_wins_sub"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:gravity="center"
+                        android:text="@string/home_wins_none_sub"
+                        android:textSize="11sp"
+                        android:textColor="@color/fitness_text_secondary"
+                        android:maxLines="2"/>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- Last workout card -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/card_home_last_workout"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                app:cardBackgroundColor="@color/fitness_card_background"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="2dp">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="16dp"
+                    android:orientation="vertical"
+                    android:gravity="center_horizontal">
+                    <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp"
-                        android:text="days since last workout"
-                        android:textSize="12sp"
-                        android:textColor="@color/fitness_text_secondary"/>
+                        android:text="@string/home_last_workout"
+                        android:textColor="@color/fitness_text_secondary"
+                        android:textSize="12sp"/>
+                    <TextView
+                        android:id="@+id/text_home_last_workout_when"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:gravity="center"
+                        android:text="@string/home_last_workout_never"
+                        android:textSize="22sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/fitness_primary"/>
+                    <TextView
+                        android:id="@+id/text_home_last_workout_detail"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:gravity="center"
+                        android:text="@string/home_last_workout_never_sub"
+                        android:textSize="11sp"
+                        android:textColor="@color/fitness_text_secondary"
+                        android:maxLines="2"/>
                 </LinearLayout>
-            </LinearLayout>
-        </androidx.cardview.widget.CardView>
+            </androidx.cardview.widget.CardView>
+        </LinearLayout>
 
         <!-- CHART CAROUSEL -->
         <androidx.cardview.widget.CardView
@@ -605,7 +707,7 @@
             app:cardCornerRadius="24dp"
             app:cardElevation="4dp"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/card_days_since">
+            app:layout_constraintTop_toBottomOf="@id/layout_home_insights">
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"

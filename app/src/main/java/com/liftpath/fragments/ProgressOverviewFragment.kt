@@ -115,26 +115,36 @@ class ProgressOverviewFragment : Fragment() {
                 maxLines = 1
             }
 
-            // PR value
+            // PR value — format depends on type
             val prValue = TextView(requireContext()).apply {
-                text = String.format(Locale.US, "%.1f kg", pr.value)
+                text = when (pr.prType) {
+                    ProgressAnalysisHelper.PRType.VOLUME ->
+                        String.format(Locale.US, "%,d kg", pr.value.toInt())
+                    else ->
+                        String.format(Locale.US, "%.1f kg", pr.value)
+                }
                 setTextColor(resources.getColor(R.color.fitness_primary, null))
                 textSize = 18f
                 setTypeface(typeface, android.graphics.Typeface.BOLD)
             }
 
-            // Intent badge
+            // PR type badge — shows what kind of record it is, not the training intent
             val intentBadge = TextView(requireContext()).apply {
-                text = pr.intent.displayName.uppercase()
+                text = when (pr.prType) {
+                    ProgressAnalysisHelper.PRType.WEIGHT  -> getString(R.string.weight_pr_label).uppercase()
+                    ProgressAnalysisHelper.PRType.ONE_RM  -> getString(R.string.one_rm_pr_label).uppercase()
+                    ProgressAnalysisHelper.PRType.VOLUME  -> getString(R.string.volume_pr_label).uppercase()
+                    else -> pr.prType.name
+                }
                 textSize = 10f
                 setTextColor(resources.getColor(R.color.white, null))
                 setPadding(16, 4, 16, 4)
                 setBackgroundResource(R.drawable.badge_rounded_background)
                 backgroundTintList = android.content.res.ColorStateList.valueOf(
-                    when (pr.intent) {
-                        SetIntent.STRENGTH -> resources.getColor(R.color.intent_strength, null)
-                        SetIntent.BUILD -> resources.getColor(R.color.intent_build, null)
-                        SetIntent.FLUSH -> resources.getColor(R.color.intent_flush, null)
+                    when (pr.prType) {
+                        ProgressAnalysisHelper.PRType.WEIGHT -> resources.getColor(R.color.intent_strength, null)
+                        ProgressAnalysisHelper.PRType.ONE_RM -> resources.getColor(R.color.fitness_accent, null)
+                        ProgressAnalysisHelper.PRType.VOLUME -> resources.getColor(R.color.intent_build, null)
                         else -> resources.getColor(R.color.fitness_primary, null)
                     }
                 )

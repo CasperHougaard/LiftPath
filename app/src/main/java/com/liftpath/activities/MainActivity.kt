@@ -17,6 +17,7 @@ import com.liftpath.R
 import androidx.appcompat.app.AppCompatActivity
 import com.liftpath.databinding.ActivityMainBinding
 import com.liftpath.helpers.ActiveWorkoutDraftManager
+import com.liftpath.helpers.CatalogMergeHelper
 import com.liftpath.helpers.DialogHelper
 import com.liftpath.helpers.HealthConnectHelper
 import com.liftpath.helpers.JsonHelper
@@ -24,7 +25,6 @@ import com.liftpath.helpers.showWithTransparentWindow
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import com.liftpath.models.ActiveWorkoutDraft
-import com.liftpath.models.ExerciseLibraryItem
 import com.liftpath.models.TrainingData
 import com.liftpath.models.SetIntent
 import com.github.mikephil.charting.components.XAxis
@@ -35,12 +35,12 @@ import com.github.mikephil.charting.formatter.ValueFormatter
 import com.liftpath.adapters.ChartCarouselAdapter
 import com.liftpath.adapters.ChartType
 import com.liftpath.adapters.ChartData
+import com.liftpath.helpers.ProgressAnalysisHelper
 import com.liftpath.helpers.ReadinessHelper
 import com.liftpath.helpers.ReadinessConfig
 import com.google.android.material.tabs.TabLayoutMediator
 import com.liftpath.components.SelectWorkoutModeBottomSheet
 import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
@@ -90,11 +90,25 @@ class MainActivity : AppCompatActivity() {
         draftManager = ActiveWorkoutDraftManager(this)
         prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-        setupDefaultExercises()
+        supportFragmentManager.setFragmentResultListener(
+            CatalogMergeHelper.FRAGMENT_RESULT_KEY,
+            this
+        ) { _, bundle ->
+            CatalogMergeHelper.handleMergeResult(
+                this,
+                jsonHelper,
+                bundle.getString(CatalogMergeHelper.BUNDLE_APPLIED_JSON)
+            )
+        }
+
         setupClickListeners()
         setupBackgroundAnimation()
         runEntranceAnimations()
         updateStats()
+
+        binding.root.post {
+            CatalogMergeHelper.checkAndOfferIfNeeded(this, jsonHelper, supportFragmentManager)
+        }
         
         // Auto-sync Health Connect in the background
         autoSyncHealthConnect()
@@ -146,57 +160,17 @@ class MainActivity : AppCompatActivity() {
         binding.textTodayStats.startAnimation(fadeUpStats)
         binding.cardBenchPress.startAnimation(fadeUpStats)
         binding.cardSquat.startAnimation(fadeUpStats)
-        binding.cardDaysSince.startAnimation(fadeUpStats)
+        binding.cardHomeMomentum.startAnimation(fadeUpStats)
+
+        // 4b. Insights row (same wave, slightly later)
+        val fadeUpInsights = AnimationUtils.loadAnimation(this, com.liftpath.R.anim.fade_in_up)
+        fadeUpInsights.startOffset = 550
+        binding.layoutHomeInsights.startAnimation(fadeUpInsights)
 
         // 5. Chart Carousel (Fade Up Last)
         val fadeUpChart = AnimationUtils.loadAnimation(this, com.liftpath.R.anim.fade_in_up)
         fadeUpChart.startOffset = 600
         binding.cardChartsCarousel.startAnimation(fadeUpChart)
-    }
-
-    private fun setupDefaultExercises() {
-        val trainingData = jsonHelper.readTrainingData()
-        if (trainingData.exerciseLibrary.isEmpty()) {
-            val defaultExercises = listOf(
-                ExerciseLibraryItem(
-                    id = 1,
-                    name = "Deadlift",
-                    pattern = com.liftpath.models.MovementPattern.HINGE,
-                    manualMechanics = com.liftpath.models.Mechanics.COMPOUND,
-                    tier = com.liftpath.models.Tier.TIER_1
-                ),
-                ExerciseLibraryItem(
-                    id = 2,
-                    name = "Squat",
-                    pattern = com.liftpath.models.MovementPattern.SQUAT,
-                    manualMechanics = com.liftpath.models.Mechanics.COMPOUND,
-                    tier = com.liftpath.models.Tier.TIER_1
-                ),
-                ExerciseLibraryItem(
-                    id = 3,
-                    name = "Bench Press",
-                    pattern = com.liftpath.models.MovementPattern.PUSH_HORIZONTAL,
-                    manualMechanics = com.liftpath.models.Mechanics.COMPOUND,
-                    tier = com.liftpath.models.Tier.TIER_1
-                ),
-                ExerciseLibraryItem(
-                    id = 4,
-                    name = "Biceps Curl",
-                    pattern = com.liftpath.models.MovementPattern.ISOLATION_ARMS,
-                    manualMechanics = com.liftpath.models.Mechanics.ISOLATION,
-                    tier = com.liftpath.models.Tier.TIER_3
-                ),
-                ExerciseLibraryItem(
-                    id = 5,
-                    name = "Triceps Pushdown",
-                    pattern = com.liftpath.models.MovementPattern.ISOLATION_ARMS,
-                    manualMechanics = com.liftpath.models.Mechanics.ISOLATION,
-                    tier = com.liftpath.models.Tier.TIER_3
-                )
-            )
-            trainingData.exerciseLibrary.addAll(defaultExercises)
-            jsonHelper.writeTrainingData(trainingData)
-        }
     }
 
     private fun setupClickListeners() {
@@ -359,12 +333,112 @@ class MainActivity : AppCompatActivity() {
         val rightExerciseTrend = calculateProgressionTrend(rightExercise, trainingData)
         update1RMDisplay(binding.textSquat1rm, binding.textSquatIndicator, rightExercise1RM, rightExerciseTrend)
         
-        // Calculate days since last workout
-        val daysSinceLastWorkout = calculateDaysSinceLastWorkout(trainingData)
-        binding.textDaysSinceWorkout.text = if (daysSinceLastWorkout != null) daysSinceLastWorkout.toString() else "--"
-        
+        updateHomeMomentumCard(trainingData)
+        updateHomeInsights(trainingData)
+
         // Setup charts carousel
         setupChartsCarousel(trainingData)
+    }
+
+    private fun updateHomeMomentumCard(trainingData: TrainingData) {
+        val summary = ProgressAnalysisHelper.getWeeklySummary(trainingData.trainings, weekOffset = 0)
+
+        if (summary.sessionCount == 0) {
+            binding.textHomeWeekSummary.text = getString(R.string.home_week_no_sessions)
+            binding.textHomeWeekInsight.text = getString(R.string.home_week_insight_empty)
+        } else {
+            binding.textHomeWeekSummary.text = resources.getQuantityString(
+                R.plurals.home_week_sessions_volume,
+                summary.sessionCount,
+                summary.sessionCount,
+                summary.totalVolume.toInt()
+            )
+            binding.textHomeWeekInsight.text = when (summary.dominantIntent) {
+                SetIntent.STRENGTH -> getString(R.string.home_week_style_strength)
+                SetIntent.FLUSH    -> getString(R.string.home_week_style_flush)
+                else               -> getString(R.string.home_week_style_build)
+            }
+        }
+    }
+
+    private fun updateHomeInsights(trainingData: TrainingData) {
+        updateRecentWinsCard(trainingData)
+        updateLastWorkoutCard(trainingData)
+    }
+
+    private fun updateRecentWinsCard(trainingData: TrainingData) {
+        val recentPRs = ProgressAnalysisHelper.getRecentPRs(
+            trainingData.trainings,
+            trainingData.exerciseLibrary,
+            dayWindow = 30
+        )
+        when {
+            recentPRs.isEmpty() -> {
+                binding.textHomeWinsHeadline.text = getString(R.string.home_wins_none_headline)
+                binding.textHomeWinsSub.text = getString(R.string.home_wins_none_sub)
+            }
+            recentPRs.size == 1 -> {
+                binding.textHomeWinsHeadline.text = getString(R.string.home_wins_single_headline)
+                val pr = recentPRs.first()
+                val typeName = when (pr.prType) {
+                    ProgressAnalysisHelper.PRType.ONE_RM  -> getString(R.string.home_pr_type_1rm)
+                    ProgressAnalysisHelper.PRType.WEIGHT  -> getString(R.string.home_pr_type_weight)
+                    ProgressAnalysisHelper.PRType.VOLUME  -> getString(R.string.home_pr_type_volume)
+                    else                                  -> pr.prType.name.lowercase()
+                }
+                binding.textHomeWinsSub.text = getString(R.string.home_wins_sub_exercise, pr.exerciseName, typeName)
+            }
+            else -> {
+                binding.textHomeWinsHeadline.text = getString(R.string.home_wins_many_headline, recentPRs.size)
+                // Show the most recent PR exercise as sub context
+                val latestPr = recentPRs.maxByOrNull { it.date }
+                if (latestPr != null) {
+                    val typeName = when (latestPr.prType) {
+                        ProgressAnalysisHelper.PRType.ONE_RM  -> getString(R.string.home_pr_type_1rm)
+                        ProgressAnalysisHelper.PRType.WEIGHT  -> getString(R.string.home_pr_type_weight)
+                        ProgressAnalysisHelper.PRType.VOLUME  -> getString(R.string.home_pr_type_volume)
+                        else                                  -> latestPr.prType.name.lowercase()
+                    }
+                    binding.textHomeWinsSub.text = getString(R.string.home_wins_sub_exercise, latestPr.exerciseName, typeName)
+                } else {
+                    binding.textHomeWinsSub.text = getString(R.string.home_wins_sub_month)
+                }
+            }
+        }
+    }
+
+    private fun updateLastWorkoutCard(trainingData: TrainingData) {
+        val lastSession = trainingData.trainings.maxByOrNull { it.date }
+        if (lastSession == null) {
+            binding.textHomeLastWorkoutWhen.text = getString(R.string.home_last_workout_never)
+            binding.textHomeLastWorkoutDetail.text = getString(R.string.home_last_workout_never_sub)
+            return
+        }
+
+        val dateFormat = SimpleDateFormat("yyyy/MM/dd", Locale.US)
+        val daysBetween = try {
+            val sessionDate = dateFormat.parse(lastSession.date)
+            if (sessionDate != null) {
+                val diffMs = System.currentTimeMillis() - sessionDate.time
+                (diffMs / (1000L * 60 * 60 * 24)).toInt().coerceAtLeast(0)
+            } else null
+        } catch (e: Exception) { null }
+
+        binding.textHomeLastWorkoutWhen.text = when (daysBetween) {
+            null -> "—"
+            0    -> getString(R.string.home_last_workout_today)
+            1    -> getString(R.string.home_last_workout_yesterday)
+            else -> getString(R.string.home_last_workout_days_ago, daysBetween)
+        }
+
+        val workingSets = lastSession.exercises.filterNot { it.isWarmup }
+        val exerciseCount = lastSession.exercises.map { it.exerciseId }.distinct().size
+        val volume = workingSets.sumOf { (it.kg * it.reps).toDouble() }.toInt()
+        binding.textHomeLastWorkoutDetail.text = getString(
+            R.string.home_last_workout_detail,
+            exerciseCount,
+            volume
+        )
     }
     
     private fun showExerciseSelectionDialog(isLeftCard: Boolean) {
@@ -479,24 +553,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
     
-    private fun calculateDaysSinceLastWorkout(trainingData: TrainingData): Int? {
-        // Find the most recent workout (any type)
-        val lastWorkout = trainingData.trainings.maxByOrNull { it.date }
-        
-        if (lastWorkout == null) return null
-        
-        return try {
-            val dateFormat = SimpleDateFormat("yyyy/MM/dd", Locale.US)
-            val lastDate = dateFormat.parse(lastWorkout.date) ?: return null
-            val today = Date()
-            val diffMillis = today.time - lastDate.time
-            val days = (diffMillis / (1000 * 60 * 60 * 24)).toInt()
-            maxOf(0, days)
-        } catch (e: Exception) {
-            null
-        }
-    }
-    
     private fun setupChartsCarousel(trainingData: TrainingData) {
         val dateFormat = SimpleDateFormat("yyyy/MM/dd", Locale.US)
         
@@ -593,30 +649,30 @@ class MainActivity : AppCompatActivity() {
             ChartData(
                 type = ChartType.VOLUME,
                 entries = volumeEntries,
-                title = "Volume Trends",
+                title = getString(R.string.home_chart_volume_trends),
                 color = Color.parseColor("#4CAF50"), // Green
-                yAxisLabel = "Volume (kg)"
+                yAxisLabel = getString(R.string.home_chart_axis_volume)
             ),
             ChartData(
                 type = ChartType.AVG_RPE,
                 entries = rpeEntries,
-                title = "Average RPE",
+                title = getString(R.string.home_chart_avg_rpe),
                 color = Color.parseColor("#FF9800"), // Orange
-                yAxisLabel = "RPE"
+                yAxisLabel = getString(R.string.home_chart_axis_rpe)
             ),
             ChartData(
                 type = ChartType.TIME_CONSUMPTION,
                 entries = timeEntries,
-                title = "Time Consumption",
+                title = getString(R.string.home_chart_time_consumption),
                 color = Color.parseColor("#2196F3"), // Blue
-                yAxisLabel = "Time (min)"
+                yAxisLabel = getString(R.string.home_chart_axis_time)
             ),
             ChartData(
                 type = ChartType.FATIGUE,
                 entries = fatigueEntries,
-                title = "Raw Fatigue",
+                title = getString(R.string.home_chart_fatigue),
                 color = Color.parseColor("#F44336"), // Red (default, but will be overridden by color coding)
-                yAxisLabel = "Fatigue",
+                yAxisLabel = getString(R.string.home_chart_axis_fatigue),
                 dominantIntents = dominantIntents
             )
         )
@@ -628,10 +684,10 @@ class MainActivity : AppCompatActivity() {
         // Setup TabLayout
         TabLayoutMediator(binding.tabLayoutCharts, binding.viewpagerCharts) { tab, position ->
             tab.text = when (position) {
-                0 -> "Volume"
-                1 -> "RPE"
-                2 -> "Time"
-                3 -> "Fatigue"
+                0 -> getString(R.string.home_chart_tab_volume)
+                1 -> getString(R.string.home_chart_tab_rpe)
+                2 -> getString(R.string.home_chart_tab_time)
+                3 -> getString(R.string.home_chart_tab_fatigue)
                 else -> ""
             }
         }.attach()

@@ -254,6 +254,16 @@ data class TrainingData(
 // Helper Classes (SupersetPair for Gson-safe draft serialization)
 data class SupersetPair(val exerciseId1: Int, val exerciseId2: Int)
 
+/** One row in the active workout list (including exercises with no logged sets yet). */
+data class DraftExerciseRow(
+    val exerciseId: Int,
+    val exerciseName: String,
+    val supersetGroupId: String? = null,
+    val groupType: String? = null,
+    val workoutType: String? = null,
+    val explicitIntent: SetIntent? = null
+)
+
 data class ActiveWorkoutDraft(
     val workoutType: String,
     val date: String,
@@ -261,7 +271,11 @@ data class ActiveWorkoutDraft(
     val appliedPlanName: String?,
     val entries: List<ExerciseEntry>,
     val startTimeMillis: Long? = null,
-    val supersetPairs: List<SupersetPair>? = null
+    val supersetPairs: List<SupersetPair>? = null,
+    /** Target sets per exercise for each superset group; one entry per group (chains of consecutive pairs count as one group). */
+    val supersetTargetSets: List<Int>? = null,
+    /** Ordered workout rows (includes empty exercises); null in legacy drafts. */
+    val exerciseOrder: List<DraftExerciseRow>? = null
 )
 
 data class GroupedExercise(
@@ -295,20 +309,19 @@ data class ExerciseTrendData(
     val exerciseName: String,
     val intent: SetIntent,
     val currentVolume: Float,
-    val previousVolume: Float?,
+    val previousVolume: Float?,       // Most recent prior same-intent session volume
     val currentEstimated1RM: Float?,
     val previousEstimated1RM: Float?,
-    val currentTopSet: Pair<Float, Int>?,  // kg, reps
+    val currentTopSet: Pair<Float, Int>?,   // kg, reps
     val previousTopSet: Pair<Float, Int>?,
-    val isPR: Boolean,
-    val prWeight: Float?,  // Best weight PR for this exercise
-    val prWeightDate: Long,  // Timestamp of weight PR
-    val prVolume: Float?,  // Best volume PR for this exercise
-    val prVolumeDate: Long,  // Timestamp of volume PR
-    val pr1RM: Float?,  // Best 1RM PR for this exercise
-    val pr1RMDate: Long,  // Timestamp of 1RM PR
-    val prReps: String?,  // Best reps PR (formatted: "22 reps @ 52.5kg")
-    val prRepsDate: Long  // Timestamp of reps PR
+    val hasNewAllTimePR: Boolean,           // True when a canonical all-time PR was set this session
+    val intentSessionCount: Int,            // Number of prior same-intent sessions found (trend confidence)
+    val prWeight: Float?,   // All-time best weight for this exercise
+    val prWeightDate: Long, // Timestamp of weight PR
+    val prVolume: Float?,   // All-time best volume for this exercise
+    val prVolumeDate: Long, // Timestamp of volume PR
+    val pr1RM: Float?,      // All-time best estimated 1RM for this exercise
+    val pr1RMDate: Long     // Timestamp of 1RM PR
 )
 
 data class MuscleGroupTrend(

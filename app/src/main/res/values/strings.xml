@@ -178,6 +178,58 @@
     <string name="start_workout">Start Workout</string>
     <string name="status_bar_notification_info_overflow">999+</string>
     <string name="today_stats">"Today's Stats"</string>
+    <!-- Main / home dashboard -->
+    <string name="home_section_your_progress">Your progress</string>
+    <string name="home_lift_est_1rm_label">Est. 1RM</string>
+    <string name="home_this_week_so_far">This week so far</string>
+    <string name="home_week_placeholder">—</string>
+    <string name="home_week_no_sessions">No workouts logged this week yet</string>
+    <string name="home_week_insight_prs">%1$d PRs in the last 30 days</string>
+    <string name="home_week_insight_no_prs">No PRs in the last 30 days — keep pushing!</string>
+    <string name="home_week_insight_empty">Log workouts to see PRs and trends here.</string>
+    <string name="home_chart_volume_trends">Volume trends</string>
+    <string name="home_chart_avg_rpe">Average RPE</string>
+    <string name="home_chart_time_consumption">Time in gym</string>
+    <string name="home_chart_fatigue">Fatigue</string>
+    <string name="home_chart_axis_volume">Volume (kg)</string>
+    <string name="home_chart_axis_rpe">RPE</string>
+    <string name="home_chart_axis_time">Time (min)</string>
+    <string name="home_chart_axis_fatigue">Fatigue</string>
+    <string name="home_chart_tab_volume">Volume</string>
+    <string name="home_chart_tab_rpe">RPE</string>
+    <string name="home_chart_tab_time">Time</string>
+    <string name="home_chart_tab_fatigue">Fatigue</string>
+
+    <!-- Home: training style line inside weekly momentum card -->
+    <string name="home_week_style_strength">Strength-focused this week</string>
+    <string name="home_week_style_build">Build-focused this week</string>
+    <string name="home_week_style_flush">Cardio-focused this week</string>
+
+    <!-- Home: Recent wins card -->
+    <string name="home_recent_wins">Recent wins</string>
+    <string name="home_wins_none_headline">—</string>
+    <string name="home_wins_none_sub">No PRs in the last 30 days</string>
+    <string name="home_wins_single_headline">1 win</string>
+    <string name="home_wins_many_headline">%1$d wins</string>
+    <string name="home_wins_sub_exercise">%1$s · %2$s</string>
+    <string name="home_wins_sub_month">in the last 30 days</string>
+    <string name="home_pr_type_weight">Max weight</string>
+    <string name="home_pr_type_1rm">Est. 1RM</string>
+    <string name="home_pr_type_volume">Session volume</string>
+
+    <!-- Home: Last workout card -->
+    <string name="home_last_workout">Last workout</string>
+    <string name="home_last_workout_never">—</string>
+    <string name="home_last_workout_never_sub">No workouts logged yet</string>
+    <string name="home_last_workout_today">Today</string>
+    <string name="home_last_workout_yesterday">Yesterday</string>
+    <string name="home_last_workout_days_ago">%1$d days ago</string>
+    <string name="home_last_workout_detail">%1$d exercises · %2$,d kg</string>
+
+    <plurals name="home_week_sessions_volume">
+        <item quantity="one">%1$d session · %2$,d kg</item>
+        <item quantity="other">%1$d sessions · %2$,d kg</item>
+    </plurals>
     <string name="total_minutes">Total Minutes</string>
     <string name="view_history">View History</string>
     <string name="view_progress">View Progress</string>
@@ -323,6 +375,7 @@ Leave blank if you\'re not sure.]]></string>
     <string name="button_clear_plan">Clear Plan</string>
     <string name="button_add_note">Add Note</string>
     <string name="button_edit_note">Edit Note</string>
+    <string name="hint_note_optional">Notes (optional)</string>
     <string name="hint_kg">Kg</string>
     <string name="hint_reps">Reps</string>
     <string name="hint_rpe">RPE</string>
@@ -371,6 +424,8 @@ Leave blank if you\'re not sure.]]></string>
     <string name="toast_select_consecutive_superset">Select consecutive exercises for SuperSet</string>
     <string name="dialog_title_connect_superset">Connect as SuperSet?</string>
     <string name="dialog_message_connect_superset">Connect these exercises as a SuperSet: %1$s</string>
+    <string name="dialog_title_superset_sets">Sets per exercise</string>
+    <string name="dialog_message_superset_sets">How many sets for each exercise in this SuperSet?</string>
     
     <!-- Workout Report -->
     <string name="workout_complete_title">Workout Complete!</string>
@@ -388,7 +443,7 @@ Leave blank if you\'re not sure.]]></string>
     <string name="exercise_trends_title">Exercise Trends</string>
     <string name="muscle_groups_title">Muscle Groups</string>
     <string name="vs_previous_label">vs previous</string>
-    <string name="no_previous_data">First time</string>
+    <string name="no_previous_data">First time with this intent</string>
     <string name="done_button">Done</string>
     <string name="volume_label">Volume</string>
     <string name="estimated_1rm_label">Est. 1RM</string>
@@ -511,5 +566,28 @@ Leave blank if you\'re not sure.]]></string>
     <string name="volume_pr_label">Volume</string>
     <string name="one_rm_pr_label">1RM</string>
     <string name="reps_pr_label">Reps</string>
+
+    <!-- Exercise library catalog merge -->
+    <string name="settings_tab_general">General</string>
+    <string name="settings_tab_advanced">Advanced</string>
+    <string name="settings_advanced_section_title">Destructive actions</string>
+    <string name="button_reset_library">Reset Exercise Library</string>
+    <string name="dialog_title_reset_library">Reset exercise library?</string>
+    <string name="dialog_message_reset_library">Replace your exercise library with the app default catalog. Workout history and plans are kept, but custom exercises will be removed from the library.</string>
+    <string name="toast_library_reset">Exercise library reset to defaults</string>
+    <string name="button_export_library">Export Exercise Library</string>
+    <string name="toast_library_exported">Exercise library exported</string>
+    <string name="toast_library_export_failed">Export failed: %1$s</string>
+    <string name="label_new_exercise_badge">NEW</string>
+    <string name="label_conflict_exercise_badge">UPDATE</string>
+    <string name="button_keep_local">Keep local</string>
+    <string name="button_use_catalog">Use catalog</string>
+    <string name="title_library_update">Exercise library update</string>
+    <string name="subtitle_library_update">New exercises are available from this app version. Choose what to add or keep.</string>
+    <string name="subtitle_library_update_conflict">Catalog metadata differs from your exercise. Keep your version or apply the app catalog (workout history stays on the same exercise ID).</string>
+    <string name="button_apply_updates">Apply</string>
+    <string name="button_skip">Skip</string>
+    <string name="button_update_summary_info">What\'s changing</string>
+    <string name="title_update_summary">What\'s changing</string>
 </resources>
 

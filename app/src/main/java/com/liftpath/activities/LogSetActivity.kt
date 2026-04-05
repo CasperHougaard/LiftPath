@@ -17,11 +17,11 @@ import com.liftpath.helpers.DialogHelper
 import com.liftpath.helpers.JsonHelper
 import com.liftpath.helpers.ProgressionHelper
 import com.liftpath.helpers.ProgressionSettingsManager
+import com.liftpath.helpers.RestTimerHelper
 import com.liftpath.helpers.showWithTransparentWindow
 import com.liftpath.models.ExerciseEntry
 import com.liftpath.models.SetIntent
 import java.util.Locale
-import kotlin.math.max // <--- FIXED: IMPORT ADDED
 
 class LogSetActivity : AppCompatActivity() {
 
@@ -99,8 +99,8 @@ class LogSetActivity : AppCompatActivity() {
             showRpeHelpDialog()
         }
 
-        showWeightSuggestion()
         prefillLastSetFallback()
+        showWeightSuggestion()
         prefillRepsFromPreviousSet()
 
         binding.buttonSaveSet.setOnClickListener {
@@ -485,32 +485,12 @@ class LogSetActivity : AppCompatActivity() {
         pendingTimerExerciseName = null
 
         val overrideSeconds = intent.getIntExtra(EXTRA_REST_SECONDS_OVERRIDE, -1).takeIf { it > 0 }
-        val restSeconds = if (overrideSeconds != null) {
+        val restSeconds = RestTimerHelper.restSecondsAfterLoggedSet(
+            settings,
+            actualIntent,
+            actualRpe,
             overrideSeconds
-        } else {
-            // Calculate base rest time based on intent
-            var base = when (actualIntent) {
-                SetIntent.STRENGTH -> settings.strengthRestSeconds
-                SetIntent.BUILD -> settings.buildRestSeconds
-                SetIntent.FLUSH -> settings.flushRestSeconds
-                SetIntent.WARMUP -> settings.flushRestSeconds  // Warmups use shorter rest
-                else -> settings.buildRestSeconds
-            }
-            // Apply RPE-based adjustments if enabled
-            if (settings.rpeAdjustmentEnabled && actualRpe != null) {
-                if (actualRpe >= settings.rpeHighThreshold) {
-                    base += settings.rpeHighBonusSeconds
-                }
-                val suggestedRpe = ProgressionHelper.getTargetRpe(actualIntent, settings)
-                val rpeDifference = actualRpe - suggestedRpe
-                if (rpeDifference >= settings.rpeDeviationThreshold) {
-                    base += settings.rpePositiveAdjustmentSeconds
-                } else if (rpeDifference <= -settings.rpeDeviationThreshold) {
-                    base = max(0, base - settings.rpeNegativeAdjustmentSeconds)
-                }
-            }
-            base
-        }
+        )
 
         com.liftpath.services.RestTimerService.startTimer(this, restSeconds, actualExerciseName, showDialog = false)
         

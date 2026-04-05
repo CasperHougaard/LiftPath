@@ -8,17 +8,22 @@ import java.util.*
 import kotlin.math.round
 
 /**
- * Helper object for analyzing training progress across sessions.
- * Provides PR detection (Hybrid Athlete: Strength, Build, Flush), weekly summaries, and intent distribution.
+ * Single canonical source of truth for Personal Record detection.
+ *
+ * Rules (confirmed product decisions):
+ *  - PRs are ALL-TIME records only. First occurrence of an exercise seeds the baseline and does NOT emit a PR.
+ *  - PR types: WEIGHT, VOLUME, ONE_RM. Reps are intentionally excluded.
+ *  - PRs are tracked across all intents together (not per-intent).
+ *  - At most one PR per type per exercise per session.
+ *  - 1RM is gated: OneRMEstimationHelper returns null when effectiveReps > 15 or RPE < 6.5.
  */
 object ProgressAnalysisHelper {
 
     private val dateFormat = SimpleDateFormat("yyyy/MM/dd", Locale.getDefault())
 
     /**
-     * Get recent PRs across all exercises.
-     * Uses 4-rule algorithm: Volume (all intents), 1RM (all intents, effectiveReps <= 15), Weight, Reps at weight (±1 kg).
-     * At most one PR per type per exercise per session.
+     * Return canonical PR events within the last [dayWindow] days.
+     * Used by home screen momentum card and overview recent-PR strip.
      */
     fun getRecentPRs(
         sessions: List<TrainingSession>,
@@ -36,13 +41,27 @@ object ProgressAnalysisHelper {
             } catch (e: Exception) {
                 false
             }
-        }.distinctBy { "${it.exerciseName}_${it.prType}_${it.date}" }
+        }.distinctBy { "${it.exerciseId}_${it.prType}_${it.date}" }
     }
 
     /**
-     * Get exercise stats summaries for the PR page (Player Stats Card list).
-     * One summary per exercise that has at least one PR; sorted by lastPrDate DESC (caller).
-     * lastPrDate is timestamp (Long) for flexible formatting (e.g. "2 days ago" / "Oct 24, 2025").
+     * Return canonical PR events that were achieved in a specific session.
+     * Returns an empty list for the first-ever session per exercise (baseline only).
+     * Used by WorkoutReportActivity to get the accurate PR count for a completed session.
+     */
+    fun getPRsForSession(
+        sessions: List<TrainingSession>,
+        sessionId: String
+    ): List<PRRecord> {
+        val session = sessions.find { it.id == sessionId } ?: return emptyList()
+        val (prs, _) = processSessionsForPRs(sessions)
+        return prs.filter { it.date == session.date }
+    }
+
+    /**
+     * Per-exercise all-time bests for the PR page (Player Stats Card list).
+     * One entry per exercise that has at least one canonical PR after its baseline session.
+     * Sorted by [ExerciseStatsSummary.lastPrDate] DESC by the caller.
      */
     fun getExerciseStatsSummaries(
         sessions: List<TrainingSession>,
@@ -50,15 +69,12 @@ object ProgressAnalysisHelper {
     ): List<ExerciseStatsSummary> {
         val (_, processed) = processSessionsForPRs(sessions)
         val bestByExercise = processed.bestByExercise
-        val lastPrDateByExercise = processed.lastPrDateByExercise
+        val lastPrDateByType = processed.lastPrDateByType
 
         return bestByExercise.keys
             .filter { exerciseId ->
-                val b = bestByExercise[exerciseId]!!
-                (b.maxWeight != null && b.maxWeight!! > 0f) ||
-                    (b.max1RM != null && b.max1RM!! > 0f) ||
-                    (b.maxVolume != null && b.maxVolume!! > 0f) ||
-                    b.maxRepsAtWeight.isNotEmpty()
+                val typeKey = { suffix: String -> lastPrDateByType["${exerciseId}_$suffix"] ?: 0L }
+                typeKey("WEIGHT") > 0L || typeKey("VOLUME") > 0L || typeKey("1RM") > 0L
             }
             .map { exerciseId ->
                 val b = bestByExercise[exerciseId]!!
@@ -67,31 +83,33 @@ object ProgressAnalysisHelper {
                         .flatMap { it.exercises.asSequence() }
                         .firstOrNull { it.exerciseId == exerciseId }?.exerciseName
                     ?: "Exercise $exerciseId"
-                val bestRepsRecord = if (b.maxRepsAtWeight.isEmpty()) null else {
-                    val (reps, actualKg) = b.maxRepsAtWeight.values.maxByOrNull { it.first }!!
-                    "${reps} reps @ ${actualKg}kg"
-                }
                 ExerciseStatsSummary(
                     exerciseId = exerciseId,
                     exerciseName = name,
-                    best1RM = b.max1RM,
-                    bestWeight = b.maxWeight,
-                    bestVolume = b.maxVolume,
-                    bestRepsRecord = bestRepsRecord,
-                    lastPrDate = lastPrDateByExercise[exerciseId] ?: 0L
+                    best1RM = if ((lastPrDateByType["${exerciseId}_1RM"] ?: 0L) > 0L) b.max1RM else null,
+                    bestWeight = if ((lastPrDateByType["${exerciseId}_WEIGHT"] ?: 0L) > 0L) b.maxWeight else null,
+                    bestVolume = if ((lastPrDateByType["${exerciseId}_VOLUME"] ?: 0L) > 0L) b.maxVolume else null,
+                    lastWeightPrDate = lastPrDateByType["${exerciseId}_WEIGHT"] ?: 0L,
+                    lastVolumePrDate = lastPrDateByType["${exerciseId}_VOLUME"] ?: 0L,
+                    last1RMPrDate = lastPrDateByType["${exerciseId}_1RM"] ?: 0L
                 )
             }
     }
 
     /**
-     * Single chronological pass: build PR list (with session dedup) and per-exercise bests + lastPrDate.
+     * Core chronological pass over all sessions.
+     * Builds the canonical PR event list and per-exercise all-time bests.
+     *
+     * Baseline rule: the first session that establishes a value for an exercise seeds the
+     * all-time best without emitting a PR event.
      */
     private fun processSessionsForPRs(
         sessions: List<TrainingSession>
     ): Pair<List<PRRecord>, ProcessedBests> {
         val prs = mutableListOf<PRRecord>()
         val bestByExercise = mutableMapOf<Int, ExerciseBests>()
-        val lastPrDateByExercise = mutableMapOf<Int, Long>()
+        // key: "${exerciseId}_WEIGHT" | "${exerciseId}_VOLUME" | "${exerciseId}_1RM"
+        val lastPrDateByType = mutableMapOf<String, Long>()
         val sortedSessions = sessions.sortedBy { it.date }
 
         sortedSessions.forEach { session ->
@@ -107,84 +125,117 @@ object ProgressAnalysisHelper {
 
             session.exercises.filterNot { it.isWarmup }.forEach { entry ->
                 val exerciseId = entry.exerciseId
-                val exerciseName = entry.exerciseName
-                val intent = entry.getEffectiveIntent(session.defaultWorkoutType)
-                val current = bestByExercise.getOrPut(exerciseId) { ExerciseBests() }
+                bestByExercise.getOrPut(exerciseId) { ExerciseBests() }
                 val sessionBest = sessionBests.getOrPut(exerciseId) { SessionExerciseBests() }
 
-                // Weight PR (all intents)
+                // Track session-best weight
                 if (entry.kg > (sessionBest.bestWeight ?: 0f)) {
                     sessionBest.bestWeight = entry.kg
                 }
 
-                // 1RM PR (all intents; helper returns null when effectiveReps > 15 or RPE < 6.5)
+                // Track session-best estimated 1RM (gated by OneRMEstimationHelper)
                 val oneRM = OneRMEstimationHelper.calculateOneRM(entry.kg, entry.reps, entry.rpe)
                 if (oneRM != null && oneRM > (sessionBest.best1RM ?: 0f)) {
                     sessionBest.best1RM = oneRM
                 }
 
-                // Volume: accumulate per session (all intents)
-                sessionVolumeAccum[exerciseId] = (sessionVolumeAccum[exerciseId] ?: 0f) + entry.kg * entry.reps
-
-                // Reps PR: max reps at weight (±1 kg bucket); store actual weight for display
-                val bucket = round(entry.kg).toInt()
-                val historicalMaxReps = listOf(bucket - 1, bucket, bucket + 1)
-                    .mapNotNull { current.maxRepsAtWeight[it]?.first }
-                    .maxOrNull() ?: 0
-                if (entry.reps > historicalMaxReps) {
-                    current.maxRepsAtWeight[bucket] = Pair(entry.reps, entry.kg)
-                    if (sessionBest.bestReps == null || entry.reps > sessionBest.bestReps!!.first) {
-                        sessionBest.bestReps = Pair(entry.reps, entry.kg)
-                        sessionBest.previousRepsForPr = historicalMaxReps
-                    }
-                }
+                // Accumulate volume per exercise for this session
+                sessionVolumeAccum[exerciseId] =
+                    (sessionVolumeAccum[exerciseId] ?: 0f) + entry.kg * entry.reps
             }
 
-            // Session volume per exercise (already summed) — one PR per type per session
+            // --- Volume PRs: one per exercise per session ---
             sessionVolumeAccum.forEach { (exerciseId, sessionVolume) ->
                 val current = bestByExercise.getOrPut(exerciseId) { ExerciseBests() }
-                val sessionVolumeKey = "${exerciseId}_${session.date}"
-                if (!current.sessionVolumes.contains(sessionVolumeKey) && sessionVolume > (current.maxVolume ?: 0f)) {
-                    current.sessionVolumes.add(sessionVolumeKey)
-                    val prevVolume = current.maxVolume
+                val sessionKey = "${exerciseId}_${session.date}"
+                if (current.sessionVolumes.contains(sessionKey)) return@forEach
+                current.sessionVolumes.add(sessionKey)
+
+                val prevVolume = current.maxVolume
+                if (prevVolume == null) {
+                    current.maxVolume = sessionVolume  // Baseline — no PR emitted
+                } else if (sessionVolume > prevVolume) {
                     current.maxVolume = sessionVolume
-                    val name = session.exercises.firstOrNull { it.exerciseId == exerciseId }?.exerciseName ?: "Exercise $exerciseId"
-                    prs.add(PRRecord(name, intent = SetIntent.BUILD, prType = PRType.VOLUME, value = sessionVolume, previousValue = prevVolume, date = session.date))
-                    lastPrDateByExercise[exerciseId] = sessionTime
+                    val name = session.exercises
+                        .firstOrNull { it.exerciseId == exerciseId }?.exerciseName
+                        ?: "Exercise $exerciseId"
+                    val intent = session.exercises
+                        .firstOrNull { it.exerciseId == exerciseId }
+                        ?.getEffectiveIntent(session.defaultWorkoutType) ?: SetIntent.BUILD
+                    prs.add(
+                        PRRecord(
+                            exerciseId = exerciseId,
+                            exerciseName = name,
+                            intent = intent,
+                            prType = PRType.VOLUME,
+                            value = sessionVolume,
+                            previousValue = prevVolume,
+                            date = session.date
+                        )
+                    )
+                    lastPrDateByType["${exerciseId}_VOLUME"] = sessionTime
                 }
             }
 
-            // Emit at most one PR per type per exercise for this session
+            // --- Weight and 1RM PRs: one per type per exercise per session ---
             sessionBests.forEach { (exerciseId, sessionBest) ->
                 val current = bestByExercise.getOrPut(exerciseId) { ExerciseBests() }
-                val exerciseName = session.exercises.firstOrNull { it.exerciseId == exerciseId }?.exerciseName ?: "Exercise $exerciseId"
+                val exerciseName = session.exercises
+                    .firstOrNull { it.exerciseId == exerciseId }?.exerciseName
+                    ?: "Exercise $exerciseId"
 
-                if (sessionBest.bestWeight != null && sessionBest.bestWeight!! > (current.maxWeight ?: 0f)) {
+                // Weight
+                if (sessionBest.bestWeight != null) {
                     val prev = current.maxWeight
-                    current.maxWeight = sessionBest.bestWeight
-                    prs.add(PRRecord(exerciseName, SetIntent.STRENGTH, PRType.WEIGHT, sessionBest.bestWeight!!, prev, session.date))
-                    lastPrDateByExercise[exerciseId] = sessionTime
+                    if (prev == null) {
+                        current.maxWeight = sessionBest.bestWeight  // Baseline
+                    } else if (sessionBest.bestWeight!! > prev) {
+                        current.maxWeight = sessionBest.bestWeight
+                        prs.add(
+                            PRRecord(
+                                exerciseId = exerciseId,
+                                exerciseName = exerciseName,
+                                intent = SetIntent.STRENGTH,
+                                prType = PRType.WEIGHT,
+                                value = sessionBest.bestWeight!!,
+                                previousValue = prev,
+                                date = session.date
+                            )
+                        )
+                        lastPrDateByType["${exerciseId}_WEIGHT"] = sessionTime
+                    }
                 }
-                if (sessionBest.best1RM != null && sessionBest.best1RM!! > (current.max1RM ?: 0f)) {
+
+                // 1RM
+                if (sessionBest.best1RM != null) {
                     val prev = current.max1RM
-                    current.max1RM = sessionBest.best1RM
-                    prs.add(PRRecord(exerciseName, SetIntent.STRENGTH, PRType.ONE_RM, sessionBest.best1RM!!, prev, session.date))
-                    lastPrDateByExercise[exerciseId] = sessionTime
-                }
-                if (sessionBest.bestReps != null) {
-                    val (reps, actualKg) = sessionBest.bestReps!!
-                    val prevReps = sessionBest.previousRepsForPr ?: 0
-                    prs.add(PRRecord(exerciseName, SetIntent.FLUSH, PRType.REPS, reps.toFloat(), prevReps.toFloat(), session.date))
-                    lastPrDateByExercise[exerciseId] = sessionTime
+                    if (prev == null) {
+                        current.max1RM = sessionBest.best1RM  // Baseline
+                    } else if (sessionBest.best1RM!! > prev) {
+                        current.max1RM = sessionBest.best1RM
+                        prs.add(
+                            PRRecord(
+                                exerciseId = exerciseId,
+                                exerciseName = exerciseName,
+                                intent = SetIntent.STRENGTH,
+                                prType = PRType.ONE_RM,
+                                value = sessionBest.best1RM!!,
+                                previousValue = prev,
+                                date = session.date
+                            )
+                        )
+                        lastPrDateByType["${exerciseId}_1RM"] = sessionTime
+                    }
                 }
             }
         }
 
-        return Pair(prs, ProcessedBests(bestByExercise, lastPrDateByExercise))
+        return Pair(prs, ProcessedBests(bestByExercise, lastPrDateByType))
     }
 
     /**
-     * Get weekly summary for a given week offset (0 = current week, 1 = last week, etc.)
+     * Weekly summary for a given week offset (0 = current week).
+     * prCount is derived from the canonical PR engine.
      */
     fun getWeeklySummary(
         sessions: List<TrainingSession>,
@@ -216,10 +267,17 @@ object ProgressAnalysisHelper {
                 .sumOf { (it.kg * it.reps).toDouble() }
         }.toFloat()
 
-        // Count PRs
-        val prCount = 0 // Simplified - would need full PR tracking
+        // Canonical PR count: events whose session date falls in this week
+        val (allPrs, _) = processSessionsForPRs(sessions)
+        val prCount = allPrs.count { pr ->
+            try {
+                val date = dateFormat.parse(pr.date)
+                date != null && date.time >= weekStart.time && date.time < weekEnd.time
+            } catch (e: Exception) {
+                false
+            }
+        }
 
-        // Find dominant intent
         val intentCounts = mutableMapOf<SetIntent, Int>()
         weeklySessions.forEach { session ->
             session.exercises.filterNot { it.isWarmup }.forEach { entry ->
@@ -238,7 +296,7 @@ object ProgressAnalysisHelper {
     }
 
     /**
-     * Get intent distribution as percentages over a time window.
+     * Intent distribution as percentages over a time window.
      */
     fun getIntentDistribution(
         sessions: List<TrainingSession>,
@@ -275,8 +333,10 @@ object ProgressAnalysisHelper {
         }
     }
 
-    // Data classes
+    // ---- Data classes ----
+
     data class PRRecord(
+        val exerciseId: Int,
         val exerciseName: String,
         val intent: SetIntent,
         val prType: PRType,
@@ -285,16 +345,23 @@ object ProgressAnalysisHelper {
         val date: String
     )
 
-    /** Per-exercise stats for PR page (Player Stats Card). lastPrDate is timestamp (Long) for flexible formatting. */
+    /**
+     * Per-exercise stats for the PR page. All-time bests with per-type PR dates for
+     * proper recency coloring in [ExercisePRStatsAdapter].
+     */
     data class ExerciseStatsSummary(
         val exerciseId: Int,
         val exerciseName: String,
         val best1RM: Float?,
         val bestWeight: Float?,
         val bestVolume: Float?,
-        val bestRepsRecord: String?,  // e.g. "22 reps @ 52.5kg" (actual weight, not bucket)
-        val lastPrDate: Long         // timestamp ms; 0 if no PRs
-    )
+        val lastWeightPrDate: Long,   // ms timestamp; 0 = no weight PR ever
+        val lastVolumePrDate: Long,   // ms timestamp; 0 = no volume PR ever
+        val last1RMPrDate: Long       // ms timestamp; 0 = no 1RM PR ever
+    ) {
+        /** Most recent PR date across all types. Used for card recency coloring and sorting. */
+        val lastPrDate: Long get() = maxOf(lastWeightPrDate, lastVolumePrDate, last1RMPrDate)
+    }
 
     data class WeeklySummary(
         val totalVolume: Float,
@@ -307,32 +374,29 @@ object ProgressAnalysisHelper {
         WEIGHT,
         VOLUME,
         ONE_RM,
-        REPS
+        REPS  // Retained in enum for legacy compatibility; not emitted by canonical engine
     }
 
     private data class ProcessedBests(
         val bestByExercise: Map<Int, ExerciseBests>,
-        val lastPrDateByExercise: Map<Int, Long>
+        val lastPrDateByType: Map<String, Long>  // "${exerciseId}_WEIGHT|VOLUME|1RM"
     )
 
     private data class SessionExerciseBests(
         var bestWeight: Float? = null,
-        var best1RM: Float? = null,
-        var bestReps: Pair<Int, Float>? = null,  // reps, actualKg
-        var previousRepsForPr: Int? = null
+        var best1RM: Float? = null
     )
 
     private data class ExerciseBests(
         var maxWeight: Float? = null,
         var max1RM: Float? = null,
         var maxVolume: Float? = null,
-        val maxRepsAtWeight: MutableMap<Int, Pair<Int, Float>> = mutableMapOf(),  // bucket -> (maxReps, actualKg)
         val sessionVolumes: MutableSet<String> = mutableSetOf()
     )
 
     /**
-     * Calculate muscle group trends over the last 3-4 weeks.
-     * Returns a map of TargetMuscle to trend percentage (1RM > Volume > Strength priority).
+     * Muscle group trends over the last [weeksBack] weeks.
+     * Returns a map of TargetMuscle → trend percentage (1RM > Volume > Strength priority).
      */
     fun getMuscleTrends(
         sessions: List<TrainingSession>,
@@ -357,57 +421,42 @@ object ProgressAnalysisHelper {
             }
         }.sortedBy { it.date }
 
-        if (filteredSessions.isEmpty()) {
-            return emptyMap()
-        }
+        if (filteredSessions.isEmpty()) return emptyMap()
 
-        // Split into two periods (first half vs second half)
         val halfwayPoint = filteredSessions.size / 2
         val firstPeriod = filteredSessions.take(halfwayPoint)
         val secondPeriod = filteredSessions.drop(halfwayPoint)
 
-        // Group by muscle
         val muscleTrends = mutableMapOf<com.liftpath.models.TargetMuscle, MusclePeriodData>()
 
         fun processPeriod(period: List<TrainingSession>, isFirst: Boolean) {
             period.forEach { session ->
                 session.exercises.filterNot { it.isWarmup }.forEach { entry ->
-                    val exercise = exerciseLibrary.find { it.id == entry.exerciseId } ?: return@forEach
+                    val exercise = exerciseLibrary.find { it.id == entry.exerciseId }
+                        ?: return@forEach
                     val intent = entry.getEffectiveIntent(session.defaultWorkoutType)
-                    
-                    // Process all target muscles for this exercise
+
                     (exercise.primaryTargets + exercise.secondaryTargets).forEach { muscle ->
                         val data = muscleTrends.getOrPut(muscle) { MusclePeriodData() }
-                        
-                        // Calculate 1RM (for strength sets)
+
                         if (intent == SetIntent.STRENGTH) {
-                            val oneRM = OneRMEstimationHelper.calculateOneRM(entry.kg, entry.reps, entry.rpe)
+                            val oneRM =
+                                OneRMEstimationHelper.calculateOneRM(entry.kg, entry.reps, entry.rpe)
                             if (oneRM != null) {
-                                if (isFirst) {
-                                    data.first1RM = maxOf(data.first1RM ?: 0f, oneRM)
-                                } else {
-                                    data.second1RM = maxOf(data.second1RM ?: 0f, oneRM)
-                                }
+                                if (isFirst) data.first1RM = maxOf(data.first1RM ?: 0f, oneRM)
+                                else data.second1RM = maxOf(data.second1RM ?: 0f, oneRM)
                             }
                         }
-                        
-                        // Calculate volume (for build sets)
+
                         if (intent == SetIntent.BUILD) {
                             val volume = entry.kg * entry.reps
-                            if (isFirst) {
-                                data.firstVolume = (data.firstVolume ?: 0f) + volume
-                            } else {
-                                data.secondVolume = (data.secondVolume ?: 0f) + volume
-                            }
+                            if (isFirst) data.firstVolume = (data.firstVolume ?: 0f) + volume
+                            else data.secondVolume = (data.secondVolume ?: 0f) + volume
                         }
-                        
-                        // Track strength weight (for strength sets)
+
                         if (intent == SetIntent.STRENGTH) {
-                            if (isFirst) {
-                                data.firstStrength = maxOf(data.firstStrength ?: 0f, entry.kg)
-                            } else {
-                                data.secondStrength = maxOf(data.secondStrength ?: 0f, entry.kg)
-                            }
+                            if (isFirst) data.firstStrength = maxOf(data.firstStrength ?: 0f, entry.kg)
+                            else data.secondStrength = maxOf(data.secondStrength ?: 0f, entry.kg)
                         }
                     }
                 }
@@ -417,30 +466,17 @@ object ProgressAnalysisHelper {
         processPeriod(firstPeriod, true)
         processPeriod(secondPeriod, false)
 
-        // Calculate trends with priority: 1RM > Volume > Strength
         return muscleTrends.mapValues { (_, data) ->
-            // Priority 1: 1RM trend
-            if (data.first1RM != null && data.second1RM != null && data.first1RM!! > 0f) {
-                val trend = ((data.second1RM!! - data.first1RM!!) / data.first1RM!!) * 100f
-                trend
-            }
-            // Priority 2: Volume trend
-            else if (data.firstVolume != null && data.secondVolume != null && data.firstVolume!! > 0f) {
-                val trend = ((data.secondVolume!! - data.firstVolume!!) / data.firstVolume!!) * 100f
-                trend
-            }
-            // Priority 3: Strength weight trend
-            else if (data.firstStrength != null && data.secondStrength != null && data.firstStrength!! > 0f) {
-                val trend = ((data.secondStrength!! - data.firstStrength!!) / data.firstStrength!!) * 100f
-                trend
-            }
-            // First time (no previous data)
-            else if (data.second1RM != null || data.secondVolume != null || data.secondStrength != null) {
-                null // First time
-            }
-            // No data
-            else {
-                null
+            when {
+                data.first1RM != null && data.second1RM != null && data.first1RM!! > 0f ->
+                    ((data.second1RM!! - data.first1RM!!) / data.first1RM!!) * 100f
+                data.firstVolume != null && data.secondVolume != null && data.firstVolume!! > 0f ->
+                    ((data.secondVolume!! - data.firstVolume!!) / data.firstVolume!!) * 100f
+                data.firstStrength != null && data.secondStrength != null && data.firstStrength!! > 0f ->
+                    ((data.secondStrength!! - data.firstStrength!!) / data.firstStrength!!) * 100f
+                data.second1RM != null || data.secondVolume != null || data.secondStrength != null ->
+                    null  // First time in window
+                else -> null
             }
         }
     }

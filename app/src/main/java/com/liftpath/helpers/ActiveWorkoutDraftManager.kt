@@ -15,7 +15,7 @@ class ActiveWorkoutDraftManager(context: Context) {
     fun hasDraft(): Boolean = draftFile.exists()
 
     fun saveDraft(draft: ActiveWorkoutDraft) {
-        if (draft.entries.isEmpty()) {
+        if (draft.entries.isEmpty() && draft.exerciseOrder.isNullOrEmpty()) {
             clearDraft()
             return
         }

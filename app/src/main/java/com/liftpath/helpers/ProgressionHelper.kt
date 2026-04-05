@@ -554,8 +554,8 @@ object ProgressionHelper {
             )
         }
 
-        // 2. Base suggestion: 50% of 1RM
-        var suggestedWeight = estimated1RM * settings.flush1RMPercent
+        // 2. Base suggestion: 50% of 1RM, rounded to nearest 0.5kg
+        var suggestedWeight = roundToIncrement(estimated1RM * settings.flush1RMPercent, 0.5f)
 
         // 3. FLUSH-only progression: if last session 25+ reps @ 7 RPE and 1RM unchanged → increase
         val flushHistory = getFlushHistory(exerciseId, trainingData)

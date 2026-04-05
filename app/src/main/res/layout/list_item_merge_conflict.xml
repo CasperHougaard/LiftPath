@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="8dp"
+    app:cardBackgroundColor="@color/fitness_card_background"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="2dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="12dp">
+
+        <!-- Name row with info icon -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/text_exercise_name"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textColor="@color/fitness_text_primary"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                tools:text="Bench Press (Barbell)" />
+
+            <ImageView
+                android:id="@+id/button_show_diff"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:clickable="true"
+                android:contentDescription="@string/button_update_summary_info"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackgroundBorderless"
+                android:padding="2dp"
+                android:src="@drawable/ic_info_outline_24"
+                app:tint="@color/fitness_text_secondary" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/text_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/label_conflict_exercise_badge"
+            android:textColor="@color/fitness_accent"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/text_conflict_hint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/subtitle_library_update_conflict"
+            android:textColor="@color/fitness_text_secondary"
+            android:textSize="13sp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/button_keep_local"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:layout_weight="1"
+                android:text="@string/button_keep_local"
+                android:textAllCaps="false"
+                app:strokeColor="@color/fitness_primary" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/button_use_catalog"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:layout_weight="1"
+                android:text="@string/button_use_catalog"
+                android:textAllCaps="false"
+                app:strokeColor="@color/fitness_primary" />
+        </LinearLayout>
+    </LinearLayout>
+</androidx.cardview.widget.CardView>

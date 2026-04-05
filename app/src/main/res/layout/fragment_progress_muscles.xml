@@ -179,7 +179,7 @@
                         android:layout_height="wrap_content" />
                 </LinearLayout>
 
-                <com.github.mikephil.charting.charts.CombinedChart
+                <com.github.mikephil.charting.charts.BarChart
                     android:id="@+id/chart_muscle_volume"
                     android:layout_width="match_parent"
                     android:layout_height="280dp"

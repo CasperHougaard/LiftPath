@@ -5,8 +5,6 @@ import android.content.Intent
 import android.graphics.drawable.Animatable
 import android.os.Build
 import android.os.Bundle
-import android.text.InputType
-import android.widget.EditText
 import android.widget.Toast
 import com.liftpath.R
 import androidx.appcompat.app.AppCompatActivity
@@ -194,17 +192,13 @@ class EditActivityActivity : AppCompatActivity() {
         if (position >= sets.size) return
 
         val currentNote = sets[position].note ?: ""
-        val editText = EditText(this).apply {
-            setText(currentNote)
-            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES or InputType.TYPE_TEXT_FLAG_MULTI_LINE
-            hint = "Note (optional)"
-            minLines = 3
-            maxLines = 5
-        }
+        val dialogView = layoutInflater.inflate(R.layout.dialog_edit_note, null)
+        val editText = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.edit_text_note)
+        editText.setText(currentNote)
 
         DialogHelper.createBuilder(this)
             .setTitle(getString(R.string.dialog_title_edit_note, sets[position].setNumber))
-            .setView(editText)
+            .setView(dialogView)
             .setPositiveButton(getString(R.string.button_save)) { _, _ ->
                 val note = editText.text.toString().takeIf { it.isNotBlank() }
                 sets[position] = sets[position].copy(note = note)

@@ -7,8 +7,11 @@ import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import com.google.android.material.tabs.TabLayout
 import com.liftpath.R
 import com.liftpath.databinding.ActivitySettingsBinding
+import com.liftpath.helpers.CatalogMergePrefsManager
+import com.liftpath.helpers.DefaultExercisesHelper
 import com.liftpath.helpers.DialogHelper
 import com.liftpath.helpers.JsonHelper
 import com.liftpath.helpers.showWithTransparentWindow
@@ -27,6 +30,23 @@ class SettingsActivity : AppCompatActivity() {
             jsonHelper.exportTrainingData(it)
                 .onSuccess { showToast(getString(R.string.toast_backup_exported)) }
                 .onFailure { showToast(getString(R.string.toast_export_failed, it.localizedMessage ?: "")) }
+        }
+    }
+
+    private val exportLibraryLauncher = registerForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        uri?.let {
+            jsonHelper.exportExerciseLibrary(it)
+                .onSuccess { showToast(getString(R.string.toast_library_exported)) }
+                .onFailure {
+                    showToast(
+                        getString(
+                            R.string.toast_library_export_failed,
+                            it.localizedMessage ?: ""
+                        )
+                    )
+                }
         }
     }
 
@@ -60,7 +80,35 @@ class SettingsActivity : AppCompatActivity() {
 
         jsonHelper = JsonHelper(this)
 
+        setupSettingsTabs()
         setupClickListeners()
+    }
+
+    private fun setupSettingsTabs() {
+        binding.tabLayoutSettings.addTab(
+            binding.tabLayoutSettings.newTab().setText(getString(R.string.settings_tab_general))
+        )
+        binding.tabLayoutSettings.addTab(
+            binding.tabLayoutSettings.newTab().setText(getString(R.string.settings_tab_advanced))
+        )
+        binding.tabLayoutSettings.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: TabLayout.Tab?) {
+                when (tab?.position) {
+                    0 -> {
+                        binding.panelGeneral.visibility = View.VISIBLE
+                        binding.panelAdvanced.visibility = View.GONE
+                    }
+                    1 -> {
+                        binding.panelGeneral.visibility = View.GONE
+                        binding.panelAdvanced.visibility = View.VISIBLE
+                    }
+                }
+            }
+
+            override fun onTabUnselected(tab: TabLayout.Tab?) {}
+
+            override fun onTabReselected(tab: TabLayout.Tab?) {}
+        })
     }
     
     private fun setupBackgroundAnimation() {
@@ -75,12 +123,20 @@ class SettingsActivity : AppCompatActivity() {
             showResetDataConfirmationDialog()
         }
 
+        binding.buttonResetLibrary.setOnClickListener {
+            showResetLibraryConfirmationDialog()
+        }
+
         binding.buttonExportData.setOnClickListener {
             exportDocumentLauncher.launch(defaultBackupFileName())
         }
 
         binding.buttonImportData.setOnClickListener {
             importDocumentLauncher.launch(arrayOf("application/json"))
+        }
+
+        binding.buttonExportLibrary.setOnClickListener {
+            exportLibraryLauncher.launch(defaultExerciseLibraryFileName())
         }
 
         binding.buttonProgressionSettings.setOnClickListener {
@@ -107,12 +163,38 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun resetData() {
         jsonHelper.resetTrainingData()
+        CatalogMergePrefsManager(this).resetForLibraryReset()
         showToast(getString(R.string.toast_data_reset))
+    }
+
+    private fun showResetLibraryConfirmationDialog() {
+        DialogHelper.createBuilder(this)
+            .setTitle(getString(R.string.dialog_title_reset_library))
+            .setMessage(getString(R.string.dialog_message_reset_library))
+            .setNegativeButton(getString(R.string.button_cancel), null)
+            .setPositiveButton(getString(R.string.button_reset)) { _, _ ->
+                resetExerciseLibraryOnly()
+            }
+            .showWithTransparentWindow()
+    }
+
+    private fun resetExerciseLibraryOnly() {
+        val data = jsonHelper.readTrainingData()
+        data.exerciseLibrary.clear()
+        data.exerciseLibrary.addAll(DefaultExercisesHelper.getPopularDefaults())
+        jsonHelper.writeTrainingData(data)
+        CatalogMergePrefsManager(this).resetForLibraryReset()
+        showToast(getString(R.string.toast_library_reset))
     }
 
     private fun defaultBackupFileName(): String {
         val formatter = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault())
         return "training_backup_${formatter.format(Date())}.json"
+    }
+
+    private fun defaultExerciseLibraryFileName(): String {
+        val formatter = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault())
+        return "liftpath_exercises_${formatter.format(Date())}.json"
     }
 
     private fun showToast(message: String) {

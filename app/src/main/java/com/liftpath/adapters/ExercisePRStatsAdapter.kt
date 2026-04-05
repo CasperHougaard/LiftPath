@@ -51,51 +51,58 @@ class ExercisePRStatsAdapter(
         fun bind(summary: ProgressAnalysisHelper.ExerciseStatsSummary) {
             textExerciseName.text = summary.exerciseName
 
-            // Recency tier from lastPrDate: Fresh ≤7d, Improved 8–30d, Older >30d or no PR
             val ctx = itemView.context
-            val daysSinceLastPr = if (summary.lastPrDate <= 0) Int.MAX_VALUE
-            else ((System.currentTimeMillis() - summary.lastPrDate) / (24 * 60 * 60 * 1000)).toInt()
-            val recencyColor = when {
-                daysSinceLastPr <= 7 -> ContextCompat.getColor(ctx, R.color.pr_fresh)
-                daysSinceLastPr <= 30 -> ContextCompat.getColor(ctx, R.color.pr_improved)
-                else -> ContextCompat.getColor(ctx, R.color.pr_older)
-            }
             val mutedColor = ContextCompat.getColor(ctx, R.color.fitness_text_secondary)
 
-            // Card stroke: 2dp border in recency color
+            fun daysSince(timestamp: Long) =
+                if (timestamp <= 0) Int.MAX_VALUE
+                else ((System.currentTimeMillis() - timestamp) / (24 * 60 * 60 * 1000)).toInt()
+
+            fun recencyColor(daysSince: Int) = when {
+                daysSince <= 7  -> ContextCompat.getColor(ctx, R.color.pr_fresh)
+                daysSince <= 30 -> ContextCompat.getColor(ctx, R.color.pr_improved)
+                else            -> ContextCompat.getColor(ctx, R.color.pr_older)
+            }
+
+            // Card border uses the most recent PR date across all types
+            val overallDays = daysSince(summary.lastPrDate)
+            val borderColor = recencyColor(overallDays)
             val strokeWidthPx = (2 * ctx.resources.displayMetrics.density).toInt()
             cardPrTile.strokeWidth = strokeWidthPx
-            cardPrTile.strokeColor = recencyColor
+            cardPrTile.strokeColor = borderColor
 
-            // Format lastPrDate (Long): recent = "2 days ago", older = "Oct 24, 2025"
+            // "Last PR" header text
             textLastPrDate.text = if (summary.lastPrDate <= 0) {
                 ctx.getString(R.string.progress_last_pr) + ": —"
             } else {
-                val lastPr = summary.lastPrDate
-                val formatted = when {
-                    daysSinceLastPr < 0 -> ctx.getString(R.string.progress_last_pr) + ": " + displayDateFormat.format(Date(lastPr))
-                    daysSinceLastPr == 0 -> ctx.getString(R.string.progress_last_pr) + ": " + ctx.getString(R.string.progress_today)
-                    daysSinceLastPr == 1 -> ctx.getString(R.string.progress_last_pr) + ": " + ctx.getString(R.string.progress_yesterday)
-                    daysSinceLastPr in 2..6 -> ctx.getString(R.string.progress_last_pr) + ": " + ctx.getString(R.string.progress_days_ago, daysSinceLastPr)
-                    else -> ctx.getString(R.string.progress_last_pr) + ": " + displayDateFormat.format(Date(lastPr))
+                val formatted = when (overallDays) {
+                    in Int.MIN_VALUE..-1 -> displayDateFormat.format(Date(summary.lastPrDate))
+                    0    -> ctx.getString(R.string.progress_today)
+                    1    -> ctx.getString(R.string.progress_yesterday)
+                    in 2..6 -> ctx.getString(R.string.progress_days_ago, overallDays)
+                    else -> displayDateFormat.format(Date(summary.lastPrDate))
                 }
-                formatted
+                ctx.getString(R.string.progress_last_pr) + ": " + formatted
             }
-            textLastPrDate.setTextColor(if (summary.lastPrDate > 0) recencyColor else mutedColor)
+            textLastPrDate.setTextColor(if (summary.lastPrDate > 0) borderColor else mutedColor)
 
-            // Stats: show value or "—"; color by recency when value present
-            val has1rm = summary.best1RM != null
-            val hasWeight = summary.bestWeight != null
-            val hasVolume = summary.bestVolume != null
-            val hasReps = summary.bestRepsRecord != null
-            textStat1rm.text = summary.best1RM?.let { String.format(Locale.US, "%.1f kg", it) } ?: "—"
+            // Each stat uses its own per-type PR date for color so a fresh Volume PR
+            // doesn't make an old Weight PR glow green.
+            textStat1rm.text   = summary.best1RM?.let { String.format(Locale.US, "%.1f kg", it) } ?: "—"
             textStatWeight.text = summary.bestWeight?.let { String.format(Locale.US, "%.1f kg", it) } ?: "—"
             textStatVolume.text = summary.bestVolume?.let { String.format(Locale.US, "%,.0f kg", it) } ?: "—"
-            textStatReps.text = summary.bestRepsRecord ?: "—"
-            textStat1rm.setTextColor(if (has1rm) recencyColor else mutedColor)
-            textStatWeight.setTextColor(if (hasWeight) recencyColor else mutedColor)
-            textStatVolume.setTextColor(if (hasVolume) recencyColor else mutedColor)
-            textStatReps.setTextColor(if (hasReps) recencyColor else mutedColor)
+            textStatReps.text  = "—"
+
+            textStat1rm.setTextColor(
+                if (summary.best1RM != null) recencyColor(daysSince(summary.last1RMPrDate)) else mutedColor
+            )
+            textStatWeight.setTextColor(
+                if (summary.bestWeight != null) recencyColor(daysSince(summary.lastWeightPrDate)) else mutedColor
+            )
+            textStatVolume.setTextColor(
+                if (summary.bestVolume != null) recencyColor(daysSince(summary.lastVolumePrDate)) else mutedColor
+            )
+            textStatReps.setTextColor(mutedColor)
         }
     }
 }

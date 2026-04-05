@@ -279,8 +279,13 @@ class ProgressExercisesFragment : Fragment() {
         filteredDates: List<String>,
         sessionWorkoutTypes: Map<String, String>
     ) {
+        // Clear old state before building new data so stale highlights/animations are removed.
+        binding.chartCombined.clear()
+
         val lineDataSets = mutableListOf<com.github.mikephil.charting.interfaces.datasets.ILineDataSet>()
         val barEntries = mutableListOf<BarEntry>()
+        var hasLeftAxisData = false
+        var hasRightAxisData = false
 
         // Strength 1RM Line (if enabled)
         if (showStrength) {
@@ -296,8 +301,8 @@ class ProgressExercisesFragment : Fragment() {
                     }
                 }
             }
-            
             if (strengthEntries.isNotEmpty()) {
+                hasLeftAxisData = true
                 val strengthDataSet = LineDataSet(strengthEntries, "1RM (Strength)").apply {
                     color = Color.parseColor("#DC2626")
                     setCircleColor(Color.parseColor("#DC2626"))
@@ -320,6 +325,7 @@ class ProgressExercisesFragment : Fragment() {
                     barEntries.add(BarEntry(index.toFloat(), volume))
                 }
             }
+            if (barEntries.isNotEmpty()) hasRightAxisData = true
         }
 
         // Flush Reps Line (if enabled)
@@ -332,8 +338,8 @@ class ProgressExercisesFragment : Fragment() {
                     flushEntries.add(Entry(index.toFloat(), totalReps))
                 }
             }
-
             if (flushEntries.isNotEmpty()) {
+                hasRightAxisData = true
                 val flushDataSet = LineDataSet(flushEntries, "Reps (Flush)").apply {
                     color = Color.parseColor("#10B981")
                     setCircleColor(Color.parseColor("#10B981"))
@@ -347,41 +353,36 @@ class ProgressExercisesFragment : Fragment() {
             }
         }
 
-        // Create combined data
-        val combinedData = CombinedData()
-
-        if (lineDataSets.isNotEmpty()) {
-            // Convert to immutable list with explicit type for LineData constructor
-            val lineDataList: List<com.github.mikephil.charting.interfaces.datasets.ILineDataSet> = lineDataSets.toList()
-            combinedData.setData(LineData(lineDataList))
-        }
-
-        if (barEntries.isNotEmpty()) {
-            val barDataSet = BarDataSet(barEntries, "Volume (Build)").apply {
-                color = Color.parseColor("#F59E0B")
-                setDrawValues(false)
-                axisDependency = YAxis.AxisDependency.RIGHT
-            }
-            val barData = BarData(barDataSet).apply {
-                barWidth = 0.4f
-            }
-            combinedData.setData(barData)
-        }
-        
-        // Check if we have any data at all
         if (lineDataSets.isEmpty() && barEntries.isEmpty()) {
-            // No data to show - hide chart and show empty state
             binding.chartCombined.visibility = View.GONE
             binding.textEmptyState.visibility = View.VISIBLE
             binding.textEmptyState.text = "No data available for selected intents"
             return
         }
-        
-        // Show chart and hide empty state
+
         binding.chartCombined.visibility = View.VISIBLE
         binding.textEmptyState.visibility = View.GONE
 
-        // Configure chart
+        val combinedData = CombinedData()
+
+        // Always set LineData (even empty) so LineChartRenderer.drawData() never gets null lineData.
+        combinedData.setData(LineData(lineDataSets.toList()))
+
+        // CRITICAL: BarLineChartBase.notifyDataSetChanged() calls mRenderer.initBuffers() BEFORE
+        // CombinedChart.setData() calls createRenderers(). If the old mRenderers still contains a
+        // BarChartRenderer from a previous load but the new CombinedData has no BarData, then
+        // BarChartRenderer.initBuffers() calls chart.getBarData().getDataSetCount() → NPE crash.
+        // Fix: always provide a non-null BarData (empty when no bars) so getBarData() ≠ null.
+        if (barEntries.isNotEmpty()) {
+            combinedData.setData(BarData(BarDataSet(barEntries, "Volume (Build)").apply {
+                color = Color.parseColor("#F59E0B")
+                setDrawValues(false)
+                axisDependency = YAxis.AxisDependency.RIGHT
+            }).apply { barWidth = 0.4f })
+        } else {
+            combinedData.setData(BarData())
+        }
+
         binding.chartCombined.apply {
             data = combinedData
             description.isEnabled = false
@@ -402,51 +403,51 @@ class ProgressExercisesFragment : Fragment() {
                             return try {
                                 val date = dateFormat.parse(filteredDates[index])
                                 SimpleDateFormat("MM/dd", Locale.getDefault()).format(date!!)
-                            } catch (e: Exception) {
-                                ""
-                            }
+                            } catch (e: Exception) { "" }
                         }
                         return ""
                     }
                 }
             }
 
-            val hasData = filteredDates.size > 0
-            
+            // notifyDataSetChanged() (called inside setData above) unconditionally calls
+            // computeAxis(mAxisMinimum, mAxisMaximum) on both axes regardless of isEnabled.
+            // If an axis has no data its range is (Float.MAX_VALUE, -Float.MAX_VALUE) — reversed.
+            // That reversed range propagates to NaN/overflow inside computeAxisValues(), which can
+            // cause a NegativeArraySizeException when allocating the label array.
+            // Fix: when an axis carries no real data, give it a valid dummy range [0, 100].
+            axisLeft.isEnabled = hasLeftAxisData
             axisLeft.apply {
                 setDrawGridLines(true)
                 gridColor = Color.parseColor("#E0E0E0")
                 axisMinimum = 0f
+                if (hasLeftAxisData) resetAxisMaximum() else axisMaximum = 100f
                 setScaleEnabled(false)
             }
 
+            axisRight.isEnabled = hasRightAxisData
             axisRight.apply {
                 setDrawGridLines(false)
                 axisMinimum = 0f
+                if (hasRightAxisData) resetAxisMaximum() else axisMaximum = 100f
                 setScaleEnabled(false)
             }
 
-            // Disable all user interactions - chart is read-only
             setTouchEnabled(false)
             setDragEnabled(false)
             setScaleEnabled(false)
             setPinchZoom(false)
             setDoubleTapToZoomEnabled(false)
-            
-            // Add extra x-axis space: column width * 2 + padding
-            // Bar width is 0.4f, so we add (0.4 * 2) + some padding = ~1.0f on each side
-            if (hasData) {
+
+            if (filteredDates.isNotEmpty()) {
                 val dataCount = filteredDates.size.toFloat()
                 val barWidth = 0.4f
-                val extraSpace = (barWidth * 2f) + 0.2f // column width * 2 + padding
-                val totalRange = dataCount + (extraSpace * 2f) // space on both sides
-                
+                val extraSpace = (barWidth * 2f) + 0.2f
                 xAxis.axisMinimum = -extraSpace
                 xAxis.axisMaximum = dataCount - 1f + extraSpace
-                
                 fitScreen()
             }
-            
+
             animateX(800)
             invalidate()
         }

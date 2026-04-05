@@ -1,68 +1,79 @@
 # PR (Personal Record) Logic Documentation
 
-## Overview
+## Product Rules (source of truth)
 
-The PR system tracks personal records across multiple dimensions for the "Hybrid Athlete" training style (Strength, Build, Flush). PRs are detected automatically as users log their workouts. The PR page shows a **Player Stats Card** list of exercises (one card per exercise with best 1RM, weight, volume, reps), sorted by most recent PR first.
+| Rule | Decision |
+|------|----------|
+| What is a PR? | A true **all-time personal record** — the first time a canonical metric is beaten across all sessions |
+| PR counting | Every PR **event** is counted individually (weight + volume + 1RM on one exercise = up to 3 events) |
+| Intent scope | PRs are tracked **across all intents** together — Bench is Bench regardless of Strength/Build/Flush |
+| Reps PRs | **Excluded** from the canonical PR system — not emitted, not counted, not displayed as PRs |
+| First occurrence | Seeds the baseline **without emitting a PR**. A PR requires a previous best to beat |
+| "Better than last session" | Kept as a separately named **improvement/trend signal** in the workout report — never called a PR |
+
+---
 
 ## PR Types
 
-The system tracks four types of PRs:
+Three canonical types:
 
-1. **WEIGHT PR** - Maximum weight lifted for a specific exercise (all intents)
-2. **VOLUME PR** - Maximum total session volume (weight × reps) for a specific exercise (all intents)
-3. **ONE_RM PR** - Maximum estimated 1-rep max (all intents; sets with effectiveReps > 15 excluded)
-4. **REPS PR** - Maximum reps at a specific weight (±1 kg bucket); display uses **actual weight** (e.g. "22 reps @ 52.5kg")
+1. **WEIGHT** — Heaviest single working-set weight for an exercise (all intents)
+2. **VOLUME** — Highest total session volume (kg × reps, all working sets) for an exercise (all intents)
+3. **ONE_RM** — Highest estimated 1-rep max (all intents; sets excluded when `effectiveReps > 15` or `RPE < 6.5`)
+
+`PRType.REPS` remains in the enum for backward compatibility but is never emitted by the canonical engine.
+
+---
 
 ## PR Detection Algorithm
 
-### Core: `processSessionsForPRs()` (single chronological pass)
+### Location: `ProgressAnalysisHelper.processSessionsForPRs()` (private)
 
-**Location:** `ProgressAnalysisHelper.kt`
+Single chronological pass over all sessions:
 
-**Process:**
+1. Sessions sorted by date, oldest first.
+2. For each session, accumulate per-exercise session bests (weight, 1RM, volume).
+3. After processing all sets for a session, compare session bests against all-time `ExerciseBests`.
+4. **Baseline rule**: if the all-time best for this type is `null` (first occurrence), update the best but **do not emit a PR**.
+5. **PR rule**: if the session best strictly exceeds the all-time best, update the best and emit a `PRRecord`.
+6. At most **one PR per type per exercise per session** (session bests are buffered).
 
-1. **Chronological Processing**
-   - Sessions are sorted by date (oldest first)
-   - Per-exercise state: `ExerciseBests` (maxWeight, max1RM, maxVolume, maxRepsAtWeight, sessionVolumes), and `lastPrDate` (Long, timestamp ms) per exercise
-
-2. **Session Deduplication**
-   - At most **one PR per type per exercise per session**
-   - Session bests are buffered; at end of each session, one PRRecord per (exercise, type) that improved is emitted
-
-3. **Four Rules**
-   - **Volume PR (unlocked):** Session volume = sum(weight × reps) for all working sets of that exercise in the session. Eligible for **all intents** (Strength, Build, Flush).
-   - **1RM PR (gated by reps):** `OneRMEstimationHelper.calculateOneRM(entry.kg, entry.reps, entry.rpe)` is called for **all intents**. The helper returns `null` when effectiveReps > 15 or RPE < 6.5, so high-rep sets are excluded.
-   - **Weight PR:** Heaviest single set weight; all intents.
-   - **Reps PR:** Max reps at a given weight. Weight is bucketed with ±1 kg tolerance (bucket = round(weight)); internally stored as `Map<bucket, (maxReps, actualWeightKg)>`. Display string **always uses actual weight** (e.g. "20 reps @ 52.5kg"), not the bucket.
-
-4. **Set Filtering**
-   - Warmup sets are excluded (`it.isWarmup == false`)
-
-### API
-
-- **`getRecentPRs(sessions, exerciseLibrary, dayWindow)`**  
-  Returns `List<PRRecord>` filtered by `dayWindow` (PRs whose date is within the last `dayWindow` days). Used by Progress Overview "Recent PRs" and by PR page summary stats.
-
-- **`getExerciseStatsSummaries(sessions, exerciseLibrary)`**  
-  Returns `List<ExerciseStatsSummary>` for the PR page. One summary per exercise that has at least one PR.  
-  **ExerciseStatsSummary:** `exerciseId`, `exerciseName`, `best1RM`, `bestWeight`, `bestVolume`, `bestRepsRecord` (e.g. "22 reps @ 52.5kg"), **`lastPrDate: Long`** (timestamp ms; 0 if no PRs).  
-  Caller sorts by `lastPrDate` DESC so the exercise with the most recent PR is at the top.
-
-## PR Record Data Structure
-
+### `PRRecord` data class
 ```kotlin
 data class PRRecord(
+    val exerciseId: Int,
     val exerciseName: String,
-    val intent: SetIntent,
+    val intent: SetIntent,     // Context intent for display (not used for PR scoping)
     val prType: PRType,
     val value: Float,
-    val previousValue: Float? = null,
-    val date: String
+    val previousValue: Float?, // null would indicate baseline (but baseline never emits)
+    val date: String           // "yyyy/MM/dd" session date
 )
 ```
 
-## ExerciseStatsSummary (Player Stats Card)
+### Per-type date tracking
 
+`processSessionsForPRs` maintains `lastPrDateByType: Map<String, Long>` with keys:
+- `"${exerciseId}_WEIGHT"`
+- `"${exerciseId}_VOLUME"`
+- `"${exerciseId}_1RM"`
+
+This feeds the per-type recency colors in all PR displays.
+
+---
+
+## Public API
+
+| Function | Purpose |
+|----------|---------|
+| `getRecentPRs(sessions, library, dayWindow)` | PR events within last N days; used by overview strip and home card |
+| `getPRsForSession(sessions, sessionId)` | Canonical PR events for a specific session; used by workout report header count |
+| `getExerciseStatsSummaries(sessions, library)` | Per-exercise all-time bests + per-type PR dates; used by PR tab and report trend cards |
+| `getWeeklySummary(sessions, weekOffset)` | Session count, total volume, canonical `prCount` for the week |
+| `getIntentDistribution(sessions, dayWindow)` | Intent breakdown percentages |
+| `getMuscleTrends(sessions, library, weeksBack)` | Muscle trend percentages for overview muscle map |
+
+### `ExerciseStatsSummary`
 ```kotlin
 data class ExerciseStatsSummary(
     val exerciseId: Int,
@@ -70,39 +81,81 @@ data class ExerciseStatsSummary(
     val best1RM: Float?,
     val bestWeight: Float?,
     val bestVolume: Float?,
-    val bestRepsRecord: String?,  // e.g. "22 reps @ 52.5kg" (actual weight)
-    val lastPrDate: Long          // timestamp ms; 0 if no PRs
-)
+    val lastWeightPrDate: Long,   // ms timestamp; 0 = no weight PR ever
+    val lastVolumePrDate: Long,
+    val last1RMPrDate: Long
+) {
+    val lastPrDate: Long get() = maxOf(lastWeightPrDate, lastVolumePrDate, last1RMPrDate)
+}
 ```
 
-- **lastPrDate** is stored as **Long** (timestamp) so the adapter can format flexibly: e.g. "2 days ago" for recent, "Oct 24, 2025" for older. Sorting by Long is fast and unambiguous.
+---
 
-## Time Window Filtering
+## Workout Report Trend Cards
 
-- `getRecentPRs(..., dayWindow)` returns only PRs whose date falls within the last `dayWindow` days.
-- `getExerciseStatsSummaries()` returns **all** exercises that have at least one PR (no day window); the list is then sorted by `lastPrDate` DESC.
+Trend cards (`ExerciseTrendData`) are **separate from PR logic**. They answer "how did I do this session compared to recent same-intent history?" not "did I set a record?"
 
-## UI
+### Trend window (WorkoutComparisonHelper)
 
-### PR Page (ProgressPRsFragment)
+- Looks back up to **6 prior sessions** containing the same exercise and same intent.
+- Direct comparison uses the **most recent** matching session's metrics.
+- `intentSessionCount` = number of prior same-intent sessions found.
+  - `0`: First time with this intent → shows "First time with this intent" note, no comparison.
+  - `≥ 1`: Shows comparison values and % change.
 
-- **List:** One card per exercise (`item_exercise_pr_card.xml`), bound by **ExercisePRStatsAdapter**.
-- **Sorting:** By `lastPrDate` DESC (exercise with most recent PR at top).
-- **Card header:** Exercise name + "Last PR: [formatted date]" (adapter formats `lastPrDate` Long: e.g. "Today", "Yesterday", "3 days ago", "Oct 24, 2025").
-- **Card body:** Four stats in a row: 1RM | Weight | Volume | Reps (value or "—" if null).
-- **Filter chips:** All, Weight, Volume, 1RM, Reps (filter exercises that have that type of PR).
-- **Summary card:** Total PRs, This Month, Week Streak (computed from `getRecentPRs(..., large window)`).
+### All-time PRs on trend cards
 
-### Progress Overview
+Each trend card also shows the all-time bests (weight, volume, 1RM) sourced from `ExerciseStatsSummary`. The all-time PR star badge (`image_pr_badge`) appears only when a **canonical all-time PR** was set in this session (`hasNewAllTimePR = true`), determined by `getPRsForSession`.
 
-- "Recent PRs" tiles still use `getRecentPRs(sessions, exerciseLibrary, 30)` and **PRTimelineAdapter** with `item_pr_timeline.xml` (list of PR events, not exercise summaries).
+---
+
+## UI Surfaces
+
+| Surface | Source | Shows |
+|---------|--------|-------|
+| Overview "Weekly PRs" | `getWeeklySummary().prCount` | Canonical PR events in current week |
+| Overview recent PR strip | `getRecentPRs(..., 30)` | Last 30 days PR events (weight, volume, 1RM) |
+| Home momentum "PRs in 30 days" | `getRecentPRs(..., 30).size` | Total canonical PR events |
+| Workout report header PR count | `getPRsForSession(...)` | Canonical PRs for that session |
+| Workout report trend cards | `WorkoutComparisonHelper.calculateExerciseTrends` | Per-intent trend + all-time PR section |
+| PR tab list | `getExerciseStatsSummaries` | All-time bests per exercise |
+| PR tab filter chips | Weight, Volume, 1RM (no Reps) | Filter by canonical PR type |
+
+### PR recency coloring
+
+| Age | Color token | Meaning |
+|-----|-------------|---------|
+| ≤ 7 days | `pr_fresh` | Recent PR |
+| 8–30 days | `pr_improved` | Within a month |
+| > 30 days | `pr_older` | Older record |
+
+---
+
+## What Changed (vs pre-cleanup state)
+
+| Area | Before | After |
+|------|--------|-------|
+| First session | Emitted a PR for every exercise | Seeds baseline only — no PR emitted |
+| Reps PRs | Emitted as `PRType.REPS`, shown in PR tab | Excluded from canonical engine; `PRType.REPS` kept in enum only |
+| PR date tracking | One `lastPrDate` per exercise | Separate `lastWeightPrDate`, `lastVolumePrDate`, `last1RMPrDate` per exercise |
+| Weekly PR count | Hardcoded `0` | Derived from canonical engine |
+| Report PR count | `WorkoutComparisonHelper.detectPRs` (intent-scoped, "better than last") | `ProgressAnalysisHelper.getPRsForSession` (all-time canonical) |
+| Report trend "isPR" badge | "Better than immediately previous session" | "Set a canonical all-time PR this session" |
+| Report trend comparison | Single previous session (any intent) | Up to 6 previous sessions with same exercise + same intent |
+| PR filter chips | "Strength / Volume / 1RM / Reps" | "Weight / Volume / 1RM" (Reps chip removed) |
+| PR card value format | Always `%.1f kg` (broke volume and reps display) | Type-aware: volume as `%,d kg`, others as `%.1f kg` |
+
+---
 
 ## Related Files
 
-- `ProgressAnalysisHelper.kt` - PR detection, ExerciseStatsSummary, getExerciseStatsSummaries
-- `OneRMEstimationHelper.kt` - 1RM calculation (effectiveReps ≤ 15, RPE ≥ 6.5)
-- `ExercisePRStatsAdapter.kt` - Binds ExerciseStatsSummary to item_exercise_pr_card; formats lastPrDate (Long)
-- `ProgressPRsFragment.kt` - PR page; uses getExerciseStatsSummaries and ExercisePRStatsAdapter
-- `PRTimelineAdapter.kt` - Used by Overview for "Recent PRs" tiles (PRRecord list)
-- `item_exercise_pr_card.xml` - Player Stats Card layout
-- `item_pr_timeline.xml` - Timeline PR item layout (Overview)
+- `ProgressAnalysisHelper.kt` — canonical PR engine (single source of truth)
+- `WorkoutComparisonHelper.kt` — session summary + per-intent trend window
+- `OneRMEstimationHelper.kt` — 1RM calculation (gating conditions)
+- `ExercisePRStatsAdapter.kt` — PR tab card list
+- `ExerciseTrendAdapter.kt` — workout report exercise trend cards
+- `ProgressPRsFragment.kt` — PR tab
+- `ProgressOverviewFragment.kt` — overview strip + weekly stats
+- `MainActivity.kt` — home momentum PR count
+- `WorkoutReportActivity.kt` — post-session report
+- `DataModels.kt` — `ExerciseTrendData`, `WorkoutSummary`

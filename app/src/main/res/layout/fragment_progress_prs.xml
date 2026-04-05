@@ -38,7 +38,7 @@
             style="@style/Widget.MaterialComponents.Chip.Choice"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/intent_strength"
+            android:text="@string/weight_pr_label"
             app:chipBackgroundColor="@color/chip_choice_background"
             app:chipStrokeColor="@color/intent_strength"
             app:chipStrokeWidth="1dp" />
@@ -61,16 +61,6 @@
             android:text="@string/progress_1rm"
             app:chipBackgroundColor="@color/chip_choice_background"
             app:chipStrokeColor="@color/fitness_accent"
-            app:chipStrokeWidth="1dp" />
-
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chip_reps_pr"
-            style="@style/Widget.MaterialComponents.Chip.Choice"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/progress_reps"
-            app:chipBackgroundColor="@color/chip_choice_background"
-            app:chipStrokeColor="@color/intent_flush"
             app:chipStrokeWidth="1dp" />
     </com.google.android.material.chip.ChipGroup>
 

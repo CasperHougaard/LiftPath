@@ -46,32 +46,42 @@ class ActiveExercisesAdapter(
     private val isRestTimerRunning: () -> Boolean,
     private val onUnlinkSuperset: (supersetGroupId: String) -> Unit,
     private val selectedForSupersetPositions: () -> Set<Int>,
-    private val onExerciseLongPress: (position: Int) -> Unit
+    private val onExerciseLongPress: (position: Int) -> Unit,
+    private val getSupersetTargetSets: (groupId: String?) -> Int?,
+    private val getCompletedSupersetGroupIds: () -> Set<String>
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     
     companion object {
         private const val VIEW_TYPE_EXERCISE = 0
         private const val VIEW_TYPE_ADD_BUTTONS = 1
     }
-    
+
+    private val collapsedExercises = mutableSetOf<Int>()
+
+
 
     class GroupedExerciseViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val exerciseName: TextView = view.findViewById(R.id.text_exercise_name)
+        val intentBadge: TextView = view.findViewById(R.id.text_intent_badge)
         val recommendedInfo: TextView = view.findViewById(R.id.text_recommended_info)
         val setsCount: TextView = view.findViewById(R.id.text_sets_count)
         val loggedSets: TextView = view.findViewById(R.id.text_logged_sets)
         val lastWorkoutSets: TextView = view.findViewById(R.id.text_last_workout_sets)
         val completionCheck: ImageView = view.findViewById(R.id.image_completion_check)
+        val layoutActionButtons: View = view.findViewById(R.id.layout_action_buttons)
         val addSetButton: CardView = view.findViewById(R.id.button_add_set)
         val duplicateSetButton: CardView = view.findViewById(R.id.button_duplicate_set)
         val editActivityButton: CardView = view.findViewById(R.id.button_edit_activity)
+        val completeExerciseButton: CardView = view.findViewById(R.id.button_complete_exercise)
+        val iconCompleteExercise: ImageView = view.findViewById(R.id.icon_complete_exercise)
         val deleteExerciseButton: CardView = view.findViewById(R.id.button_delete_exercise)
         val chipGroupIntent: ChipGroup = view.findViewById(R.id.chip_group_intent)
         val chipStrength: com.google.android.material.chip.Chip = view.findViewById(R.id.chip_strength)
         val chipBuild: com.google.android.material.chip.Chip = view.findViewById(R.id.chip_build)
         val chipFlush: com.google.android.material.chip.Chip = view.findViewById(R.id.chip_flush)
         val noteTooltipButton: android.widget.ImageButton = view.findViewById(R.id.button_note_tooltip)
-        val supersetLinkButton: android.widget.ImageButton = view.findViewById(R.id.button_superset_link)
+        val supersetLinkTop: android.widget.ImageButton = view.findViewById(R.id.button_superset_link_top)
+        val supersetLinkBottom: android.widget.ImageButton = view.findViewById(R.id.button_superset_link_bottom)
         val cardExercise: MaterialCardView = view.findViewById(R.id.card_exercise)
     }
     
@@ -134,35 +144,51 @@ class ActiveExercisesAdapter(
         } else emptyList()
         val positionInGroup = groupIndices.indexOf(position)
         val isInSuperset = groupId != null && groupIndices.isNotEmpty()
-        val isFirstInSuperset = isInSuperset && positionInGroup == 0 && groupIndices.size > 1
+        val hasSupersetAbove = isInSuperset && position > 0 && groupedExercises[position - 1].supersetGroupId == groupId
+        val hasSupersetBelow = isInSuperset && position < groupedExercises.size - 1 && groupedExercises[position + 1].supersetGroupId == groupId
 
-        holder.supersetLinkButton.visibility = if (isFirstInSuperset) View.VISIBLE else View.GONE
-        if (isFirstInSuperset && groupId != null) {
-            holder.supersetLinkButton.setOnClickListener {
-                showRemoveSupersetDialog(holder.itemView.context, groupId)
-            }
+        holder.supersetLinkTop.visibility = if (hasSupersetAbove) View.VISIBLE else View.GONE
+        holder.supersetLinkBottom.visibility = if (hasSupersetBelow) View.VISIBLE else View.GONE
+        if (isInSuperset && groupId != null) {
+            val unlinkAction: (android.view.View) -> Unit = { _ -> showRemoveSupersetDialog(holder.itemView.context, groupId) }
+            holder.supersetLinkTop.setOnClickListener(if (hasSupersetAbove) unlinkAction else null)
+            holder.supersetLinkBottom.setOnClickListener(if (hasSupersetBelow) unlinkAction else null)
         } else {
-            holder.supersetLinkButton.setOnClickListener(null)
+            holder.supersetLinkTop.setOnClickListener(null)
+            holder.supersetLinkBottom.setOnClickListener(null)
         }
 
         val workingSetCount = { g: GroupedExercise ->
             g.sets.count { !it.isWarmup }
         }
+        val supersetTarget = getSupersetTargetSets(groupId)
+        val hasSupersetReachedTarget = groupId != null && supersetTarget != null &&
+            groupIndices.all { workingSetCount(groupedExercises[it]) >= supersetTarget }
         val timerRunning = isRestTimerRunning()
         val setCounts = groupIndices.map { workingSetCount(groupedExercises[it]) }
         val minCount = setCounts.minOrNull() ?: 0
         val activePositionInGroup = if (groupIndices.isNotEmpty()) setCounts.indexOfFirst { it == minCount } else -1
         val nextPositionInGroup = if (activePositionInGroup >= 0 && groupIndices.size > 1) (activePositionInGroup + 1) % groupIndices.size else -1
-        val isActive = isInSuperset && positionInGroup >= 0 && positionInGroup == activePositionInGroup
-        val isWaitingForTimer = isInSuperset && timerRunning && nextPositionInGroup >= 0 && positionInGroup == nextPositionInGroup
-        val canAddSet = !isInSuperset || isActive || isWaitingForTimer
+        val isActive = isInSuperset && !hasSupersetReachedTarget && positionInGroup >= 0 && positionInGroup == activePositionInGroup
+        val isWaitingForTimer = isInSuperset && !hasSupersetReachedTarget && timerRunning && nextPositionInGroup >= 0 && positionInGroup == nextPositionInGroup
+        val canAddSet = !isInSuperset || hasSupersetReachedTarget || isActive || isWaitingForTimer
 
         val isSelectedForSuperset = position in selectedForSupersetPositions()
+        val isSupersetComplete = groupId != null && groupId in getCompletedSupersetGroupIds()
         val strokeWidthPx = (2 * holder.itemView.resources.displayMetrics.density).toInt()
         when {
+            isSupersetComplete -> {
+                holder.cardExercise.strokeWidth = strokeWidthPx
+                holder.cardExercise.strokeColor = ContextCompat.getColor(holder.itemView.context, R.color.superset_complete_green)
+                holder.cardExercise.alpha = 1f
+            }
             isSelectedForSuperset -> {
                 holder.cardExercise.strokeWidth = strokeWidthPx
                 holder.cardExercise.strokeColor = ContextCompat.getColor(holder.itemView.context, R.color.fitness_accent)
+                holder.cardExercise.alpha = 1f
+            }
+            hasSupersetReachedTarget -> {
+                holder.cardExercise.strokeWidth = 0
                 holder.cardExercise.alpha = 1f
             }
             isActive -> {
@@ -208,7 +234,7 @@ class ActiveExercisesAdapter(
             
             // Set up note tooltip popup dialog
             holder.noteTooltipButton.setOnClickListener {
-                showNoteDialog(holder.itemView.context, groupedExercise.exerciseName, exerciseNoteText)
+                showNoteDialog(holder.itemView.context, groupedExercise.exerciseId, groupedExercise.exerciseName, exerciseNoteText, position)
             }
         } else {
             holder.noteTooltipButton.visibility = View.GONE
@@ -340,13 +366,13 @@ class ActiveExercisesAdapter(
         val lastWorkingSets = lastWorkoutSets.count { !it.isEffectivelyWarmup() }
         
         // Show completion checkmark if user has logged the recommended number of sets
-        // or if they've logged the last number of sets (when no recommendation exists)
-        val targetSetsCount = recommendedSetsCount ?: lastWorkingSets
+        // or superset target, or last number of sets (when no recommendation exists)
+        val targetSetsCount = supersetTarget ?: recommendedSetsCount ?: lastWorkingSets
         val isComplete = targetSetsCount != null && targetSetsCount > 0 && currentWorkingSets >= targetSetsCount
         holder.completionCheck.visibility = if (isComplete) View.VISIBLE else View.GONE
 
-        // Show sets count: "(N of X sets)" where both count only working sets
-        val targetSets = recommendedSetsCount ?: lastWorkingSets
+        // Show sets count: "(N of X sets)" where both count only working sets; for supersets use user-defined target
+        val targetSets = supersetTarget ?: recommendedSetsCount ?: lastWorkingSets
         if (targetSets > 0) {
             holder.setsCount.text = "($currentWorkingSets of $targetSets sets)"
         } else if (currentWorkingSets > 0) {
@@ -586,7 +612,7 @@ class ActiveExercisesAdapter(
         holder.deleteExerciseButton.setOnClickListener {
             onDeleteExerciseClicked(groupedExercise.exerciseId)
         }
-        
+
         // 5. Card Body Click -> Trigger Edit or Add (only when canAddSet for add)
         holder.itemView.setOnClickListener {
             if (!canAddSet) return@setOnClickListener
@@ -595,6 +621,78 @@ class ActiveExercisesAdapter(
             } else {
                 onAddSetClicked(groupedExercise.exerciseId, groupedExercise.exerciseName)
             }
+        }
+
+        // --- Collapse / Expand toggle ---
+        val isCollapsed = groupedExercise.exerciseId in collapsedExercises
+
+        // Check button: toggle collapsed state
+        holder.completeExerciseButton.setOnClickListener {
+            if (groupedExercise.exerciseId in collapsedExercises) {
+                collapsedExercises.remove(groupedExercise.exerciseId)
+            } else {
+                collapsedExercises.add(groupedExercise.exerciseId)
+            }
+            notifyItemChanged(position)
+        }
+
+        if (isCollapsed) {
+            // Collapsed: hide intent chips, action buttons row, note icon, previous sets column
+            holder.chipGroupIntent.visibility = View.GONE
+            holder.layoutActionButtons.visibility = View.GONE
+            holder.noteTooltipButton.visibility = View.GONE
+            holder.lastWorkoutSets.visibility = View.GONE
+
+            // Intent emoji badge next to exercise name
+            val intentEmoji = when (exerciseIntents[groupedExercise.exerciseId]) {
+                SetIntent.STRENGTH -> "💥"
+                SetIntent.BUILD -> "🛡️"
+                SetIntent.FLUSH -> "🩸"
+                else -> null
+            }
+            holder.intentBadge.text = intentEmoji ?: ""
+            holder.intentBadge.visibility = if (intentEmoji != null) View.VISIBLE else View.GONE
+
+            // Compact inline working sets only (no warmups, no previous)
+            val workingSets = completedSets
+                .filter { !it.isEffectivelyWarmup() }
+                .sortedBy { it.setNumber }
+            if (workingSets.isNotEmpty()) {
+                holder.loggedSets.text = workingSets.joinToString("  ·  ") { set ->
+                    val kg = if (set.kg % 1 == 0f) set.kg.toInt().toString() else set.kg.toString()
+                    "${kg}×${set.reps}"
+                }
+                holder.loggedSets.visibility = View.VISIBLE
+            } else {
+                holder.loggedSets.visibility = View.GONE
+            }
+
+            // Filled green check button = "done"
+            holder.completeExerciseButton.setCardBackgroundColor(
+                ContextCompat.getColor(holder.itemView.context, R.color.superset_complete_green)
+            )
+            holder.iconCompleteExercise.setColorFilter(
+                ContextCompat.getColor(holder.itemView.context, android.R.color.white)
+            )
+
+            // Clicking anywhere on the card expands it again
+            holder.itemView.setOnClickListener {
+                collapsedExercises.remove(groupedExercise.exerciseId)
+                notifyItemChanged(position)
+            }
+        } else {
+            // Expanded: ensure all sections visible (normal state)
+            holder.chipGroupIntent.visibility = View.VISIBLE
+            holder.layoutActionButtons.visibility = View.VISIBLE
+            holder.intentBadge.visibility = View.GONE
+
+            // Reset check button to outline style
+            holder.completeExerciseButton.setCardBackgroundColor(
+                ContextCompat.getColor(holder.itemView.context, R.color.fitness_card_background)
+            )
+            holder.iconCompleteExercise.setColorFilter(
+                android.graphics.Color.parseColor("#4CAF50")
+            )
         }
     }
 
@@ -611,12 +709,43 @@ class ActiveExercisesAdapter(
 
     override fun getItemCount() = groupedExercises.size + 1
     
-    private fun showNoteDialog(context: Context, exerciseName: String, noteText: String) {
+    private fun showNoteDialog(context: Context, exerciseId: Int, exerciseName: String, noteText: String, position: Int) {
         DialogHelper.createBuilder(context)
             .setTitle(exerciseName)
             .setMessage(noteText)
             .setPositiveButton(context.getString(R.string.button_ok), null)
+            .setNeutralButton(context.getString(R.string.button_edit_note)) { _, _ ->
+                showEditNoteDialog(context, exerciseId, exerciseName, noteText, position)
+            }
             .showWithTransparentWindow()
+    }
+
+    private fun showEditNoteDialog(context: Context, exerciseId: Int, exerciseName: String, currentNote: String, position: Int) {
+        val dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_edit_note, null)
+        val editText = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.edit_text_note)
+        editText.setText(currentNote)
+        editText.setSelection(currentNote.length)
+
+        DialogHelper.createBuilder(context)
+            .setTitle(exerciseName)
+            .setView(dialogView)
+            .setPositiveButton(context.getString(R.string.button_save)) { _, _ ->
+                val newNote = editText.text.toString().trim()
+                saveExerciseNote(exerciseId, newNote, position)
+            }
+            .setNegativeButton(context.getString(R.string.button_cancel), null)
+            .showWithTransparentWindow()
+    }
+
+    private fun saveExerciseNote(exerciseId: Int, newNote: String, position: Int) {
+        val trainingData = jsonHelper.readTrainingData()
+        val index = trainingData.exerciseLibrary.indexOfFirst { it.id == exerciseId }
+        if (index != -1) {
+            val item = trainingData.exerciseLibrary[index]
+            trainingData.exerciseLibrary[index] = item.copy(note = newNote.takeIf { it.isNotEmpty() })
+            jsonHelper.writeTrainingData(trainingData)
+        }
+        notifyItemChanged(position)
     }
     
     private fun showIntentChangeWarning(context: Context, exerciseId: Int, newIntent: SetIntent, holder: GroupedExerciseViewHolder) {

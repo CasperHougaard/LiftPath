@@ -50,6 +50,7 @@
     <!-- Superset borders -->
     <color name="superset_active_border">#2563EB</color>
     <color name="superset_waiting_border">#EAB308</color>
+    <color name="superset_complete_green">#10B981</color>
 
     <!-- Suggestion Color (for progression suggestions in active workout) -->
     <color name="fitness_suggestion">#0EA5E9</color>  <!-- Sky-500 -->

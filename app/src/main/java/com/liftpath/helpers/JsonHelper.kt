@@ -5,8 +5,10 @@ import android.net.Uri
 import android.util.Log
 import com.liftpath.models.TrainingData
 import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import java.io.File
 import java.io.IOException
+import java.nio.charset.StandardCharsets
 
 class JsonHelper(private val context: Context) {
 
@@ -110,5 +112,18 @@ class JsonHelper(private val context: Context) {
         writeTrainingData(data)
     }.onFailure {
         Log.e(TAG, "Failed to import training data", it)
+    }
+
+    fun exportExerciseLibrary(destinationUri: Uri): Result<Unit> = runCatching {
+        val data = readTrainingData()
+        val prettyGson = GsonBuilder().setPrettyPrinting().create()
+        val json = prettyGson.toJson(data.exerciseLibrary)
+        val bytes = json.toByteArray(StandardCharsets.UTF_8)
+        context.contentResolver.openOutputStream(destinationUri)?.use { outputStream ->
+            outputStream.write(bytes)
+            outputStream.flush()
+        } ?: throw IOException("Unable to open destination")
+    }.onFailure {
+        Log.e(TAG, "Failed to export exercise library", it)
     }
 }

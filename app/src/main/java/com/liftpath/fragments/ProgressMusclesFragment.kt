@@ -15,10 +15,6 @@ import com.github.mikephil.charting.components.YAxis
 import com.github.mikephil.charting.data.BarData
 import com.github.mikephil.charting.data.BarDataSet
 import com.github.mikephil.charting.data.BarEntry
-import com.github.mikephil.charting.data.CombinedData
-import com.github.mikephil.charting.data.Entry
-import com.github.mikephil.charting.data.LineData
-import com.github.mikephil.charting.data.LineDataSet
 import com.github.mikephil.charting.formatter.ValueFormatter
 import com.liftpath.R
 import com.liftpath.databinding.FragmentProgressMusclesBinding
@@ -35,6 +31,9 @@ class ProgressMusclesFragment : Fragment() {
     private val binding get() = _binding!!
     private lateinit var jsonHelper: JsonHelper
     private val dateFormat = SimpleDateFormat("yyyy/MM/dd", Locale.getDefault())
+    /** Week bucket key: sortable and unique across years (Monday start of week). */
+    private val weekKeyFormat = SimpleDateFormat("yyyy/MM/dd", Locale.getDefault())
+    private val weekAxisLabelFormat = SimpleDateFormat("MMM d", Locale.getDefault())
 
     private var selectedMuscleGroup = "All"
     private var currentTimeRangeMonths = 3
@@ -80,7 +79,10 @@ class ProgressMusclesFragment : Fragment() {
 
     private fun setupMuscleChips() {
         binding.chipGroupMuscles.setOnCheckedStateChangeListener { _, checkedIds ->
-            selectedMuscleGroup = when (checkedIds.firstOrNull()) {
+            // With singleSelection, Material may emit an empty set briefly while switching chips;
+            // applying "All" here caused redundant work; ignoring avoids inconsistent chart state.
+            if (checkedIds.isEmpty()) return@setOnCheckedStateChangeListener
+            selectedMuscleGroup = when (checkedIds.first()) {
                 R.id.chip_all -> "All"
                 R.id.chip_chest -> "Chest"
                 R.id.chip_back -> "Back"
@@ -168,7 +170,7 @@ class ProgressMusclesFragment : Fragment() {
                 val groupMuscles = muscleGroupMap[groupName] ?: emptyList()
                 calculateWeeklyVolumes(filteredSessions, groupMuscles, exerciseLibrary, useWeightedVolume)
             }
-            setupMultiLineChart(weeklyVolumesByGroup)
+            setupGroupedMusclesBarChart(weeklyVolumesByGroup)
             // For stats, sum all volumes
             val combinedVolumes = mutableMapOf<String, Float>()
             weeklyVolumesByGroup.values.forEach { volumes ->
@@ -185,6 +187,9 @@ class ProgressMusclesFragment : Fragment() {
             if (weeklyVolumes.isEmpty()) {
                 binding.textEmptyState.visibility = View.VISIBLE
                 binding.chartMuscleVolume.visibility = View.GONE
+                binding.cardMuscleStats.visibility = View.GONE
+                binding.recyclerContributingExercises.visibility = View.GONE
+                binding.textNoExercises.visibility = View.VISIBLE
                 return
             }
 
@@ -202,7 +207,6 @@ class ProgressMusclesFragment : Fragment() {
     ): Map<String, Float> {
         val weeklyVolumes = mutableMapOf<String, Float>()
         val calendar = Calendar.getInstance()
-        val weekFormat = SimpleDateFormat("MM/dd", Locale.getDefault())
 
         sessions.forEach { session ->
             try {
@@ -216,7 +220,7 @@ class ProgressMusclesFragment : Fragment() {
                 calendar.set(Calendar.MINUTE, 0)
                 calendar.set(Calendar.SECOND, 0)
                 calendar.set(Calendar.MILLISECOND, 0)
-                val weekKey = weekFormat.format(calendar.time)
+                val weekKey = weekKeyFormat.format(calendar.time)
 
                 val sessionVolume = session.exercises
                     .filterNot { it.isWarmup }
@@ -247,10 +251,17 @@ class ProgressMusclesFragment : Fragment() {
         return weeklyVolumes
     }
 
+    private fun formatWeekAxisLabel(weekKey: String): String =
+        try {
+            weekAxisLabelFormat.format(weekKeyFormat.parse(weekKey)!!)
+        } catch (_: Exception) {
+            weekKey
+        }
+
     private fun setupVolumeChart(weeklyVolumes: Map<String, Float>) {
         val sortedWeeks = weeklyVolumes.keys.sorted()
-        val entries = sortedWeeks.mapIndexed { index, _ ->
-            BarEntry(index.toFloat(), weeklyVolumes[sortedWeeks[index]] ?: 0f)
+        val entries = sortedWeeks.mapIndexed { index, week ->
+            BarEntry(index.toFloat(), weeklyVolumes[week] ?: 0f)
         }
 
         val dataSet = BarDataSet(entries, "Volume (kg)").apply {
@@ -262,15 +273,9 @@ class ProgressMusclesFragment : Fragment() {
             barWidth = 0.7f
         }
 
-        val combinedData = CombinedData()
-        combinedData.setData(barData)
-
         binding.chartMuscleVolume.apply {
-            // Clear previous data
             clear()
-            data = null
-            
-            data = combinedData
+            data = barData
             description.isEnabled = false
             setBackgroundColor(Color.WHITE)
             setDrawGridBackground(false)
@@ -280,10 +285,12 @@ class ProgressMusclesFragment : Fragment() {
                 position = XAxis.XAxisPosition.BOTTOM
                 setDrawGridLines(false)
                 labelRotationAngle = -45f
+                granularity = 1f
                 valueFormatter = object : ValueFormatter() {
                     override fun getFormattedValue(value: Float): String {
                         val index = value.toInt()
-                        return if (index in sortedWeeks.indices) sortedWeeks[index] else ""
+                        if (index !in sortedWeeks.indices) return ""
+                        return formatWeekAxisLabel(sortedWeeks[index])
                     }
                 }
             }
@@ -304,57 +311,37 @@ class ProgressMusclesFragment : Fragment() {
         }
     }
 
-    private fun setupMultiLineChart(weeklyVolumesByGroup: Map<String, Map<String, Float>>) {
-        // Get all unique weeks across all muscle groups and sort them
+    private fun setupGroupedMusclesBarChart(weeklyVolumesByGroup: Map<String, Map<String, Float>>) {
         val allWeeks = weeklyVolumesByGroup.values.flatMap { it.keys }.distinct().sorted()
-        
         if (allWeeks.isEmpty()) {
             binding.textEmptyState.visibility = View.VISIBLE
             binding.chartMuscleVolume.visibility = View.GONE
             return
         }
 
-        val lineDataSets = mutableListOf<com.github.mikephil.charting.interfaces.datasets.ILineDataSet>()
-        
-        // Create a line dataset for each muscle group
         val muscleGroups = listOf("Chest", "Back", "Shoulders", "Arms", "Legs", "Core")
-        muscleGroups.forEach { groupName ->
+        val barDataSets = muscleGroups.map { groupName ->
             val volumes = weeklyVolumesByGroup[groupName] ?: emptyMap()
-            if (volumes.isNotEmpty()) {
-                val entries = allWeeks.mapIndexed { index, week ->
-                    Entry(index.toFloat(), volumes[week] ?: 0f)
-                }
-                
-                val color = muscleGroupColors[groupName] ?: Color.parseColor("#2563EB")
-                val dataSet = LineDataSet(entries, groupName).apply {
-                    this.color = color
-                    setCircleColor(color)
-                    circleRadius = 4f
-                    lineWidth = 2.5f
-                    setDrawValues(false)
-                    axisDependency = YAxis.AxisDependency.LEFT
-                    mode = LineDataSet.Mode.CUBIC_BEZIER
-                }
-                lineDataSets.add(dataSet)
+            val entries = allWeeks.mapIndexed { index, week ->
+                BarEntry(index.toFloat(), volumes[week] ?: 0f)
+            }
+            val color = muscleGroupColors[groupName] ?: Color.parseColor("#2563EB")
+            BarDataSet(entries, groupName).apply {
+                this.color = color
+                setDrawValues(false)
+                axisDependency = YAxis.AxisDependency.LEFT
             }
         }
 
-        if (lineDataSets.isEmpty()) {
-            binding.textEmptyState.visibility = View.VISIBLE
-            binding.chartMuscleVolume.visibility = View.GONE
-            return
+        val barData = BarData(barDataSets).apply {
+            // 6 * barWidth + 5 * barSpace + groupSpace == 1 per MPAndroidChart grouped bars.
+            barWidth = 0.11f
+            groupBars(0f, 0.24f, 0.02f)
         }
 
-        val combinedData = CombinedData()
-        combinedData.setData(LineData(lineDataSets.toList()))
-
         binding.chartMuscleVolume.apply {
-            // Clear previous data
-            data = null
-            notifyDataSetChanged()
-            invalidate()
-            
-            data = combinedData
+            clear()
+            data = barData
             description.isEnabled = false
             setBackgroundColor(Color.WHITE)
             setDrawGridBackground(false)
@@ -369,10 +356,12 @@ class ProgressMusclesFragment : Fragment() {
                 position = XAxis.XAxisPosition.BOTTOM
                 setDrawGridLines(false)
                 labelRotationAngle = -45f
+                granularity = 1f
                 valueFormatter = object : ValueFormatter() {
                     override fun getFormattedValue(value: Float): String {
                         val index = value.toInt()
-                        return if (index in allWeeks.indices) allWeeks[index] else ""
+                        if (index !in allWeeks.indices) return ""
+                        return formatWeekAxisLabel(allWeeks[index])
                     }
                 }
             }
@@ -480,15 +469,14 @@ class ProgressMusclesFragment : Fragment() {
                     previousEstimated1RM = null,
                     currentTopSet = null,
                     previousTopSet = null,
-                    isPR = false,
+                    hasNewAllTimePR = false,
+                    intentSessionCount = 0,
                     prWeight = null,
                     prWeightDate = 0L,
                     prVolume = null,
                     prVolumeDate = 0L,
                     pr1RM = null,
-                    pr1RMDate = 0L,
-                    prReps = null,
-                    prRepsDate = 0L
+                    pr1RMDate = 0L
                 )
             }
             
