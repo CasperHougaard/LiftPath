@@ -4,7 +4,9 @@ import com.liftpath.models.ExerciseLibraryItem
 import com.liftpath.models.SetIntent
 import com.liftpath.models.TrainingSession
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 import kotlin.math.round
 
 /**
@@ -290,6 +292,116 @@ object ProgressAnalysisHelper {
         return WeeklySummary(
             totalVolume = totalVolume,
             sessionCount = weeklySessions.size,
+            prCount = prCount,
+            dominantIntent = dominantIntent
+        )
+    }
+
+    /**
+     * Rolling summary over the last [dayCount] calendar days, inclusive of today
+     * (from start of the oldest day through start of tomorrow as the exclusive end).
+     * [prCount] uses the canonical PR engine, counting PRs whose session date falls in the window.
+     */
+    private fun rollingCalendarDayWindow(dayCount: Int): Pair<Date, Date> {
+        val endCal = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+            add(Calendar.DAY_OF_YEAR, 1)
+        }
+        val windowEnd = endCal.time
+
+        val startCal = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+            add(Calendar.DAY_OF_YEAR, -(dayCount - 1))
+        }
+        val windowStart = startCal.time
+        return windowStart to windowEnd
+    }
+
+    /**
+     * Mean RPE over working sets with logged RPE in the rolling [dayCount]-day window,
+     * split by effective intent (build vs strength only).
+     */
+    fun getBuildStrengthRpeAverages(
+        sessions: List<TrainingSession>,
+        dayCount: Int = 21
+    ): Pair<Float?, Float?> {
+        val (windowStart, windowEnd) = rollingCalendarDayWindow(dayCount)
+        val windowSessions = sessions.filter { session ->
+            try {
+                val date = dateFormat.parse(session.date)
+                date != null && date.time >= windowStart.time && date.time < windowEnd.time
+            } catch (e: Exception) {
+                false
+            }
+        }
+
+        val buildRpes = mutableListOf<Float>()
+        val strengthRpes = mutableListOf<Float>()
+        windowSessions.forEach { session ->
+            session.exercises.forEach { entry ->
+                if (entry.isEffectivelyWarmup()) return@forEach
+                val rpe = entry.rpe ?: return@forEach
+                when (entry.getEffectiveIntent(session.defaultWorkoutType)) {
+                    SetIntent.BUILD -> buildRpes.add(rpe)
+                    SetIntent.STRENGTH -> strengthRpes.add(rpe)
+                    else -> Unit
+                }
+            }
+        }
+
+        val buildAvg = buildRpes.takeIf { it.isNotEmpty() }?.average()?.toFloat()
+        val strengthAvg = strengthRpes.takeIf { it.isNotEmpty() }?.average()?.toFloat()
+        return buildAvg to strengthAvg
+    }
+
+    fun getRollingDaysSummary(
+        sessions: List<TrainingSession>,
+        dayCount: Int = 21
+    ): WeeklySummary {
+        val (windowStart, windowEnd) = rollingCalendarDayWindow(dayCount)
+
+        val windowSessions = sessions.filter { session ->
+            try {
+                val date = dateFormat.parse(session.date)
+                date != null && date.time >= windowStart.time && date.time < windowEnd.time
+            } catch (e: Exception) {
+                false
+            }
+        }
+
+        val totalVolume = windowSessions.sumOf { session ->
+            session.exercises.filterNot { it.isWarmup }
+                .sumOf { (it.kg * it.reps).toDouble() }
+        }.toFloat()
+
+        val (allPrs, _) = processSessionsForPRs(sessions)
+        val prCount = allPrs.count { pr ->
+            try {
+                val date = dateFormat.parse(pr.date)
+                date != null && date.time >= windowStart.time && date.time < windowEnd.time
+            } catch (e: Exception) {
+                false
+            }
+        }
+
+        val intentCounts = mutableMapOf<SetIntent, Int>()
+        windowSessions.forEach { session ->
+            session.exercises.filterNot { it.isWarmup }.forEach { entry ->
+                val intent = entry.getEffectiveIntent(session.defaultWorkoutType)
+                intentCounts[intent] = (intentCounts[intent] ?: 0) + 1
+            }
+        }
+        val dominantIntent = intentCounts.maxByOrNull { it.value }?.key ?: SetIntent.BUILD
+
+        return WeeklySummary(
+            totalVolume = totalVolume,
+            sessionCount = windowSessions.size,
             prCount = prCount,
             dominantIntent = dominantIntent
         )

@@ -1006,7 +1006,7 @@ object ProgressionHelper {
                 rpe < 9.5f -> 0f                         // Hard -> Maintain
                 else -> -settings.smallStep              // Grinding -> Back off slightly
             }
-            reasoningParts.add("Last RPE ${String.format("%.1f", rpe)}")
+            reasoningParts.add("Last RPE ${String.format(Locale.US, "%.1f", rpe)}")
         }
 
         val finalWeight = roundToIncrement(last.weight + adjustment, settings.roundTo)

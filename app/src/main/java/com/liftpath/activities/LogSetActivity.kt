@@ -298,7 +298,7 @@ class LogSetActivity : AppCompatActivity() {
                     else -> {}
                 }
                 
-                append(" @ RPE ${"%.1f".format(suggestedRpe)}")
+                append(" @ RPE ${String.format(Locale.US, "%.1f", suggestedRpe)}")
                 
                 suggestion.badge?.let {
                     append(" [$it]")
@@ -323,7 +323,7 @@ class LogSetActivity : AppCompatActivity() {
             // First time - show suggested reps and RPE from settings
             val (minReps, _) = ProgressionHelper.getRepRange(setIntent, userSettings)
             
-            val hintText = "First time! Start light, aim for $minReps reps @ RPE ${"%.1f".format(suggestedRpe)}"
+            val hintText = "First time! Start light, aim for $minReps reps @ RPE ${String.format(Locale.US, "%.1f", suggestedRpe)}"
             binding.textSuggestionContent.text = hintText
             binding.tvSuggestionHint.visibility = View.VISIBLE
             
@@ -346,7 +346,7 @@ class LogSetActivity : AppCompatActivity() {
             rpe <= 9.0f -> "Hard"
             else -> "Maximal"
         }
-        val hintText = "Suggested RPE $rpe: $rpeDescription"
+        val hintText = "Suggested RPE ${String.format(Locale.US, "%.1f", rpe)}: $rpeDescription"
         binding.textRpeHint.text = hintText
         binding.textRpeHint.visibility = View.VISIBLE
     }

@@ -23,6 +23,7 @@ import com.liftpath.helpers.showWithTransparentWindow
 import com.liftpath.models.GroupedExercise
 import com.liftpath.models.SetIntent
 import com.google.android.material.chip.ChipGroup
+import java.util.Locale
 
 class ActiveExercisesAdapter(
     private val groupedExercises: List<GroupedExercise>,
@@ -56,9 +57,46 @@ class ActiveExercisesAdapter(
         private const val VIEW_TYPE_ADD_BUTTONS = 1
     }
 
+    /** Always use '.' as decimal separator (locale-independent) for workout numbers. */
+    private fun formatOneDecimal(value: Float): String = String.format(Locale.US, "%.1f", value)
+
     private val collapsedExercises = mutableSetOf<Int>()
 
+    /** Rebuilt when exercise list layout / superset membership changes (not when only sets change). */
+    private var cachedSupersetLayoutKey: Int = Int.MIN_VALUE
+    private var supersetPositionsByGroupId: Map<String, List<Int>> = emptyMap()
 
+    private var progressionSettingsCache: ProgressionHelper.ProgressionSettings? = null
+
+    private fun ensureSupersetPositionCache() {
+        var key = groupedExercises.size
+        for (g in groupedExercises) {
+            key = key * 31 + g.exerciseId
+            key = key * 31 + (g.supersetGroupId?.hashCode() ?: 0)
+        }
+        if (key == cachedSupersetLayoutKey) return
+        cachedSupersetLayoutKey = key
+        supersetPositionsByGroupId = groupedExercises
+            .mapIndexedNotNull { i, g -> g.supersetGroupId?.let { id -> id to i } }
+            .groupBy({ it.first }, { it.second })
+            .mapValues { (_, indices) -> indices.sorted() }
+    }
+
+    private fun progressionSettings(context: Context): ProgressionHelper.ProgressionSettings {
+        progressionSettingsCache?.let { return it }
+        val s = try {
+            ProgressionSettingsManager(context.applicationContext).getSettings()
+        } catch (e: Exception) {
+            ProgressionHelper.ProgressionSettings()
+        }
+        progressionSettingsCache = s
+        return s
+    }
+
+    /** Call when progression settings may have changed (e.g. activity resumed). */
+    fun invalidateProgressionSettingsCache() {
+        progressionSettingsCache = null
+    }
 
     class GroupedExerciseViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val exerciseName: TextView = view.findViewById(R.id.text_exercise_name)
@@ -138,10 +176,9 @@ class ActiveExercisesAdapter(
         val groupedExercise = groupedExercises[position]
         holder.exerciseName.text = groupedExercise.exerciseName
 
+        ensureSupersetPositionCache()
         val groupId = groupedExercise.supersetGroupId
-        val groupIndices = if (groupId != null) {
-            groupedExercises.mapIndexed { i, g -> if (g.supersetGroupId == groupId) i else -1 }.filter { it >= 0 }
-        } else emptyList()
+        val groupIndices = groupId?.let { supersetPositionsByGroupId[it] } ?: emptyList()
         val positionInGroup = groupIndices.indexOf(position)
         val isInSuperset = groupId != null && groupIndices.isNotEmpty()
         val hasSupersetAbove = isInSuperset && position > 0 && groupedExercises[position - 1].supersetGroupId == groupId
@@ -162,6 +199,33 @@ class ActiveExercisesAdapter(
             g.sets.count { !it.isWarmup }
         }
         val supersetTarget = getSupersetTargetSets(groupId)
+
+        val currentIntent = exerciseIntents[groupedExercise.exerciseId]
+        val lastWorkoutSets = if (currentIntent != null) {
+            lastWorkoutData[groupedExercise.exerciseId]?.get(currentIntent) ?: emptyList()
+        } else {
+            emptyList()
+        }
+        val completedSets = groupedExercise.sets.filter { set ->
+            set.kg > 0f || set.completed == true
+        }
+        val hasSets = groupedExercise.sets.isNotEmpty()
+        val loggedSetsCount = completedSets.size
+        val recommendation = exerciseRecommendations[groupedExercise.exerciseId]
+        val recommendedSetsCount = recommendation?.recommendedSets
+        val currentWorkingSets = completedSets.count { !it.isEffectivelyWarmup() && (it.kg > 0f || it.completed == true) }
+        val lastWorkingSetsCount = lastWorkoutSets.count { !it.isEffectivelyWarmup() }
+        val targetSets = supersetTarget ?: recommendedSetsCount ?: lastWorkingSetsCount
+        val isComplete = targetSets > 0 && currentWorkingSets >= targetSets
+        // Card outline: target met (header check) or user tapped check to collapse ("done" for this session)
+        val outlineComplete = isComplete || groupedExercise.exerciseId in collapsedExercises
+        // Any logged set counts (warmup or working): kg > 0 or explicitly completed
+        val hasAnyRegisteredSet = completedSets.isNotEmpty()
+        val canCollapseExercise = currentWorkingSets > 0
+        if (groupedExercise.exerciseId in collapsedExercises && !canCollapseExercise) {
+            collapsedExercises.remove(groupedExercise.exerciseId)
+        }
+
         val hasSupersetReachedTarget = groupId != null && supersetTarget != null &&
             groupIndices.all { workingSetCount(groupedExercises[it]) >= supersetTarget }
         val timerRunning = isRestTimerRunning()
@@ -176,6 +240,10 @@ class ActiveExercisesAdapter(
         val isSelectedForSuperset = position in selectedForSupersetPositions()
         val isSupersetComplete = groupId != null && groupId in getCompletedSupersetGroupIds()
         val strokeWidthPx = (2 * holder.itemView.resources.displayMetrics.density).toInt()
+        val incompleteOutlineColorRes = when {
+            hasAnyRegisteredSet -> R.color.superset_active_border
+            else -> R.color.active_exercise_outline_idle
+        }
         when {
             isSupersetComplete -> {
                 holder.cardExercise.strokeWidth = strokeWidthPx
@@ -188,17 +256,31 @@ class ActiveExercisesAdapter(
                 holder.cardExercise.alpha = 1f
             }
             hasSupersetReachedTarget -> {
-                holder.cardExercise.strokeWidth = 0
+                holder.cardExercise.strokeWidth = strokeWidthPx
+                holder.cardExercise.strokeColor = ContextCompat.getColor(
+                    holder.itemView.context,
+                    if (outlineComplete) R.color.superset_complete_green else incompleteOutlineColorRes
+                )
                 holder.cardExercise.alpha = 1f
             }
             isActive -> {
                 holder.cardExercise.strokeWidth = strokeWidthPx
-                holder.cardExercise.strokeColor = ContextCompat.getColor(holder.itemView.context, R.color.superset_active_border)
+                holder.cardExercise.strokeColor = ContextCompat.getColor(
+                    holder.itemView.context,
+                    if (outlineComplete) R.color.superset_complete_green else incompleteOutlineColorRes
+                )
                 holder.cardExercise.alpha = 1f
             }
             isWaitingForTimer -> {
                 holder.cardExercise.strokeWidth = strokeWidthPx
-                holder.cardExercise.strokeColor = ContextCompat.getColor(holder.itemView.context, R.color.superset_waiting_border)
+                holder.cardExercise.strokeColor = ContextCompat.getColor(
+                    holder.itemView.context,
+                    when {
+                        outlineComplete -> R.color.superset_complete_green
+                        hasAnyRegisteredSet -> R.color.superset_waiting_border
+                        else -> R.color.active_exercise_outline_idle
+                    }
+                )
                 holder.cardExercise.alpha = 1f
             }
             isInSuperset && !canAddSet -> {
@@ -206,7 +288,11 @@ class ActiveExercisesAdapter(
                 holder.cardExercise.alpha = 0.5f
             }
             else -> {
-                holder.cardExercise.strokeWidth = 0
+                holder.cardExercise.strokeWidth = strokeWidthPx
+                holder.cardExercise.strokeColor = ContextCompat.getColor(
+                    holder.itemView.context,
+                    if (outlineComplete) R.color.superset_complete_green else incompleteOutlineColorRes
+                )
                 holder.cardExercise.alpha = 1f
             }
         }
@@ -241,7 +327,6 @@ class ActiveExercisesAdapter(
         }
 
         // Setup Intent Selection ChipGroup
-        val currentIntent = exerciseIntents[groupedExercise.exerciseId]
         val lastIntent = lastIntents[groupedExercise.exerciseId]
         
         // Check if intent is locked (first set has been logged)
@@ -342,37 +427,9 @@ class ActiveExercisesAdapter(
             }
         }
 
-        // Get last workout data only if user has selected an intent
-        // Don't show data for "Last" intent - it's just informational, not a selection
-        val lastWorkoutSets = if (currentIntent != null) {
-            lastWorkoutData[groupedExercise.exerciseId]?.get(currentIntent) ?: emptyList()
-        } else {
-            emptyList()
-        }
-        
-        // Check if exercise has completed sets (non-zero weight or explicitly completed)
-        val completedSets = groupedExercise.sets.filter { set ->
-            set.kg > 0f || set.completed == true
-        }
-        val hasSets = groupedExercise.sets.isNotEmpty()
-        val loggedSetsCount = completedSets.size
-        
-        // Get recommendation to check if sets are complete
-        val recommendation = exerciseRecommendations[groupedExercise.exerciseId]
-        val recommendedSetsCount = recommendation?.recommendedSets
-        
-        // Count only working sets (exclude warmup: isWarmup or legacy RPE 6)
-        val currentWorkingSets = completedSets.count { !it.isEffectivelyWarmup() && (it.kg > 0f || it.completed == true) }
-        val lastWorkingSets = lastWorkoutSets.count { !it.isEffectivelyWarmup() }
-        
-        // Show completion checkmark if user has logged the recommended number of sets
-        // or superset target, or last number of sets (when no recommendation exists)
-        val targetSetsCount = supersetTarget ?: recommendedSetsCount ?: lastWorkingSets
-        val isComplete = targetSetsCount != null && targetSetsCount > 0 && currentWorkingSets >= targetSetsCount
         holder.completionCheck.visibility = if (isComplete) View.VISIBLE else View.GONE
 
         // Show sets count: "(N of X sets)" where both count only working sets; for supersets use user-defined target
-        val targetSets = supersetTarget ?: recommendedSetsCount ?: lastWorkingSets
         if (targetSets > 0) {
             holder.setsCount.text = "($currentWorkingSets of $targetSets sets)"
         } else if (currentWorkingSets > 0) {
@@ -424,7 +481,7 @@ class ActiveExercisesAdapter(
                             lastSet.kg.toString()
                         }
                         val lastSuffix = when {
-                            lastSet.rpe != null -> " (${"%.1f".format(lastSet.rpe)})"
+                            lastSet.rpe != null -> " (${formatOneDecimal(lastSet.rpe)})"
                             else -> ""
                         }
                         lastSetsText.add("Last: $lastWeightString kg × ${lastSet.reps}$lastSuffix")
@@ -446,7 +503,7 @@ class ActiveExercisesAdapter(
                         currentSet.kg.toString()
                     }
                     val suffix = when {
-                        currentSet.rpe != null -> " (${"%.1f".format(currentSet.rpe)})"
+                        currentSet.rpe != null -> " (${formatOneDecimal(currentSet.rpe)})"
                         else -> ""
                     }
                     // Use sequential working set number (1, 2, 3...) excluding warmups
@@ -465,7 +522,7 @@ class ActiveExercisesAdapter(
                         lastSet.kg.toString()
                     }
                     val lastSuffix = when {
-                        lastSet.rpe != null -> " (${"%.1f".format(lastSet.rpe)})"
+                        lastSet.rpe != null -> " (${formatOneDecimal(lastSet.rpe)})"
                         else -> ""
                     }
                     lastSetsText.add("Last: $lastWeightString kg × ${lastSet.reps}$lastSuffix")
@@ -558,7 +615,7 @@ class ActiveExercisesAdapter(
                         lastSet.kg.toString()
                     }
                     val lastSuffix = when {
-                        lastSet.rpe != null -> " (${"%.1f".format(lastSet.rpe)})"
+                        lastSet.rpe != null -> " (${formatOneDecimal(lastSet.rpe)})"
                         else -> ""
                     }
                     lastSetsText.add("Last: $lastWeightString kg × ${lastSet.reps}$lastSuffix")
@@ -572,7 +629,7 @@ class ActiveExercisesAdapter(
                         lastSet.kg.toString()
                     }
                     val lastSuffix = when {
-                        lastSet.rpe != null -> " (${"%.1f".format(lastSet.rpe)})"
+                        lastSet.rpe != null -> " (${formatOneDecimal(lastSet.rpe)})"
                         else -> ""
                     }
                     lastSetsText.add("Last: $lastWeightString kg × ${lastSet.reps}$lastSuffix")
@@ -626,11 +683,11 @@ class ActiveExercisesAdapter(
         // --- Collapse / Expand toggle ---
         val isCollapsed = groupedExercise.exerciseId in collapsedExercises
 
-        // Check button: toggle collapsed state
+        // Check button: toggle collapsed state (collapse only allowed with ≥1 working set logged)
         holder.completeExerciseButton.setOnClickListener {
             if (groupedExercise.exerciseId in collapsedExercises) {
                 collapsedExercises.remove(groupedExercise.exerciseId)
-            } else {
+            } else if (canCollapseExercise) {
                 collapsedExercises.add(groupedExercise.exerciseId)
             }
             notifyItemChanged(position)
@@ -667,7 +724,9 @@ class ActiveExercisesAdapter(
                 holder.loggedSets.visibility = View.GONE
             }
 
-            // Filled green check button = "done"
+            // Filled green check button = "done" (only reachable with ≥1 working set; reset state for recycled holders)
+            holder.completeExerciseButton.isEnabled = true
+            holder.completeExerciseButton.alpha = 1f
             holder.completeExerciseButton.setCardBackgroundColor(
                 ContextCompat.getColor(holder.itemView.context, R.color.superset_complete_green)
             )
@@ -687,6 +746,8 @@ class ActiveExercisesAdapter(
             holder.intentBadge.visibility = View.GONE
 
             // Reset check button to outline style
+            holder.completeExerciseButton.isEnabled = canCollapseExercise
+            holder.completeExerciseButton.alpha = if (canCollapseExercise) 1f else 0.5f
             holder.completeExerciseButton.setCardBackgroundColor(
                 ContextCompat.getColor(holder.itemView.context, R.color.fitness_card_background)
             )
@@ -802,11 +863,7 @@ class ActiveExercisesAdapter(
         }
         
         val trainingData = jsonHelper.readTrainingData()
-        val settings = try {
-            ProgressionSettingsManager(context).getSettings()
-        } catch (e: Exception) {
-            ProgressionHelper.ProgressionSettings()
-        }
+        val settings = progressionSettings(context)
         
         val suggestion = ProgressionHelper.getIntentSuggestion(
             exerciseId = exerciseId,
@@ -825,7 +882,7 @@ class ActiveExercisesAdapter(
             suggestion.isFirstTime -> {
                 val (minReps, _) = ProgressionHelper.getRepRange(intent, settings)
                 val targetRpe = ProgressionHelper.getTargetRpe(intent, settings)
-                "Target: ${suggestion.suggestedSets ?: 3}×$minReps @ RPE ${"%.1f".format(targetRpe)}"
+                "Target: ${suggestion.suggestedSets ?: 3}×$minReps @ RPE ${formatOneDecimal(targetRpe)}"
             }
             suggestion.displayText.isNotEmpty() -> {
                 val badge = suggestion.badge?.let { "[$it] " } ?: ""

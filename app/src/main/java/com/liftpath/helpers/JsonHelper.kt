@@ -16,7 +16,18 @@ class JsonHelper(private val context: Context) {
     private val file = File(context.filesDir, "training_data.json")
     private val TAG = "JsonHelper"
 
+    /** In-memory copy of the last read/write; avoids re-parsing JSON on every screen (e.g. each list row). */
+    @Volatile
+    private var cachedTrainingData: TrainingData? = null
+
+    /** Drop cache so the next [readTrainingData] loads from disk (e.g. after another screen wrote the file). */
+    fun invalidateTrainingDataCache() {
+        cachedTrainingData = null
+    }
+
     fun readTrainingData(): TrainingData {
+        cachedTrainingData?.let { return it }
+
         // 1. NO FILE (Fresh Install)
         if (!file.exists()) {
             Log.i(TAG, "No training data found. Creating fresh data with Default Library.")
@@ -25,25 +36,26 @@ class JsonHelper(private val context: Context) {
             newData.exerciseLibrary.addAll(DefaultExercisesHelper.getPopularDefaults())
             // Write it to disk so it's saved
             writeTrainingData(newData)
-            return newData
+            return cachedTrainingData!!
         }
 
         // 2. FILE EXISTS (Load it)
-        return try {
+        val data = try {
             val json = file.readText()
-            val data = gson.fromJson(json, TrainingData::class.java) ?: TrainingData()
+            val parsed = gson.fromJson(json, TrainingData::class.java) ?: TrainingData()
 
             // 3. SAFETY CHECK: If library is empty for some reason, re-seed it.
-            if (data.exerciseLibrary.isEmpty()) {
+            if (parsed.exerciseLibrary.isEmpty()) {
                 Log.w(TAG, "Training data found but library was empty. Re-seeding defaults.")
-                data.exerciseLibrary.addAll(DefaultExercisesHelper.getPopularDefaults())
-                writeTrainingData(data)
+                parsed.exerciseLibrary.addAll(DefaultExercisesHelper.getPopularDefaults())
+                writeTrainingData(parsed)
+                return cachedTrainingData!!
             }
 
-            data
+            parsed
         } catch (e: Exception) {
             Log.e(TAG, "Error reading or parsing training_data.json. Backing up and creating a new data file.", e)
-            
+
             // If the file is corrupt, create a backup and start with a fresh one.
             try {
                 val backupFile = File(context.filesDir, "training_data.json.bak.${System.currentTimeMillis()}")
@@ -51,19 +63,23 @@ class JsonHelper(private val context: Context) {
             } catch (backupEx: Exception) {
                 Log.e(TAG, "Could not back up corrupt file.", backupEx)
             }
-            
+
             // Return fresh data with defaults
             val freshData = TrainingData()
             freshData.exerciseLibrary.addAll(DefaultExercisesHelper.getPopularDefaults())
             writeTrainingData(freshData)
-            freshData
+            return cachedTrainingData!!
         }
+
+        cachedTrainingData = data
+        return data
     }
 
     fun writeTrainingData(trainingData: TrainingData) {
         try {
             val json = gson.toJson(trainingData)
             file.writeText(json)
+            cachedTrainingData = trainingData
         } catch (e: Exception) {
             Log.e(TAG, "Error writing to training_data.json", e)
         }

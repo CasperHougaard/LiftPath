@@ -744,6 +744,8 @@ class ActiveTrainingActivity : AppCompatActivity() {
         )
         binding.recyclerViewActiveWorkout.adapter = adapter
         binding.recyclerViewActiveWorkout.layoutManager = LinearLayoutManager(this)
+        binding.recyclerViewActiveWorkout.setItemViewCacheSize(12)
+        binding.recyclerViewActiveWorkout.itemAnimator = null
     }
 
     private fun setupClickListeners() {
@@ -1609,6 +1611,9 @@ class ActiveTrainingActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        // Other activities use their own JsonHelper and write training_data.json; drop cache so reads stay correct.
+        jsonHelper.invalidateTrainingDataCache()
+        adapter.invalidateProgressionSettingsCache()
         isActivityVisible = true
         val filter = IntentFilter().apply {
             addAction("com.liftpath.REST_TIMER_TICK")

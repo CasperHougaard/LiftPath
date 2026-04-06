@@ -22,6 +22,7 @@ import com.google.gson.reflect.TypeToken
 import com.liftpath.R
 import com.liftpath.adapters.ExerciseMergeAdapter
 import com.liftpath.helpers.CatalogMergeHelper
+import com.liftpath.helpers.JsonHelper
 import com.liftpath.helpers.MergeCandidate
 
 /**
@@ -96,10 +97,11 @@ class ExerciseLibraryUpdateBottomSheet : DialogFragment() {
         }
 
         view.findViewById<MaterialButton>(R.id.button_apply_updates).setOnClickListener {
-            val appliedJson = gson.toJson(adapter.getCandidatesSnapshot())
-            parentFragmentManager.setFragmentResult(
-                CatalogMergeHelper.FRAGMENT_RESULT_KEY,
-                bundleOf(CatalogMergeHelper.BUNDLE_APPLIED_JSON to appliedJson)
+            val rows = CatalogMergeHelper.mergeCandidatesToAppliedChoices(adapter.getCandidatesSnapshot())
+            CatalogMergeHelper.handleMergeResult(
+                requireActivity(),
+                JsonHelper(requireActivity()),
+                rows
             )
             dismiss()
         }

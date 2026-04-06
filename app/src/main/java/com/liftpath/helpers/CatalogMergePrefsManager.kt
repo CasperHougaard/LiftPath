@@ -31,7 +31,8 @@ class CatalogMergePrefsManager(context: Context) {
     }
 
     fun savePrefs(prefsData: CatalogMergePrefs) {
-        prefs.edit().putString(KEY_PREFS, gson.toJson(prefsData)).apply()
+        // commit() so version/decisions survive immediate process death after the user taps OK
+        prefs.edit().putString(KEY_PREFS, gson.toJson(prefsData)).commit()
     }
 
     fun resetForLibraryReset() {

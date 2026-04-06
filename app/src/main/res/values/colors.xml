@@ -47,6 +47,9 @@
     <!-- Chart Grid Lines -->
     <color name="fitness_chart_grid">#E0E0E0</color> <!-- Light gray for light mode -->
     
+    <!-- Active workout exercise card: not started (no logged sets yet) -->
+    <color name="active_exercise_outline_idle">#9CA3AF</color> <!-- Gray-400 -->
+
     <!-- Superset borders -->
     <color name="superset_active_border">#2563EB</color>
     <color name="superset_waiting_border">#EAB308</color>

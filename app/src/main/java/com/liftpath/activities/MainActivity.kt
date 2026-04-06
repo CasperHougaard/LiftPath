@@ -15,6 +15,7 @@ import androidx.core.view.WindowInsetsCompat
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.liftpath.R
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import com.liftpath.databinding.ActivityMainBinding
 import com.liftpath.helpers.ActiveWorkoutDraftManager
 import com.liftpath.helpers.CatalogMergeHelper
@@ -41,6 +42,7 @@ import com.liftpath.helpers.ReadinessConfig
 import com.google.android.material.tabs.TabLayoutMediator
 import com.liftpath.components.SelectWorkoutModeBottomSheet
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
@@ -89,17 +91,6 @@ class MainActivity : AppCompatActivity() {
         jsonHelper = JsonHelper(this)
         draftManager = ActiveWorkoutDraftManager(this)
         prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-
-        supportFragmentManager.setFragmentResultListener(
-            CatalogMergeHelper.FRAGMENT_RESULT_KEY,
-            this
-        ) { _, bundle ->
-            CatalogMergeHelper.handleMergeResult(
-                this,
-                jsonHelper,
-                bundle.getString(CatalogMergeHelper.BUNDLE_APPLIED_JSON)
-            )
-        }
 
         setupClickListeners()
         setupBackgroundAnimation()
@@ -341,7 +332,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateHomeMomentumCard(trainingData: TrainingData) {
-        val summary = ProgressAnalysisHelper.getWeeklySummary(trainingData.trainings, weekOffset = 0)
+        val summary = ProgressAnalysisHelper.getRollingDaysSummary(trainingData.trainings, dayCount = 21)
 
         if (summary.sessionCount == 0) {
             binding.textHomeWeekSummary.text = getString(R.string.home_week_no_sessions)
@@ -362,47 +353,37 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateHomeInsights(trainingData: TrainingData) {
-        updateRecentWinsCard(trainingData)
+        updateBuildStrengthRpeCard(trainingData)
         updateLastWorkoutCard(trainingData)
     }
 
-    private fun updateRecentWinsCard(trainingData: TrainingData) {
-        val recentPRs = ProgressAnalysisHelper.getRecentPRs(
+    private fun updateBuildStrengthRpeCard(trainingData: TrainingData) {
+        val (buildAvg, strengthAvg) = ProgressAnalysisHelper.getBuildStrengthRpeAverages(
             trainingData.trainings,
-            trainingData.exerciseLibrary,
-            dayWindow = 30
+            dayCount = 21
         )
+        val sub = getString(R.string.home_rpe_sub)
         when {
-            recentPRs.isEmpty() -> {
-                binding.textHomeWinsHeadline.text = getString(R.string.home_wins_none_headline)
-                binding.textHomeWinsSub.text = getString(R.string.home_wins_none_sub)
+            buildAvg != null && strengthAvg != null -> {
+                binding.textHomeWinsHeadline.text = String.format(
+                    Locale.US,
+                    "%.1f · %.1f",
+                    buildAvg,
+                    strengthAvg
+                )
+                binding.textHomeWinsSub.text = sub
             }
-            recentPRs.size == 1 -> {
-                binding.textHomeWinsHeadline.text = getString(R.string.home_wins_single_headline)
-                val pr = recentPRs.first()
-                val typeName = when (pr.prType) {
-                    ProgressAnalysisHelper.PRType.ONE_RM  -> getString(R.string.home_pr_type_1rm)
-                    ProgressAnalysisHelper.PRType.WEIGHT  -> getString(R.string.home_pr_type_weight)
-                    ProgressAnalysisHelper.PRType.VOLUME  -> getString(R.string.home_pr_type_volume)
-                    else                                  -> pr.prType.name.lowercase()
-                }
-                binding.textHomeWinsSub.text = getString(R.string.home_wins_sub_exercise, pr.exerciseName, typeName)
+            buildAvg != null -> {
+                binding.textHomeWinsHeadline.text = String.format(Locale.US, "%.1f", buildAvg)
+                binding.textHomeWinsSub.text = sub
+            }
+            strengthAvg != null -> {
+                binding.textHomeWinsHeadline.text = String.format(Locale.US, "%.1f", strengthAvg)
+                binding.textHomeWinsSub.text = sub
             }
             else -> {
-                binding.textHomeWinsHeadline.text = getString(R.string.home_wins_many_headline, recentPRs.size)
-                // Show the most recent PR exercise as sub context
-                val latestPr = recentPRs.maxByOrNull { it.date }
-                if (latestPr != null) {
-                    val typeName = when (latestPr.prType) {
-                        ProgressAnalysisHelper.PRType.ONE_RM  -> getString(R.string.home_pr_type_1rm)
-                        ProgressAnalysisHelper.PRType.WEIGHT  -> getString(R.string.home_pr_type_weight)
-                        ProgressAnalysisHelper.PRType.VOLUME  -> getString(R.string.home_pr_type_volume)
-                        else                                  -> latestPr.prType.name.lowercase()
-                    }
-                    binding.textHomeWinsSub.text = getString(R.string.home_wins_sub_exercise, latestPr.exerciseName, typeName)
-                } else {
-                    binding.textHomeWinsSub.text = getString(R.string.home_wins_sub_month)
-                }
+                binding.textHomeWinsHeadline.text = getString(R.string.home_rpe_none_headline)
+                binding.textHomeWinsSub.text = getString(R.string.home_rpe_none_sub)
             }
         }
     }
@@ -412,17 +393,11 @@ class MainActivity : AppCompatActivity() {
         if (lastSession == null) {
             binding.textHomeLastWorkoutWhen.text = getString(R.string.home_last_workout_never)
             binding.textHomeLastWorkoutDetail.text = getString(R.string.home_last_workout_never_sub)
+            binding.textHomeLastWorkoutWhen.setTextColor(ContextCompat.getColor(this, R.color.fitness_primary))
             return
         }
 
-        val dateFormat = SimpleDateFormat("yyyy/MM/dd", Locale.US)
-        val daysBetween = try {
-            val sessionDate = dateFormat.parse(lastSession.date)
-            if (sessionDate != null) {
-                val diffMs = System.currentTimeMillis() - sessionDate.time
-                (diffMs / (1000L * 60 * 60 * 24)).toInt().coerceAtLeast(0)
-            } else null
-        } catch (e: Exception) { null }
+        val daysBetween = calendarDaysBetweenSessionDateAndToday(lastSession.date)
 
         binding.textHomeLastWorkoutWhen.text = when (daysBetween) {
             null -> "—"
@@ -430,6 +405,14 @@ class MainActivity : AppCompatActivity() {
             1    -> getString(R.string.home_last_workout_yesterday)
             else -> getString(R.string.home_last_workout_days_ago, daysBetween)
         }
+
+        val whenColor = when (daysBetween) {
+            null, in 0..2 -> R.color.fitness_primary
+            3             -> R.color.pr_fresh
+            4             -> R.color.fitness_accent
+            else          -> R.color.fitness_error
+        }
+        binding.textHomeLastWorkoutWhen.setTextColor(ContextCompat.getColor(this, whenColor))
 
         val workingSets = lastSession.exercises.filterNot { it.isWarmup }
         val exerciseCount = lastSession.exercises.map { it.exerciseId }.distinct().size
@@ -439,6 +422,30 @@ class MainActivity : AppCompatActivity() {
             exerciseCount,
             volume
         )
+    }
+
+    /** Whole calendar days from session local date to today (0 = same calendar day). */
+    private fun calendarDaysBetweenSessionDateAndToday(sessionDateStr: String): Int? {
+        return try {
+            val fmt = SimpleDateFormat("yyyy/MM/dd", Locale.US)
+            val sessionDay = Calendar.getInstance().apply {
+                time = fmt.parse(sessionDateStr) ?: return null
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }
+            val today = Calendar.getInstance().apply {
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }
+            val diff = ((today.timeInMillis - sessionDay.timeInMillis) / 86_400_000L).toInt()
+            diff.coerceAtLeast(0)
+        } catch (_: Exception) {
+            null
+        }
     }
     
     private fun showExerciseSelectionDialog(isLeftCard: Boolean) {

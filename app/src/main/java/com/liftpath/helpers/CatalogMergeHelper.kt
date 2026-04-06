@@ -3,10 +3,19 @@ package com.liftpath.helpers
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentManager
 import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import com.liftpath.components.ExerciseLibraryUpdateBottomSheet
 import com.liftpath.models.ExerciseLibraryItem
 import com.liftpath.models.TrainingData
+
+/**
+ * Gson-safe apply payload (strings only). [MergeCandidate] must not be round-tripped through Gson —
+ * nested [ExerciseLibraryItem] and enums often deserialize as wrong types, so "use catalog" never runs.
+ */
+data class AppliedMergeChoice(
+    val nameKey: String = "",
+    val kind: String = "",
+    val decision: String = ""
+)
 
 object CatalogMergeHelper {
 
@@ -14,9 +23,6 @@ object CatalogMergeHelper {
     const val DECISION_USE_CATALOG = "USE_CATALOG"
     const val DECISION_ADD = "ADD"
     const val DECISION_SKIP = "SKIP"
-
-    const val FRAGMENT_RESULT_KEY = "catalog_merge_result"
-    const val BUNDLE_APPLIED_JSON = "applied_candidates_json"
 
     fun normalizeExerciseName(name: String): String =
         name.trim().lowercase()
@@ -75,44 +81,57 @@ object CatalogMergeHelper {
         return out
     }
 
+    fun mergeCandidatesToAppliedChoices(candidates: List<MergeCandidate>): List<AppliedMergeChoice> =
+        candidates.map { c ->
+            AppliedMergeChoice(
+                nameKey = normalizeExerciseName(c.catalogItem.name),
+                kind = c.kind.name,
+                decision = c.userDecision
+            )
+        }
+
     fun applyMerge(
         trainingData: TrainingData,
-        candidates: List<MergeCandidate>,
-        prefs: CatalogMergePrefs
+        appliedRows: List<AppliedMergeChoice>,
+        prefs: CatalogMergePrefs,
+        bundledCatalog: List<ExerciseLibraryItem>
     ): CatalogMergePrefs {
         val lib = trainingData.exerciseLibrary
         val newDecisions = prefs.conflictDecisions.toMutableMap()
+        val catalogByNormName = bundledCatalog.associateBy { normalizeExerciseName(it.name) }
 
         var nextId = lib.maxOfOrNull { it.id } ?: 0
 
-        for (c in candidates) {
-            when (c.kind) {
-                MergeKind.NEW -> {
-                    if (c.userDecision == DECISION_ADD) {
+        for (row in appliedRows) {
+            val key = normalizeExerciseName(row.nameKey)
+            if (key.isEmpty()) continue
+            when (row.kind) {
+                MergeKind.NEW.name -> {
+                    if (row.decision == DECISION_ADD) {
+                        val catRow = catalogByNormName[key] ?: continue
                         nextId += 1
                         lib.add(
-                            c.catalogItem.copy(
+                            catRow.copy(
                                 id = nextId,
                                 isFavorite = false
                             )
                         )
                     }
                 }
-                MergeKind.CONFLICT -> {
-                    val userItem = c.existingUserItem ?: continue
-                    val key = normalizeExerciseName(c.catalogItem.name)
-                    newDecisions[key] = c.userDecision
-                    if (c.userDecision == DECISION_USE_CATALOG) {
-                        val idx = lib.indexOfFirst { it.id == userItem.id }
+                MergeKind.CONFLICT.name -> {
+                    newDecisions[key] = row.decision
+                    if (row.decision == DECISION_USE_CATALOG) {
+                        val catRow = catalogByNormName[key] ?: continue
+                        val idx = lib.indexOfFirst { normalizeExerciseName(it.name) == key }
                         if (idx >= 0) {
                             val old = lib[idx]
                             lib[idx] = old.copy(
-                                region = c.catalogItem.region,
-                                pattern = c.catalogItem.pattern,
-                                tier = c.catalogItem.tier,
-                                primaryTargets = c.catalogItem.primaryTargets,
-                                secondaryTargets = c.catalogItem.secondaryTargets,
-                                manualMechanics = c.catalogItem.manualMechanics
+                                region = catRow.region,
+                                pattern = catRow.pattern,
+                                tier = catRow.tier,
+                                primaryTargets = catRow.primaryTargets,
+                                secondaryTargets = catRow.secondaryTargets,
+                                manualMechanics = catRow.manualMechanics
                             )
                         }
                     }
@@ -157,20 +176,14 @@ object CatalogMergeHelper {
     fun handleMergeResult(
         activity: FragmentActivity,
         jsonHelper: JsonHelper,
-        appliedJson: String?
+        appliedRows: List<AppliedMergeChoice>
     ) {
-        if (appliedJson.isNullOrBlank()) return
-        val gson = Gson()
-        val type = object : TypeToken<List<MergeCandidate>>() {}.type
-        val list: List<MergeCandidate> = try {
-            gson.fromJson(appliedJson, type) ?: return
-        } catch (_: Exception) {
-            return
-        }
+        if (appliedRows.isEmpty()) return
         val prefsManager = CatalogMergePrefsManager(activity)
         val prefs = prefsManager.getPrefs()
         val data = jsonHelper.readTrainingData()
-        val updatedPrefs = applyMerge(data, list, prefs)
+        val bundledCatalog = DefaultExercisesHelper.getPopularDefaults()
+        val updatedPrefs = applyMerge(data, appliedRows, prefs, bundledCatalog)
         jsonHelper.writeTrainingData(data)
         prefsManager.savePrefs(updatedPrefs)
     }

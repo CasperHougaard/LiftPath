@@ -181,9 +181,9 @@
     <!-- Main / home dashboard -->
     <string name="home_section_your_progress">Your progress</string>
     <string name="home_lift_est_1rm_label">Est. 1RM</string>
-    <string name="home_this_week_so_far">This week so far</string>
+    <string name="home_this_week_so_far">Last 21 days</string>
     <string name="home_week_placeholder">—</string>
-    <string name="home_week_no_sessions">No workouts logged this week yet</string>
+    <string name="home_week_no_sessions">No workouts logged in the last 21 days</string>
     <string name="home_week_insight_prs">%1$d PRs in the last 30 days</string>
     <string name="home_week_insight_no_prs">No PRs in the last 30 days — keep pushing!</string>
     <string name="home_week_insight_empty">Log workouts to see PRs and trends here.</string>
@@ -200,22 +200,16 @@
     <string name="home_chart_tab_time">Time</string>
     <string name="home_chart_tab_fatigue">Fatigue</string>
 
-    <!-- Home: training style line inside weekly momentum card -->
-    <string name="home_week_style_strength">Strength-focused this week</string>
-    <string name="home_week_style_build">Build-focused this week</string>
-    <string name="home_week_style_flush">Cardio-focused this week</string>
+    <!-- Home: training style line inside rolling 21-day momentum card -->
+    <string name="home_week_style_strength">Strength-focused in the last 21 days</string>
+    <string name="home_week_style_build">Build-focused in the last 21 days</string>
+    <string name="home_week_style_flush">Cardio-focused in the last 21 days</string>
 
-    <!-- Home: Recent wins card -->
-    <string name="home_recent_wins">Recent wins</string>
-    <string name="home_wins_none_headline">—</string>
-    <string name="home_wins_none_sub">No PRs in the last 30 days</string>
-    <string name="home_wins_single_headline">1 win</string>
-    <string name="home_wins_many_headline">%1$d wins</string>
-    <string name="home_wins_sub_exercise">%1$s · %2$s</string>
-    <string name="home_wins_sub_month">in the last 30 days</string>
-    <string name="home_pr_type_weight">Max weight</string>
-    <string name="home_pr_type_1rm">Est. 1RM</string>
-    <string name="home_pr_type_volume">Session volume</string>
+    <!-- Home: Build & strength RPE card (last 21 days) -->
+    <string name="home_recent_wins">Build &amp; Strength RPE</string>
+    <string name="home_rpe_sub">avg · last 21 days</string>
+    <string name="home_rpe_none_headline">—</string>
+    <string name="home_rpe_none_sub">Log RPE on Build &amp; Strength sets</string>
 
     <!-- Home: Last workout card -->
     <string name="home_last_workout">Last workout</string>

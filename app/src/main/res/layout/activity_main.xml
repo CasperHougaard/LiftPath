@@ -633,7 +633,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:gravity="center"
-                        android:text="@string/home_wins_none_headline"
+                        android:text="@string/home_rpe_none_headline"
                         android:textSize="22sp"
                         android:textStyle="bold"
                         android:textColor="@color/fitness_primary"/>
@@ -643,7 +643,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
                         android:gravity="center"
-                        android:text="@string/home_wins_none_sub"
+                        android:text="@string/home_rpe_none_sub"
                         android:textSize="11sp"
                         android:textColor="@color/fitness_text_secondary"
                         android:maxLines="2"/>
