@@ -278,6 +278,25 @@ data class ActiveWorkoutDraft(
     val exerciseOrder: List<DraftExerciseRow>? = null
 )
 
+// --- WITHINGS BODY SCAN ---
+
+/** One body-composition snapshot imported from Withings via Health Connect. */
+data class WithingsScanEntry(
+    val dateMs: Long,
+    val weightKg: Double? = null,
+    val bodyFatPct: Double? = null,
+    val leanBodyMassKg: Double? = null,
+    val boneMassKg: Double? = null,
+    val bodyWaterMassKg: Double? = null,
+    val bmrKcal: Double? = null
+)
+
+/** Root object persisted to withings_body_data.json */
+data class WithingsStorage(
+    var lastSyncTime: Long = 0L,
+    val entries: MutableList<WithingsScanEntry> = mutableListOf()
+)
+
 data class GroupedExercise(
     val exerciseId: Int,
     val exerciseName: String,

@@ -5,9 +5,12 @@ import androidx.fragment.app.FragmentActivity
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import com.liftpath.fragments.*
 
-class ProgressPagerAdapter(activity: FragmentActivity) : FragmentStateAdapter(activity) {
+class ProgressPagerAdapter(
+    activity: FragmentActivity,
+    val hasWithingsData: Boolean = false
+) : FragmentStateAdapter(activity) {
 
-    override fun getItemCount(): Int = 5
+    override fun getItemCount(): Int = if (hasWithingsData) 6 else 5
 
     override fun createFragment(position: Int): Fragment {
         return when (position) {
@@ -16,6 +19,7 @@ class ProgressPagerAdapter(activity: FragmentActivity) : FragmentStateAdapter(ac
             2 -> ProgressMusclesFragment()
             3 -> ProgressSessionsFragment()
             4 -> ProgressPRsFragment()
+            5 -> ProgressWithingsFragment()
             else -> ProgressOverviewFragment()
         }
     }
@@ -26,5 +30,6 @@ class ProgressPagerAdapter(activity: FragmentActivity) : FragmentStateAdapter(ac
         const val TAB_MUSCLES = 2
         const val TAB_SESSIONS = 3
         const val TAB_PRS = 4
+        const val TAB_BODY_SCAN = 5
     }
 }

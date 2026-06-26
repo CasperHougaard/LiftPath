@@ -453,6 +453,7 @@ Leave blank if you\'re not sure.]]></string>
     <string name="tab_muscles">Muscles</string>
     <string name="tab_sessions">Sessions</string>
     <string name="tab_prs">PRs</string>
+    <string name="tab_body_scan">Body Scan</string>
     
     <!-- Progress Overview -->
     <string name="progress_recent_prs">Recent PRs</string>

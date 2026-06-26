@@ -8,6 +8,7 @@ import com.google.android.material.tabs.TabLayoutMediator
 import com.liftpath.R
 import com.liftpath.adapters.ProgressPagerAdapter
 import com.liftpath.databinding.ActivityProgressBinding
+import com.liftpath.helpers.WithingsStorageHelper
 
 class ProgressActivity : AppCompatActivity() {
 
@@ -32,7 +33,8 @@ class ProgressActivity : AppCompatActivity() {
     }
 
     private fun setupViewPager() {
-        val adapter = ProgressPagerAdapter(this)
+        val hasWithingsData = WithingsStorageHelper(this).hasData()
+        val adapter = ProgressPagerAdapter(this, hasWithingsData)
         binding.viewPagerProgress.adapter = adapter
 
         // Connect TabLayout with ViewPager2
@@ -43,6 +45,7 @@ class ProgressActivity : AppCompatActivity() {
                 ProgressPagerAdapter.TAB_MUSCLES -> getString(R.string.tab_muscles)
                 ProgressPagerAdapter.TAB_SESSIONS -> getString(R.string.tab_sessions)
                 ProgressPagerAdapter.TAB_PRS -> getString(R.string.tab_prs)
+                ProgressPagerAdapter.TAB_BODY_SCAN -> getString(R.string.tab_body_scan)
                 else -> ""
             }
         }.attach()

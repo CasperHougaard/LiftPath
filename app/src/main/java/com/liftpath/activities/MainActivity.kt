@@ -22,6 +22,7 @@ import com.liftpath.helpers.CatalogMergeHelper
 import com.liftpath.helpers.DialogHelper
 import com.liftpath.helpers.HealthConnectHelper
 import com.liftpath.helpers.JsonHelper
+import com.liftpath.helpers.WithingsHealthConnectHelper
 import com.liftpath.helpers.showWithTransparentWindow
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
@@ -717,13 +718,14 @@ class MainActivity : AppCompatActivity() {
         // Perform sync in background (silently, no UI feedback)
         lifecycleScope.launch {
             HealthConnectHelper.autoSyncActivities(applicationContext).fold(
-                onSuccess = { newCount ->
-                    // Sync successful, no UI feedback needed for auto-sync
-                },
-                onFailure = { error ->
-                    // Sync failed silently (already logged in helper)
-                }
+                onSuccess = { _ -> },
+                onFailure = { }  // logged in helper
             )
+        }
+
+        // Sync Withings body-scan data silently in the background
+        lifecycleScope.launch {
+            WithingsHealthConnectHelper.autoSync(applicationContext)
         }
     }
     
