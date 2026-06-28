@@ -5,14 +5,20 @@ import android.content.Intent
 import android.graphics.drawable.Animatable
 import android.os.Build
 import android.os.Bundle
+import android.text.Editable
 import android.text.Html
+import android.text.InputType
+import android.text.TextWatcher
 import android.view.View
+import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.liftpath.R // <--- FIXED: ENSURE THIS IMPORT IS HERE
 import com.liftpath.databinding.ActivityLogSetBinding
+import com.liftpath.helpers.BodyWeightHelper
 import com.liftpath.helpers.DialogHelper
 import com.liftpath.helpers.JsonHelper
 import com.liftpath.helpers.ProgressionHelper
@@ -31,6 +37,8 @@ class LogSetActivity : AppCompatActivity() {
     private var exerciseName: String = ""
     private var setNumber: Int = 1
     private var workoutType: String = "heavy"
+    private var isBodyweight: Boolean = false
+    private var loggedBodyweight: Float? = null
     private var previousSetReps: Int? = null
     private var lastLoggedKg: Float? = null
     private var lastLoggedReps: Int? = null
@@ -68,6 +76,7 @@ class LogSetActivity : AppCompatActivity() {
         const val EXTRA_LAST_LOGGED_RPE = "extra_last_logged_rpe"
         const val EXTRA_INTENT = "extra_intent"
         const val EXTRA_REST_SECONDS_OVERRIDE = "extra_rest_seconds_override"
+        const val EXTRA_IS_BODYWEIGHT = "extra_is_bodyweight"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -80,6 +89,7 @@ class LogSetActivity : AppCompatActivity() {
         exerciseName = intent.getStringExtra(EXTRA_EXERCISE_NAME) ?: "Exercise"
         setNumber = intent.getIntExtra(EXTRA_SET_NUMBER, 1)
         workoutType = intent.getStringExtra(EXTRA_WORKOUT_TYPE) ?: "heavy"
+        isBodyweight = intent.getBooleanExtra(EXTRA_IS_BODYWEIGHT, false)
         previousSetReps = intent.getIntExtra(EXTRA_PREVIOUS_SET_REPS, -1).takeIf { it > 0 }
         lastLoggedKg = intent.getFloatExtra(EXTRA_LAST_LOGGED_KG, -1f).takeIf { it > 0 }
         lastLoggedReps = intent.getIntExtra(EXTRA_LAST_LOGGED_REPS, -1).takeIf { it > 0 }
@@ -99,8 +109,12 @@ class LogSetActivity : AppCompatActivity() {
             showRpeHelpDialog()
         }
 
-        prefillLastSetFallback()
-        showWeightSuggestion()
+        if (isBodyweight) {
+            setupBodyweightMode()
+        } else {
+            prefillLastSetFallback()
+            showWeightSuggestion()
+        }
         prefillRepsFromPreviousSet()
 
         binding.buttonSaveSet.setOnClickListener {
@@ -207,6 +221,118 @@ class LogSetActivity : AppCompatActivity() {
         if (setNumber <= 1) return
         val reps = previousSetReps ?: return
         binding.editTextReps.setText(reps.toString())
+    }
+
+    // --- Bodyweight set logging ---
+
+    private fun formatNum(v: Float): String =
+        if (v == v.toLong().toFloat()) v.toLong().toString() else String.format(Locale.US, "%.1f", v)
+
+    /** Body weight & total load are always shown to 1 decimal. */
+    private fun format1(v: Float): String = String.format(Locale.US, "%.1f", v)
+
+    private fun setupBodyweightMode() {
+        binding.textInputLayoutKg.visibility = View.GONE
+        binding.textInputLayoutExtra.visibility = View.VISIBLE
+        binding.bodyweightContainer.visibility = View.VISIBLE
+        binding.tvSuggestionHint.visibility = View.GONE
+
+        // Resolve the body weight to snapshot onto this set.
+        loggedBodyweight = BodyWeightHelper.getCurrentBodyweightKg(this)
+
+        // Default the toggle to "Added".
+        if (binding.chipGroupExtraType.checkedChipId == View.NO_ID) {
+            binding.chipAdded.isChecked = true
+        }
+
+        // Prefill from the last logged set for this exercise.
+        val last = getLastWorkingSetFromHistory()
+        if (last != null) {
+            if (loggedBodyweight == null) loggedBodyweight = last.bodyweightKg
+            if (binding.editTextReps.text.isNullOrBlank()) {
+                binding.editTextReps.setText(last.reps.toString())
+            }
+            when (val added = last.addedKg) {
+                null -> {}
+                else -> when {
+                    added < 0f -> {
+                        binding.chipAssisted.isChecked = true
+                        binding.editTextExtra.setText(formatNum(-added))
+                    }
+                    added > 0f -> {
+                        binding.chipAdded.isChecked = true
+                        binding.editTextExtra.setText(formatNum(added))
+                    }
+                    else -> binding.chipAdded.isChecked = true
+                }
+            }
+        }
+
+        binding.chipBodyweight.setOnClickListener { showBodyweightOverrideDialog() }
+        binding.chipGroupExtraType.setOnCheckedStateChangeListener { _, _ -> updateEffectiveLoad() }
+        binding.editTextExtra.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) { updateEffectiveLoad() }
+        })
+
+        updateBodyweightChip()
+        updateEffectiveLoad()
+    }
+
+    private fun updateBodyweightChip() {
+        val bw = loggedBodyweight
+        binding.chipBodyweight.text = if (bw != null) {
+            getString(R.string.bodyweight_chip_label, format1(bw))
+        } else {
+            getString(R.string.bodyweight_chip_unknown)
+        }
+    }
+
+    /** Signed extra weight: positive when "Added", negative when "Assisted". */
+    private fun currentAddedKg(): Float {
+        val extra = binding.editTextExtra.text.toString().trim().toFloatOrNull() ?: 0f
+        val sign = if (binding.chipAssisted.isChecked) -1f else 1f
+        return sign * extra
+    }
+
+    private fun updateEffectiveLoad() {
+        val bw = loggedBodyweight
+        binding.textEffectiveLoad.text = if (bw == null) {
+            getString(R.string.bodyweight_need_value)
+        } else {
+            getString(R.string.bodyweight_total_label, format1(bw + currentAddedKg()))
+        }
+    }
+
+    /** Override the body-weight snapshot for this set only (does not change saved settings). */
+    private fun showBodyweightOverrideDialog() {
+        val input = EditText(this).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
+            hint = getString(R.string.bodyweight_field_hint)
+            loggedBodyweight?.let { setText(format1(it)) }
+        }
+        val density = resources.displayMetrics.density
+        val pad = (24 * density).toInt()
+        val container = FrameLayout(this).apply {
+            setPadding(pad, (8 * density).toInt(), pad, 0)
+            addView(input)
+        }
+        DialogHelper.createBuilder(this)
+            .setTitle(R.string.bodyweight_initial_title)
+            .setView(container)
+            .setPositiveButton(R.string.button_save) { _, _ ->
+                val kg = input.text.toString().trim().toFloatOrNull()
+                if (kg != null && kg in 20f..400f) {
+                    loggedBodyweight = BodyWeightHelper.round1(kg)
+                    updateBodyweightChip()
+                    updateEffectiveLoad()
+                } else {
+                    Toast.makeText(this, R.string.bodyweight_invalid, Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton(R.string.button_cancel, null)
+            .showWithTransparentWindow()
     }
 
     private fun showWeightSuggestion() {
@@ -367,12 +493,41 @@ class LogSetActivity : AppCompatActivity() {
     }
 
     private fun saveSet() {
-        val kg = binding.editTextKg.text.toString().toFloatOrNull()
         val reps = binding.editTextReps.text.toString().toIntOrNull()
-
-        if (kg == null || reps == null) {
+        if (reps == null) {
             Toast.makeText(this, getString(R.string.toast_please_enter_weight_reps), Toast.LENGTH_SHORT).show()
             return
+        }
+
+        // Resolve the load. Weighted: kg from the field. Bodyweight: effective = bodyweight + signed extra.
+        val kg: Float
+        val bodyweightKgValue: Float?
+        val addedKgValue: Float?
+        if (isBodyweight) {
+            val bw = loggedBodyweight
+            if (bw == null) {
+                Toast.makeText(this, getString(R.string.bodyweight_need_value), Toast.LENGTH_SHORT).show()
+                return
+            }
+            val added = BodyWeightHelper.round1(currentAddedKg())
+            val roundedBw = BodyWeightHelper.round1(bw)
+            val effective = BodyWeightHelper.round1(roundedBw + added)
+            if (effective <= 0f) {
+                Toast.makeText(this, getString(R.string.bodyweight_invalid), Toast.LENGTH_SHORT).show()
+                return
+            }
+            kg = effective
+            bodyweightKgValue = roundedBw
+            addedKgValue = added
+        } else {
+            val parsedKg = binding.editTextKg.text.toString().toFloatOrNull()
+            if (parsedKg == null) {
+                Toast.makeText(this, getString(R.string.toast_please_enter_weight_reps), Toast.LENGTH_SHORT).show()
+                return
+            }
+            kg = parsedKg
+            bodyweightKgValue = null
+            addedKgValue = null
         }
 
         val rpeText = binding.editTextRpe.text.toString()
@@ -418,7 +573,9 @@ class LogSetActivity : AppCompatActivity() {
             rpe = rpe,
             completed = completed,
             isWarmup = isWarmup,
-            explicitIntent = explicitIntent
+            explicitIntent = explicitIntent,
+            bodyweightKg = bodyweightKgValue,
+            addedKg = addedKgValue
         )
 
         val resultIntent = Intent().apply {

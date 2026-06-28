@@ -12,7 +12,7 @@ import android.os.VibratorManager
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.liftpath.R
-import com.liftpath.activities.MainActivity
+import com.liftpath.activities.ActiveTrainingActivity
 import com.liftpath.activities.RestTimerDialogActivity
 import com.liftpath.helpers.ProgressionSettingsManager
 
@@ -354,6 +354,16 @@ class RestTimerService : Service() {
             NotificationCompat.PRIORITY_LOW
         }
         
+        val tapIntent = Intent(this, ActiveTrainingActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+        }
+        val tapPendingIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            PendingIntent.getActivity(this, 0, tapIntent, PendingIntent.FLAG_MUTABLE)
+        } else {
+            @Suppress("DEPRECATION")
+            PendingIntent.getActivity(this, 0, tapIntent, PendingIntent.FLAG_UPDATE_CURRENT)
+        }
+
         // Create notification (required for foreground service)
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(getString(R.string.notification_rest_timer_title))
@@ -362,6 +372,7 @@ class RestTimerService : Service() {
             .setPriority(priority)
             .setOngoing(true)
             .setSilent(!showLiveCountdown)
+            .setContentIntent(tapPendingIntent)
             .build()
     }
     
@@ -398,9 +409,9 @@ class RestTimerService : Service() {
             notificationManager.createNotificationChannel(channel)
         }
         
-        // Create intent to open the app when notification is tapped
-        val intent = Intent(this, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        // Create intent to return to the active workout when notification is tapped
+        val intent = Intent(this, ActiveTrainingActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
         
         val pendingIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {

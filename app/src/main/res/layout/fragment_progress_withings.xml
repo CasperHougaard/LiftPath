@@ -249,16 +249,129 @@
         </androidx.cardview.widget.CardView>
 
         <!-- ══════════════════════════════════════════════════════ -->
+        <!--  BODY COMPOSITION STACKED BAR CHART                   -->
+        <!-- ══════════════════════════════════════════════════════ -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/card_body_composition_chart"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardBackgroundColor="@color/fitness_card_background"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="4dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Body Composition (kg)"
+                    android:textColor="@color/fitness_text_primary"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="8dp" />
+
+                <com.github.mikephil.charting.charts.BarChart
+                    android:id="@+id/chart_body_composition"
+                    android:layout_width="match_parent"
+                    android:layout_height="220dp" />
+
+                <!-- Legend row -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center"
+                    android:layout_marginTop="8dp">
+
+                    <View
+                        android:layout_width="10dp"
+                        android:layout_height="10dp"
+                        android:background="#10B981"
+                        android:layout_marginEnd="4dp" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Muscle"
+                        android:textColor="@color/fitness_text_secondary"
+                        android:textSize="11sp"
+                        android:layout_marginEnd="12dp" />
+
+                    <View
+                        android:layout_width="10dp"
+                        android:layout_height="10dp"
+                        android:background="#3B82F6"
+                        android:layout_marginEnd="4dp" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Water"
+                        android:textColor="@color/fitness_text_secondary"
+                        android:textSize="11sp"
+                        android:layout_marginEnd="12dp" />
+
+                    <View
+                        android:layout_width="10dp"
+                        android:layout_height="10dp"
+                        android:background="#F59E0B"
+                        android:layout_marginEnd="4dp" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Bone"
+                        android:textColor="@color/fitness_text_secondary"
+                        android:textSize="11sp"
+                        android:layout_marginEnd="12dp" />
+
+                    <View
+                        android:layout_width="10dp"
+                        android:layout_height="10dp"
+                        android:background="#EF4444"
+                        android:layout_marginEnd="4dp" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Fat"
+                        android:textColor="@color/fitness_text_secondary"
+                        android:textSize="11sp" />
+                </LinearLayout>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- ══════════════════════════════════════════════════════ -->
         <!--  ALL SCANS LIST                                       -->
         <!-- ══════════════════════════════════════════════════════ -->
-        <TextView
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="All Scans"
-            android:textColor="@color/fitness_text_primary"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="8dp" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="All Scans"
+                android:textColor="@color/fitness_text_primary"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/button_edit_scans"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/withings_edit_scans"
+                android:textColor="@color/fitness_primary"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:padding="6dp"
+                android:background="?attr/selectableItemBackgroundBorderless" />
+        </LinearLayout>
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recycler_withings_scans"

@@ -33,6 +33,8 @@
         <activity android:exported="false" android:name="com.liftpath.activities.ManageFavoritesActivity" android:screenOrientation="portrait"/>
         <activity android:exported="false" android:name="com.liftpath.activities.WorkoutPlansActivity" android:screenOrientation="portrait"/>
         <activity android:exported="false" android:name="com.liftpath.activities.EditWorkoutPlanActivity" android:screenOrientation="portrait"/>
+        <activity android:exported="false" android:name="com.liftpath.activities.PlanSetActivity" android:screenOrientation="portrait"/>
+        <activity android:exported="false" android:name="com.liftpath.activities.EditPlanSetActivity" android:screenOrientation="portrait"/>
         <activity android:exported="false" android:name="com.liftpath.activities.SelectExercisesForPlanActivity" android:screenOrientation="portrait"/>
         <activity android:exported="false" android:name="com.liftpath.activities.ReadinessDashboardActivity" android:screenOrientation="portrait"/>
         <activity android:exported="false" android:label="Readiness Calibration" android:name="com.liftpath.activities.ReadinessCalibrationActivity" android:parentActivityName="com.liftpath.activities.ReadinessDashboardActivity" android:screenOrientation="portrait"/>

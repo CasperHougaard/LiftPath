@@ -17,7 +17,6 @@ import com.liftpath.models.WithingsStorage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.Instant
-import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import java.util.Calendar
 
@@ -72,10 +71,8 @@ object WithingsHealthConnectHelper {
             // Per-day bucket: dateKey -> mutable snapshot
             val buckets = mutableMapOf<String, MutableMap<String, Any>>()
 
-            fun dayKey(instant: Instant): String {
-                val local = instant.atZone(ZoneId.systemDefault()).toLocalDate()
-                return "${local.year}-${local.monthValue.toString().padStart(2,'0')}-${local.dayOfMonth.toString().padStart(2,'0')}"
-            }
+            fun dayKey(instant: Instant): String =
+                WithingsStorageHelper.dayKey(instant.toEpochMilli())
 
             // --- Weight ---
             if (HealthPermission.getReadPermission(WeightRecord::class) in granted) {
@@ -162,8 +159,12 @@ object WithingsHealthConnectHelper {
                 return@withContext Result.success(0)
             }
 
+            // Drop any day the user explicitly ignored so it never re-appears after a sync.
+            val ignoredDayKeys = WithingsStorageHelper(context).read().ignoredDayKeys
+            val keptBuckets = buckets.filterKeys { it !in ignoredDayKeys }
+
             // Convert buckets to WithingsScanEntry list sorted newest-first
-            val newEntries = buckets.values.map { b ->
+            val newEntries = keptBuckets.values.map { b ->
                 WithingsScanEntry(
                     dateMs = b["dateMs"] as? Long ?: 0L,
                     weightKg = (b["weightKg"] as? Double),
@@ -179,7 +180,8 @@ object WithingsHealthConnectHelper {
             val storageHelper = WithingsStorageHelper(context)
             val storage = WithingsStorage(
                 lastSyncTime = System.currentTimeMillis(),
-                entries = newEntries.toMutableList()
+                entries = newEntries.toMutableList(),
+                ignoredDayKeys = ignoredDayKeys
             )
             storageHelper.write(storage)
 

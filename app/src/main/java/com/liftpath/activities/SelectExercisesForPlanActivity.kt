@@ -12,6 +12,8 @@ import com.liftpath.R
 import com.liftpath.databinding.ActivitySelectExercisesForPlanBinding
 import com.liftpath.helpers.JsonHelper
 import com.liftpath.adapters.SelectExercisesAdapter
+import com.liftpath.adapters.SelectListItem
+import com.liftpath.models.ExerciseFamily
 import com.liftpath.models.ExerciseLibraryItem
 
 class SelectExercisesForPlanActivity : AppCompatActivity() {
@@ -21,7 +23,10 @@ class SelectExercisesForPlanActivity : AppCompatActivity() {
     private lateinit var adapter: SelectExercisesAdapter
     private var selectedCount = 0
     private var allExercises: List<ExerciseLibraryItem> = emptyList()
+    private var allFamilies: List<ExerciseFamily> = emptyList()
+    private val familyNameMap: Map<String, String> get() = allFamilies.associate { it.id to it.name }
     private var searchQuery: String = ""
+    private var isGroupedByFamily: Boolean = false
 
     companion object {
         const val EXTRA_SELECTED_EXERCISE_IDS = "extra_selected_exercise_ids"
@@ -57,14 +62,16 @@ class SelectExercisesForPlanActivity : AppCompatActivity() {
     private fun setupRecyclerView(preselectedIds: Set<Int>) {
         val trainingData = jsonHelper.readTrainingData()
         allExercises = trainingData.exerciseLibrary.sortedBy { it.name }
-        
+        allFamilies = trainingData.exerciseFamilies ?: emptyList()
+
         adapter = SelectExercisesAdapter(
             exercises = allExercises,
             preselectedIds = preselectedIds,
             onSelectionChanged = { _, isChecked ->
                 selectedCount += if (isChecked) 1 else -1
                 updateSelectedCount()
-            }
+            },
+            families = allFamilies
         )
         binding.recyclerViewExercises.adapter = adapter
         binding.recyclerViewExercises.layoutManager = LinearLayoutManager(this)
@@ -78,6 +85,8 @@ class SelectExercisesForPlanActivity : AppCompatActivity() {
                     allExercises.filter { exercise ->
                         try {
                             exercise.name.lowercase().contains(query)
+                                || exercise.aliases?.any { it.lowercase().contains(query) } == true
+                                || (exercise.familyId?.let { familyNameMap[it]?.lowercase()?.contains(query) } == true)
                         } catch (e: Exception) {
                             android.util.Log.e("SelectExercisesForPlanActivity", "Error filtering exercise: ${exercise.name}", e)
                             false
@@ -89,17 +98,49 @@ class SelectExercisesForPlanActivity : AppCompatActivity() {
             } else {
                 allExercises
             }
-            
-            adapter.updateExercises(filtered)
+
+            if (isGroupedByFamily && searchQuery.isEmpty()) {
+                adapter.updateItems(buildGroupedItems(filtered))
+            } else {
+                adapter.updateExercises(filtered)
+            }
         } catch (e: Exception) {
             android.util.Log.e("SelectExercisesForPlanActivity", "Error in applySearchFilter", e)
             adapter.updateExercises(allExercises)
         }
     }
 
+    private fun buildGroupedItems(exercises: List<ExerciseLibraryItem>): List<SelectListItem> {
+        val result = mutableListOf<SelectListItem>()
+        val withFamily = exercises.filter { it.familyId != null }
+        val withoutFamily = exercises.filter { it.familyId == null }
+
+        val grouped = withFamily.groupBy { it.familyId!! }
+        val sortedFamilyIds = grouped.keys.sortedBy { familyNameMap[it] ?: it }
+
+        for (familyId in sortedFamilyIds) {
+            val familyExercises = grouped[familyId] ?: continue
+            val familyName = familyNameMap[familyId] ?: familyId
+            result.add(SelectListItem.SectionHeader(familyName))
+            familyExercises.sortedBy { it.name.lowercase() }.forEach { result.add(SelectListItem.ExerciseItem(it)) }
+        }
+
+        if (withoutFamily.isNotEmpty()) {
+            result.add(SelectListItem.SectionHeader("Other"))
+            withoutFamily.sortedBy { it.name.lowercase() }.forEach { result.add(SelectListItem.ExerciseItem(it)) }
+        }
+
+        return result
+    }
+
     private fun setupClickListeners() {
         binding.buttonBack.setOnClickListener {
             finish()
+        }
+
+        binding.chipGroupByFamily.setOnCheckedChangeListener { _, isChecked ->
+            isGroupedByFamily = isChecked
+            applySearchFilter()
         }
         
         binding.buttonDone.setOnClickListener {

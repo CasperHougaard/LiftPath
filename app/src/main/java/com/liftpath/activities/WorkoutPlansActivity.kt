@@ -74,9 +74,13 @@ class WorkoutPlansActivity : AppCompatActivity() {
         binding.buttonBack.setOnClickListener {
             onBackPressedDispatcher.onBackPressed()
         }
-        
+
         binding.fabCreatePlan.setOnClickListener {
             createNewPlan()
+        }
+
+        binding.buttonPlanRotations.setOnClickListener {
+            startActivity(Intent(this, PlanSetActivity::class.java))
         }
     }
 

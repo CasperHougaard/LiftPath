@@ -1,7 +1,12 @@
 package com.liftpath.helpers
 
 import com.liftpath.models.BodyRegion
+import com.liftpath.models.Equipment
+import com.liftpath.models.ExerciseAngle
+import com.liftpath.models.ExerciseFamily
 import com.liftpath.models.ExerciseLibraryItem
+import com.liftpath.models.ExerciseType
+import com.liftpath.models.Laterality
 import com.liftpath.models.Mechanics
 import com.liftpath.models.MovementPattern
 import com.liftpath.models.TargetMuscle
@@ -9,9 +14,208 @@ import com.liftpath.models.Tier
 
 object DefaultExercisesHelper {
 
-    const val CATALOG_VERSION = 1
+    const val CATALOG_VERSION = 3
+
+    // --- Exercise Family Catalog (33 families, 66 exercises) ---
+
+    val DEFAULT_FAMILIES: List<ExerciseFamily> = listOf(
+        ExerciseFamily("chest_press",       "Chest Press",               MovementPattern.PUSH_HORIZONTAL,              BodyRegion.UPPER, listOf(TargetMuscle.CHEST_MIDDLE, TargetMuscle.DELT_FRONT, TargetMuscle.TRICEPS_LATERAL)),
+        ExerciseFamily("incline_press",     "Incline Press",             MovementPattern.PUSH_HORIZONTAL,              BodyRegion.UPPER, listOf(TargetMuscle.CHEST_UPPER, TargetMuscle.DELT_FRONT, TargetMuscle.TRICEPS_LATERAL)),
+        ExerciseFamily("decline_press",     "Decline Press",             MovementPattern.PUSH_HORIZONTAL,              BodyRegion.UPPER, listOf(TargetMuscle.CHEST_LOWER, TargetMuscle.TRICEPS_LATERAL)),
+        ExerciseFamily("chest_fly",         "Chest Fly",                 MovementPattern.ISOLATION_SHOULDER_FLEXION,   BodyRegion.UPPER, listOf(TargetMuscle.CHEST_MIDDLE, TargetMuscle.CHEST_UPPER)),
+        ExerciseFamily("dips",              "Dips",                      MovementPattern.PUSH_VERTICAL,                BodyRegion.UPPER, listOf(TargetMuscle.CHEST_LOWER, TargetMuscle.TRICEPS_LATERAL)),
+        ExerciseFamily("overhead_press",    "Overhead Press",            MovementPattern.PUSH_VERTICAL,                BodyRegion.UPPER, listOf(TargetMuscle.DELT_FRONT, TargetMuscle.DELT_SIDE, TargetMuscle.TRICEPS_LATERAL)),
+        ExerciseFamily("pull_up",           "Pull-Up / Chin-Up",         MovementPattern.PULL_VERTICAL,                BodyRegion.UPPER, listOf(TargetMuscle.LATS, TargetMuscle.BICEPS)),
+        ExerciseFamily("lat_pulldown",      "Lat Pulldown",              MovementPattern.PULL_VERTICAL,                BodyRegion.UPPER, listOf(TargetMuscle.LATS, TargetMuscle.TRAPS_MID, TargetMuscle.BICEPS)),
+        ExerciseFamily("row_horizontal",    "Horizontal Row",            MovementPattern.PULL_HORIZONTAL,              BodyRegion.UPPER, listOf(TargetMuscle.LATS, TargetMuscle.TRAPS_MID)),
+        ExerciseFamily("face_pull",         "Face Pull",                 MovementPattern.ISOLATION_SHOULDER_EXTENSION, BodyRegion.UPPER, listOf(TargetMuscle.DELT_REAR, TargetMuscle.TRAPS_MID)),
+        ExerciseFamily("lateral_raise",     "Lateral Raise",             MovementPattern.ISOLATION_SHOULDER_ABDUCTION, BodyRegion.UPPER, listOf(TargetMuscle.DELT_SIDE)),
+        ExerciseFamily("reverse_fly",       "Reverse Fly",               MovementPattern.ISOLATION_SHOULDER_EXTENSION, BodyRegion.UPPER, listOf(TargetMuscle.DELT_REAR, TargetMuscle.TRAPS_MID)),
+        ExerciseFamily("shrug",             "Shrug",                     MovementPattern.PULL_VERTICAL,                BodyRegion.UPPER, listOf(TargetMuscle.TRAPS_UPPER)),
+        ExerciseFamily("squat",             "Squat",                     MovementPattern.SQUAT,                        BodyRegion.LOWER, listOf(TargetMuscle.QUADS, TargetMuscle.GLUTES, TargetMuscle.ADDUCTORS)),
+        ExerciseFamily("leg_press",         "Leg Press",                 MovementPattern.SQUAT,                        BodyRegion.LOWER, listOf(TargetMuscle.QUADS, TargetMuscle.GLUTES)),
+        ExerciseFamily("split_squat",       "Split Squat / Lunge",       MovementPattern.LUNGE,                        BodyRegion.LOWER, listOf(TargetMuscle.QUADS, TargetMuscle.GLUTES)),
+        ExerciseFamily("deadlift",          "Deadlift",                  MovementPattern.HINGE,                        BodyRegion.LOWER, listOf(TargetMuscle.HAMSTRINGS, TargetMuscle.GLUTES, TargetMuscle.LOWER_BACK)),
+        ExerciseFamily("rdl",               "Romanian Deadlift",         MovementPattern.HINGE,                        BodyRegion.LOWER, listOf(TargetMuscle.HAMSTRINGS, TargetMuscle.GLUTES)),
+        ExerciseFamily("hip_thrust",        "Hip Thrust / Glute Bridge", MovementPattern.HINGE,                        BodyRegion.LOWER, listOf(TargetMuscle.GLUTES, TargetMuscle.HAMSTRINGS)),
+        ExerciseFamily("leg_curl",          "Leg Curl",                  MovementPattern.ISOLATION_KNEE_FLEXION,       BodyRegion.LOWER, listOf(TargetMuscle.HAMSTRINGS)),
+        ExerciseFamily("leg_extension",     "Leg Extension",             MovementPattern.ISOLATION_KNEE_EXTENSION,     BodyRegion.LOWER, listOf(TargetMuscle.QUADS)),
+        ExerciseFamily("calf_raise",        "Calf Raise",                MovementPattern.ISOLATION_PLANTAR_FLEXION,    BodyRegion.LOWER, listOf(TargetMuscle.CALVES)),
+        ExerciseFamily("biceps_curl",       "Biceps Curl",               MovementPattern.ISOLATION_ELBOW_FLEXION,      BodyRegion.UPPER, listOf(TargetMuscle.BICEPS)),
+        ExerciseFamily("triceps_extension", "Triceps Extension",         MovementPattern.ISOLATION_ELBOW_EXTENSION,    BodyRegion.UPPER, listOf(TargetMuscle.TRICEPS_LONG, TargetMuscle.TRICEPS_LATERAL)),
+        ExerciseFamily("ab_crunch",         "Ab Crunch",                 MovementPattern.CORE_FLEXION,                 BodyRegion.CORE,  listOf(TargetMuscle.ABS)),
+        ExerciseFamily("plank",             "Plank",                     MovementPattern.CORE_STABILITY,               BodyRegion.CORE,  listOf(TargetMuscle.ABS, TargetMuscle.OBLIQUES)),
+        ExerciseFamily("cable_woodchopper", "Cable Woodchopper",         MovementPattern.CORE_STABILITY,               BodyRegion.CORE,  listOf(TargetMuscle.OBLIQUES, TargetMuscle.ABS)),
+        ExerciseFamily("rotary_torso",      "Rotary Torso",              MovementPattern.CORE_FLEXION,                 BodyRegion.CORE,  listOf(TargetMuscle.OBLIQUES)),
+        ExerciseFamily("hip_adduction",     "Hip Adduction",             MovementPattern.OTHER,                        BodyRegion.LOWER, listOf(TargetMuscle.ADDUCTORS)),
+        ExerciseFamily("hip_abduction",     "Hip Abduction",             MovementPattern.OTHER,                        BodyRegion.LOWER, listOf(TargetMuscle.ABDUCTORS)),
+        ExerciseFamily("glute_machine",     "Glute Machine",             MovementPattern.OTHER,                        BodyRegion.LOWER, listOf(TargetMuscle.GLUTES)),
+        ExerciseFamily("farmers_walk",      "Farmer's Walk",             MovementPattern.CARRY,                        BodyRegion.FULL,  listOf(TargetMuscle.FOREARMS, TargetMuscle.TRAPS_UPPER)),
+        ExerciseFamily("cable_leg_raises",  "Cable Leg Raises",          MovementPattern.OTHER,                        BodyRegion.LOWER, listOf(TargetMuscle.HIPFLEXORS, TargetMuscle.ABS)),
+    )
+
+    fun getDefaultFamilies(): List<ExerciseFamily> = DEFAULT_FAMILIES
+
+    // --- Per-exercise metadata: familyId, equipment, angle, laterality ---
+
+    private data class DefaultExerciseMeta(
+        val familyId: String,
+        val equipment: Equipment,
+        val angle: ExerciseAngle? = null,
+        val laterality: Laterality? = null
+    )
+
+    val DEFAULT_EXERCISE_META_MAP: Map<Int, String> = mapOf(
+        1   to "deadlift",
+        2   to "squat",
+        4   to "biceps_curl",
+        5   to "triceps_extension",
+        7   to "chest_press",
+        8   to "split_squat",
+        9   to "calf_raise",
+        10  to "decline_press",
+        11  to "incline_press",
+        12  to "row_horizontal",
+        13  to "triceps_extension",
+        14  to "overhead_press",
+        15  to "dips",
+        16  to "ab_crunch",
+        17  to "chest_press",
+        18  to "leg_curl",
+        100 to "overhead_press",
+        101 to "pull_up",
+        102 to "pull_up",
+        103 to "rdl",
+        104 to "leg_press",
+        105 to "split_squat",
+        106 to "lat_pulldown",
+        107 to "row_horizontal",
+        108 to "face_pull",
+        109 to "lateral_raise",
+        110 to "leg_extension",
+        111 to "hip_thrust",
+        112 to "triceps_extension",
+        113 to "biceps_curl",
+        114 to "squat",
+        115 to "split_squat",
+        116 to "chest_fly",
+        117 to "chest_fly",
+        118 to "overhead_press",
+        119 to "reverse_fly",
+        120 to "ab_crunch",
+        121 to "plank",
+        122 to "cable_woodchopper",
+        123 to "deadlift",
+        124 to "shrug",
+        125 to "farmers_walk",
+        126 to "hip_thrust",
+        127 to "squat",
+        128 to "row_horizontal",
+        129 to "chest_fly",
+        130 to "biceps_curl",
+        131 to "chest_press",
+        132 to "rotary_torso",
+        133 to "incline_press",
+        134 to "hip_adduction",
+        135 to "hip_abduction",
+        136 to "rdl",
+        137 to "plank",
+        138 to "calf_raise",
+        139 to "chest_press",
+        140 to "chest_press",
+        141 to "row_horizontal",
+        142 to "leg_curl",
+        143 to "lateral_raise",
+        144 to "incline_press",
+        145 to "glute_machine",
+        146 to "squat",
+        147 to "cable_leg_raises",
+        148 to "glute_machine",
+        149 to "row_horizontal"
+    )
+
+    private val DEFAULT_EXERCISE_FULL_META: Map<Int, DefaultExerciseMeta> = mapOf(
+        1   to DefaultExerciseMeta("deadlift",          Equipment.BARBELL,    null,                  Laterality.BILATERAL),
+        2   to DefaultExerciseMeta("squat",             Equipment.BARBELL,    null,                  Laterality.BILATERAL),
+        4   to DefaultExerciseMeta("biceps_curl",       Equipment.DUMBBELL,   null,                  Laterality.UNILATERAL),
+        5   to DefaultExerciseMeta("triceps_extension", Equipment.CABLE,      null,                  Laterality.BILATERAL),
+        7   to DefaultExerciseMeta("chest_press",       Equipment.BARBELL,    ExerciseAngle.FLAT,    Laterality.BILATERAL),
+        8   to DefaultExerciseMeta("split_squat",       Equipment.BARBELL,    null,                  Laterality.UNILATERAL),
+        9   to DefaultExerciseMeta("calf_raise",        Equipment.MACHINE,    null,                  Laterality.BILATERAL),
+        10  to DefaultExerciseMeta("decline_press",     Equipment.BARBELL,    ExerciseAngle.DECLINE, Laterality.BILATERAL),
+        11  to DefaultExerciseMeta("incline_press",     Equipment.DUMBBELL,   ExerciseAngle.INCLINE, Laterality.BILATERAL),
+        12  to DefaultExerciseMeta("row_horizontal",    Equipment.CABLE,      null,                  Laterality.BILATERAL),
+        13  to DefaultExerciseMeta("triceps_extension", Equipment.CABLE,      null,                  Laterality.UNILATERAL),
+        14  to DefaultExerciseMeta("overhead_press",    Equipment.MACHINE,    null,                  Laterality.BILATERAL),
+        15  to DefaultExerciseMeta("dips",              Equipment.BODYWEIGHT, null,                  Laterality.BILATERAL),
+        16  to DefaultExerciseMeta("ab_crunch",         Equipment.MACHINE,    null,                  Laterality.BILATERAL),
+        17  to DefaultExerciseMeta("chest_press",       Equipment.BARBELL,    ExerciseAngle.FLAT,    Laterality.BILATERAL),
+        18  to DefaultExerciseMeta("leg_curl",          Equipment.MACHINE,    null,                  Laterality.BILATERAL),
+        100 to DefaultExerciseMeta("overhead_press",    Equipment.BARBELL,    null,                  Laterality.BILATERAL),
+        101 to DefaultExerciseMeta("pull_up",           Equipment.BODYWEIGHT, null,                  Laterality.BILATERAL),
+        102 to DefaultExerciseMeta("pull_up",           Equipment.BODYWEIGHT, null,                  Laterality.BILATERAL),
+        103 to DefaultExerciseMeta("rdl",               Equipment.BARBELL,    null,                  Laterality.BILATERAL),
+        104 to DefaultExerciseMeta("leg_press",         Equipment.MACHINE,    null,                  Laterality.BILATERAL),
+        105 to DefaultExerciseMeta("split_squat",       Equipment.DUMBBELL,   null,                  Laterality.UNILATERAL),
+        106 to DefaultExerciseMeta("lat_pulldown",      Equipment.CABLE,      null,                  Laterality.BILATERAL),
+        107 to DefaultExerciseMeta("row_horizontal",    Equipment.DUMBBELL,   null,                  Laterality.UNILATERAL),
+        108 to DefaultExerciseMeta("face_pull",         Equipment.CABLE,      null,                  Laterality.BILATERAL),
+        109 to DefaultExerciseMeta("lateral_raise",     Equipment.DUMBBELL,   null,                  Laterality.BILATERAL),
+        110 to DefaultExerciseMeta("leg_extension",     Equipment.MACHINE,    null,                  Laterality.BILATERAL),
+        111 to DefaultExerciseMeta("hip_thrust",        Equipment.BARBELL,    null,                  Laterality.BILATERAL),
+        112 to DefaultExerciseMeta("triceps_extension", Equipment.EZ_BAR,     ExerciseAngle.FLAT,    Laterality.BILATERAL),
+        113 to DefaultExerciseMeta("biceps_curl",       Equipment.DUMBBELL,   null,                  Laterality.BILATERAL),
+        114 to DefaultExerciseMeta("squat",             Equipment.BARBELL,    null,                  Laterality.BILATERAL),
+        115 to DefaultExerciseMeta("split_squat",       Equipment.BODYWEIGHT, null,                  Laterality.UNILATERAL),
+        116 to DefaultExerciseMeta("chest_fly",         Equipment.DUMBBELL,   ExerciseAngle.INCLINE, Laterality.BILATERAL),
+        117 to DefaultExerciseMeta("chest_fly",         Equipment.MACHINE,    null,                  Laterality.BILATERAL),
+        118 to DefaultExerciseMeta("overhead_press",    Equipment.DUMBBELL,   null,                  Laterality.BILATERAL),
+        119 to DefaultExerciseMeta("reverse_fly",       Equipment.DUMBBELL,   null,                  Laterality.BILATERAL),
+        120 to DefaultExerciseMeta("ab_crunch",         Equipment.BODYWEIGHT, null,                  Laterality.BILATERAL),
+        121 to DefaultExerciseMeta("plank",             Equipment.BODYWEIGHT, null,                  Laterality.BILATERAL),
+        122 to DefaultExerciseMeta("cable_woodchopper", Equipment.CABLE,      null,                  Laterality.UNILATERAL),
+        123 to DefaultExerciseMeta("deadlift",          Equipment.BARBELL,    null,                  Laterality.BILATERAL),
+        124 to DefaultExerciseMeta("shrug",             Equipment.BARBELL,    null,                  Laterality.BILATERAL),
+        125 to DefaultExerciseMeta("farmers_walk",      Equipment.OTHER,      null,                  Laterality.BILATERAL),
+        126 to DefaultExerciseMeta("hip_thrust",        Equipment.BARBELL,    null,                  Laterality.BILATERAL),
+        127 to DefaultExerciseMeta("squat",             Equipment.KETTLEBELL, null,                  Laterality.BILATERAL),
+        128 to DefaultExerciseMeta("row_horizontal",    Equipment.BARBELL,    null,                  Laterality.BILATERAL),
+        129 to DefaultExerciseMeta("chest_fly",         Equipment.CABLE,      null,                  Laterality.BILATERAL),
+        130 to DefaultExerciseMeta("biceps_curl",       Equipment.EZ_BAR,     null,                  Laterality.BILATERAL),
+        131 to DefaultExerciseMeta("chest_press",       Equipment.BODYWEIGHT, ExerciseAngle.FLAT,    Laterality.BILATERAL),
+        132 to DefaultExerciseMeta("rotary_torso",      Equipment.MACHINE,    null,                  Laterality.BILATERAL),
+        133 to DefaultExerciseMeta("incline_press",     Equipment.MACHINE,    ExerciseAngle.INCLINE, Laterality.BILATERAL),
+        134 to DefaultExerciseMeta("hip_adduction",     Equipment.MACHINE,    null,                  Laterality.BILATERAL),
+        135 to DefaultExerciseMeta("hip_abduction",     Equipment.MACHINE,    null,                  Laterality.BILATERAL),
+        136 to DefaultExerciseMeta("rdl",               Equipment.DUMBBELL,   null,                  Laterality.BILATERAL),
+        137 to DefaultExerciseMeta("plank",             Equipment.BODYWEIGHT, null,                  Laterality.UNILATERAL),
+        138 to DefaultExerciseMeta("calf_raise",        Equipment.BODYWEIGHT, null,                  Laterality.BILATERAL),
+        139 to DefaultExerciseMeta("chest_press",       Equipment.MACHINE,    null,                  Laterality.BILATERAL),
+        140 to DefaultExerciseMeta("chest_press",       Equipment.MACHINE,    null,                  Laterality.BILATERAL),
+        141 to DefaultExerciseMeta("row_horizontal",    Equipment.MACHINE,    null,                  Laterality.BILATERAL),
+        142 to DefaultExerciseMeta("leg_curl",          Equipment.MACHINE,    null,                  Laterality.BILATERAL),
+        143 to DefaultExerciseMeta("lateral_raise",     Equipment.DUMBBELL,   null,                  Laterality.BILATERAL),
+        144 to DefaultExerciseMeta("incline_press",     Equipment.BARBELL,    ExerciseAngle.INCLINE, Laterality.BILATERAL),
+        145 to DefaultExerciseMeta("glute_machine",     Equipment.MACHINE,    null,                  Laterality.UNILATERAL),
+        146 to DefaultExerciseMeta("squat",             Equipment.MACHINE,    null,                  Laterality.BILATERAL),
+        147 to DefaultExerciseMeta("cable_leg_raises",  Equipment.CABLE,      null,                  Laterality.UNILATERAL),
+        148 to DefaultExerciseMeta("glute_machine",     Equipment.CABLE,      null,                  Laterality.UNILATERAL),
+        149 to DefaultExerciseMeta("row_horizontal",    Equipment.MACHINE,    null,                  Laterality.BILATERAL)
+    )
 
     fun getPopularDefaults(): List<ExerciseLibraryItem> {
+        return rawDefaults().map { exercise ->
+            val meta = DEFAULT_EXERCISE_FULL_META[exercise.id] ?: return@map exercise
+            exercise.copy(
+                familyId = meta.familyId,
+                equipment = meta.equipment,
+                angle = meta.angle,
+                laterality = meta.laterality
+            )
+        }
+    }
+
+    private fun rawDefaults(): List<ExerciseLibraryItem> {
         return listOf(
             ExerciseLibraryItem(
                 id = 1,
@@ -142,7 +346,8 @@ object DefaultExercisesHelper {
                 tier = Tier.TIER_2,
                 primaryTargets = listOf(TargetMuscle.CHEST_LOWER, TargetMuscle.TRICEPS_LATERAL),
                 secondaryTargets = listOf(TargetMuscle.DELT_FRONT),
-                note = "Slight forward lean for chest. Control depth."
+                note = "Slight forward lean for chest. Control depth.",
+                exerciseType = ExerciseType.BODYWEIGHT
             ),
             ExerciseLibraryItem(
                 id = 16,
@@ -192,7 +397,8 @@ object DefaultExercisesHelper {
                 tier = Tier.TIER_1,
                 primaryTargets = listOf(TargetMuscle.LATS, TargetMuscle.BICEPS),
                 secondaryTargets = listOf(TargetMuscle.TRAPS_MID, TargetMuscle.FOREARMS),
-                note = "Chin over bar. Full hang at bottom."
+                note = "Chin over bar. Full hang at bottom.",
+                exerciseType = ExerciseType.BODYWEIGHT
             ),
             ExerciseLibraryItem(
                 id = 102,
@@ -202,7 +408,8 @@ object DefaultExercisesHelper {
                 tier = Tier.TIER_2,
                 primaryTargets = listOf(TargetMuscle.LATS, TargetMuscle.BICEPS),
                 secondaryTargets = listOf(TargetMuscle.FOREARMS),
-                note = "Palms face you. Squeeze at top."
+                note = "Palms face you. Squeeze at top.",
+                exerciseType = ExerciseType.BODYWEIGHT
             ),
             ExerciseLibraryItem(
                 id = 103,
@@ -382,7 +589,8 @@ object DefaultExercisesHelper {
                 tier = Tier.TIER_3,
                 primaryTargets = listOf(TargetMuscle.ABS),
                 secondaryTargets = listOf(TargetMuscle.FOREARMS),
-                note = "Control swing. Exhale as legs rise."
+                note = "Control swing. Exhale as legs rise.",
+                exerciseType = ExerciseType.BODYWEIGHT
             ),
             ExerciseLibraryItem(
                 id = 121,
@@ -392,7 +600,8 @@ object DefaultExercisesHelper {
                 tier = Tier.TIER_3,
                 primaryTargets = listOf(TargetMuscle.ABS, TargetMuscle.OBLIQUES),
                 secondaryTargets = emptyList(),
-                note = "Neutral spine. Squeeze glutes."
+                note = "Neutral spine. Squeeze glutes.",
+                exerciseType = ExerciseType.BODYWEIGHT
             ),
             ExerciseLibraryItem(
                 id = 122,
@@ -492,7 +701,8 @@ object DefaultExercisesHelper {
                 tier = Tier.TIER_3,
                 primaryTargets = listOf(TargetMuscle.CHEST_MIDDLE, TargetMuscle.TRICEPS_LATERAL),
                 secondaryTargets = listOf(TargetMuscle.ABS, TargetMuscle.DELT_FRONT),
-                note = "Core tight. Full lockout at top."
+                note = "Core tight. Full lockout at top.",
+                exerciseType = ExerciseType.BODYWEIGHT
             ),
             ExerciseLibraryItem(
                 id = 132,
@@ -558,7 +768,8 @@ object DefaultExercisesHelper {
                 primaryTargets = listOf(TargetMuscle.GLUTES, TargetMuscle.OBLIQUES),
                 secondaryTargets = listOf(TargetMuscle.LOWER_BACK, TargetMuscle.ABS),
                 note = "Stack feet/legs. Don't let hips sag.",
-                manualMechanics = Mechanics.ISOLATION
+                manualMechanics = Mechanics.ISOLATION,
+                exerciseType = ExerciseType.BODYWEIGHT
             ),
             ExerciseLibraryItem(
                 id = 138,

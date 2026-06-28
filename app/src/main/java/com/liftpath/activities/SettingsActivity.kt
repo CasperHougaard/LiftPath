@@ -12,6 +12,9 @@ import com.liftpath.R
 import com.liftpath.databinding.ActivitySettingsBinding
 import androidx.health.connect.client.PermissionController
 import androidx.lifecycle.lifecycleScope
+import com.liftpath.helpers.AiExportHelper
+import com.liftpath.helpers.BodyWeightHelper
+import com.liftpath.helpers.BodyWeightSettingsManager
 import com.liftpath.helpers.CatalogMergePrefsManager
 import com.liftpath.helpers.DefaultExercisesHelper
 import com.liftpath.helpers.DialogHelper
@@ -29,6 +32,7 @@ import java.util.Locale
 class SettingsActivity : AppCompatActivity() {
     private lateinit var binding: ActivitySettingsBinding
     private lateinit var jsonHelper: JsonHelper
+    private lateinit var bodyWeightSettingsManager: BodyWeightSettingsManager
 
     private val requestWithingsPermissions = registerForActivityResult(
         PermissionController.createRequestPermissionResultContract()
@@ -74,6 +78,19 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
+    private val exportAiLauncher = registerForActivityResult(
+        ActivityResultContracts.CreateDocument("text/markdown")
+    ) { uri ->
+        uri?.let {
+            val markdown = AiExportHelper.buildMarkdown(this, jsonHelper.readTrainingData())
+            jsonHelper.exportAiMarkdown(it, markdown)
+                .onSuccess { showToast(getString(R.string.toast_ai_export_exported)) }
+                .onFailure { e ->
+                    showToast(getString(R.string.toast_ai_export_failed, e.localizedMessage ?: ""))
+                }
+        }
+    }
+
     private val importDocumentLauncher = registerForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri ->
@@ -103,9 +120,11 @@ class SettingsActivity : AppCompatActivity() {
         setupBackgroundAnimation()
 
         jsonHelper = JsonHelper(this)
+        bodyWeightSettingsManager = BodyWeightSettingsManager(this)
 
         setupSettingsTabs()
         setupClickListeners()
+        loadBodyWeightField()
     }
 
     private fun setupSettingsTabs() {
@@ -163,6 +182,18 @@ class SettingsActivity : AppCompatActivity() {
             exportLibraryLauncher.launch(defaultExerciseLibraryFileName())
         }
 
+        binding.buttonAiExport.setOnClickListener {
+            if (jsonHelper.readTrainingData().trainings.isEmpty()) {
+                showToast(getString(R.string.toast_ai_export_no_sessions))
+            } else {
+                exportAiLauncher.launch(defaultAiExportFileName())
+            }
+        }
+
+        binding.buttonSaveBodyWeight.setOnClickListener {
+            saveBodyWeightField()
+        }
+
         binding.buttonProgressionSettings.setOnClickListener {
             val intent = Intent(this, com.liftpath.activities.ProgressionSettingsActivity::class.java)
             startActivity(intent)
@@ -176,6 +207,38 @@ class SettingsActivity : AppCompatActivity() {
         binding.buttonBackHeader.setOnClickListener {
             onBackPressedDispatcher.onBackPressed()
         }
+    }
+
+    private fun formatKg(kg: Float): String = String.format(Locale.US, "%.1f", kg)
+
+    private fun loadBodyWeightField() {
+        bodyWeightSettingsManager.getSettings().manualWeightKg?.let {
+            binding.editTextBodyWeight.setText(formatKg(it))
+        }
+        refreshBodyWeightSource()
+    }
+
+    private fun refreshBodyWeightSource() {
+        val resolved = BodyWeightHelper.resolveBodyWeight(this)
+        binding.textBodyWeightSource.text = when (resolved.source) {
+            BodyWeightHelper.BodyWeightSource.WITHINGS ->
+                getString(R.string.bodyweight_source_withings, formatKg(resolved.kg ?: 0f))
+            BodyWeightHelper.BodyWeightSource.MANUAL ->
+                getString(R.string.bodyweight_source_manual, formatKg(resolved.kg ?: 0f))
+            BodyWeightHelper.BodyWeightSource.NONE ->
+                getString(R.string.bodyweight_source_none)
+        }
+    }
+
+    private fun saveBodyWeightField() {
+        val kg = binding.editTextBodyWeight.text.toString().trim().toFloatOrNull()
+        if (kg == null || kg < 20f || kg > 400f) {
+            showToast(getString(R.string.bodyweight_invalid))
+            return
+        }
+        bodyWeightSettingsManager.setManualWeight(kg)
+        showToast(getString(R.string.toast_bodyweight_saved))
+        refreshBodyWeightSource()
     }
 
     private fun showWithingsInfoDialog() {
@@ -317,6 +380,11 @@ class SettingsActivity : AppCompatActivity() {
     private fun defaultExerciseLibraryFileName(): String {
         val formatter = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault())
         return "liftpath_exercises_${formatter.format(Date())}.json"
+    }
+
+    private fun defaultAiExportFileName(): String {
+        val formatter = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault())
+        return "liftpath_ai_export_${formatter.format(Date())}.md"
     }
 
     private fun showToast(message: String) {

@@ -59,14 +59,63 @@
             android:orientation="vertical"
             android:visibility="gone">
 
+            <!-- Continue plan set card (shown when user has an active rotation) -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/card_continue_rotation"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:visibility="gone"
+                app:cardBackgroundColor="@color/fitness_primary"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="4dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:id="@+id/text_continue_label"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Continue Rotation"
+                        android:textColor="@color/white"
+                        android:textSize="12sp"
+                        android:alpha="0.8" />
+
+                    <TextView
+                        android:id="@+id/text_continue_plan_set_name"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/white"
+                        android:textSize="17sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/text_continue_next_plan"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:textColor="@color/white"
+                        android:textSize="13sp"
+                        android:alpha="0.85" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- Individual plans section -->
             <TextView
                 android:id="@+id/text_plan_list_title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
-                android:text="Select a Plan"
+                android:text="Individual Plans"
                 android:textColor="@color/fitness_text_primary"
-                android:textSize="18sp"
+                android:textSize="16sp"
                 android:textStyle="bold" />
 
             <androidx.recyclerview.widget.RecyclerView
@@ -84,6 +133,26 @@
                 android:text="No plans available. Create one from the Plans screen."
                 android:textColor="@color/fitness_text_secondary"
                 android:textSize="14sp"
+                android:visibility="gone" />
+
+            <!-- Plan rotations section -->
+            <TextView
+                android:id="@+id/text_rotations_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:layout_marginBottom="12dp"
+                android:text="Plan Rotations"
+                android:textColor="@color/fitness_text_primary"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recycler_view_plan_sets"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"
                 android:visibility="gone" />
         </LinearLayout>
     </LinearLayout>

@@ -1,5 +1,6 @@
 package com.liftpath.helpers
 
+import com.liftpath.models.ExerciseFamily
 import com.liftpath.models.ExerciseLibraryItem
 import com.liftpath.models.SetIntent
 import com.liftpath.models.TrainingSession
@@ -445,6 +446,54 @@ object ProgressAnalysisHelper {
         }
     }
 
+    /**
+     * Aggregated stats per exercise family across all sessions.
+     * Falls back to live library lookup when `familyIdSnapshot` is null on a session entry.
+     */
+    fun getFamilyStatsSummaries(
+        sessions: List<TrainingSession>,
+        exerciseLibrary: List<ExerciseLibraryItem>,
+        exerciseFamilies: List<ExerciseFamily>
+    ): List<FamilyStatsSummary> {
+        val libraryFamilyMap = exerciseLibrary.associate { it.id to it.familyId }
+        val familyNameMap = exerciseFamilies.associate { it.id to it.name }
+
+        data class Accum(
+            var totalSets: Int = 0,
+            var totalReps: Int = 0,
+            var totalVolume: Float = 0f,
+            val sessionIds: MutableSet<String> = mutableSetOf()
+        )
+
+        val accum = mutableMapOf<String, Accum>()
+
+        sessions.forEach { session ->
+            session.exercises.filterNot { it.isWarmup }.forEach { entry ->
+                val familyId = entry.familyIdSnapshot
+                    ?: libraryFamilyMap[entry.exerciseId]
+                    ?: return@forEach
+                val a = accum.getOrPut(familyId) { Accum() }
+                a.totalSets++
+                a.totalReps += entry.reps
+                a.totalVolume += entry.kg * entry.reps
+                a.sessionIds.add(session.id)
+            }
+        }
+
+        return accum.entries
+            .map { (familyId, a) ->
+                FamilyStatsSummary(
+                    familyId = familyId,
+                    familyName = familyNameMap[familyId] ?: familyId,
+                    totalSets = a.totalSets,
+                    totalReps = a.totalReps,
+                    totalVolume = a.totalVolume,
+                    sessionCount = a.sessionIds.size
+                )
+            }
+            .sortedByDescending { it.totalVolume }
+    }
+
     // ---- Data classes ----
 
     data class PRRecord(
@@ -480,6 +529,15 @@ object ProgressAnalysisHelper {
         val sessionCount: Int,
         val prCount: Int,
         val dominantIntent: SetIntent
+    )
+
+    data class FamilyStatsSummary(
+        val familyId: String,
+        val familyName: String,
+        val totalSets: Int,
+        val totalReps: Int,
+        val totalVolume: Float,
+        val sessionCount: Int
     )
 
     enum class PRType {

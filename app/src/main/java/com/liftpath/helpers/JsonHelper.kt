@@ -3,6 +3,9 @@ package com.liftpath.helpers
 import android.content.Context
 import android.net.Uri
 import android.util.Log
+import com.liftpath.models.PlanExerciseSelectionType
+import com.liftpath.models.PlanExerciseSlot
+import com.liftpath.models.SetIntent
 import com.liftpath.models.TrainingData
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
@@ -52,6 +55,7 @@ class JsonHelper(private val context: Context) {
                 return cachedTrainingData!!
             }
 
+            normalizeTrainingData(parsed)
             parsed
         } catch (e: Exception) {
             Log.e(TAG, "Error reading or parsing training_data.json. Backing up and creating a new data file.", e)
@@ -73,6 +77,86 @@ class JsonHelper(private val context: Context) {
 
         cachedTrainingData = data
         return data
+    }
+
+    /**
+     * Normalizes a [TrainingData] object after Gson deserialization.
+     * Gson uses Unsafe to instantiate objects, bypassing Kotlin constructors, so newly
+     * added fields that are absent from old JSON will be null at runtime despite non-null types.
+     * This function fixes null collections and migrates legacy plans.
+     */
+    @Suppress("SENSELESS_COMPARISON")
+    private fun normalizeTrainingData(data: TrainingData): TrainingData {
+        // Fix null collections caused by Gson bypassing constructors for new fields
+        if (data.planSets == null) data.planSets = mutableListOf()
+        if (data.planSetProgress == null) data.planSetProgress = mutableListOf()
+        if (data.exerciseFamilies == null) data.exerciseFamilies = mutableListOf()
+
+        // Idempotent family migrations — each function only fills null fields, safe to re-run
+        ensureDefaultFamiliesExist(data)
+        ensureLibraryFamilyMappingsExist(data)
+        backfillFamilyIdSnapshotsIfMissing(data)
+
+        // Migrate legacy WorkoutPlans: if a plan has no exerciseConfigs, generate minimal ones
+        // from exerciseIds so V2 code can always rely on exerciseConfigs being present
+        data.workoutPlans.forEachIndexed { index, plan ->
+            if (plan.exerciseConfigs == null && plan.exerciseIds.isNotEmpty()) {
+                val migratedConfigs = plan.exerciseIds.map { id ->
+                    PlanExerciseSlot(
+                        exerciseId = id,
+                        selectionType = PlanExerciseSelectionType.SPECIFIC_VARIANT,
+                        defaultIntent = SetIntent.BUILD
+                    )
+                }
+                data.workoutPlans[index] = plan.copy(exerciseConfigs = migratedConfigs)
+            }
+        }
+        return data
+    }
+
+    // Seeds any DEFAULT_FAMILIES not yet present. Existing entries (including user-created) untouched.
+    private fun ensureDefaultFamiliesExist(data: TrainingData) {
+        val families = data.exerciseFamilies ?: return
+        val existingIds = families.map { it.id }.toSet()
+        val missing = DefaultExercisesHelper.DEFAULT_FAMILIES.filter { it.id !in existingIds }
+        if (missing.isNotEmpty()) families.addAll(missing)
+    }
+
+    // Fills null familyId/equipment/angle/laterality on default-catalog exercises using catalog defaults.
+    private fun ensureLibraryFamilyMappingsExist(data: TrainingData) {
+        val defaults = DefaultExercisesHelper.getPopularDefaults().associateBy { it.id }
+        val needsUpdate = data.exerciseLibrary.any { ex -> ex.familyId == null && defaults.containsKey(ex.id) }
+        if (!needsUpdate) return
+        for (i in data.exerciseLibrary.indices) {
+            val exercise = data.exerciseLibrary[i]
+            if (exercise.familyId == null) {
+                val def = defaults[exercise.id] ?: continue
+                data.exerciseLibrary[i] = exercise.copy(
+                    familyId = def.familyId,
+                    equipment = exercise.equipment ?: def.equipment,
+                    angle = exercise.angle ?: def.angle,
+                    laterality = exercise.laterality ?: def.laterality
+                )
+            }
+        }
+    }
+
+    // Fills null familyIdSnapshot on ExerciseEntry rows using the current library as source of truth.
+    private fun backfillFamilyIdSnapshotsIfMissing(data: TrainingData) {
+        val libraryFamilyMap = data.exerciseLibrary.associate { it.id to it.familyId }
+        val hasNulls = data.trainings.any { session ->
+            session.exercises.any { it.familyIdSnapshot == null && libraryFamilyMap[it.exerciseId] != null }
+        }
+        if (!hasNulls) return
+        for (session in data.trainings) {
+            for (i in session.exercises.indices) {
+                val entry = session.exercises[i]
+                if (entry.familyIdSnapshot == null) {
+                    val familyId = libraryFamilyMap[entry.exerciseId] ?: continue
+                    session.exercises[i] = entry.copy(familyIdSnapshot = familyId)
+                }
+            }
+        }
     }
 
     fun writeTrainingData(trainingData: TrainingData) {
@@ -141,5 +225,16 @@ class JsonHelper(private val context: Context) {
         } ?: throw IOException("Unable to open destination")
     }.onFailure {
         Log.e(TAG, "Failed to export exercise library", it)
+    }
+
+    /** Write a pre-built text/markdown document (e.g. the AI export) to a user-picked location. */
+    fun exportAiMarkdown(destinationUri: Uri, markdown: String): Result<Unit> = runCatching {
+        val bytes = markdown.toByteArray(StandardCharsets.UTF_8)
+        context.contentResolver.openOutputStream(destinationUri)?.use { outputStream ->
+            outputStream.write(bytes)
+            outputStream.flush()
+        } ?: throw IOException("Unable to open destination")
+    }.onFailure {
+        Log.e(TAG, "Failed to export AI markdown", it)
     }
 }

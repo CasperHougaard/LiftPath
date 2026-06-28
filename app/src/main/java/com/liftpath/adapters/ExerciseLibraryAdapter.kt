@@ -8,18 +8,23 @@ import android.widget.TextView
 import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.RecyclerView
 import com.liftpath.R
+import com.liftpath.models.ExerciseFamily
 import com.liftpath.models.ExerciseLibraryItem
 
 class ExerciseLibraryAdapter(
     private var exercises: List<ExerciseLibraryItem>,
-    private val onEditClicked: (ExerciseLibraryItem) -> Unit
+    private val onEditClicked: (ExerciseLibraryItem) -> Unit,
+    private var families: List<ExerciseFamily> = emptyList()
 ) : RecyclerView.Adapter<ExerciseLibraryAdapter.ExerciseViewHolder>() {
 
     class ExerciseViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val exerciseName: TextView = view.findViewById(R.id.text_exercise_name)
+        val exerciseMeta: TextView = view.findViewById(R.id.text_exercise_meta)
         val favoriteStar: ImageView = view.findViewById(R.id.image_favorite_star)
         val editButton: CardView = view.findViewById(R.id.button_edit_exercise)
     }
+
+    private val familyNameMap: Map<String, String> get() = families.associate { it.id to it.name }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ExerciseViewHolder {
         val view = LayoutInflater.from(parent.context)
@@ -30,14 +35,20 @@ class ExerciseLibraryAdapter(
     override fun onBindViewHolder(holder: ExerciseViewHolder, position: Int) {
         val exercise = exercises[position]
         holder.exerciseName.text = exercise.name
-        
-        // Show/hide star icon for favorites
-        if (exercise.isFavorite) {
-            holder.favoriteStar.visibility = View.VISIBLE
+
+        val metaParts = listOfNotNull(
+            exercise.equipment?.displayName,
+            exercise.familyId?.let { familyNameMap[it] }
+        )
+        if (metaParts.isNotEmpty()) {
+            holder.exerciseMeta.text = metaParts.joinToString(" · ")
+            holder.exerciseMeta.visibility = View.VISIBLE
         } else {
-            holder.favoriteStar.visibility = View.GONE
+            holder.exerciseMeta.visibility = View.GONE
         }
-        
+
+        holder.favoriteStar.visibility = if (exercise.isFavorite) View.VISIBLE else View.GONE
+
         holder.editButton.setOnClickListener {
             onEditClicked(exercise)
         }
@@ -47,6 +58,11 @@ class ExerciseLibraryAdapter(
 
     fun updateExercises(newExercises: List<ExerciseLibraryItem>) {
         this.exercises = newExercises
+        notifyDataSetChanged()
+    }
+
+    fun updateFamilies(newFamilies: List<ExerciseFamily>) {
+        this.families = newFamilies
         notifyDataSetChanged()
     }
 }

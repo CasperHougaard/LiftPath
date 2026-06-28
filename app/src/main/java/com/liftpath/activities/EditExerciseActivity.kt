@@ -18,19 +18,22 @@ import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.liftpath.models.BodyRegion
 import com.liftpath.models.ExerciseLibraryItem
+import com.liftpath.models.ExerciseType
 import com.liftpath.models.Mechanics
 import com.liftpath.models.MovementPattern
 import com.liftpath.models.TargetMuscle
 import com.liftpath.models.Tier
+import com.liftpath.models.ExerciseFamily
 
 class EditExerciseActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityEditExerciseBinding
     private lateinit var jsonHelper: JsonHelper
     private var exerciseId: Int = -1
-    // Flag to ensure muscle map update only happens after WebView is ready
     private var isWebViewReady = false
     private var isFavorite: Boolean = false
+    private var availableFamilies: List<ExerciseFamily> = emptyList()
+    private var selectedFamilyId: String? = null
 
     companion object {
         const val EXTRA_EXERCISE_ID = "extra_exercise_id"
@@ -45,6 +48,7 @@ class EditExerciseActivity : AppCompatActivity() {
         jsonHelper = JsonHelper(this)
         exerciseId = intent.getIntExtra(EXTRA_EXERCISE_ID, -1)
 
+        availableFamilies = jsonHelper.readTrainingData().exerciseFamilies ?: emptyList()
         setupBackgroundAnimation()
         setupDropdowns()
         setupWebView()
@@ -80,7 +84,15 @@ class EditExerciseActivity : AppCompatActivity() {
         val mechanicsAdapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, manualMechanics)
         binding.dropdownMechanics.setAdapter(mechanicsAdapter)
 
-        // 5. Setup Target Muscle Chips
+        // 5. Exercise Family (optional)
+        val familyDisplayNames = listOf("None") + availableFamilies.map { it.name }
+        val familyAdapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, familyDisplayNames)
+        binding.dropdownFamily.setAdapter(familyAdapter)
+        binding.dropdownFamily.setOnItemClickListener { _, _, position, _ ->
+            selectedFamilyId = if (position == 0) null else availableFamilies[position - 1].id
+        }
+
+        // 6. Setup Target Muscle Chips
         setupTargetMuscleChips()
     }
 
@@ -307,6 +319,9 @@ class EditExerciseActivity : AppCompatActivity() {
                 val mechanicsToDisplay = exercise.manualMechanics ?: exercise.mechanics
                 binding.dropdownMechanics.setText(mechanicsToDisplay.displayName, false)
 
+                // Set exercise type (default Weighted for legacy/null)
+                setSelectedExerciseType(exercise.effectiveType)
+
                 // Set Target Muscle Chips
                 setSelectedTargetMuscles(exercise.primaryTargets, exercise.secondaryTargets)
                 
@@ -317,13 +332,32 @@ class EditExerciseActivity : AppCompatActivity() {
                 // Load note
                 binding.editTextNote.setText(exercise.note ?: "")
                 
+                // Populate family dropdown
+                selectedFamilyId = exercise.familyId
+                val familyText = if (exercise.familyId != null) {
+                    availableFamilies.find { it.id == exercise.familyId }?.name ?: "None"
+                } else "None"
+                binding.dropdownFamily.setText(familyText, false)
+
                 // updateMuscleMap() is called automatically via onPageFinished or chip listener
             }
         } else {
             binding.textEditExerciseTitle.text = "Create New Exercise"
             binding.cardDelete.visibility = View.GONE
+            // New exercises default to Weighted
+            setSelectedExerciseType(ExerciseType.WEIGHTED)
         }
     }
+
+    private fun setSelectedExerciseType(type: ExerciseType) {
+        when (type) {
+            ExerciseType.BODYWEIGHT -> binding.chipTypeBodyweight.isChecked = true
+            else -> binding.chipTypeWeighted.isChecked = true
+        }
+    }
+
+    private fun getSelectedExerciseType(): ExerciseType =
+        if (binding.chipTypeBodyweight.isChecked) ExerciseType.BODYWEIGHT else ExerciseType.WEIGHTED
 
     private fun setupClickListeners() {
         binding.buttonSaveExercise.setOnClickListener { saveExercise() }
@@ -426,6 +460,8 @@ class EditExerciseActivity : AppCompatActivity() {
         // Get note
         val note = binding.editTextNote.text.toString().trim().takeIf { it.isNotEmpty() }
 
+        val selectedType = getSelectedExerciseType()
+
         val trainingData = jsonHelper.readTrainingData()
 
         if (exerciseId != -1) {
@@ -442,7 +478,9 @@ class EditExerciseActivity : AppCompatActivity() {
                         primaryTargets = selectedPrimaryTargets,
                         secondaryTargets = selectedSecondaryTargets,
                         isFavorite = isFavorite,
-                        note = note
+                        note = note,
+                        exerciseType = selectedType,
+                        familyId = selectedFamilyId
                     )
                 }
                 // Legacy name update
@@ -464,7 +502,9 @@ class EditExerciseActivity : AppCompatActivity() {
                 primaryTargets = selectedPrimaryTargets,
                 secondaryTargets = selectedSecondaryTargets,
                 isFavorite = isFavorite,
-                note = note
+                note = note,
+                exerciseType = selectedType,
+                familyId = selectedFamilyId
             )
             trainingData.exerciseLibrary.add(newExercise)
             exerciseId = nextId

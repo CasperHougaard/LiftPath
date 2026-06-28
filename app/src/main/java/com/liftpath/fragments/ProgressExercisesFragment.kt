@@ -36,6 +36,16 @@ class ProgressExercisesFragment : Fragment() {
     private var showBuild = true
     private var showFlush = true
 
+    // All exercises that appear in training history, keyed by exerciseId.
+    private var allExerciseEntries: List<Pair<Int, String>> = emptyList()
+    // Currently displayed in the exercise spinner (may be filtered by family).
+    private var exerciseEntries: List<Pair<Int, String>> = emptyList()
+    // exerciseId → familyId, from the exercise library.
+    private var exerciseIdToFamilyId: Map<Int, String?> = emptyMap()
+    // Family entries for the family filter spinner: (familyId?, displayName).
+    private var familyEntries: List<Pair<String?, String>> = emptyList()
+    private var selectedFamilyId: String? = null
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -55,28 +65,61 @@ class ProgressExercisesFragment : Fragment() {
     }
 
     private fun setupSpinners() {
-        // Exercise spinner
+        // Exercise spinner — keyed by exerciseId so renames never break lookups
         val trainingData = jsonHelper.readTrainingData()
-        val exerciseNames = trainingData.trainings
+        allExerciseEntries = trainingData.trainings
             .flatMap { it.exercises }
-            .map { it.exerciseName }
-            .distinct()
-            .sorted()
+            .associateBy { it.exerciseId }  // dedup: one entry per ID, last snapshot name wins
+            .values
+            .sortedBy { it.exerciseName }
+            .map { Pair(it.exerciseId, it.exerciseName) }
+        exerciseEntries = allExerciseEntries
 
-        if (exerciseNames.isEmpty()) {
+        if (exerciseEntries.isEmpty()) {
             binding.textEmptyState.visibility = View.VISIBLE
             binding.chartCombined.visibility = View.GONE
             return
         }
 
+        // Build family filter
+        exerciseIdToFamilyId = trainingData.exerciseLibrary.associate { it.id to it.familyId }
+        val allFamilies = trainingData.exerciseFamilies ?: emptyList()
+        val familyNameMap = allFamilies.associate { it.id to it.name }
+        val presentFamilyIds = allExerciseEntries
+            .mapNotNull { (id, _) -> exerciseIdToFamilyId[id] }
+            .distinct()
+            .sortedBy { familyNameMap[it] ?: it }
+
+        if (presentFamilyIds.size >= 2) {
+            familyEntries = listOf(Pair(null, "All Families")) +
+                presentFamilyIds.map { id -> Pair(id, familyNameMap[id] ?: id) }
+
+            val familyNames = familyEntries.map { it.second }
+            val familyAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, familyNames)
+            familyAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            binding.spinnerFamilyFilter.adapter = familyAdapter
+            binding.textFamilyFilterLabel.visibility = View.VISIBLE
+            binding.spinnerFamilyFilter.visibility = View.VISIBLE
+
+            binding.spinnerFamilyFilter.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
+                    selectedFamilyId = familyEntries[position].first
+                    refreshExerciseSpinner()
+                }
+                override fun onNothingSelected(parent: AdapterView<*>) {}
+            }
+        }
+
+        val exerciseNames = exerciseEntries.map { it.second }
         val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, exerciseNames)
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         binding.spinnerExercise.adapter = adapter
 
         binding.spinnerExercise.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
-                val selectedExercise = exerciseNames[position]
-                loadExerciseData(selectedExercise)
+                if (position in exerciseEntries.indices) {
+                    loadExerciseData(exerciseEntries[position].first)
+                }
             }
             override fun onNothingSelected(parent: AdapterView<*>) {}
         }
@@ -96,9 +139,9 @@ class ProgressExercisesFragment : Fragment() {
                     2 -> 12
                     else -> 3
                 }
-                val selectedExercise = binding.spinnerExercise.selectedItem?.toString()
-                if (selectedExercise != null) {
-                    loadExerciseData(selectedExercise)
+                val selectedPos = binding.spinnerExercise.selectedItemPosition
+                if (selectedPos in exerciseEntries.indices) {
+                    loadExerciseData(exerciseEntries[selectedPos].first)
                 }
             }
             override fun onNothingSelected(parent: AdapterView<*>) {}
@@ -120,12 +163,31 @@ class ProgressExercisesFragment : Fragment() {
                     3 -> 6
                     else -> 3
                 }
-                val selectedExercise = binding.spinnerExercise.selectedItem?.toString()
-                if (selectedExercise != null) {
-                    updateEstimation(selectedExercise)
+                val selectedPos = binding.spinnerExercise.selectedItemPosition
+                if (selectedPos in exerciseEntries.indices) {
+                    updateEstimation(exerciseEntries[selectedPos].first)
                 }
             }
             override fun onNothingSelected(parent: AdapterView<*>) {}
+        }
+    }
+
+    private fun refreshExerciseSpinner() {
+        exerciseEntries = if (selectedFamilyId == null) {
+            allExerciseEntries
+        } else {
+            allExerciseEntries.filter { (id, _) -> exerciseIdToFamilyId[id] == selectedFamilyId }
+        }
+
+        val names = exerciseEntries.map { it.second }
+        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, names)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        binding.spinnerExercise.adapter = adapter
+        // Setting a new adapter triggers onItemSelected(0) via the existing listener,
+        // which calls loadExerciseData. If the list is empty, handle it directly.
+        if (exerciseEntries.isEmpty()) {
+            binding.textEmptyState.visibility = View.VISIBLE
+            binding.chartCombined.visibility = View.GONE
         }
     }
 
@@ -145,24 +207,24 @@ class ProgressExercisesFragment : Fragment() {
     }
 
     private fun refreshChart() {
-        val selectedExercise = binding.spinnerExercise.selectedItem?.toString()
-        if (selectedExercise != null) {
-            loadExerciseData(selectedExercise)
+        val selectedPos = binding.spinnerExercise.selectedItemPosition
+        if (selectedPos in exerciseEntries.indices) {
+            loadExerciseData(exerciseEntries[selectedPos].first)
         }
     }
 
-    private fun loadExerciseData(exerciseName: String) {
+    private fun loadExerciseData(exerciseId: Int) {
         val trainingData = jsonHelper.readTrainingData()
-        
+
         // Group sets by date and intent
         val metricsByDateAndIntent = mutableMapOf<String, MutableMap<SetIntent, MutableList<ExerciseSet>>>()
         val sessionWorkoutTypes = mutableMapOf<String, String>()
 
         trainingData.trainings.forEach { session ->
             sessionWorkoutTypes[session.date] = session.defaultWorkoutType ?: "heavy"
-            
+
             session.exercises
-                .filter { it.exerciseName == exerciseName && !it.isWarmup }
+                .filter { it.exerciseId == exerciseId && !it.isWarmup }
                 .forEach { entry ->
                     val intent = entry.getEffectiveIntent(session.defaultWorkoutType)
                     val exerciseSet = ExerciseSet(
@@ -210,7 +272,7 @@ class ProgressExercisesFragment : Fragment() {
         setupCombinedChart(metricsByDateAndIntent, filteredDates, sessionWorkoutTypes)
         
         // Update estimation
-        updateEstimation(exerciseName)
+        updateEstimation(exerciseId)
         
         // Update trends
         updateTrends(metricsByDateAndIntent, filteredDates, sessionWorkoutTypes)
@@ -453,7 +515,7 @@ class ProgressExercisesFragment : Fragment() {
         }
     }
 
-    private fun updateEstimation(exerciseName: String) {
+    private fun updateEstimation(exerciseId: Int) {
         val trainingData = jsonHelper.readTrainingData()
         val allSets = mutableListOf<ExerciseSet>()
         val sessionWorkoutTypes = mutableMapOf<String, String>()
@@ -461,7 +523,7 @@ class ProgressExercisesFragment : Fragment() {
         trainingData.trainings.forEach { session ->
             sessionWorkoutTypes[session.date] = session.defaultWorkoutType ?: "heavy"
             session.exercises
-                .filter { it.exerciseName == exerciseName && !it.isWarmup }
+                .filter { it.exerciseId == exerciseId && !it.isWarmup }
                 .filter { it.getEffectiveIntent(session.defaultWorkoutType) == SetIntent.STRENGTH }
                 .forEach { entry ->
                     allSets.add(ExerciseSet(

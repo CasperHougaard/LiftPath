@@ -1,9 +1,11 @@
 package com.liftpath.adapters
 
 import android.content.Context
+import android.graphics.Typeface
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.style.ForegroundColorSpan
+import android.text.style.StyleSpan
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -452,8 +454,9 @@ class ActiveExercisesAdapter(
             val lastWorkingSets = lastWorkoutSets.filter { !it.isEffectivelyWarmup() }
             
             // Build display text with matching
-            val currentSetsText = mutableListOf<String>()
-            val lastSetsText = mutableListOf<String>()
+            val ctx = holder.itemView.context
+            val currentSetsText = mutableListOf<CharSequence>()
+            val lastSetsText = mutableListOf<CharSequence>()
             
             // Handle warmup section alignment
             val maxWarmupSets = maxOf(currentWarmupSets.size, lastWarmupSets.size)
@@ -461,30 +464,19 @@ class ActiveExercisesAdapter(
                 for (i in 0 until maxWarmupSets) {
                     // Current side
                     if (i < currentWarmupSets.size) {
-                        val currentSet = currentWarmupSets[i]
-                        val weightString = if (currentSet.kg % 1 == 0f) {
-                            currentSet.kg.toInt().toString()
-                        } else {
-                            currentSet.kg.toString()
-                        }
-                        currentSetsText.add("Warmup: ${weightString}kg × ${currentSet.reps}")
+                        currentSetsText.add(buildSetLine(ctx, "Warmup: ", currentWarmupSets[i], spaceBeforeKg = false, suffix = ""))
                     } else {
                         currentSetsText.add("(No warmup)")
                     }
-                    
+
                     // Last side
                     if (i < lastWarmupSets.size) {
                         val lastSet = lastWarmupSets[i]
-                        val lastWeightString = if (lastSet.kg % 1 == 0f) {
-                            lastSet.kg.toInt().toString()
-                        } else {
-                            lastSet.kg.toString()
-                        }
                         val lastSuffix = when {
                             lastSet.rpe != null -> " (${formatOneDecimal(lastSet.rpe)})"
                             else -> ""
                         }
-                        lastSetsText.add("Last: $lastWeightString kg × ${lastSet.reps}$lastSuffix")
+                        lastSetsText.add(buildSetLine(ctx, "Last: ", lastSet, spaceBeforeKg = true, suffix = lastSuffix))
                     } else {
                         lastSetsText.add("(No warmup)")
                     }
@@ -497,35 +489,25 @@ class ActiveExercisesAdapter(
                 // Current side
                 if (i < currentWorkingSets.size) {
                     val currentSet = currentWorkingSets[i]
-                    val weightString = if (currentSet.kg % 1 == 0f) {
-                        currentSet.kg.toInt().toString()
-                    } else {
-                        currentSet.kg.toString()
-                    }
                     val suffix = when {
                         currentSet.rpe != null -> " (${formatOneDecimal(currentSet.rpe)})"
                         else -> ""
                     }
                     // Use sequential working set number (1, 2, 3...) excluding warmups
                     val workingSetNumber = i + 1
-                    currentSetsText.add("Set $workingSetNumber: ${weightString}kg × ${currentSet.reps}$suffix")
+                    currentSetsText.add(buildSetLine(ctx, "Set $workingSetNumber: ", currentSet, spaceBeforeKg = false, suffix = suffix))
                 } else {
                     currentSetsText.add("")
                 }
-                
+
                 // Last side
                 if (i < lastWorkingSets.size) {
                     val lastSet = lastWorkingSets[i]
-                    val lastWeightString = if (lastSet.kg % 1 == 0f) {
-                        lastSet.kg.toInt().toString()
-                    } else {
-                        lastSet.kg.toString()
-                    }
                     val lastSuffix = when {
                         lastSet.rpe != null -> " (${formatOneDecimal(lastSet.rpe)})"
                         else -> ""
                     }
-                    lastSetsText.add("Last: $lastWeightString kg × ${lastSet.reps}$lastSuffix")
+                    lastSetsText.add(buildSetLine(ctx, "Last: ", lastSet, spaceBeforeKg = true, suffix = lastSuffix))
                 } else {
                     lastSetsText.add("")
                 }
@@ -561,29 +543,29 @@ class ActiveExercisesAdapter(
             // Build spannable text with colored suggestion inserted after last logged working set
             val displayText = if (shouldShowSuggestion && lastLoggedWorkingSetIndex >= 0) {
                 buildSpannableWithSuggestion(
-                    holder.itemView.context,
-                    currentSetsText.joinToString("\n"),
-                    suggestionInfo.text,
+                    ctx,
+                    currentSetsText,
+                    suggestionInfo!!.text,
                     insertAfterLine = lastLoggedWorkingSetIndex  // Insert after last logged working set
                 )
             } else if (shouldShowSuggestion) {
                 // No sets logged yet - append at end
                 buildSpannableWithSuggestion(
-                    holder.itemView.context,
-                    currentSetsText.joinToString("\n"),
-                    suggestionInfo.text,
+                    ctx,
+                    currentSetsText,
+                    suggestionInfo!!.text,
                     insertAfterLine = -1  // Append at end
                 )
             } else {
-                currentSetsText.joinToString("\n")
+                joinLines(currentSetsText)
             }
-            
+
             holder.loggedSets.text = displayText
             holder.loggedSets.visibility = View.VISIBLE
-            
+
             // Always show last workout data when available
             if (lastWorkoutSets.isNotEmpty()) {
-                holder.lastWorkoutSets.text = lastSetsText.joinToString("\n")
+                holder.lastWorkoutSets.text = joinLines(lastSetsText)
                 holder.lastWorkoutSets.visibility = View.VISIBLE
             } else {
                 holder.lastWorkoutSets.visibility = View.GONE
@@ -594,48 +576,30 @@ class ActiveExercisesAdapter(
             
             if (suggestionText != null) {
                 // Show suggestion in the logged sets area with colored text
-                val displayText = buildSpannableWithSuggestion(holder.itemView.context, "", suggestionText)
+                val displayText = buildSpannableWithSuggestion(holder.itemView.context, emptyList(), suggestionText)
                 holder.loggedSets.text = displayText
                 holder.loggedSets.visibility = View.VISIBLE
             } else {
                 holder.loggedSets.visibility = View.GONE
             }
-            
+
             if (lastWorkoutSets.isNotEmpty()) {
                 // Show all last workout sets (legacy: RPE 6 = warmup; new: use isWarmup only)
+                val ctx = holder.itemView.context
                 val lastWarmupSets = lastWorkoutSets.filter { it.isEffectivelyWarmup() }
                 val lastWorkingSets = lastWorkoutSets.filter { !it.isEffectivelyWarmup() }
-                val lastSetsText = mutableListOf<String>()
-                
-                // Format warmup sets
-                lastWarmupSets.forEach { lastSet ->
-                    val lastWeightString = if (lastSet.kg % 1 == 0f) {
-                        lastSet.kg.toInt().toString()
-                    } else {
-                        lastSet.kg.toString()
-                    }
+                val lastSetsText = mutableListOf<CharSequence>()
+
+                // Format warmup sets, then working sets
+                (lastWarmupSets + lastWorkingSets).forEach { lastSet ->
                     val lastSuffix = when {
                         lastSet.rpe != null -> " (${formatOneDecimal(lastSet.rpe)})"
                         else -> ""
                     }
-                    lastSetsText.add("Last: $lastWeightString kg × ${lastSet.reps}$lastSuffix")
+                    lastSetsText.add(buildSetLine(ctx, "Last: ", lastSet, spaceBeforeKg = true, suffix = lastSuffix))
                 }
-                
-                // Format working sets
-                lastWorkingSets.forEach { lastSet ->
-                    val lastWeightString = if (lastSet.kg % 1 == 0f) {
-                        lastSet.kg.toInt().toString()
-                    } else {
-                        lastSet.kg.toString()
-                    }
-                    val lastSuffix = when {
-                        lastSet.rpe != null -> " (${formatOneDecimal(lastSet.rpe)})"
-                        else -> ""
-                    }
-                    lastSetsText.add("Last: $lastWeightString kg × ${lastSet.reps}$lastSuffix")
-                }
-                
-                holder.lastWorkoutSets.text = lastSetsText.joinToString("\n")
+
+                holder.lastWorkoutSets.text = joinLines(lastSetsText)
                 holder.lastWorkoutSets.visibility = View.VISIBLE
             } else {
                 // Don't show anything if no intent selected or no data
@@ -715,10 +679,14 @@ class ActiveExercisesAdapter(
                 .filter { !it.isEffectivelyWarmup() }
                 .sortedBy { it.setNumber }
             if (workingSets.isNotEmpty()) {
-                holder.loggedSets.text = workingSets.joinToString("  ·  ") { set ->
-                    val kg = if (set.kg % 1 == 0f) set.kg.toInt().toString() else set.kg.toString()
-                    "${kg}×${set.reps}"
+                val ctx = holder.itemView.context
+                val compact = SpannableStringBuilder()
+                workingSets.forEachIndexed { i, set ->
+                    if (i > 0) compact.append("  ·  ")
+                    compact.append(weightPortion(ctx, set))
+                    compact.append("×${set.reps}")
                 }
+                holder.loggedSets.text = compact
                 holder.loggedSets.visibility = View.VISIBLE
             } else {
                 holder.loggedSets.visibility = View.GONE
@@ -897,72 +865,101 @@ class ActiveExercisesAdapter(
         )
     }
     
+    private fun trimNum(v: Float): String =
+        if (v % 1 == 0f) v.toInt().toString() else v.toString()
+
     /**
-     * Build a SpannableStringBuilder with the logged sets text and a colored suggestion line.
-     * @param insertAfterLine If >= 0, inserts suggestion after that line number. Otherwise appends at end.
+     * The weight portion of a set line. Plain text for weighted sets. For bodyweight sets the body
+     * weight is shown muted (1 decimal) and the signed added/assisted weight in a contrasting color
+     * (green +, red −) so progression is readable even when body weight differs between workouts.
+     */
+    private fun weightPortion(context: Context, set: com.liftpath.models.ExerciseEntry): CharSequence {
+        if (!set.isBodyweightEntry()) {
+            return trimNum(set.kg)
+        }
+        val bw = set.bodyweightKg ?: 0f
+        val added = set.addedKg ?: 0f
+        val b = SpannableStringBuilder()
+        b.append(String.format(Locale.US, "%.1f", bw))
+        b.setSpan(
+            ForegroundColorSpan(ContextCompat.getColor(context, R.color.fitness_text_secondary)),
+            0, b.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+        )
+        if (added != 0f) {
+            val sign = if (added > 0f) "+" else "−"
+            val mag = if (added < 0f) -added else added
+            val start = b.length
+            b.append(" $sign${trimNum(mag)}")
+            val colorRes = if (added > 0f) R.color.fitness_highlight_border else R.color.fitness_error_border
+            b.setSpan(ForegroundColorSpan(ContextCompat.getColor(context, colorRes)), start, b.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            b.setSpan(StyleSpan(Typeface.BOLD), start, b.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
+        return b
+    }
+
+    /** A full set line: "<prefix><weight portion>kg × <reps><suffix>". */
+    private fun buildSetLine(
+        context: Context,
+        prefix: String,
+        set: com.liftpath.models.ExerciseEntry,
+        spaceBeforeKg: Boolean,
+        suffix: String
+    ): CharSequence {
+        val b = SpannableStringBuilder()
+        b.append(prefix)
+        b.append(weightPortion(context, set))
+        b.append(if (spaceBeforeKg) " kg × ${set.reps}$suffix" else "kg × ${set.reps}$suffix")
+        return b
+    }
+
+    private fun joinLines(lines: List<CharSequence>): CharSequence {
+        val b = SpannableStringBuilder()
+        lines.forEachIndexed { i, line ->
+            if (i > 0) b.append("\n")
+            b.append(line)
+        }
+        return b
+    }
+
+    /**
+     * Build the logged-sets text (preserving any per-line color spans) and optionally insert a
+     * colored suggestion line.
+     * @param insertAfterLine If >= 0, inserts suggestion after that line index. Otherwise appends at end.
      */
     private fun buildSpannableWithSuggestion(
         context: Context,
-        setsText: String,
+        lines: List<CharSequence>,
         suggestionText: String?,
         insertAfterLine: Int = -1
     ): CharSequence {
         if (suggestionText == null) {
-            return setsText
+            return joinLines(lines)
         }
-        
+
         val builder = SpannableStringBuilder()
-        
-        if (setsText.isEmpty()) {
-            // No sets logged yet - just show suggestion
-            val suggestionStart = builder.length
+        val suggestionColor = ContextCompat.getColor(context, R.color.fitness_suggestion)
+
+        if (lines.isEmpty()) {
+            val start = builder.length
             builder.append(suggestionText)
-            val suggestionEnd = builder.length
-            
-            val suggestionColor = ContextCompat.getColor(context, R.color.fitness_suggestion)
-            builder.setSpan(
-                ForegroundColorSpan(suggestionColor),
-                suggestionStart,
-                suggestionEnd,
-                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-            )
+            builder.setSpan(ForegroundColorSpan(suggestionColor), start, builder.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
             return builder
         }
-        
-        // Split sets text into lines
-        val lines = setsText.split("\n")
-        
-        // Insert suggestion after specified line, or at end if insertAfterLine is invalid
-        val insertIndex = if (insertAfterLine >= 0 && insertAfterLine < lines.size) {
-            insertAfterLine + 1
-        } else {
-            lines.size
-        }
-        
-        // Build text with suggestion inserted
+
+        val insertIndex = if (insertAfterLine in 0 until lines.size) insertAfterLine + 1 else lines.size
+
         for (i in lines.indices) {
-            if (i > 0) {
-                builder.append("\n")
-            }
+            if (i > 0) builder.append("\n")
             builder.append(lines[i])
-            
-            // Insert suggestion after this line if it's the insertion point
+
             if (i == insertIndex - 1) {
                 builder.append("\n")
-                val suggestionStart = builder.length
+                val start = builder.length
                 builder.append(suggestionText)
-                val suggestionEnd = builder.length
-                
-                val suggestionColor = ContextCompat.getColor(context, R.color.fitness_suggestion)
-                builder.setSpan(
-                    ForegroundColorSpan(suggestionColor),
-                    suggestionStart,
-                    suggestionEnd,
-                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-                )
+                builder.setSpan(ForegroundColorSpan(suggestionColor), start, builder.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
             }
         }
-        
+
         return builder
     }
 }

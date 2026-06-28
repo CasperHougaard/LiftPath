@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.liftpath.databinding.ActivityExercisesBinding
 import com.liftpath.helpers.JsonHelper
 import com.liftpath.adapters.ExerciseLibraryAdapter
+import com.liftpath.models.ExerciseFamily
 import com.liftpath.models.ExerciseLibraryItem
 
 class ExercisesActivity : AppCompatActivity() {
@@ -20,6 +21,8 @@ class ExercisesActivity : AppCompatActivity() {
     private lateinit var jsonHelper: JsonHelper
     private lateinit var adapter: ExerciseLibraryAdapter
     private var allExercises: List<ExerciseLibraryItem> = emptyList()
+    private var allFamilies: List<ExerciseFamily> = emptyList()
+    private val familyNameMap: Map<String, String> get() = allFamilies.associate { it.id to it.name }
     private var searchQuery: String = ""
 
     private val addExerciseLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -94,6 +97,8 @@ class ExercisesActivity : AppCompatActivity() {
     private fun loadExercises() {
         val trainingData = jsonHelper.readTrainingData()
         allExercises = trainingData.exerciseLibrary.sortedBy { it.name }
+        allFamilies = trainingData.exerciseFamilies ?: emptyList()
+        adapter.updateFamilies(allFamilies)
         applySearchFilter()
     }
     
@@ -105,6 +110,8 @@ class ExercisesActivity : AppCompatActivity() {
                     allExercises.filter { exercise ->
                         try {
                             exercise.name.lowercase().contains(query)
+                                || exercise.aliases?.any { it.lowercase().contains(query) } == true
+                                || (exercise.familyId?.let { familyNameMap[it]?.lowercase()?.contains(query) } == true)
                         } catch (e: Exception) {
                             android.util.Log.e("ExercisesActivity", "Error filtering exercise: ${exercise.name}", e)
                             false

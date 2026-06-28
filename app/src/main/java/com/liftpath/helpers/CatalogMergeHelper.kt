@@ -33,7 +33,15 @@ object CatalogMergeHelper {
             catalog.tier == user.tier &&
             catalog.primaryTargets == user.primaryTargets &&
             catalog.secondaryTargets == user.secondaryTargets &&
-            catalog.manualMechanics == user.manualMechanics
+            catalog.manualMechanics == user.manualMechanics &&
+            // Compare against effectiveType so a legacy null user value reads as WEIGHTED and
+            // correctly conflicts with a BODYWEIGHT catalog entry (so the v2 bump propagates).
+            catalog.exerciseType == user.effectiveType &&
+            catalog.familyId == user.familyId &&
+            catalog.equipment == user.equipment &&
+            catalog.angle == user.angle &&
+            catalog.grip == user.grip &&
+            catalog.laterality == user.laterality
     }
 
     fun computeDiff(
@@ -131,7 +139,14 @@ object CatalogMergeHelper {
                                 tier = catRow.tier,
                                 primaryTargets = catRow.primaryTargets,
                                 secondaryTargets = catRow.secondaryTargets,
-                                manualMechanics = catRow.manualMechanics
+                                manualMechanics = catRow.manualMechanics,
+                                exerciseType = catRow.exerciseType,
+                                // Never overwrite a non-null user-assigned family with null from catalog
+                                familyId = catRow.familyId ?: old.familyId,
+                                equipment = catRow.equipment,
+                                angle = catRow.angle,
+                                grip = catRow.grip,
+                                laterality = catRow.laterality
                             )
                         }
                     }

@@ -22,6 +22,7 @@ import androidx.core.view.isVisible
 import com.liftpath.helpers.JsonHelper
 import com.liftpath.helpers.MuscleActivationHelper
 import com.liftpath.models.BodyRegion
+import com.liftpath.models.ExerciseFamily
 import com.liftpath.models.ExerciseLibraryItem
 import com.liftpath.models.MovementPattern
 import com.liftpath.models.TargetMuscle
@@ -35,6 +36,8 @@ class SelectExerciseActivity : AppCompatActivity() {
     // Data sources
     private var allExercises: List<ExerciseLibraryItem> = emptyList()
     private var displayedExercises: List<ExerciseLibraryItem> = emptyList()
+    private var allFamilies: List<ExerciseFamily> = emptyList()
+    private val familyNameMap: Map<String, String> get() = allFamilies.associate { it.id to it.name }
     
     private lateinit var adapter: SelectExerciseWithPlanAdapter
     
@@ -52,6 +55,7 @@ class SelectExerciseActivity : AppCompatActivity() {
     private var selectedMovementPattern: MovementPattern? = null
     private var selectedMuscleGroups: Set<TargetMuscle> = emptySet()
     private var isAdvancedFiltersExpanded: Boolean = false
+    private var isGroupedByFamily: Boolean = false
     
     // Collapsible sections state
     private val collapsedSections = mutableSetOf<String>()
@@ -200,6 +204,11 @@ class SelectExerciseActivity : AppCompatActivity() {
         
         binding.chipFilterMissingSecondary.setOnCheckedChangeListener { _, isChecked ->
             filterMissingSecondary = isChecked
+            applyFilters()
+        }
+
+        binding.chipGroupByFamily.setOnCheckedChangeListener { _, isChecked ->
+            isGroupedByFamily = isChecked
             applyFilters()
         }
     }
@@ -429,8 +438,10 @@ class SelectExerciseActivity : AppCompatActivity() {
     }
 
     private fun loadExercises() {
-        // Load Raw Data
-        allExercises = jsonHelper.readTrainingData().exerciseLibrary
+        val trainingData = jsonHelper.readTrainingData()
+        allExercises = trainingData.exerciseLibrary
+        allFamilies = trainingData.exerciseFamilies ?: emptyList()
+        adapter.updateFamilies(allFamilies)
         applyFilters()
     }
 
@@ -464,6 +475,8 @@ class SelectExerciseActivity : AppCompatActivity() {
                 result = result.filter { exercise ->
                     try {
                         exercise.name.lowercase().contains(query)
+                            || exercise.aliases?.any { it.lowercase().contains(query) } == true
+                            || (exercise.familyId?.let { familyNameMap[it]?.lowercase()?.contains(query) } == true)
                     } catch (e: Exception) {
                         android.util.Log.e("SelectExerciseActivity", "Error filtering exercise: ${exercise.name}", e)
                         false
@@ -659,12 +672,18 @@ class SelectExerciseActivity : AppCompatActivity() {
             listItems
         }
         
+        // When grouped-by-family is active and no search/muscle-filter, use family sections instead
+        val outputItems = if (isGroupedByFamily && searchQuery.isEmpty() && selectedMuscleGroups.isEmpty()) {
+            buildGroupedFamilyItems(result)
+        } else {
+            finalListItems
+        }
+
         // Update Adapter
         try {
-            adapter.updateItems(finalListItems)
+            adapter.updateItems(outputItems)
         } catch (e: Exception) {
             android.util.Log.e("SelectExerciseActivity", "Error updating adapter", e)
-            // Fallback: update with empty list to prevent crash
             adapter.updateItems(emptyList())
         }
         } catch (e: Exception) {
@@ -690,6 +709,29 @@ class SelectExerciseActivity : AppCompatActivity() {
                 android.util.Log.e("SelectExerciseActivity", "Error in fallback update", e2)
             }
         }
+    }
+
+    private fun buildGroupedFamilyItems(exercises: List<ExerciseLibraryItem>): List<ListItem> {
+        val result = mutableListOf<ListItem>()
+        val withFamily = exercises.filter { it.familyId != null }
+        val withoutFamily = exercises.filter { it.familyId == null }
+
+        val grouped = withFamily.groupBy { it.familyId!! }
+        val sortedFamilyIds = grouped.keys.sortedBy { familyNameMap[it] ?: it }
+
+        for (familyId in sortedFamilyIds) {
+            val familyExercises = grouped[familyId] ?: continue
+            val familyName = familyNameMap[familyId] ?: familyId
+            result.add(ListItem.SectionHeader(title = familyName, sectionId = familyId, isCollapsed = false, onHeaderClick = null))
+            familyExercises.sortedBy { it.name.lowercase() }.forEach { result.add(ListItem.ExerciseItem(it, isVisible = true)) }
+        }
+
+        if (withoutFamily.isNotEmpty()) {
+            result.add(ListItem.SectionHeader(title = "Other", sectionId = "other", isCollapsed = false, onHeaderClick = null))
+            withoutFamily.sortedBy { it.name.lowercase() }.forEach { result.add(ListItem.ExerciseItem(it, isVisible = true)) }
+        }
+
+        return result
     }
 
     private fun onExerciseSelected(exercise: ExerciseLibraryItem) {

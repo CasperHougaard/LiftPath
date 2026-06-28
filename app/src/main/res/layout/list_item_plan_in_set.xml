@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="8dp"
+    app:cardBackgroundColor="@color/fitness_card_background"
+    app:cardCornerRadius="8dp"
+    app:cardElevation="2dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="12dp">
+
+        <TextView
+            android:id="@+id/text_position"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:background="@drawable/badge_background_blue"
+            android:gravity="center"
+            android:textColor="@color/white"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/text_plan_name"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:textColor="@color/fitness_text_primary"
+            android:textSize="15sp" />
+
+        <ImageButton
+            android:id="@+id/button_move_up"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Move up"
+            android:src="@drawable/ic_arrow_up"
+            android:padding="4dp"
+            app:tint="@color/fitness_text_secondary" />
+
+        <ImageButton
+            android:id="@+id/button_move_down"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Move down"
+            android:src="@drawable/ic_arrow_down"
+            android:padding="4dp"
+            app:tint="@color/fitness_text_secondary" />
+
+        <ImageButton
+            android:id="@+id/button_remove"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Remove"
+            android:src="@android:drawable/ic_menu_delete"
+            android:tint="@color/fitness_error" />
+    </LinearLayout>
+</androidx.cardview.widget.CardView>

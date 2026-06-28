@@ -9,6 +9,7 @@ import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.liftpath.R
+import com.liftpath.models.ExerciseFamily
 import com.liftpath.models.ExerciseLibraryItem
 
 sealed class ListItem {
@@ -24,10 +25,12 @@ sealed class ListItem {
 class SelectExerciseWithPlanAdapter(
     var items: List<ListItem>,
     private val planExerciseIds: Set<Int>,
-    private val onExerciseClicked: (ExerciseLibraryItem) -> Unit
+    private val onExerciseClicked: (ExerciseLibraryItem) -> Unit,
+    private var families: List<ExerciseFamily> = emptyList()
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     private var defaultBackground: android.graphics.drawable.Drawable? = null
+    private val familyNameMap: Map<String, String> get() = families.associate { it.id to it.name }
 
     companion object {
         private const val VIEW_TYPE_EXERCISE = 0
@@ -37,6 +40,7 @@ class SelectExerciseWithPlanAdapter(
     class ExerciseViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val itemViewContainer: View = view.findViewById(R.id.card_view_exercise_item)
         val exerciseName: TextView = view.findViewById(R.id.text_exercise_name)
+        val exerciseMeta: TextView = view.findViewById(R.id.text_exercise_meta)
         val planBadge: ImageView = view.findViewById(R.id.image_plan_badge)
         val favoriteStar: ImageView = view.findViewById(R.id.image_favorite_star)
     }
@@ -80,6 +84,17 @@ class SelectExerciseWithPlanAdapter(
                 val exerciseHolder = holder as ExerciseViewHolder
                 val exercise = item.exercise
                 exerciseHolder.exerciseName.text = exercise.name
+
+                val metaParts = listOfNotNull(
+                    exercise.equipment?.displayName,
+                    exercise.familyId?.let { familyNameMap[it] }
+                )
+                if (metaParts.isNotEmpty()) {
+                    exerciseHolder.exerciseMeta.text = metaParts.joinToString(" · ")
+                    exerciseHolder.exerciseMeta.visibility = View.VISIBLE
+                } else {
+                    exerciseHolder.exerciseMeta.visibility = View.GONE
+                }
 
                 // Show/hide favorite star
                 if (exercise.isFavorite) {
@@ -129,6 +144,11 @@ class SelectExerciseWithPlanAdapter(
 
     fun updateItems(newItems: List<ListItem>) {
         this.items = newItems
+        notifyDataSetChanged()
+    }
+
+    fun updateFamilies(newFamilies: List<ExerciseFamily>) {
+        this.families = newFamilies
         notifyDataSetChanged()
     }
 }

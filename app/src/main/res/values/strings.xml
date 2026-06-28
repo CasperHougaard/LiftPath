@@ -573,6 +573,11 @@ Leave blank if you\'re not sure.]]></string>
     <string name="button_export_library">Export Exercise Library</string>
     <string name="toast_library_exported">Exercise library exported</string>
     <string name="toast_library_export_failed">Export failed: %1$s</string>
+    <string name="button_ai_export">AI Export</string>
+    <string name="button_ai_export_subtitle">Markdown training summary for an AI coach</string>
+    <string name="toast_ai_export_exported">AI export saved</string>
+    <string name="toast_ai_export_failed">AI export failed: %1$s</string>
+    <string name="toast_ai_export_no_sessions">No trainings logged yet</string>
     <string name="label_new_exercise_badge">NEW</string>
     <string name="label_conflict_exercise_badge">UPDATE</string>
     <string name="button_keep_local">Keep local</string>
@@ -584,5 +589,43 @@ Leave blank if you\'re not sure.]]></string>
     <string name="button_skip">Skip</string>
     <string name="button_update_summary_info">What\'s changing</string>
     <string name="title_update_summary">What\'s changing</string>
+
+    <!-- Bodyweight exercises -->
+    <string name="button_not_now">Not now</string>
+    <string name="exercise_type_label">Exercise type</string>
+    <string name="exercise_type_weighted">Weighted</string>
+    <string name="exercise_type_bodyweight">Bodyweight</string>
+    <string name="bodyweight_field_hint">Body weight (kg)</string>
+    <string name="bodyweight_invalid">Enter a valid body weight (20–400 kg)</string>
+    <string name="bodyweight_initial_title">Set your body weight</string>
+    <string name="bodyweight_initial_message">This exercise uses your body weight. Enter your current weight (kg) so we can track load accurately.</string>
+    <string name="bodyweight_recurring_title">Update your body weight?</string>
+    <string name="bodyweight_recurring_message">It\'s been a while since you updated your body weight (currently %1$s kg). Keeping it current improves load tracking.</string>
+    <string name="bodyweight_stale_title">Body weight is out of date</string>
+    <string name="bodyweight_stale_message">Your latest Withings measurement is from %1$s (%2$s kg), over two weeks ago. Enter a manual weight to use until your next Withings sync?</string>
+    <string name="bodyweight_stale_positive">Enter manual</string>
+    <string name="toast_bodyweight_saved">Body weight saved</string>
+    <!-- Bodyweight set logging -->
+    <string name="bodyweight_chip_label">Body weight: %1$s kg</string>
+    <string name="bodyweight_chip_unknown">Body weight: not set</string>
+    <string name="bodyweight_added">Added</string>
+    <string name="bodyweight_assisted">Assisted</string>
+    <string name="bodyweight_extra_hint">Extra weight (kg)</string>
+    <string name="bodyweight_total_label">Total load: %1$s kg</string>
+    <string name="bodyweight_need_value">Set your body weight first</string>
+    <!-- Body weight settings -->
+    <string name="settings_bodyweight_title">Body Weight</string>
+    <string name="settings_save_bodyweight">Save Body Weight</string>
+    <string name="bodyweight_source_withings">Using Withings: %1$s kg</string>
+    <string name="bodyweight_source_manual">Using manual: %1$s kg</string>
+    <string name="bodyweight_source_none">Not set</string>
+    <!-- Withings scan management -->
+    <string name="withings_edit_scans">Edit</string>
+    <string name="withings_done_editing">Done</string>
+    <string name="withings_scan_delete_desc">Ignore this scan</string>
+    <string name="withings_delete_scan_title">Ignore this scan?</string>
+    <string name="withings_delete_scan_message">This weigh-in (%1$s) will be removed and ignored on future syncs.</string>
+    <string name="withings_delete_scan_confirm">Ignore</string>
+    <string name="withings_scan_ignored">Scan ignored</string>
 </resources>
 

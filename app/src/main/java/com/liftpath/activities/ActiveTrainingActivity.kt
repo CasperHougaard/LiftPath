@@ -67,6 +67,10 @@ class ActiveTrainingActivity : AppCompatActivity() {
     private var workoutType: String = "heavy"
     private var appliedPlanId: String? = null
     private var appliedPlanName: String? = null
+    private var workoutSource: WorkoutSource? = null
+    // Per-exercise plan snapshot data, keyed by exerciseId. Populated when a plan is applied
+    // and persisted in the draft so targets survive app restarts.
+    private val planExerciseSnapshots = mutableMapOf<Int, DraftExerciseRow>()
     private var hasRestoredDraft = false
     private var addAsSupersetPartner = false
     private val selectedForSupersetPositions = mutableSetOf<Int>()
@@ -136,7 +140,12 @@ class ActiveTrainingActivity : AppCompatActivity() {
                         val newGroup = GroupedExercise(exerciseId, exerciseName, emptyList())
                         groupedExercises.add(newGroup)
                         adapter.notifyItemInserted(groupedExercises.size - 1)
-                        
+
+                        // First time a bodyweight exercise is added with no known body weight: ask for it.
+                        if (isBodyweightExercise(exerciseId) && BodyWeightHelper.needsInitialBodyweight(this)) {
+                            BodyWeightDialogs.showInitialBodyweightPrompt(this)
+                        }
+
                         // If added as superset partner, link to previous exercise (or existing superset group)
                         if (addAsSupersetPartner && groupedExercises.size >= 2) {
                             addAsSupersetPartner = false
@@ -245,6 +254,7 @@ class ActiveTrainingActivity : AppCompatActivity() {
         val resumeRequested = intent.getBooleanExtra(EXTRA_RESUME_DRAFT, false)
         val shouldAutoGenerate = intent.getBooleanExtra(EXTRA_AUTO_GENERATE, false)
         val planId = intent.getStringExtra(EXTRA_PLAN_ID)
+        val planSetId = intent.getStringExtra(EXTRA_PLAN_SET_ID)
         val isCustomWorkout = workoutType == "custom"
 
         updateTitle()
@@ -265,7 +275,7 @@ class ActiveTrainingActivity : AppCompatActivity() {
         } else {
             // Apply plan if provided (before auto-generate dialog)
             if (planId != null) {
-                applyPlanById(planId)
+                applyPlanById(planId, planSetId)
             }
             
             // Show auto-generate dialog if needed (after plan is applied)
@@ -458,9 +468,25 @@ class ActiveTrainingActivity : AppCompatActivity() {
             .showWithTransparentWindow()
     }
 
-    private fun applyPlan(plan: WorkoutPlan, showToast: Boolean = true) {
+    private fun applyPlan(
+        plan: WorkoutPlan,
+        showToast: Boolean = true,
+        sourcePlanSet: com.liftpath.models.PlanSet? = null
+    ) {
         appliedPlanId = plan.id
         appliedPlanName = plan.name
+        workoutSource = if (sourcePlanSet != null) {
+            WorkoutSource(
+                type = WorkoutSourceType.PLAN_SET,
+                planId = plan.id,
+                planName = plan.name,
+                planSetId = sourcePlanSet.id,
+                planSetName = sourcePlanSet.name
+            )
+        } else {
+            WorkoutSource(type = WorkoutSourceType.PLAN, planId = plan.id, planName = plan.name)
+        }
+
         // If current workout is custom, keep it as custom (don't change to plan's workout type)
         // Otherwise, use the plan's workout type
         if (workoutType != "custom") {
@@ -472,12 +498,18 @@ class ActiveTrainingActivity : AppCompatActivity() {
         val trainingData = jsonHelper.readTrainingData()
         lastSetsCount.clear()
 
-        // Clear existing exercises if needed (or merge - for now, we'll add to existing)
-        // For simplicity, we'll add plan exercises even if some already exist
-        plan.exerciseIds.forEach { exerciseId ->
+        // Iterate over exerciseConfigs (V2) — each config has a stable ID so the same exercise
+        // can appear multiple times in a plan. Fall back to exerciseIds for legacy plans.
+        val configs = plan.exerciseConfigs?.takeIf { it.isNotEmpty() }
+            ?: plan.exerciseIds.map { id ->
+                PlanExerciseSlot(exerciseId = id, selectionType = PlanExerciseSelectionType.SPECIFIC_VARIANT)
+            }
+
+        configs.forEach { config ->
+            val exerciseId = config.exerciseId ?: return@forEach  // V3 FAMILY_SLOT: skip unresolved entries
             val exercise = trainingData.exerciseLibrary.find { it.id == exerciseId }
             if (exercise != null) {
-                // Check if exercise already exists in workout
+                // Check if exercise already exists in workout (by exerciseId — duplicates deferred)
                 val existingGroup = groupedExercises.find { it.exerciseId == exerciseId }
                 if (existingGroup == null) {
                     // Find the last working set for this exercise (exclude warmup)
@@ -485,46 +517,53 @@ class ActiveTrainingActivity : AppCompatActivity() {
                         .flatMap { it.exercises }
                         .filter { it.exerciseId == exerciseId && !it.isEffectivelyWarmup() }
                         .lastOrNull()
-                    
+
                     if (lastWorkingEntry != null) {
-                        // Store last logged kg, reps, and RPE from last working set
                         lastLoggedKg[exerciseId] = lastWorkingEntry.kg
                         lastLoggedReps[exerciseId] = lastWorkingEntry.reps
                         lastWorkingEntry.rpe?.let { lastLoggedRpe[exerciseId] = it }
-                        
-                        // Find the last number of sets for this exercise
+
                         val lastSession = trainingData.trainings
                             .sortedByDescending { it.trainingNumber }
                             .firstOrNull { session ->
                                 session.exercises.any { it.exerciseId == exerciseId }
                             }
-                        
+
                         val setsCount = lastSession?.exercises
                             ?.filter { it.exerciseId == exerciseId }
                             ?.size ?: 0
-                        
+
                         if (setsCount > 0) {
                             lastSetsCount[exerciseId] = setsCount
                         }
                     }
 
-                    // Add exercise as empty GroupedExercise
                     groupedExercises.add(GroupedExercise(exerciseId, exercise.name, emptyList()))
-                    // If workout is custom, use custom for exercise type, otherwise use plan's workout type
                     exerciseWorkoutTypes[exerciseId] = if (workoutType == "custom") "custom" else plan.workoutType
-                    // Initialize intent from plan config if available, otherwise BUILD (handle legacy plans)
-                    val planConfig = plan.exerciseConfigs?.find { it.exerciseId == exerciseId }
-                    val intent = planConfig?.defaultIntent ?: SetIntent.BUILD
+
+                    val intent = config.defaultIntent ?: SetIntent.BUILD
                     exerciseIntents[exerciseId] = intent
-                    
-                    // Initialize last workout data for this exercise and intent
+
+                    // Store plan snapshot so rest overrides and targets survive draft restore
+                    planExerciseSnapshots[exerciseId] = DraftExerciseRow(
+                        exerciseId = exerciseId,
+                        exerciseName = exercise.name,
+                        fromPlan = true,
+                        sourcePlanConfigId = config.id,
+                        plannedIntent = config.defaultIntent,
+                        plannedRestTimeSeconds = config.restTimeSeconds,
+                        plannedRpeTarget = config.rpeTarget,
+                        plannedSetsTarget = config.setsTarget,
+                        plannedRepsTarget = config.repsTarget,
+                        plannedNotes = config.notes
+                    )
+
                     if (!lastWorkoutData.containsKey(exerciseId)) {
                         lastWorkoutData[exerciseId] = mutableMapOf()
                     }
                     val lastSets = fetchLastWorkoutSets(exerciseId, intent)
                     lastWorkoutData[exerciseId]!![intent] = lastSets
-                    
-                    // Get and store the last intent used for this exercise
+
                     val lastIntent = getLastIntentForExercise(exerciseId)
                     if (lastIntent != null) {
                         lastIntents[exerciseId] = lastIntent
@@ -543,6 +582,8 @@ class ActiveTrainingActivity : AppCompatActivity() {
     private fun removePlan() {
         appliedPlanId = null
         appliedPlanName = null
+        workoutSource = null
+        planExerciseSnapshots.clear()
         lastSetsCount.clear()
         lastLoggedKg.clear()
         lastLoggedReps.clear()
@@ -558,14 +599,14 @@ class ActiveTrainingActivity : AppCompatActivity() {
      * Loads and applies a plan by its ID. Used when plan is passed via intent.
      * Suppresses toast notification since it's auto-applied on startup.
      */
-    private fun applyPlanById(planId: String) {
+    private fun applyPlanById(planId: String, planSetId: String? = null) {
         val trainingData = jsonHelper.readTrainingData()
         val plan = trainingData.workoutPlans.find { it.id == planId }
-        
+        val planSet = planSetId?.let { id -> trainingData.planSets.find { it.id == id } }
+
         if (plan != null) {
-            applyPlan(plan, showToast = false)
+            applyPlan(plan, showToast = false, sourcePlanSet = planSet)
         } else {
-            // Plan not found - log error but don't crash
             android.util.Log.e(TAG, "Plan with ID $planId not found")
         }
     }
@@ -873,6 +914,7 @@ class ActiveTrainingActivity : AppCompatActivity() {
         val prevGroup = if (index > 0) groupedExercises[index - 1] else null
         val nextGroup = if (index < groupedExercises.size - 1) groupedExercises[index + 1] else null
         return when {
+            // Superset transition timing takes priority (mechanical)
             group.supersetGroupId != null && nextGroup?.supersetGroupId == group.supersetGroupId -> {
                 settings.supersetTransitionSeconds
             }
@@ -885,9 +927,13 @@ class ActiveTrainingActivity : AppCompatActivity() {
                 }
                 standardRest + settings.supersetRestBonusSeconds
             }
-            else -> null
+            // Plan-defined rest override for non-superset exercises
+            else -> planExerciseSnapshots[exerciseId]?.plannedRestTimeSeconds?.takeIf { it > 0 }
         }
     }
+
+    private fun isBodyweightExercise(exerciseId: Int): Boolean =
+        jsonHelper.readTrainingData().exerciseLibrary.find { it.id == exerciseId }?.isBodyweight == true
 
     private fun launchLogSetActivity(exerciseId: Int, exerciseName: String) {
         try {
@@ -921,6 +967,7 @@ class ActiveTrainingActivity : AppCompatActivity() {
                 putExtra(LogSetActivity.EXTRA_SET_NUMBER, setNumber)
                 putExtra(LogSetActivity.EXTRA_WORKOUT_TYPE, setWorkoutType)
                 putExtra(LogSetActivity.EXTRA_INTENT, exerciseIntent.name)
+                putExtra(LogSetActivity.EXTRA_IS_BODYWEIGHT, isBodyweightExercise(exerciseId))
                 restOverride?.let { putExtra(LogSetActivity.EXTRA_REST_SECONDS_OVERRIDE, it) }
                 lastWorkingSet?.let {
                     putExtra(LogSetActivity.EXTRA_PREVIOUS_SET_REPS, it.reps)
@@ -1282,6 +1329,24 @@ class ActiveTrainingActivity : AppCompatActivity() {
             )
 
             trainingData.trainings.add(newSession)
+
+            // Update PlanSet progress if this workout was part of a plan set rotation.
+            // Only update on actual completion, not on plan application.
+            val source = workoutSource
+            if (source?.type == WorkoutSourceType.PLAN_SET && source.planSetId != null && source.planId != null) {
+                val progressIndex = trainingData.planSetProgress.indexOfFirst { it.planSetId == source.planSetId }
+                val updatedProgress = PlanSetProgress(
+                    planSetId = source.planSetId,
+                    lastCompletedPlanId = source.planId,
+                    lastCompletedAt = System.currentTimeMillis()
+                )
+                if (progressIndex >= 0) {
+                    trainingData.planSetProgress[progressIndex] = updatedProgress
+                } else {
+                    trainingData.planSetProgress.add(updatedProgress)
+                }
+            }
+
             jsonHelper.writeTrainingData(trainingData)
             draftManager.clearDraft()
             // Clear entries so onPause/onStop don't re-persist the draft during activity teardown
@@ -1346,6 +1411,7 @@ class ActiveTrainingActivity : AppCompatActivity() {
 
         appliedPlanId = draft.appliedPlanId
         appliedPlanName = draft.appliedPlanName
+        workoutSource = draft.workoutSource
 
         currentExerciseEntries.clear()
         currentExerciseEntries.addAll(draft.entries.map { it.copy() })
@@ -1374,10 +1440,15 @@ class ActiveTrainingActivity : AppCompatActivity() {
         val order = draft.exerciseOrder
         if (!order.isNullOrEmpty()) {
             groupedExercises.clear()
+            planExerciseSnapshots.clear()
             val setsByExercise = currentExerciseEntries.groupBy { it.exerciseId }
             for (row in order) {
                 val sets = setsByExercise[row.exerciseId]?.sortedBy { it.setNumber } ?: emptyList()
                 groupedExercises.add(GroupedExercise(row.exerciseId, row.exerciseName, sets))
+                // Restore plan snapshots from draft rows
+                if (row.fromPlan) {
+                    planExerciseSnapshots[row.exerciseId] = row
+                }
             }
             adapter.notifyDataSetChanged()
         } else {
@@ -1538,13 +1609,22 @@ class ActiveTrainingActivity : AppCompatActivity() {
         }
         val entriesCopy = currentExerciseEntries.map { it.copy() }
         val exerciseOrder = groupedExercises.map { g ->
+            val snapshot = planExerciseSnapshots[g.exerciseId]
             DraftExerciseRow(
                 exerciseId = g.exerciseId,
                 exerciseName = g.exerciseName,
                 supersetGroupId = g.supersetGroupId,
                 groupType = g.groupType,
                 workoutType = exerciseWorkoutTypes[g.exerciseId],
-                explicitIntent = exerciseIntents[g.exerciseId]
+                explicitIntent = exerciseIntents[g.exerciseId],
+                fromPlan = snapshot != null,
+                sourcePlanConfigId = snapshot?.sourcePlanConfigId,
+                plannedIntent = snapshot?.plannedIntent,
+                plannedRestTimeSeconds = snapshot?.plannedRestTimeSeconds,
+                plannedRpeTarget = snapshot?.plannedRpeTarget,
+                plannedSetsTarget = snapshot?.plannedSetsTarget,
+                plannedRepsTarget = snapshot?.plannedRepsTarget,
+                plannedNotes = snapshot?.plannedNotes
             )
         }
         val supersetPairs = mutableListOf<SupersetPair>()
@@ -1572,7 +1652,8 @@ class ActiveTrainingActivity : AppCompatActivity() {
             startTimeMillis = workoutStartTimeMillis,
             supersetPairs = supersetPairs.ifEmpty { null },
             supersetTargetSets = supersetTargetSets.ifEmpty { null },
-            exerciseOrder = exerciseOrder.ifEmpty { null }
+            exerciseOrder = exerciseOrder.ifEmpty { null },
+            workoutSource = workoutSource
         )
         draftManager.saveDraft(draft)
     }
@@ -1913,5 +1994,6 @@ class ActiveTrainingActivity : AppCompatActivity() {
         const val EXTRA_RESUME_DRAFT = "RESUME_DRAFT"
         const val EXTRA_AUTO_GENERATE = "AUTO_GENERATE"
         const val EXTRA_PLAN_ID = "PLAN_ID"
+        const val EXTRA_PLAN_SET_ID = "PLAN_SET_ID"
     }
 }

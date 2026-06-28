@@ -11,39 +11,290 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:padding="12dp">
+        android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/text_exercise_number"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:background="@drawable/badge_background_blue"
-            android:gravity="center"
-            android:text="1"
-            android:textColor="@color/white"
-            android:textSize="14sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/text_exercise_name"
-            android:layout_width="0dp"
+        <!-- Header row: number, name, reorder, expand, remove -->
+        <LinearLayout
+            android:id="@+id/layout_header_row"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:layout_weight="1"
-            android:text="Exercise Name"
-            android:textColor="@color/fitness_text_primary"
-            android:textSize="16sp" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="12dp">
 
-        <ImageButton
-            android:id="@+id/button_remove_exercise"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Remove exercise"
-            android:src="@android:drawable/ic_menu_delete"
-            android:tint="@color/fitness_accent" />
+            <TextView
+                android:id="@+id/text_exercise_number"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="@drawable/badge_background_blue"
+                android:gravity="center"
+                android:text="1"
+                android:textColor="@color/white"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/text_exercise_name"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Exercise Name"
+                    android:textColor="@color/fitness_text_primary"
+                    android:textSize="15sp" />
+
+                <!-- Targets summary (visible when collapsed and targets are set) -->
+                <TextView
+                    android:id="@+id/text_targets_summary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:textColor="@color/fitness_text_secondary"
+                    android:textSize="12sp"
+                    android:visibility="gone" />
+            </LinearLayout>
+
+            <!-- Move up -->
+            <ImageButton
+                android:id="@+id/button_move_up"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Move up"
+                android:src="@drawable/ic_arrow_up"
+                android:padding="6dp"
+                app:tint="@color/fitness_text_secondary" />
+
+            <!-- Move down -->
+            <ImageButton
+                android:id="@+id/button_move_down"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Move down"
+                android:src="@drawable/ic_arrow_down"
+                android:padding="6dp"
+                app:tint="@color/fitness_text_secondary" />
+
+            <!-- Expand/collapse toggle -->
+            <ImageButton
+                android:id="@+id/button_expand"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Configure"
+                android:src="@drawable/ic_expand_more"
+                android:padding="6dp"
+                app:tint="@color/fitness_primary" />
+
+            <!-- Remove -->
+            <ImageButton
+                android:id="@+id/button_remove_exercise"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Remove exercise"
+                android:src="@android:drawable/ic_menu_delete"
+                android:tint="@color/fitness_accent" />
+        </LinearLayout>
+
+        <!-- Divider (visible when expanded) -->
+        <View
+            android:id="@+id/divider_config"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/fitness_text_secondary"
+            android:alpha="0.2"
+            android:visibility="gone" />
+
+        <!-- Expandable config section -->
+        <LinearLayout
+            android:id="@+id/layout_config"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="12dp"
+            android:paddingTop="8dp"
+            android:visibility="gone">
+
+            <!-- Intent row -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="10dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Intent"
+                    android:textColor="@color/fitness_text_secondary"
+                    android:textSize="13sp" />
+
+                <TextView
+                    android:id="@+id/text_intent_value"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/badge_background_blue"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="4dp"
+                    android:textColor="@color/white"
+                    android:textSize="12sp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:text="Build" />
+            </LinearLayout>
+
+            <!-- Two-column row: Sets + RPE -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="10dp">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginEnd="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Sets target"
+                        android:textColor="@color/fitness_text_secondary"
+                        android:textSize="12sp"
+                        android:layout_marginBottom="4dp" />
+
+                    <EditText
+                        android:id="@+id/edit_sets_target"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:backgroundTint="@color/fitness_primary"
+                        android:hint="e.g. 4"
+                        android:inputType="number"
+                        android:textColor="@color/fitness_text_primary"
+                        android:textColorHint="@color/fitness_text_secondary"
+                        android:textSize="14sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="RPE target"
+                        android:textColor="@color/fitness_text_secondary"
+                        android:textSize="12sp"
+                        android:layout_marginBottom="4dp" />
+
+                    <EditText
+                        android:id="@+id/edit_rpe_target"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:backgroundTint="@color/fitness_primary"
+                        android:hint="1–10"
+                        android:inputType="numberDecimal"
+                        android:textColor="@color/fitness_text_primary"
+                        android:textColorHint="@color/fitness_text_secondary"
+                        android:textSize="14sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Two-column row: Reps + Rest -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="10dp">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginEnd="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Reps target"
+                        android:textColor="@color/fitness_text_secondary"
+                        android:textSize="12sp"
+                        android:layout_marginBottom="4dp" />
+
+                    <EditText
+                        android:id="@+id/edit_reps_target"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:backgroundTint="@color/fitness_primary"
+                        android:hint="8-12, AMRAP…"
+                        android:inputType="text"
+                        android:textColor="@color/fitness_text_primary"
+                        android:textColorHint="@color/fitness_text_secondary"
+                        android:textSize="14sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Rest (sec)"
+                        android:textColor="@color/fitness_text_secondary"
+                        android:textSize="12sp"
+                        android:layout_marginBottom="4dp" />
+
+                    <EditText
+                        android:id="@+id/edit_rest_seconds"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:backgroundTint="@color/fitness_primary"
+                        android:hint="auto"
+                        android:inputType="number"
+                        android:textColor="@color/fitness_text_primary"
+                        android:textColorHint="@color/fitness_text_secondary"
+                        android:textSize="14sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Notes -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Notes"
+                android:textColor="@color/fitness_text_secondary"
+                android:textSize="12sp"
+                android:layout_marginBottom="4dp" />
+
+            <EditText
+                android:id="@+id/edit_notes"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:backgroundTint="@color/fitness_primary"
+                android:hint="Optional notes for this exercise"
+                android:inputType="textMultiLine"
+                android:minLines="2"
+                android:textColor="@color/fitness_text_primary"
+                android:textColorHint="@color/fitness_text_secondary"
+                android:textSize="13sp" />
+        </LinearLayout>
     </LinearLayout>
 </androidx.cardview.widget.CardView>
 

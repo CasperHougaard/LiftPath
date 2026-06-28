@@ -47,6 +47,32 @@
                     android:textColor="@color/fitness_text_secondary"
                     android:textSize="13sp" />
 
+                <TextView
+                    android:id="@+id/text_family_filter_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="Movement Family"
+                    android:textColor="@color/fitness_text_secondary"
+                    android:textSize="12sp"
+                    android:visibility="gone" />
+
+                <Spinner
+                    android:id="@+id/spinner_family_filter"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:background="@drawable/spinner_background"
+                    android:dropDownVerticalOffset="12dp"
+                    android:gravity="center_vertical"
+                    android:paddingStart="16dp"
+                    android:paddingTop="12dp"
+                    android:paddingEnd="16dp"
+                    android:paddingBottom="12dp"
+                    android:popupBackground="@drawable/spinner_popup_background"
+                    android:popupElevation="12dp"
+                    android:visibility="gone" />
+
                 <Spinner
                     android:id="@+id/spinner_exercise"
                     android:layout_width="match_parent"

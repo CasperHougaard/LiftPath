@@ -1,6 +1,7 @@
 package com.liftpath.adapters
 
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.liftpath.databinding.ItemWithingsScanBinding
@@ -10,7 +11,9 @@ import java.util.Date
 import java.util.Locale
 
 class WithingsScanAdapter(
-    private val entries: List<WithingsScanEntry>
+    private val entries: List<WithingsScanEntry>,
+    private val editMode: Boolean = false,
+    private val onDelete: (WithingsScanEntry) -> Unit = {}
 ) : RecyclerView.Adapter<WithingsScanAdapter.ViewHolder>() {
 
     private val dateFormat = SimpleDateFormat("MMM d, yyyy", Locale.getDefault())
@@ -32,6 +35,9 @@ class WithingsScanAdapter(
         val b = holder.binding
 
         b.textScanDate.text = dateFormat.format(Date(entry.dateMs))
+
+        b.buttonDeleteScan.visibility = if (editMode) View.VISIBLE else View.GONE
+        b.buttonDeleteScan.setOnClickListener { onDelete(entry) }
 
         b.textWeight.text = entry.weightKg?.let { String.format(Locale.US, "%.1f kg", it) } ?: "—"
         b.textBodyFat.text = entry.bodyFatPct?.let { String.format(Locale.US, "%.1f%%", it) } ?: "—"

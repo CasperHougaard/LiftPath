@@ -5,18 +5,23 @@ import android.content.Intent
 import android.graphics.drawable.AnimatedVectorDrawable
 import android.os.Build
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import com.liftpath.R
 import com.liftpath.databinding.ActivityEditSetBinding
 import com.liftpath.models.ExerciseEntry
+import java.util.Locale
 
 class EditSetActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityEditSetBinding
     private lateinit var exerciseEntry: ExerciseEntry
     private var isEditMode = false
+    private var isBodyweight = false
 
     companion object {
         const val EXTRA_EXERCISE_ENTRY = "extra_exercise_entry"
@@ -53,10 +58,18 @@ class EditSetActivity : AppCompatActivity() {
             binding.cardDelete.visibility = View.GONE
         }
 
+        // Detect mode from the entry itself (entry-driven, so legacy weighted sets stay weighted
+        // even if the exercise is later reclassified).
+        isBodyweight = exerciseEntry.isBodyweightEntry()
+
         // Populate fields with existing data
-        binding.editTextKg.setText(exerciseEntry.kg.toString())
+        if (isBodyweight) {
+            setupBodyweightMode()
+        } else {
+            binding.editTextKg.setText(exerciseEntry.kg.toString())
+        }
         binding.editTextReps.setText(exerciseEntry.reps.toString())
-        
+
         // Populate RPE if available
         exerciseEntry.rpe?.let {
             binding.editTextRpe.setText(it.toString())
@@ -88,18 +101,68 @@ class EditSetActivity : AppCompatActivity() {
         }
     }
 
+    // --- Bodyweight set editing ---
+
+    private fun formatNum(v: Float): String =
+        if (v == v.toLong().toFloat()) v.toLong().toString() else String.format(Locale.US, "%.1f", v)
+
+    /** Body weight & total load are always shown to 1 decimal. */
+    private fun format1(v: Float): String = String.format(Locale.US, "%.1f", v)
+
+    private fun round1(v: Float): Float = Math.round(v * 10f) / 10f
+
+    private fun setupBodyweightMode() {
+        binding.weightedWeightContainer.visibility = View.GONE
+        binding.bodyweightContainer.visibility = View.VISIBLE
+
+        exerciseEntry.bodyweightKg?.let { binding.editTextBodyweight.setText(format1(it)) }
+
+        when (val added = exerciseEntry.addedKg) {
+            null -> binding.chipAdded.isChecked = true
+            else -> when {
+                added < 0f -> {
+                    binding.chipAssisted.isChecked = true
+                    binding.editTextExtra.setText(formatNum(-added))
+                }
+                added > 0f -> {
+                    binding.chipAdded.isChecked = true
+                    binding.editTextExtra.setText(formatNum(added))
+                }
+                else -> binding.chipAdded.isChecked = true
+            }
+        }
+
+        val watcher = object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) { updateEffectiveLoad() }
+        }
+        binding.editTextBodyweight.addTextChangedListener(watcher)
+        binding.editTextExtra.addTextChangedListener(watcher)
+        binding.chipGroupExtraType.setOnCheckedStateChangeListener { _, _ -> updateEffectiveLoad() }
+
+        updateEffectiveLoad()
+    }
+
+    /** Signed extra weight: positive when "Added", negative when "Assisted". */
+    private fun currentAddedKg(): Float {
+        val extra = binding.editTextExtra.text.toString().trim().toFloatOrNull() ?: 0f
+        return if (binding.chipAssisted.isChecked) -extra else extra
+    }
+
+    private fun updateEffectiveLoad() {
+        val bw = binding.editTextBodyweight.text.toString().trim().toFloatOrNull()
+        binding.textEffectiveLoad.text = if (bw == null) {
+            getString(R.string.bodyweight_need_value)
+        } else {
+            getString(R.string.bodyweight_total_label, format1(bw + currentAddedKg()))
+        }
+    }
+
     private fun saveSet() {
-        val updatedKg = binding.editTextKg.text.toString().toFloatOrNull()
         val updatedReps = binding.editTextReps.text.toString().toIntOrNull()
         val updatedRpe = binding.editTextRpe.text.toString().toFloatOrNull()
         val updatedNotes = binding.editTextNotes.text.toString().trim().ifEmpty { null }
-
-        // Validate required fields
-        if (updatedKg == null) {
-            Toast.makeText(this, "Please enter a valid weight", Toast.LENGTH_SHORT).show()
-            binding.editTextKg.requestFocus()
-            return
-        }
 
         if (updatedReps == null) {
             Toast.makeText(this, "Please enter valid repetitions", Toast.LENGTH_SHORT).show()
@@ -114,12 +177,47 @@ class EditSetActivity : AppCompatActivity() {
             return
         }
 
+        // Resolve the load (weighted vs bodyweight).
+        val updatedKg: Float
+        val updatedBodyweight: Float?
+        val updatedAdded: Float?
+        if (isBodyweight) {
+            val bw = binding.editTextBodyweight.text.toString().trim().toFloatOrNull()
+            if (bw == null || bw < 20f || bw > 400f) {
+                Toast.makeText(this, getString(R.string.bodyweight_invalid), Toast.LENGTH_SHORT).show()
+                binding.editTextBodyweight.requestFocus()
+                return
+            }
+            val added = round1(currentAddedKg())
+            val roundedBw = round1(bw)
+            val effective = round1(roundedBw + added)
+            if (effective <= 0f) {
+                Toast.makeText(this, getString(R.string.bodyweight_invalid), Toast.LENGTH_SHORT).show()
+                return
+            }
+            updatedKg = effective
+            updatedBodyweight = roundedBw
+            updatedAdded = added
+        } else {
+            val parsedKg = binding.editTextKg.text.toString().toFloatOrNull()
+            if (parsedKg == null) {
+                Toast.makeText(this, "Please enter a valid weight", Toast.LENGTH_SHORT).show()
+                binding.editTextKg.requestFocus()
+                return
+            }
+            updatedKg = parsedKg
+            updatedBodyweight = null
+            updatedAdded = null
+        }
+
         // Create updated entry
         val updatedEntry = exerciseEntry.copy(
             kg = updatedKg,
             reps = updatedReps,
             rpe = updatedRpe,
-            note = updatedNotes
+            note = updatedNotes,
+            bodyweightKg = updatedBodyweight,
+            addedKg = updatedAdded
         )
 
         val resultIntent = Intent().apply {

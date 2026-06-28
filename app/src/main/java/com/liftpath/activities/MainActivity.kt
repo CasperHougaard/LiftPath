@@ -18,6 +18,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.liftpath.databinding.ActivityMainBinding
 import com.liftpath.helpers.ActiveWorkoutDraftManager
+import com.liftpath.helpers.BodyWeightDialogs
+import com.liftpath.helpers.BodyWeightHelper
 import com.liftpath.helpers.CatalogMergeHelper
 import com.liftpath.helpers.DialogHelper
 import com.liftpath.helpers.HealthConnectHelper
@@ -236,8 +238,8 @@ class MainActivity : AppCompatActivity() {
             onCustomSelected = {
                 launchActiveWorkout("custom", resumeDraft = false, autoGenerate = false, planId = null)
             },
-            onPlanSelected = { plan ->
-                launchActiveWorkout(plan.workoutType, resumeDraft = false, autoGenerate = false, planId = plan.id)
+            onPlanSelected = { plan, planSet ->
+                launchActiveWorkout(plan.workoutType, resumeDraft = false, autoGenerate = false, planId = plan.id, planSetId = planSet?.id)
             }
         )
         bottomSheet.show(supportFragmentManager, "SelectWorkoutModeBottomSheet")
@@ -288,41 +290,43 @@ class MainActivity : AppCompatActivity() {
             .showWithTransparentWindow()
     }
 
-    private fun launchActiveWorkout(workoutType: String, resumeDraft: Boolean, autoGenerate: Boolean = false, planId: String? = null) {
+    private fun launchActiveWorkout(workoutType: String, resumeDraft: Boolean, autoGenerate: Boolean = false, planId: String? = null, planSetId: String? = null) {
         val intent = Intent(this, ActiveTrainingActivity::class.java).apply {
             putExtra(ActiveTrainingActivity.EXTRA_WORKOUT_TYPE, workoutType)
             putExtra(ActiveTrainingActivity.EXTRA_RESUME_DRAFT, resumeDraft)
             putExtra(ActiveTrainingActivity.EXTRA_AUTO_GENERATE, autoGenerate)
-            if (planId != null) {
-                putExtra(ActiveTrainingActivity.EXTRA_PLAN_ID, planId)
-            }
+            if (planId != null) putExtra(ActiveTrainingActivity.EXTRA_PLAN_ID, planId)
+            if (planSetId != null) putExtra(ActiveTrainingActivity.EXTRA_PLAN_SET_ID, planSetId)
         }
         startWorkoutForResult.launch(intent)
     }
 
     private fun updateStats() {
         val trainingData = jsonHelper.readTrainingData()
-        
-        // Get selected exercises from preferences
-        val leftExercise = prefs.getString(KEY_LEFT_EXERCISE, DEFAULT_LEFT_EXERCISE) ?: DEFAULT_LEFT_EXERCISE
-        val rightExercise = prefs.getString(KEY_RIGHT_EXERCISE, DEFAULT_RIGHT_EXERCISE) ?: DEFAULT_RIGHT_EXERCISE
-        
+
+        // Preferences store exercise names; look up IDs so session filtering is ID-based
+        val leftExerciseName = prefs.getString(KEY_LEFT_EXERCISE, DEFAULT_LEFT_EXERCISE) ?: DEFAULT_LEFT_EXERCISE
+        val rightExerciseName = prefs.getString(KEY_RIGHT_EXERCISE, DEFAULT_RIGHT_EXERCISE) ?: DEFAULT_RIGHT_EXERCISE
+
+        val leftLibItem = trainingData.exerciseLibrary.find { it.name == leftExerciseName }
+        val rightLibItem = trainingData.exerciseLibrary.find { it.name == rightExerciseName }
+
         // Update card labels
-        binding.textLeftExerciseName.text = leftExercise
-        binding.textRightExerciseName.text = rightExercise
-        
+        binding.textLeftExerciseName.text = leftLibItem?.name ?: leftExerciseName
+        binding.textRightExerciseName.text = rightLibItem?.name ?: rightExerciseName
+
         // Enable marquee scrolling for long exercise names
         enableMarqueeScrolling(binding.textLeftExerciseName)
         enableMarqueeScrolling(binding.textRightExerciseName)
-        
+
         // Calculate and display left exercise 1RM
-        val leftExercise1RM = calculateCurrent1RM(leftExercise, trainingData)
-        val leftExerciseTrend = calculateProgressionTrend(leftExercise, trainingData)
+        val leftExercise1RM = leftLibItem?.let { calculateCurrent1RM(it.id, trainingData) }
+        val leftExerciseTrend = leftLibItem?.let { calculateProgressionTrend(it.id, trainingData) } ?: "steady"
         update1RMDisplay(binding.textBenchPress1rm, binding.textBenchPressIndicator, leftExercise1RM, leftExerciseTrend)
-        
+
         // Calculate and display right exercise 1RM
-        val rightExercise1RM = calculateCurrent1RM(rightExercise, trainingData)
-        val rightExerciseTrend = calculateProgressionTrend(rightExercise, trainingData)
+        val rightExercise1RM = rightLibItem?.let { calculateCurrent1RM(it.id, trainingData) }
+        val rightExerciseTrend = rightLibItem?.let { calculateProgressionTrend(it.id, trainingData) } ?: "steady"
         update1RMDisplay(binding.textSquat1rm, binding.textSquatIndicator, rightExercise1RM, rightExerciseTrend)
         
         updateHomeMomentumCard(trainingData)
@@ -474,10 +478,10 @@ class MainActivity : AppCompatActivity() {
             .showWithTransparentWindow()
     }
     
-    private fun calculateCurrent1RM(exerciseName: String, trainingData: TrainingData): Float? {
+    private fun calculateCurrent1RM(exerciseId: Int, trainingData: TrainingData): Float? {
         val allSets = trainingData.trainings.flatMap { session ->
             session.exercises.filter { entry ->
-                entry.exerciseName == exerciseName && 
+                entry.exerciseId == exerciseId &&
                 entry.getEffectiveIntent(session.defaultWorkoutType) == SetIntent.STRENGTH
             }
         }
@@ -496,26 +500,26 @@ class MainActivity : AppCompatActivity() {
         return weight * (1 + reps / 30f)
     }
     
-    private fun calculateProgressionTrend(exerciseName: String, trainingData: TrainingData): String {
+    private fun calculateProgressionTrend(exerciseId: Int, trainingData: TrainingData): String {
         // Get all sessions with this exercise (only STRENGTH intent sets), sorted by date
         val sessionsWithExercise = trainingData.trainings
             .filter { session ->
                 session.exercises.any { entry ->
-                    entry.exerciseName == exerciseName &&
+                    entry.exerciseId == exerciseId &&
                     entry.getEffectiveIntent(session.defaultWorkoutType) == SetIntent.STRENGTH
                 }
             }
             .sortedBy { it.date }
-        
+
         if (sessionsWithExercise.size < 2) return "steady"
-        
+
         // Get last 3 sessions for trend analysis
         val recentSessions = sessionsWithExercise.takeLast(3)
-        
+
         // Calculate max 1RM per session (only from STRENGTH intent sets)
         val oneRMsPerSession = recentSessions.mapNotNull { session ->
             val exerciseSets = session.exercises.filter { entry ->
-                entry.exerciseName == exerciseName &&
+                entry.exerciseId == exerciseId &&
                 entry.getEffectiveIntent(session.defaultWorkoutType) == SetIntent.STRENGTH
             }
             exerciseSets.maxOfOrNull { calculateOneRM(it.kg, it.reps) }
@@ -705,16 +709,13 @@ class MainActivity : AppCompatActivity() {
         // Check if Health Connect is enabled
         val healthConnectPrefs = getSharedPreferences("health_connect_settings", Context.MODE_PRIVATE)
         val isEnabled = healthConnectPrefs.getBoolean("use_health_connect_data", false)
-        
-        if (!isEnabled) {
-            return // Health Connect sync is disabled, skip
+
+        if (!isEnabled || !HealthConnectHelper.isAvailable(this)) {
+            // No Withings sync will run; check the body-weight prompt against current data.
+            maybePromptBodyWeight()
+            return
         }
-        
-        // Check if Health Connect is available
-        if (!HealthConnectHelper.isAvailable(this)) {
-            return // Health Connect not available, skip
-        }
-        
+
         // Perform sync in background (silently, no UI feedback)
         lifecycleScope.launch {
             HealthConnectHelper.autoSyncActivities(applicationContext).fold(
@@ -723,9 +724,36 @@ class MainActivity : AppCompatActivity() {
             )
         }
 
-        // Sync Withings body-scan data silently in the background
+        // Sync Withings body-scan data silently in the background, then evaluate the body-weight
+        // prompt so it reflects the freshest Withings reading (the sync is otherwise fire-and-forget).
+        // lifecycleScope resumes on the main thread after the suspend call, so UI access is safe.
         lifecycleScope.launch {
             WithingsHealthConnectHelper.autoSync(applicationContext)
+            maybePromptBodyWeight()
+        }
+    }
+
+    private var bodyWeightDialogVisible = false
+
+    /** Show a body-weight prompt if due. No-op for fresh-Withings / first-time cases. */
+    private fun maybePromptBodyWeight() {
+        if (isFinishing || isDestroyed || bodyWeightDialogVisible) return
+        when (BodyWeightHelper.evaluateBodyWeightPrompt(this)) {
+            BodyWeightHelper.BodyWeightPromptType.MANUAL_RECURRING -> {
+                val current = BodyWeightHelper.getCurrentBodyweightKg(this) ?: return
+                bodyWeightDialogVisible = true
+                BodyWeightDialogs.showRecurringManualPrompt(this, current) {
+                    bodyWeightDialogVisible = false
+                }
+            }
+            BodyWeightHelper.BodyWeightPromptType.WITHINGS_STALE -> {
+                val latest = BodyWeightHelper.latestWithingsWeight(this) ?: return
+                bodyWeightDialogVisible = true
+                BodyWeightDialogs.showWithingsStalePrompt(this, latest.first, latest.second) {
+                    bodyWeightDialogVisible = false
+                }
+            }
+            else -> { /* NONE / NEEDS_INITIAL: nothing on app open */ }
         }
     }
     

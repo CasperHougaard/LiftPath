@@ -102,8 +102,7 @@
                 app:cardBackgroundColor="@color/fitness_card_background"
                 app:cardCornerRadius="20dp"
                 app:cardElevation="4dp"
-                app:layout_constraintBottom_toTopOf="@id/fab_create_plan"
-                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintBottom_toTopOf="@id/fab_create_plan"                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/header_container">
 
@@ -138,14 +137,14 @@
                 android:id="@+id/fab_create_plan"
                 android:layout_width="match_parent"
                 android:layout_height="60dp"
-                android:layout_marginBottom="24dp"
+                android:layout_marginBottom="8dp"
                 android:clickable="true"
                 android:focusable="true"
                 android:foreground="?attr/selectableItemBackground"
                 app:cardBackgroundColor="@color/fitness_primary"
                 app:cardCornerRadius="20dp"
                 app:cardElevation="4dp"
-                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintBottom_toTopOf="@id/button_plan_rotations"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent">
 
@@ -169,6 +168,39 @@
                         android:text="Create Plan"
                         android:textColor="@color/white"
                         android:textSize="16sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- PLAN ROTATIONS BUTTON -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/button_plan_rotations"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginBottom="24dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground"
+                app:cardBackgroundColor="@color/fitness_card_background"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="2dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:orientation="horizontal"
+                    android:padding="12dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Plan Rotations (A/B/C)"
+                        android:textColor="@color/fitness_primary"
+                        android:textSize="15sp"
                         android:textStyle="bold" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>

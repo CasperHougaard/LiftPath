@@ -4,6 +4,7 @@ import android.graphics.Color
 import android.graphics.Typeface
 import android.text.Spannable
 import android.text.SpannableString
+import android.text.SpannableStringBuilder
 import android.text.style.ForegroundColorSpan
 import android.text.style.StyleSpan
 import android.view.LayoutInflater
@@ -70,16 +71,41 @@ class TrainingDetailAdapter(
         }
     }
 
-    private fun formatSetDetails(set: ExerciseEntry): SpannableString {
+    private fun formatSetDetails(set: ExerciseEntry): CharSequence {
         val suffix = when {
             set.isWarmup -> " (W)"
             set.rpe != null -> " (${"%.1f".format(set.rpe)})"
             else -> ""
         }
-        val base = "Set ${set.setNumber}: ${set.kg}kg × ${set.reps} reps"
-        val text = base + suffix
 
-        val spannable = SpannableString(text)
+        val b = SpannableStringBuilder()
+        b.append("Set ${set.setNumber}: ")
+
+        if (set.isBodyweightEntry()) {
+            // Body weight muted (1 decimal); signed added/assisted weight in green +/red − so the
+            // progression (the added part) is readable even when body weight differs between workouts.
+            val bw = set.bodyweightKg ?: 0f
+            val added = set.addedKg ?: 0f
+            val bwStart = b.length
+            b.append("%.1f".format(bw))
+            b.setSpan(ForegroundColorSpan(Color.parseColor("#6B7280")), bwStart, b.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            if (added != 0f) {
+                val sign = if (added > 0f) "+" else "−"
+                val mag = if (added < 0f) -added else added
+                val magStr = if (mag % 1 == 0f) mag.toInt().toString() else "%.1f".format(mag)
+                val aStart = b.length
+                b.append(" $sign$magStr")
+                val aColor = if (added > 0f) Color.parseColor("#10B981") else Color.parseColor("#EF4444")
+                b.setSpan(ForegroundColorSpan(aColor), aStart, b.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                b.setSpan(StyleSpan(Typeface.BOLD), aStart, b.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            }
+            b.append("kg × ${set.reps} reps")
+        } else {
+            b.append("${set.kg}kg × ${set.reps} reps")
+        }
+
+        val baseEnd = b.length
+        b.append(suffix)
 
         // Color-code (W) / (RPE) suffix: warmup stays default, RPE by difficulty
         if (suffix.isNotEmpty() && set.rpe != null) {
@@ -90,21 +116,11 @@ class TrainingDetailAdapter(
                 rpe < 9.5f -> Color.parseColor("#F44336")  // Red - hard
                 else -> Color.parseColor("#9C27B0")        // Purple - max effort
             }
-            spannable.setSpan(
-                ForegroundColorSpan(color),
-                base.length,
-                text.length,
-                Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
-            )
-            spannable.setSpan(
-                StyleSpan(Typeface.BOLD),
-                base.length,
-                text.length,
-                Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
-            )
+            b.setSpan(ForegroundColorSpan(color), baseEnd, b.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            b.setSpan(StyleSpan(Typeface.BOLD), baseEnd, b.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
         }
 
-        return spannable
+        return b
     }
 
     override fun getItemCount() = groupedExercises.size
