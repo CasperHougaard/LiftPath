@@ -27,6 +27,7 @@ import com.liftpath.models.*
 import com.liftpath.services.RestTimerService
 import com.liftpath.components.MuscleMapDialog
 import com.liftpath.components.AddSpecialBottomSheet
+import com.liftpath.components.ChangeExerciseBottomSheet
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -506,8 +507,33 @@ class ActiveTrainingActivity : AppCompatActivity() {
             }
 
         configs.forEach { config ->
-            val exerciseId = config.exerciseId ?: return@forEach  // V3 FAMILY_SLOT: skip unresolved entries
-            val exercise = trainingData.exerciseLibrary.find { it.id == exerciseId }
+            // Handle warmup/cooldown special slots from the plan
+            if (config.isSpecialElement) {
+                when (config.slotType) {
+                    PlanSlotType.WARMUP -> addWarmupElement(durationSeconds = config.durationSeconds ?: 300)
+                    PlanSlotType.COOLDOWN -> addCooldownElement(durationSeconds = config.durationSeconds ?: 300)
+                    else -> Unit
+                }
+                return@forEach
+            }
+            // V3: resolve concrete exercise from slot (SPECIFIC_VARIANT or FAMILY_SLOT)
+            val resolvedSelectionType = config.effectiveSelectionType
+            val exercise: ExerciseLibraryItem?
+            val resolvedFamilyId: String?
+            when (resolvedSelectionType) {
+                PlanExerciseSelectionType.SPECIFIC_VARIANT -> {
+                    val id = config.exerciseId ?: return@forEach
+                    exercise = trainingData.exerciseLibrary.find { it.id == id }
+                    resolvedFamilyId = exercise?.familyId
+                }
+                PlanExerciseSelectionType.FAMILY_SLOT -> {
+                    exercise = FamilySlotResolver.resolve(
+                        config.familyId, config.movementPattern, trainingData.exerciseLibrary
+                    )
+                    resolvedFamilyId = config.familyId
+                }
+            }
+            val exerciseId = exercise?.id ?: return@forEach
             if (exercise != null) {
                 // Check if exercise already exists in workout (by exerciseId — duplicates deferred)
                 val existingGroup = groupedExercises.find { it.exerciseId == exerciseId }
@@ -538,7 +564,15 @@ class ActiveTrainingActivity : AppCompatActivity() {
                         }
                     }
 
-                    groupedExercises.add(GroupedExercise(exerciseId, exercise.name, emptyList()))
+                    groupedExercises.add(
+                        GroupedExercise(
+                            exerciseId = exerciseId,
+                            exerciseName = exercise.name,
+                            sets = emptyList(),
+                            slotSelectionType = resolvedSelectionType,
+                            slotFamilyId = resolvedFamilyId
+                        )
+                    )
                     exerciseWorkoutTypes[exerciseId] = if (workoutType == "custom") "custom" else plan.workoutType
 
                     val intent = config.defaultIntent ?: SetIntent.BUILD
@@ -555,7 +589,9 @@ class ActiveTrainingActivity : AppCompatActivity() {
                         plannedRpeTarget = config.rpeTarget,
                         plannedSetsTarget = config.setsTarget,
                         plannedRepsTarget = config.repsTarget,
-                        plannedNotes = config.notes
+                        plannedNotes = config.notes,
+                        slotSelectionType = resolvedSelectionType,
+                        slotFamilyId = resolvedFamilyId
                     )
 
                     if (!lastWorkoutData.containsKey(exerciseId)) {
@@ -740,6 +776,7 @@ class ActiveTrainingActivity : AppCompatActivity() {
             lockedIntents,
             lastWorkoutData,
             lastIntents,
+            planSnapshots = planExerciseSnapshots,
             onAddSetClicked = { exerciseId, exerciseName ->
                 launchLogSetActivity(exerciseId, exerciseName)
             },
@@ -781,7 +818,22 @@ class ActiveTrainingActivity : AppCompatActivity() {
             selectedForSupersetPositions = { selectedForSupersetPositions },
             onExerciseLongPress = { position -> handleExerciseLongPress(position) },
             getSupersetTargetSets = { groupId -> supersetTargetSetsByGroupId[groupId] },
-            getCompletedSupersetGroupIds = { completedSupersetGroupIds.toSet() }
+            getCompletedSupersetGroupIds = { completedSupersetGroupIds.toSet() },
+            onSpecialCompleted = { exerciseId, isCompleted ->
+                handleSpecialCompleted(exerciseId, isCompleted)
+            },
+            onDeleteSpecialClicked = { exerciseId ->
+                deleteSpecialElement(exerciseId)
+            },
+            onStartTimerClicked = { exerciseId ->
+                startSpecialElementTimer(exerciseId)
+            },
+            onEditDurationClicked = { exerciseId ->
+                showEditDurationDialog(exerciseId)
+            },
+            onChangeExerciseClicked = { position ->
+                showChangeExerciseBottomSheet(position)
+            }
         )
         binding.recyclerViewActiveWorkout.adapter = adapter
         binding.recyclerViewActiveWorkout.layoutManager = LinearLayoutManager(this)
@@ -864,8 +916,8 @@ class ActiveTrainingActivity : AppCompatActivity() {
     }
 
     private fun showMuscleOverview() {
-        // Extract unique exercise IDs from grouped exercises
-        val exerciseIds = groupedExercises.map { it.exerciseId }.distinct()
+        // Extract unique exercise IDs from grouped exercises (exclude sentinel IDs for warmup/cooldown)
+        val exerciseIds = groupedExercises.filter { !it.isSpecialElement }.map { it.exerciseId }.distinct()
         
         // Load ExerciseLibraryItem objects for these IDs
         val trainingData = jsonHelper.readTrainingData()
@@ -1145,16 +1197,74 @@ class ActiveTrainingActivity : AppCompatActivity() {
     private fun showAddSpecialBottomSheet() {
         val bottomSheet = AddSpecialBottomSheet.newInstance(
             onWarmupSelected = {
-                startWarmupTimer()
+                addWarmupElement()
             },
             onCooldownSelected = {
-                Toast.makeText(this, "Cooldown feature coming soon", Toast.LENGTH_SHORT).show()
+                addCooldownElement()
             },
             onSuperSetSelected = {
                 handleAddExerciseAsSupersetPartner()
             }
         )
         bottomSheet.show(supportFragmentManager, "AddSpecialBottomSheet")
+    }
+
+    private fun showChangeExerciseBottomSheet(position: Int) {
+        if (position < 0 || position >= groupedExercises.size) return
+        val group = groupedExercises[position]
+        if (!group.isFamilySlot) return
+
+        val data = jsonHelper.readTrainingData()
+        val familyMovementPattern = group.slotFamilyId?.let { fid ->
+            data.exerciseFamilies?.find { it.id == fid }?.movementPattern
+        }
+
+        ChangeExerciseBottomSheet.newInstance(
+            familyId = group.slotFamilyId,
+            movementPattern = familyMovementPattern,
+            library = data.exerciseLibrary,
+            onSelected = { newExercise ->
+                replaceExerciseInSlot(position, newExercise)
+            }
+        ).show(supportFragmentManager, "ChangeExercise")
+    }
+
+    private fun replaceExerciseInSlot(position: Int, newExercise: ExerciseLibraryItem) {
+        if (position < 0 || position >= groupedExercises.size) return
+        val oldGroup = groupedExercises[position]
+        val oldId = oldGroup.exerciseId
+        val newId = newExercise.id
+        if (oldId == newId) return
+
+        // Swap the GroupedExercise in place; keep slot semantics and any already-logged sets
+        groupedExercises[position] = oldGroup.copy(
+            exerciseId = newId,
+            exerciseName = newExercise.name
+        )
+
+        // Migrate per-exercise state from old ID to new ID
+        exerciseWorkoutTypes[newId] = exerciseWorkoutTypes[oldId] ?: workoutType
+        exerciseIntents[newId] = exerciseIntents[oldId] ?: SetIntent.BUILD
+        lockedIntents.remove(oldId)
+        exerciseWorkoutTypes.remove(oldId)
+        exerciseIntents.remove(oldId)
+
+        // Migrate plan snapshot (preserves targets and slot metadata)
+        planExerciseSnapshots[oldId]?.let { snap ->
+            planExerciseSnapshots[newId] = snap.copy(
+                exerciseId = newId,
+                exerciseName = newExercise.name
+            )
+        }
+        planExerciseSnapshots.remove(oldId)
+
+        // Pre-load last workout data for the new exercise
+        val intent = exerciseIntents[newId] ?: SetIntent.BUILD
+        if (!lastWorkoutData.containsKey(newId)) lastWorkoutData[newId] = mutableMapOf()
+        lastWorkoutData[newId]!![intent] = fetchLastWorkoutSets(newId, intent)
+
+        adapter.notifyItemChanged(position)
+        persistDraft()
     }
 
     private fun handleAddExerciseAsSupersetPartner() {
@@ -1268,30 +1378,145 @@ class ActiveTrainingActivity : AppCompatActivity() {
             .showWithTransparentWindow()
     }
 
-    private fun startWarmupTimer() {
+    private var pendingSpecialElementId: Int? = null
+
+    private fun startSpecialElementTimer(exerciseId: Int) {
         val settings = settingsManager.getSettings()
         if (!settings.restTimerEnabled) {
             Toast.makeText(this, getString(R.string.toast_rest_timer_disabled), Toast.LENGTH_SHORT).show()
             return
         }
-        
-        // Check and request notification permission for Android 13+
+        val element = groupedExercises.firstOrNull { it.exerciseId == exerciseId } ?: return
+        val duration = element.durationSeconds
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS)
                 != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                pendingTimerTime = 300 // 5 minutes
+                pendingSpecialElementId = exerciseId
+                pendingTimerTime = duration
                 pendingTimerExerciseName = null
                 notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
                 return
             }
         }
-        
-        startWarmupTimerAfterPermissionCheck()
+
+        launchSpecialElementTimer(exerciseId, duration)
     }
 
-    private fun startWarmupTimerAfterPermissionCheck() {
-        RestTimerService.startTimer(this, 300, getString(R.string.warmup_timer_title), showDialog = false)
+    private fun launchSpecialElementTimer(exerciseId: Int, durationSeconds: Int) {
+        val element = groupedExercises.firstOrNull { it.exerciseId == exerciseId }
+        val isWarmup = element?.slotType == PlanSlotType.WARMUP
+        val title = if (isWarmup) getString(R.string.warmup_timer_title) else getString(R.string.cooldown_timer_title)
+        RestTimerService.startTimer(this, durationSeconds, title, showDialog = false)
         setTimerState(TimerState.RUNNING)
+    }
+
+    private fun addWarmupElement(durationSeconds: Int? = null) {
+        if (groupedExercises.any { it.slotType == PlanSlotType.WARMUP }) return
+        if (durationSeconds != null) {
+            addSpecialElement(WARMUP_EXERCISE_ID, getString(R.string.label_warmup_element), PlanSlotType.WARMUP, insertAtFront = true, durationSeconds = durationSeconds)
+        } else {
+            showDurationPickerDialog(isWarmup = true) { selected ->
+                addSpecialElement(WARMUP_EXERCISE_ID, getString(R.string.label_warmup_element), PlanSlotType.WARMUP, insertAtFront = true, durationSeconds = selected)
+            }
+        }
+    }
+
+    private fun addCooldownElement(durationSeconds: Int? = null) {
+        if (groupedExercises.any { it.slotType == PlanSlotType.COOLDOWN }) return
+        if (durationSeconds != null) {
+            addSpecialElement(COOLDOWN_EXERCISE_ID, getString(R.string.label_cooldown_element), PlanSlotType.COOLDOWN, insertAtFront = false, durationSeconds = durationSeconds)
+        } else {
+            showDurationPickerDialog(isWarmup = false) { selected ->
+                addSpecialElement(COOLDOWN_EXERCISE_ID, getString(R.string.label_cooldown_element), PlanSlotType.COOLDOWN, insertAtFront = false, durationSeconds = selected)
+            }
+        }
+    }
+
+    private fun showDurationPickerDialog(isWarmup: Boolean, onSelected: (Int) -> Unit) {
+        val title = if (isWarmup) getString(R.string.dialog_title_warmup_duration) else getString(R.string.dialog_title_cooldown_duration)
+        val options = arrayOf("5 min", "10 min", "15 min", "20 min", getString(R.string.option_custom))
+        val durations = intArrayOf(300, 600, 900, 1200, -1)
+        DialogHelper.createBuilder(this)
+            .setTitle(title)
+            .setItems(options) { _, which ->
+                if (durations[which] == -1) showCustomDurationDialog(onSelected)
+                else onSelected(durations[which])
+            }
+            .setNegativeButton(getString(R.string.button_cancel), null)
+            .showWithTransparentWindow()
+    }
+
+    private fun showCustomDurationDialog(onSelected: (Int) -> Unit) {
+        val input = android.widget.EditText(this)
+        input.inputType = android.text.InputType.TYPE_CLASS_NUMBER
+        input.hint = "Minutes"
+        input.setPadding(48, 24, 48, 24)
+        DialogHelper.createBuilder(this)
+            .setTitle(getString(R.string.dialog_title_custom_duration))
+            .setView(input)
+            .setPositiveButton(getString(R.string.button_ok)) { _, _ ->
+                val mins = input.text.toString().toIntOrNull()
+                if (mins != null && mins > 0) onSelected(mins * 60)
+            }
+            .setNegativeButton(getString(R.string.button_cancel), null)
+            .showWithTransparentWindow()
+    }
+
+    private fun showEditDurationDialog(exerciseId: Int) {
+        val index = groupedExercises.indexOfFirst { it.exerciseId == exerciseId }
+        if (index < 0) return
+        val isWarmup = groupedExercises[index].slotType == PlanSlotType.WARMUP
+        showDurationPickerDialog(isWarmup) { newDuration ->
+            groupedExercises[index] = groupedExercises[index].copy(durationSeconds = newDuration)
+            adapter.notifyItemChanged(index)
+            persistDraft()
+        }
+    }
+
+    private fun addSpecialElement(exerciseId: Int, name: String, slotType: PlanSlotType, insertAtFront: Boolean, durationSeconds: Int = 300) {
+        val group = GroupedExercise(exerciseId, name, emptyList(), slotType = slotType, durationSeconds = durationSeconds)
+        if (insertAtFront) {
+            groupedExercises.add(0, group)
+            adapter.notifyItemInserted(0)
+        } else {
+            groupedExercises.add(group)
+            adapter.notifyItemInserted(groupedExercises.size - 1)
+        }
+        persistDraft()
+    }
+
+    private fun handleSpecialCompleted(exerciseId: Int, isCompleted: Boolean) {
+        val index = groupedExercises.indexOfFirst { it.exerciseId == exerciseId }
+        if (index < 0) return
+        groupedExercises[index] = groupedExercises[index].copy(isSpecialCompleted = isCompleted)
+        // Save/remove a completion entry in the session log
+        currentExerciseEntries.removeAll { it.exerciseId == exerciseId }
+        if (isCompleted) {
+            val isWarmup = groupedExercises[index].slotType == PlanSlotType.WARMUP
+            currentExerciseEntries.add(
+                ExerciseEntry(
+                    exerciseId = exerciseId,
+                    exerciseName = groupedExercises[index].exerciseName,
+                    setNumber = 1,
+                    kg = 0f,
+                    reps = 0,
+                    completed = true,
+                    isWarmup = isWarmup
+                )
+            )
+        }
+        adapter.notifyItemChanged(index)
+        persistDraft()
+    }
+
+    private fun deleteSpecialElement(exerciseId: Int) {
+        val index = groupedExercises.indexOfFirst { it.exerciseId == exerciseId }
+        if (index < 0) return
+        groupedExercises.removeAt(index)
+        currentExerciseEntries.removeAll { it.exerciseId == exerciseId }
+        adapter.notifyItemRemoved(index)
+        persistDraft()
     }
 
     private fun showCompleteWorkoutDialog() {
@@ -1349,15 +1574,37 @@ class ActiveTrainingActivity : AppCompatActivity() {
 
             jsonHelper.writeTrainingData(trainingData)
             draftManager.clearDraft()
+
+            // Collect primary muscles before clearing entries
+            val workedMuscles: Set<TargetMuscle> = currentExerciseEntries
+                .map { it.exerciseId }
+                .distinct()
+                .filter { id -> id != WARMUP_EXERCISE_ID && id != COOLDOWN_EXERCISE_ID }
+                .flatMap { id ->
+                    trainingData.exerciseLibrary.find { it.id == id }?.primaryTargets
+                        ?: DefaultExercisesHelper.getPrimaryTargets(id)
+                        ?: emptyList()
+                }
+                .toSet()
+
             // Clear entries so onPause/onStop don't re-persist the draft during activity teardown
             currentExerciseEntries.clear()
             groupedExercises.clear()
 
-            // Launch workout report activity
-            val reportIntent = Intent(this, WorkoutReportActivity::class.java).apply {
-                putExtra(WorkoutReportActivity.EXTRA_TRAINING_SESSION, newSession)
+            val stretches = DefaultStretchesHelper.getStretchesFor(workedMuscles)
+            if (stretches.isEmpty()) {
+                startActivity(Intent(this, WorkoutReportActivity::class.java).apply {
+                    putExtra(WorkoutReportActivity.EXTRA_TRAINING_SESSION, newSession)
+                })
+            } else {
+                startActivity(Intent(this, StretchCooldownActivity::class.java).apply {
+                    putExtra(StretchCooldownActivity.EXTRA_TRAINING_SESSION, newSession)
+                    putStringArrayListExtra(
+                        StretchCooldownActivity.EXTRA_WORKED_MUSCLES,
+                        ArrayList(workedMuscles.map { it.name })
+                    )
+                })
             }
-            startActivity(reportIntent)
 
             setResult(Activity.RESULT_OK)
             finish()
@@ -1444,9 +1691,22 @@ class ActiveTrainingActivity : AppCompatActivity() {
             val setsByExercise = currentExerciseEntries.groupBy { it.exerciseId }
             for (row in order) {
                 val sets = setsByExercise[row.exerciseId]?.sortedBy { it.setNumber } ?: emptyList()
-                groupedExercises.add(GroupedExercise(row.exerciseId, row.exerciseName, sets))
+                groupedExercises.add(
+                    GroupedExercise(
+                        exerciseId = row.exerciseId,
+                        exerciseName = row.exerciseName,
+                        sets = sets,
+                        supersetGroupId = row.supersetGroupId,
+                        groupType = row.groupType,
+                        slotType = row.slotType,
+                        isSpecialCompleted = row.isSpecialCompleted,
+                        durationSeconds = row.durationSeconds,
+                        slotSelectionType = row.slotSelectionType,
+                        slotFamilyId = row.slotFamilyId
+                    )
+                )
                 // Restore plan snapshots from draft rows
-                if (row.fromPlan) {
+                if (row.fromPlan && !row.isSpecialElement) {
                     planExerciseSnapshots[row.exerciseId] = row
                 }
             }
@@ -1456,15 +1716,16 @@ class ActiveTrainingActivity : AppCompatActivity() {
         }
 
         groupedExercises.forEach { group ->
-            if (!exerciseIntents.containsKey(group.exerciseId)) {
+            if (!group.isSpecialElement && !exerciseIntents.containsKey(group.exerciseId)) {
                 exerciseIntents[group.exerciseId] = SetIntent.BUILD
             }
         }
 
-        // Initialize last workout data for all exercises with intents
+        // Initialize last workout data for all exercises with intents (skip sentinel IDs)
         lastWorkoutData.clear()
         lastIntents.clear()
         exerciseIntents.forEach { (exerciseId, intent) ->
+            if (exerciseId <= 0) return@forEach  // skip warmup/cooldown sentinel IDs
             if (!lastWorkoutData.containsKey(exerciseId)) {
                 lastWorkoutData[exerciseId] = mutableMapOf()
             }
@@ -1489,7 +1750,7 @@ class ActiveTrainingActivity : AppCompatActivity() {
                 currentExerciseEntries.forEach { add(it.exerciseId) }
                 draft.exerciseOrder?.forEach { add(it.exerciseId) }
             }
-            exerciseIds.forEach { exerciseId ->
+            exerciseIds.filter { it > 0 }.forEach { exerciseId ->
                 // Find the last working set for this exercise (exclude warmup)
                 val lastWorkingEntry = trainingData.trainings
                     .flatMap { it.exercises }
@@ -1624,7 +1885,12 @@ class ActiveTrainingActivity : AppCompatActivity() {
                 plannedRpeTarget = snapshot?.plannedRpeTarget,
                 plannedSetsTarget = snapshot?.plannedSetsTarget,
                 plannedRepsTarget = snapshot?.plannedRepsTarget,
-                plannedNotes = snapshot?.plannedNotes
+                plannedNotes = snapshot?.plannedNotes,
+                slotType = g.slotType,
+                isSpecialCompleted = g.isSpecialCompleted,
+                durationSeconds = g.durationSeconds,
+                slotSelectionType = g.slotSelectionType,
+                slotFamilyId = g.slotFamilyId
             )
         }
         val supersetPairs = mutableListOf<SupersetPair>()
@@ -1839,10 +2105,12 @@ class ActiveTrainingActivity : AppCompatActivity() {
         pendingTimerTime = null
         val exerciseLabel = pendingTimerExerciseName
         pendingTimerExerciseName = null
+        val specialId = pendingSpecialElementId
+        pendingSpecialElementId = null
 
-        // Check if this is a warmup timer (300 seconds = 5 minutes)
-        if (actualTime == 300) {
-            startWarmupTimerAfterPermissionCheck()
+        // Check if this is a special element timer (warmup or cooldown)
+        if (specialId != null) {
+            launchSpecialElementTimer(specialId, actualTime ?: 300)
             return
         }
         

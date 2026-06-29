@@ -24,7 +24,10 @@ import com.liftpath.helpers.CatalogMergeHelper
 import com.liftpath.helpers.DialogHelper
 import com.liftpath.helpers.HealthConnectHelper
 import com.liftpath.helpers.JsonHelper
+import com.liftpath.adapters.ProgressPagerAdapter
 import com.liftpath.helpers.WithingsHealthConnectHelper
+import com.liftpath.helpers.WithingsStorageHelper
+import java.util.Date
 import com.liftpath.helpers.showWithTransparentWindow
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
@@ -66,6 +69,7 @@ class MainActivity : AppCompatActivity() {
     private val startWorkoutForResult = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         // This block is called when ActiveTrainingActivity finishes.
         // We can now update the stats on the main screen.
+        jsonHelper.invalidateTrainingDataCache()
         updateStats()
     }
 
@@ -111,6 +115,7 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         // Refresh stats when returning from other activities (e.g., after deleting a training session)
+        jsonHelper.invalidateTrainingDataCache()
         updateStats()
         
         // Auto-sync Health Connect in the background
@@ -331,6 +336,7 @@ class MainActivity : AppCompatActivity() {
         
         updateHomeMomentumCard(trainingData)
         updateHomeInsights(trainingData)
+        updateBodyScanCard()
 
         // Setup charts carousel
         setupChartsCarousel(trainingData)
@@ -427,6 +433,75 @@ class MainActivity : AppCompatActivity() {
             exerciseCount,
             volume
         )
+    }
+
+    private fun updateBodyScanCard() {
+        val storage = WithingsStorageHelper(this).read()
+        val entries = storage.entries
+        if (entries.isEmpty()) {
+            binding.cardBodyScanHome.visibility = View.GONE
+            return
+        }
+        binding.cardBodyScanHome.visibility = View.VISIBLE
+
+        val latest = entries.maxByOrNull { it.dateMs } ?: return
+        val previous = entries.filter { it.dateMs < latest.dateMs }.maxByOrNull { it.dateMs }
+
+        val dateLabel = SimpleDateFormat("d MMM", Locale.getDefault()).format(Date(latest.dateMs))
+        binding.textHomeBodyScanDate.text = getString(R.string.overview_body_scan_last_scan, dateLabel)
+
+        val secondaryColor = ContextCompat.getColor(this, R.color.fitness_text_secondary)
+        val green = Color.parseColor("#10B981")
+        val red = Color.parseColor("#EF4444")
+
+        latest.weightKg?.let { w ->
+            binding.textHomeBodyScanWeight.text = String.format(Locale.US, "%.1f kg", w)
+            val delta = previous?.weightKg?.let { p -> w - p }
+            binding.textHomeBodyScanWeightDelta.text = delta?.let { formatBodyScanDelta(it, "kg") } ?: ""
+            binding.textHomeBodyScanWeightDelta.setTextColor(when {
+                delta == null || delta == 0.0 -> secondaryColor
+                delta < 0 -> green
+                else -> red
+            })
+        } ?: run { binding.textHomeBodyScanWeight.text = "–" }
+
+        latest.bodyFatPct?.let { f ->
+            binding.textHomeBodyScanFat.text = String.format(Locale.US, "%.1f%%", f)
+            val delta = previous?.bodyFatPct?.let { p -> f - p }
+            binding.textHomeBodyScanFatDelta.text = delta?.let { formatBodyScanDelta(it, "%") } ?: ""
+            binding.textHomeBodyScanFatDelta.setTextColor(when {
+                delta == null || delta == 0.0 -> secondaryColor
+                delta < 0 -> green
+                else -> red
+            })
+        } ?: run { binding.textHomeBodyScanFat.text = "–" }
+
+        latest.leanBodyMassKg?.let { l ->
+            binding.textHomeBodyScanLean.text = String.format(Locale.US, "%.1f kg", l)
+            val delta = previous?.leanBodyMassKg?.let { p -> l - p }
+            binding.textHomeBodyScanLeanDelta.text = delta?.let { formatBodyScanDelta(it, "kg") } ?: ""
+            binding.textHomeBodyScanLeanDelta.setTextColor(when {
+                delta == null || delta == 0.0 -> secondaryColor
+                delta > 0 -> green
+                else -> red
+            })
+        } ?: run { binding.textHomeBodyScanLean.text = "–" }
+
+        latest.bmrKcal?.let { b ->
+            binding.textHomeBodyScanBmr.text = String.format(Locale.US, "%.0f kcal", b)
+        } ?: run { binding.textHomeBodyScanBmr.text = "–" }
+
+        binding.textHomeViewAllScans.setOnClickListener {
+            val intent = Intent(this, ProgressActivity::class.java)
+            intent.putExtra(ProgressActivity.EXTRA_GOTO_TAB, ProgressPagerAdapter.TAB_BODY_SCAN)
+            startActivity(intent)
+        }
+    }
+
+    private fun formatBodyScanDelta(delta: Double, unit: String): String {
+        if (delta == 0.0) return ""
+        val sign = if (delta > 0) "+" else ""
+        return "$sign${String.format(Locale.US, "%.1f", delta)}$unit"
     }
 
     /** Whole calendar days from session local date to today (0 = same calendar day). */

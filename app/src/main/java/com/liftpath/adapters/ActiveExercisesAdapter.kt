@@ -22,7 +22,9 @@ import com.liftpath.helpers.ProgressionHelper
 import com.liftpath.helpers.ProgressionSettingsManager
 import com.liftpath.helpers.WorkoutGenerator
 import com.liftpath.helpers.showWithTransparentWindow
+import com.liftpath.models.DraftExerciseRow
 import com.liftpath.models.GroupedExercise
+import com.liftpath.models.PlanSlotType
 import com.liftpath.models.SetIntent
 import com.google.android.material.chip.ChipGroup
 import java.util.Locale
@@ -39,6 +41,7 @@ class ActiveExercisesAdapter(
     private val lockedIntents: MutableMap<Int, SetIntent>,
     private val lastWorkoutData: Map<Int, Map<SetIntent, List<com.liftpath.models.ExerciseEntry>>>,
     private val lastIntents: Map<Int, SetIntent>,
+    private val planSnapshots: Map<Int, DraftExerciseRow> = emptyMap(),
     private val onAddSetClicked: (exerciseId: Int, exerciseName: String) -> Unit,
     private val onEditActivityClicked: (GroupedExercise) -> Unit,
     private val onDuplicateSetClicked: (exerciseId: Int) -> Unit,
@@ -51,12 +54,18 @@ class ActiveExercisesAdapter(
     private val selectedForSupersetPositions: () -> Set<Int>,
     private val onExerciseLongPress: (position: Int) -> Unit,
     private val getSupersetTargetSets: (groupId: String?) -> Int?,
-    private val getCompletedSupersetGroupIds: () -> Set<String>
+    private val getCompletedSupersetGroupIds: () -> Set<String>,
+    private val onSpecialCompleted: (exerciseId: Int, isCompleted: Boolean) -> Unit = { _, _ -> },
+    private val onDeleteSpecialClicked: (exerciseId: Int) -> Unit = {},
+    private val onStartTimerClicked: (exerciseId: Int) -> Unit = {},
+    private val onEditDurationClicked: (exerciseId: Int) -> Unit = {},
+    private val onChangeExerciseClicked: ((position: Int) -> Unit)? = null
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     
     companion object {
-        private const val VIEW_TYPE_EXERCISE = 0
+        private const val VIEW_TYPE_EXERCISE    = 0
         private const val VIEW_TYPE_ADD_BUTTONS = 1
+        private const val VIEW_TYPE_SPECIAL     = 2
     }
 
     /** Always use '.' as decimal separator (locale-independent) for workout numbers. */
@@ -102,6 +111,7 @@ class ActiveExercisesAdapter(
 
     class GroupedExerciseViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val exerciseName: TextView = view.findViewById(R.id.text_exercise_name)
+        val swapExerciseButton: android.widget.ImageButton = view.findViewById(R.id.button_swap_exercise)
         val intentBadge: TextView = view.findViewById(R.id.text_intent_badge)
         val recommendedInfo: TextView = view.findViewById(R.id.text_recommended_info)
         val setsCount: TextView = view.findViewById(R.id.text_sets_count)
@@ -130,38 +140,94 @@ class ActiveExercisesAdapter(
         val bonusPlusButton: CardView = view.findViewById(R.id.button_add_exercise_bonus)
     }
 
-    override fun getItemViewType(position: Int): Int {
-        return if (position == groupedExercises.size) {
-            VIEW_TYPE_ADD_BUTTONS
-        } else {
-            VIEW_TYPE_EXERCISE
-        }
+    class SpecialElementViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val icon: TextView = view.findViewById(R.id.text_special_icon)
+        val label: TextView = view.findViewById(R.id.text_special_label)
+        val subtitle: TextView = view.findViewById(R.id.text_special_subtitle)
+        val notesText: TextView = view.findViewById(R.id.text_special_notes)
+        val durationBadge: TextView = view.findViewById(R.id.text_duration_badge)
+        val cardMarkComplete: CardView = view.findViewById(R.id.card_mark_complete)
+        val textMarkComplete: TextView = view.findViewById(R.id.text_mark_complete)
+        val cardStartTimer: CardView = view.findViewById(R.id.card_start_timer)
+        val btnDelete: android.widget.ImageButton = view.findViewById(R.id.button_delete_special)
+    }
+
+    override fun getItemViewType(position: Int): Int = when {
+        position == groupedExercises.size -> VIEW_TYPE_ADD_BUTTONS
+        groupedExercises[position].isSpecialElement -> VIEW_TYPE_SPECIAL
+        else -> VIEW_TYPE_EXERCISE
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+        val inflater = LayoutInflater.from(parent.context)
         return when (viewType) {
-            VIEW_TYPE_EXERCISE -> {
-                val view = LayoutInflater.from(parent.context)
-                    .inflate(R.layout.list_item_active_exercise, parent, false)
-                GroupedExerciseViewHolder(view)
-            }
-            VIEW_TYPE_ADD_BUTTONS -> {
-                val view = LayoutInflater.from(parent.context)
-                    .inflate(R.layout.item_add_buttons_row, parent, false)
-                AddButtonsViewHolder(view)
-            }
+            VIEW_TYPE_EXERCISE -> GroupedExerciseViewHolder(
+                inflater.inflate(R.layout.list_item_active_exercise, parent, false)
+            )
+            VIEW_TYPE_ADD_BUTTONS -> AddButtonsViewHolder(
+                inflater.inflate(R.layout.item_add_buttons_row, parent, false)
+            )
+            VIEW_TYPE_SPECIAL -> SpecialElementViewHolder(
+                inflater.inflate(R.layout.list_item_active_special, parent, false)
+            )
             else -> throw IllegalArgumentException("Unknown view type: $viewType")
         }
     }
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         when (holder) {
-            is GroupedExerciseViewHolder -> {
-                bindExerciseViewHolder(holder, position)
-            }
-            is AddButtonsViewHolder -> {
-                bindAddButtonsViewHolder(holder)
-            }
+            is SpecialElementViewHolder -> bindSpecialViewHolder(holder, position)
+            is GroupedExerciseViewHolder -> bindExerciseViewHolder(holder, position)
+            is AddButtonsViewHolder -> bindAddButtonsViewHolder(holder)
+        }
+    }
+
+    private fun bindSpecialViewHolder(holder: SpecialElementViewHolder, position: Int) {
+        val element = groupedExercises[position]
+        val isWarmup = element.slotType == PlanSlotType.WARMUP
+        val isCompleted = element.isSpecialCompleted
+
+        holder.icon.text = if (isWarmup) "🔥" else "🧊"
+        holder.label.setText(if (isWarmup) R.string.label_warmup_element else R.string.label_cooldown_element)
+        holder.subtitle.setText(if (isWarmup) R.string.warmup_element_subtitle else R.string.cooldown_element_subtitle)
+
+        // Duration badge — shows "X min", tapping opens edit dialog
+        val durationMins = element.durationSeconds / 60
+        holder.durationBadge.text = "${durationMins} min"
+        holder.durationBadge.setOnClickListener {
+            val pos = holder.bindingAdapterPosition
+            if (pos >= 0) onEditDurationClicked(element.exerciseId)
+        }
+
+        // Show notes if any
+        val notes = element.sets.firstOrNull()?.note
+        if (!notes.isNullOrEmpty()) {
+            holder.notesText.text = notes
+            holder.notesText.visibility = View.VISIBLE
+        } else {
+            holder.notesText.visibility = View.GONE
+        }
+
+        // Mark complete / undo button label + colour
+        holder.textMarkComplete.setText(if (isCompleted) R.string.btn_mark_incomplete else R.string.btn_mark_complete)
+        val completedColor = ContextCompat.getColor(holder.itemView.context,
+            if (isCompleted) R.color.superset_complete_green else R.color.fitness_primary)
+        holder.cardMarkComplete.setCardBackgroundColor(completedColor)
+        holder.cardMarkComplete.setOnClickListener {
+            val pos = holder.bindingAdapterPosition
+            if (pos >= 0) onSpecialCompleted(element.exerciseId, !isCompleted)
+        }
+
+        // Start Timer button — both warmup and cooldown
+        holder.cardStartTimer.setOnClickListener {
+            val pos = holder.bindingAdapterPosition
+            if (pos >= 0) onStartTimerClicked(element.exerciseId)
+        }
+
+        // Delete button
+        holder.btnDelete.setOnClickListener {
+            val pos = holder.bindingAdapterPosition
+            if (pos >= 0) onDeleteSpecialClicked(element.exerciseId)
         }
     }
     
@@ -177,6 +243,17 @@ class ActiveExercisesAdapter(
     private fun bindExerciseViewHolder(holder: GroupedExerciseViewHolder, position: Int) {
         val groupedExercise = groupedExercises[position]
         holder.exerciseName.text = groupedExercise.exerciseName
+
+        if (groupedExercise.isFamilySlot && onChangeExerciseClicked != null) {
+            holder.swapExerciseButton.visibility = View.VISIBLE
+            holder.swapExerciseButton.setOnClickListener {
+                val pos = holder.bindingAdapterPosition
+                if (pos >= 0) onChangeExerciseClicked.invoke(pos)
+            }
+        } else {
+            holder.swapExerciseButton.visibility = View.GONE
+            holder.swapExerciseButton.setOnClickListener(null)
+        }
 
         ensureSupersetPositionCache()
         val groupId = groupedExercise.supersetGroupId
@@ -513,18 +590,30 @@ class ActiveExercisesAdapter(
                 }
             }
             
-            // Get progression suggestion if intent is selected (STRENGTH or BUILD only)
-            val suggestionInfo = getSuggestionInfo(holder.itemView.context, groupedExercise.exerciseId, currentIntent)
             val currentWorkingSetsCount = currentWorkingSets.size
             val lastWorkoutWorkingSetsCount = lastWorkingSets.size
-            
-            // Only show suggestion if we haven't completed the suggested number of sets
-            // Also hide if we've done as many sets as last workout
-            val suggestedSetsCount = suggestionInfo?.suggestedSets ?: 3
-            val shouldShowSuggestion = suggestionInfo != null && 
-                currentWorkingSetsCount < suggestedSetsCount &&
-                (lastWorkoutWorkingSetsCount == 0 || currentWorkingSetsCount < lastWorkoutWorkingSetsCount)
-            
+
+            // Plan targets take priority over progression suggestion
+            val planSnapshot = planSnapshots[groupedExercise.exerciseId]
+            val planIndicatorText = planSnapshot?.let { buildPlanIndicatorText(it) }
+
+            val effectiveIndicatorText: String?
+            val shouldShowSuggestion: Boolean
+
+            if (planIndicatorText != null) {
+                val planComplete = planSnapshot!!.plannedSetsTarget != null &&
+                    currentWorkingSetsCount >= planSnapshot.plannedSetsTarget!!
+                shouldShowSuggestion = !planComplete
+                effectiveIndicatorText = planIndicatorText
+            } else {
+                val suggestionInfo = getSuggestionInfo(holder.itemView.context, groupedExercise.exerciseId, currentIntent)
+                val suggestedSetsCount = suggestionInfo?.suggestedSets ?: 3
+                shouldShowSuggestion = suggestionInfo != null &&
+                    currentWorkingSetsCount < suggestedSetsCount &&
+                    (lastWorkoutWorkingSetsCount == 0 || currentWorkingSetsCount < lastWorkoutWorkingSetsCount)
+                effectiveIndicatorText = suggestionInfo?.text
+            }
+
             // Find the line index of the last logged working set
             // Working sets are added after warmup sets, so we need to find the last non-empty working set line
             val lastLoggedWorkingSetIndex = if (currentWorkingSetsCount > 0) {
@@ -539,13 +628,13 @@ class ActiveExercisesAdapter(
                 // No working sets logged yet - insert after warmup if any, otherwise at start
                 if (maxWarmupSets > 0) maxWarmupSets - 1 else -1
             }
-            
+
             // Build spannable text with colored suggestion inserted after last logged working set
             val displayText = if (shouldShowSuggestion && lastLoggedWorkingSetIndex >= 0) {
                 buildSpannableWithSuggestion(
                     ctx,
                     currentSetsText,
-                    suggestionInfo!!.text,
+                    effectiveIndicatorText!!,
                     insertAfterLine = lastLoggedWorkingSetIndex  // Insert after last logged working set
                 )
             } else if (shouldShowSuggestion) {
@@ -553,7 +642,7 @@ class ActiveExercisesAdapter(
                 buildSpannableWithSuggestion(
                     ctx,
                     currentSetsText,
-                    suggestionInfo!!.text,
+                    effectiveIndicatorText!!,
                     insertAfterLine = -1  // Append at end
                 )
             } else {
@@ -571,12 +660,14 @@ class ActiveExercisesAdapter(
                 holder.lastWorkoutSets.visibility = View.GONE
             }
         } else {
-            // No sets logged yet - show suggestion if intent is selected
-            val suggestionText = getSuggestionForIntent(holder.itemView.context, groupedExercise.exerciseId, currentIntent)
-            
-            if (suggestionText != null) {
+            // No sets logged yet - plan targets take priority over progression suggestion
+            val planSnapshot = planSnapshots[groupedExercise.exerciseId]
+            val effectiveSuggestionText = planSnapshot?.let { buildPlanIndicatorText(it) }
+                ?: getSuggestionForIntent(holder.itemView.context, groupedExercise.exerciseId, currentIntent)
+
+            if (effectiveSuggestionText != null) {
                 // Show suggestion in the logged sets area with colored text
-                val displayText = buildSpannableWithSuggestion(holder.itemView.context, emptyList(), suggestionText)
+                val displayText = buildSpannableWithSuggestion(holder.itemView.context, emptyList(), effectiveSuggestionText)
                 holder.loggedSets.text = displayText
                 holder.loggedSets.visibility = View.VISIBLE
             } else {
@@ -804,6 +895,26 @@ class ActiveExercisesAdapter(
             .showWithTransparentWindow()
     }
     
+    private fun buildPlanIndicatorText(snapshot: DraftExerciseRow): String? {
+        if (!snapshot.fromPlan) return null
+        val sets = snapshot.plannedSetsTarget
+        val reps = snapshot.plannedRepsTarget?.takeIf { it.isNotBlank() }
+        val rpe = snapshot.plannedRpeTarget
+        if (sets == null && reps == null && rpe == null) return null
+
+        val sb = StringBuilder("Plan: ")
+        when {
+            sets != null && reps != null -> sb.append("${sets}×${reps}")
+            sets != null -> sb.append("$sets sets")
+            reps != null -> sb.append("$reps reps")
+        }
+        if (rpe != null) {
+            if (sets != null || reps != null) sb.append(" ")
+            sb.append("@ RPE ${formatOneDecimal(rpe)}")
+        }
+        return sb.toString()
+    }
+
     /**
      * Data class to hold suggestion info including suggested sets count
      */

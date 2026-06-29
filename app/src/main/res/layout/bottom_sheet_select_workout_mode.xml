@@ -3,14 +3,17 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@color/fitness_background">
+    android:background="@color/fitness_background"
+    android:clipChildren="false">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:padding="24dp"
-        android:fitsSystemWindows="false">
+        android:fitsSystemWindows="false"
+        android:clipChildren="false"
+        android:clipToPadding="false">
 
         <!-- Header -->
         <TextView
@@ -37,7 +40,9 @@
             android:id="@+id/layout_main_tiles"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:clipChildren="false"
+            android:clipToPadding="false">
 
             <!-- Custom Tile -->
             <include
@@ -57,7 +62,9 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:orientation="vertical"
-            android:visibility="gone">
+            android:visibility="gone"
+            android:clipChildren="false"
+            android:clipToPadding="false">
 
             <!-- Continue plan set card (shown when user has an active rotation) -->
             <androidx.cardview.widget.CardView
@@ -122,7 +129,10 @@
                 android:id="@+id/recycler_view_plans"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:nestedScrollingEnabled="false" />
+                android:nestedScrollingEnabled="false"
+                android:clipChildren="false"
+                android:clipToPadding="false"
+                android:paddingTop="4dp" />
 
             <TextView
                 android:id="@+id/text_empty_plans"
@@ -153,7 +163,10 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:nestedScrollingEnabled="false"
-                android:visibility="gone" />
+                android:visibility="gone"
+                android:clipChildren="false"
+                android:clipToPadding="false"
+                android:paddingTop="4dp" />
         </LinearLayout>
     </LinearLayout>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

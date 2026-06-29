@@ -2,6 +2,8 @@ package com.liftpath.activities
 
 import android.content.Intent
 import android.os.Bundle
+import android.widget.PopupMenu
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.liftpath.R
@@ -27,12 +29,47 @@ class WorkoutPlansActivity : AppCompatActivity() {
         }
     }
 
+    private val exportSpecLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("text/markdown")) { uri ->
+        uri ?: return@registerForActivityResult
+        jsonHelper.exportWorkoutPlanSpec(uri)
+            .onSuccess {
+                Toast.makeText(this, getString(R.string.toast_plan_spec_exported), Toast.LENGTH_SHORT).show()
+            }
+            .onFailure { e ->
+                Toast.makeText(this, getString(R.string.toast_plan_spec_export_failed, e.message), Toast.LENGTH_LONG).show()
+            }
+    }
+
+    private val importPlanLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri ?: return@registerForActivityResult
+        jsonHelper.importWorkoutPlans(uri)
+            .onSuccess { imported ->
+                if (imported.isEmpty()) {
+                    Toast.makeText(this, getString(R.string.toast_plan_import_none), Toast.LENGTH_SHORT).show()
+                    return@onSuccess
+                }
+                val data = jsonHelper.readTrainingData()
+                data.workoutPlans.addAll(imported)
+                jsonHelper.writeTrainingData(data)
+                loadPlans()
+
+                val names = imported.joinToString("\n") { "• ${it.name}" }
+                DialogHelper.createBuilder(this)
+                    .setTitle(getString(R.string.dialog_title_import_plans))
+                    .setMessage(getString(R.string.dialog_message_import_plans, imported.size, names))
+                    .setPositiveButton(getString(R.string.button_ok), null)
+                    .showWithTransparentWindow()
+            }
+            .onFailure { e ->
+                Toast.makeText(this, getString(R.string.toast_plan_import_error, e.message), Toast.LENGTH_LONG).show()
+            }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityWorkoutPlansBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Setup background animation
         setupBackgroundAnimation()
 
         jsonHelper = JsonHelper(this)
@@ -40,7 +77,7 @@ class WorkoutPlansActivity : AppCompatActivity() {
         setupClickListeners()
         loadPlans()
     }
-    
+
     private fun setupBackgroundAnimation() {
         val drawable = binding.imageBgAnimation.drawable
         if (drawable is android.graphics.drawable.Animatable) {
@@ -51,8 +88,7 @@ class WorkoutPlansActivity : AppCompatActivity() {
     private fun setupRecyclerView() {
         adapter = WorkoutPlansAdapter(
             plans = plans,
-            onUsePlanClicked = { plan ->
-                // TODO: Will be implemented later - for now just show message
+            onUsePlanClicked = { _ ->
                 DialogHelper.createBuilder(this)
                     .setTitle(getString(R.string.dialog_title_use_plan))
                     .setMessage(getString(R.string.dialog_message_use_plan))
@@ -82,14 +118,32 @@ class WorkoutPlansActivity : AppCompatActivity() {
         binding.buttonPlanRotations.setOnClickListener {
             startActivity(Intent(this, PlanSetActivity::class.java))
         }
+
+        binding.buttonMoreOptions.setOnClickListener { anchor ->
+            val popup = PopupMenu(this, anchor)
+            popup.menuInflater.inflate(R.menu.menu_workout_plans, popup.menu)
+            popup.setOnMenuItemClickListener { item ->
+                when (item.itemId) {
+                    R.id.action_export_plan_spec -> {
+                        exportSpecLauncher.launch("liftpath_plan_spec.md")
+                        true
+                    }
+                    R.id.action_import_plan_from_ai -> {
+                        importPlanLauncher.launch(arrayOf("text/markdown", "text/plain", "*/*"))
+                        true
+                    }
+                    else -> false
+                }
+            }
+            popup.show()
+        }
     }
 
     private fun loadPlans() {
         val trainingData = jsonHelper.readTrainingData()
         plans = trainingData.workoutPlans.toMutableList()
         adapter.updatePlans(plans)
-        
-        // Show/hide empty state
+
         if (plans.isEmpty()) {
             binding.textEmptyState.visibility = android.view.View.VISIBLE
             binding.recyclerViewPlans.visibility = android.view.View.GONE
@@ -125,4 +179,3 @@ class WorkoutPlansActivity : AppCompatActivity() {
             .showWithTransparentWindow()
     }
 }
-

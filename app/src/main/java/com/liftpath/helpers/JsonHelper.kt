@@ -7,6 +7,7 @@ import com.liftpath.models.PlanExerciseSelectionType
 import com.liftpath.models.PlanExerciseSlot
 import com.liftpath.models.SetIntent
 import com.liftpath.models.TrainingData
+import com.liftpath.models.WorkoutPlan
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import java.io.File
@@ -236,5 +237,30 @@ class JsonHelper(private val context: Context) {
         } ?: throw IOException("Unable to open destination")
     }.onFailure {
         Log.e(TAG, "Failed to export AI markdown", it)
+    }
+
+    /** Export the full exercise catalog + plan spec to a user-picked .md file. */
+    fun exportWorkoutPlanSpec(destinationUri: Uri): Result<Unit> = runCatching {
+        val data = readTrainingData()
+        val markdown = WorkoutPlanMarkdownHelper.buildSpecMarkdown(data)
+        val bytes = markdown.toByteArray(StandardCharsets.UTF_8)
+        context.contentResolver.openOutputStream(destinationUri)?.use { outputStream ->
+            outputStream.write(bytes)
+            outputStream.flush()
+        } ?: throw IOException("Unable to open destination")
+    }.onFailure {
+        Log.e(TAG, "Failed to export workout plan spec", it)
+    }
+
+    /** Parse AI-generated plan(s) from a .md file and return the new WorkoutPlan objects. */
+    fun importWorkoutPlans(sourceUri: Uri): Result<List<WorkoutPlan>> = runCatching {
+        val markdown = context.contentResolver.openInputStream(sourceUri)
+            ?.bufferedReader(StandardCharsets.UTF_8)
+            ?.use { it.readText() }
+            ?: throw IOException("Unable to read source")
+        val data = readTrainingData()
+        WorkoutPlanMarkdownHelper.parsePlansFromMarkdown(markdown, data.exerciseLibrary)
+    }.onFailure {
+        Log.e(TAG, "Failed to import workout plans", it)
     }
 }

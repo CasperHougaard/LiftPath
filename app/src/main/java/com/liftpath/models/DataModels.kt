@@ -92,6 +92,17 @@ enum class PlanExerciseSelectionType {
     @SerializedName("family_slot")      FAMILY_SLOT
 }
 
+enum class PlanSlotType(val value: String) {
+    @SerializedName("exercise") EXERCISE("exercise"),
+    @SerializedName("warmup")   WARMUP("warmup"),
+    @SerializedName("cooldown") COOLDOWN("cooldown")
+}
+
+/** Sentinel exerciseId used to store a completed warm-up element in the session log. */
+const val WARMUP_EXERCISE_ID = -1
+/** Sentinel exerciseId used to store a completed cool-down element in the session log. */
+const val COOLDOWN_EXERCISE_ID = -2
+
 enum class Equipment(val displayName: String) {
     @SerializedName("barbell")     BARBELL("Barbell"),
     @SerializedName("dumbbell")    DUMBBELL("Dumbbell"),
@@ -149,7 +160,7 @@ data class ExerciseFamily(
 @Parcelize
 data class PlanExerciseSlot(
     val id: String = UUID.randomUUID().toString(),
-    val exerciseId: Int? = null,                        // non-null for SPECIFIC_VARIANT
+    val exerciseId: Int? = null,                        // non-null for SPECIFIC_VARIANT; null for WARMUP/COOLDOWN
     val defaultIntent: SetIntent? = null,
     val restTimeSeconds: Int? = null,
     val rpeTarget: Float? = null,
@@ -159,10 +170,14 @@ data class PlanExerciseSlot(
     // V3 reserved ─ not used in V2 UI
     val selectionType: PlanExerciseSelectionType? = null,
     val familyId: String? = null,
-    val movementPattern: MovementPattern? = null
+    val movementPattern: MovementPattern? = null,
+    val slotType: PlanSlotType = PlanSlotType.EXERCISE,
+    val durationSeconds: Int? = null
 ) : Parcelable {
     val effectiveSelectionType: PlanExerciseSelectionType
         get() = selectionType ?: PlanExerciseSelectionType.SPECIFIC_VARIANT
+    val isSpecialElement: Boolean
+        get() = slotType == PlanSlotType.WARMUP || slotType == PlanSlotType.COOLDOWN
 }
 
 @Parcelize
@@ -404,8 +419,16 @@ data class DraftExerciseRow(
     val plannedRpeTarget: Float? = null,
     val plannedSetsTarget: Int? = null,
     val plannedRepsTarget: String? = null,
-    val plannedNotes: String? = null
-)
+    val plannedNotes: String? = null,
+    val slotType: PlanSlotType = PlanSlotType.EXERCISE,
+    val isSpecialCompleted: Boolean = false,
+    val durationSeconds: Int = 300,
+    val slotSelectionType: PlanExerciseSelectionType? = null,
+    val slotFamilyId: String? = null
+) {
+    val isSpecialElement: Boolean
+        get() = slotType == PlanSlotType.WARMUP || slotType == PlanSlotType.COOLDOWN
+}
 
 data class ActiveWorkoutDraft(
     val workoutType: String,
@@ -449,8 +472,18 @@ data class GroupedExercise(
     val exerciseName: String,
     val sets: List<ExerciseEntry>,
     val supersetGroupId: String? = null,
-    val groupType: String? = null
-)
+    val groupType: String? = null,
+    val slotType: PlanSlotType = PlanSlotType.EXERCISE,
+    var isSpecialCompleted: Boolean = false,
+    var durationSeconds: Int = 300,
+    val slotSelectionType: PlanExerciseSelectionType? = null,
+    val slotFamilyId: String? = null
+) {
+    val isSpecialElement: Boolean
+        get() = slotType == PlanSlotType.WARMUP || slotType == PlanSlotType.COOLDOWN
+    val isFamilySlot: Boolean
+        get() = slotSelectionType == PlanExerciseSelectionType.FAMILY_SLOT
+}
 
 data class ExerciseSet(
     val date: String,
@@ -506,4 +539,10 @@ data class MuscleProgress(
     val currentVolume: Float,
     val previousVolume: Float?,
     val changePercent: Float?  // null if first time working this muscle
+)
+
+data class StretchItem(
+    val name: String,
+    val targetMuscles: List<TargetMuscle>,
+    val durationSeconds: Int
 )

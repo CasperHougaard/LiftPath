@@ -12,5 +12,9 @@
     <dimen name="pr_card_width">140dp</dimen>
     <dimen name="card_margin">12dp</dimen>
     <dimen name="card_elevation">4dp</dimen>
+
+    <!-- Stretch Cooldown -->
+    <dimen name="stretch_header_padding_top">16dp</dimen>
+    <dimen name="stretch_button_bottom_margin">24dp</dimen>
 </resources>
 

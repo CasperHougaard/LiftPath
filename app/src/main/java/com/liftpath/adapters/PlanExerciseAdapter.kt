@@ -13,6 +13,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.liftpath.R
 import com.liftpath.models.PlanExerciseSelectionType
 import com.liftpath.models.PlanExerciseSlot
+import com.liftpath.models.PlanSlotType
 import com.liftpath.models.SetIntent
 
 class PlanExerciseAdapter(
@@ -21,15 +22,25 @@ class PlanExerciseAdapter(
     private val onMoveUp: (Int) -> Unit,
     private val onMoveDown: (Int) -> Unit,
     private val onIntentClicked: (Int) -> Unit  // position -> show intent picker
-) : RecyclerView.Adapter<PlanExerciseAdapter.ViewHolder>() {
+) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
-    /** Positions that are currently expanded. */
+    companion object {
+        private const val VIEW_TYPE_EXERCISE = 0
+        private const val VIEW_TYPE_SPECIAL  = 1
+    }
+
+    /** Positions that are currently expanded (exercise slots only). */
     private val expandedPositions = mutableSetOf<Int>()
 
     /** Map from exerciseId to display name (populated externally). */
     var exerciseNames: Map<Int, String> = emptyMap()
 
-    inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+    /** Map from familyId to display name (populated externally). */
+    var familyNames: Map<String, String> = emptyMap()
+
+    // ── ViewHolder: regular exercise ────────────────────────────────────────
+
+    inner class ExerciseViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val number: TextView = view.findViewById(R.id.text_exercise_number)
         val name: TextView = view.findViewById(R.id.text_exercise_name)
         val targetsSummary: TextView = view.findViewById(R.id.text_targets_summary)
@@ -46,7 +57,6 @@ class PlanExerciseAdapter(
         val editRest: EditText = view.findViewById(R.id.edit_rest_seconds)
         val editNotes: EditText = view.findViewById(R.id.edit_notes)
 
-        // Text watchers — stored so we can remove before rebinding to avoid stale callbacks
         var setsWatcher: TextWatcher? = null
         var rpeWatcher: TextWatcher? = null
         var repsWatcher: TextWatcher? = null
@@ -54,19 +64,106 @@ class PlanExerciseAdapter(
         var notesWatcher: TextWatcher? = null
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.list_item_plan_exercise, parent, false)
-        return ViewHolder(view)
+    // ── ViewHolder: warmup / cooldown ───────────────────────────────────────
+
+    inner class SpecialSlotViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val iconText: TextView = view.findViewById(R.id.text_slot_icon)
+        val label: TextView = view.findViewById(R.id.text_slot_label)
+        val subtitle: TextView = view.findViewById(R.id.text_slot_subtitle)
+        val btnMoveUp: ImageButton = view.findViewById(R.id.button_move_up)
+        val btnMoveDown: ImageButton = view.findViewById(R.id.button_move_down)
+        val btnRemove: ImageButton = view.findViewById(R.id.button_remove_slot)
+        val editDuration: EditText = view.findViewById(R.id.edit_slot_duration)
+        val editNotes: EditText = view.findViewById(R.id.edit_slot_notes)
+        var durationWatcher: TextWatcher? = null
+        var notesWatcher: TextWatcher? = null
     }
 
-    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+    // ── Adapter overrides ────────────────────────────────────────────────────
+
+    override fun getItemViewType(position: Int): Int =
+        if (configs[position].isSpecialElement) VIEW_TYPE_SPECIAL else VIEW_TYPE_EXERCISE
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+        val inflater = LayoutInflater.from(parent.context)
+        return if (viewType == VIEW_TYPE_SPECIAL) {
+            SpecialSlotViewHolder(
+                inflater.inflate(R.layout.list_item_plan_special_slot, parent, false)
+            )
+        } else {
+            ExerciseViewHolder(
+                inflater.inflate(R.layout.list_item_plan_exercise, parent, false)
+            )
+        }
+    }
+
+    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         val config = configs[position]
+        when (holder) {
+            is SpecialSlotViewHolder -> bindSpecial(holder, position, config)
+            is ExerciseViewHolder    -> bindExercise(holder, position, config)
+        }
+    }
+
+    override fun getItemCount() = configs.size
+
+    // ── Bind helpers ─────────────────────────────────────────────────────────
+
+    private fun bindSpecial(holder: SpecialSlotViewHolder, position: Int, config: PlanExerciseSlot) {
+        val isWarmup = config.slotType == PlanSlotType.WARMUP
+        holder.iconText.text = if (isWarmup) "🔥" else "🧊"
+        holder.label.setText(if (isWarmup) R.string.label_warmup_element else R.string.label_cooldown_element)
+        holder.subtitle.setText(if (isWarmup) R.string.warmup_element_subtitle else R.string.cooldown_element_subtitle)
+
+        holder.btnMoveUp.visibility = if (position == 0) View.INVISIBLE else View.VISIBLE
+        holder.btnMoveDown.visibility = if (position == itemCount - 1) View.INVISIBLE else View.VISIBLE
+
+        // Duration field (in minutes)
+        holder.editDuration.removeTextChangedListener(holder.durationWatcher)
+        val durationMins = (config.durationSeconds ?: 300) / 60
+        holder.editDuration.setText(durationMins.toString())
+        holder.durationWatcher = makeWatcher { text ->
+            val pos = holder.bindingAdapterPosition
+            if (pos >= 0) {
+                val mins = text.toIntOrNull()?.coerceAtLeast(1) ?: 5
+                configs[pos] = configs[pos].copy(durationSeconds = mins * 60)
+            }
+        }
+        holder.editDuration.addTextChangedListener(holder.durationWatcher)
+
+        holder.editNotes.removeTextChangedListener(holder.notesWatcher)
+        holder.editNotes.setText(config.notes ?: "")
+        holder.notesWatcher = makeWatcher { text ->
+            val pos = holder.bindingAdapterPosition
+            if (pos >= 0) configs[pos] = configs[pos].copy(notes = text.ifEmpty { null })
+        }
+        holder.editNotes.addTextChangedListener(holder.notesWatcher)
+
+        holder.btnRemove.setOnClickListener {
+            val pos = holder.bindingAdapterPosition
+            if (pos >= 0) onRemoveClicked(pos)
+        }
+        holder.btnMoveUp.setOnClickListener {
+            val pos = holder.bindingAdapterPosition
+            if (pos > 0) onMoveUp(pos)
+        }
+        holder.btnMoveDown.setOnClickListener {
+            val pos = holder.bindingAdapterPosition
+            if (pos >= 0 && pos < itemCount - 1) onMoveDown(pos)
+        }
+    }
+
+    private fun bindExercise(holder: ExerciseViewHolder, position: Int, config: PlanExerciseSlot) {
         val isExpanded = expandedPositions.contains(position)
 
         holder.number.text = (position + 1).toString()
-        holder.name.text = config.exerciseId?.let { exerciseNames[it] ?: "Exercise $it" }
-            ?: "(No exercise selected)"
+        holder.name.text = when (config.effectiveSelectionType) {
+            PlanExerciseSelectionType.SPECIFIC_VARIANT ->
+                config.exerciseId?.let { exerciseNames[it] ?: "Exercise $it" }
+                    ?: "(No exercise selected)"
+            PlanExerciseSelectionType.FAMILY_SLOT ->
+                "[Family] ${config.familyId?.let { familyNames[it] } ?: "Unknown Family"}"
+        }
 
         // Targets summary (shown when collapsed)
         val summaryParts = mutableListOf<String>()
@@ -82,18 +179,15 @@ class PlanExerciseAdapter(
             holder.targetsSummary.visibility = View.GONE
         }
 
-        // Expand/collapse
         holder.dividerConfig.visibility = if (isExpanded) View.VISIBLE else View.GONE
         holder.layoutConfig.visibility = if (isExpanded) View.VISIBLE else View.GONE
         holder.btnExpand.setImageResource(
             if (isExpanded) R.drawable.ic_arrow_up else R.drawable.ic_expand_more
         )
 
-        // Hide move-up on first item, move-down on last
         holder.btnMoveUp.visibility = if (position == 0) View.INVISIBLE else View.VISIBLE
         holder.btnMoveDown.visibility = if (position == itemCount - 1) View.INVISIBLE else View.VISIBLE
 
-        // Populate config fields (remove old watchers first)
         holder.editSets.removeTextChangedListener(holder.setsWatcher)
         holder.editRpe.removeTextChangedListener(holder.rpeWatcher)
         holder.editReps.removeTextChangedListener(holder.repsWatcher)
@@ -107,7 +201,6 @@ class PlanExerciseAdapter(
         holder.editNotes.setText(config.notes ?: "")
         holder.intentValue.text = config.defaultIntent?.displayName ?: SetIntent.BUILD.displayName
 
-        // Re-attach watchers
         holder.setsWatcher = makeWatcher { text ->
             val pos = holder.bindingAdapterPosition
             if (pos >= 0) configs[pos] = configs[pos].copy(setsTarget = text.toIntOrNull())
@@ -135,23 +228,17 @@ class PlanExerciseAdapter(
         holder.editRest.addTextChangedListener(holder.restWatcher)
         holder.editNotes.addTextChangedListener(holder.notesWatcher)
 
-        // Click listeners
         holder.intentValue.setOnClickListener { onIntentClicked(holder.bindingAdapterPosition) }
 
-        holder.btnExpand.setOnClickListener {
+        val toggleExpand = View.OnClickListener {
             val pos = holder.bindingAdapterPosition
-            if (pos < 0) return@setOnClickListener
+            if (pos < 0) return@OnClickListener
             if (expandedPositions.contains(pos)) expandedPositions.remove(pos)
             else expandedPositions.add(pos)
             notifyItemChanged(pos)
         }
-        holder.itemView.setOnClickListener {
-            val pos = holder.bindingAdapterPosition
-            if (pos < 0) return@setOnClickListener
-            if (expandedPositions.contains(pos)) expandedPositions.remove(pos)
-            else expandedPositions.add(pos)
-            notifyItemChanged(pos)
-        }
+        holder.btnExpand.setOnClickListener(toggleExpand)
+        holder.itemView.setOnClickListener(toggleExpand)
 
         holder.btnRemove.setOnClickListener {
             val pos = holder.bindingAdapterPosition
@@ -167,13 +254,18 @@ class PlanExerciseAdapter(
         }
     }
 
-    override fun getItemCount() = configs.size
+    // ── Public API ────────────────────────────────────────────────────────────
 
     fun getSlots(): List<PlanExerciseSlot> = configs.toList()
 
     fun addSlot(slot: PlanExerciseSlot) {
         configs.add(slot)
         notifyItemInserted(configs.size - 1)
+    }
+
+    fun insertSlot(index: Int, slot: PlanExerciseSlot) {
+        configs.add(index, slot)
+        notifyItemInserted(index)
     }
 
     fun updateIntentAt(position: Int, intent: SetIntent) {
@@ -186,7 +278,6 @@ class PlanExerciseAdapter(
         if (position <= 0 || position >= configs.size) return
         val item = configs.removeAt(position)
         configs.add(position - 1, item)
-        // Shift expanded positions
         expandedPositions.remove(position)
         expandedPositions.remove(position - 1)
         notifyItemMoved(position, position - 1)
@@ -211,4 +302,3 @@ class PlanExerciseAdapter(
         override fun afterTextChanged(s: Editable?) { onChange(s?.toString()?.trim() ?: "") }
     }
 }
-

@@ -34,6 +34,10 @@ class PlanSetActivity : AppCompatActivity() {
         setupBackgroundAnimation()
         setupRecyclerView()
         setupClickListeners()
+    }
+
+    override fun onResume() {
+        super.onResume()
         loadData()
     }
 

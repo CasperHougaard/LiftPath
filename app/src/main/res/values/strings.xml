@@ -619,6 +619,16 @@ Leave blank if you\'re not sure.]]></string>
     <string name="bodyweight_source_withings">Using Withings: %1$s kg</string>
     <string name="bodyweight_source_manual">Using manual: %1$s kg</string>
     <string name="bodyweight_source_none">Not set</string>
+    <!-- Workout Plan AI Export / Import -->
+    <string name="menu_export_plan_spec">Export Plan Spec</string>
+    <string name="menu_import_plan_from_ai">Import Plan from AI</string>
+    <string name="toast_plan_spec_exported">Plan spec exported</string>
+    <string name="toast_plan_spec_export_failed">Export failed: %1$s</string>
+    <string name="toast_plan_import_none">No plans found in file</string>
+    <string name="toast_plan_import_error">Could not parse plan file: %1$s</string>
+    <string name="dialog_title_import_plans">Plans Imported</string>
+    <string name="dialog_message_import_plans">Added %1$d plan(s):\n%2$s</string>
+
     <!-- Withings scan management -->
     <string name="withings_edit_scans">Edit</string>
     <string name="withings_done_editing">Done</string>
@@ -627,5 +637,39 @@ Leave blank if you\'re not sure.]]></string>
     <string name="withings_delete_scan_message">This weigh-in (%1$s) will be removed and ignored on future syncs.</string>
     <string name="withings_delete_scan_confirm">Ignore</string>
     <string name="withings_scan_ignored">Scan ignored</string>
+
+    <!-- Overview Body Scan summary card -->
+    <string name="overview_body_scan_title">Body Scan</string>
+    <string name="overview_body_scan_last_scan">Last scan: %1$s</string>
+    <string name="overview_body_scan_view_all">View all scans →</string>
+    <string name="overview_body_scan_weight">Weight</string>
+    <string name="overview_body_scan_fat">Body fat</string>
+    <string name="overview_body_scan_lean">Lean mass</string>
+    <string name="overview_body_scan_bmr">BMR</string>
+
+    <!-- Warm-up / Cool-down elements -->
+    <string name="label_warmup_element">Warm-up</string>
+    <string name="label_cooldown_element">Cool-down</string>
+    <string name="btn_mark_complete">Mark Complete</string>
+    <string name="btn_mark_incomplete">Undo</string>
+    <string name="btn_add_warmup">+ Warm-up</string>
+    <string name="btn_add_cooldown">+ Cool-down</string>
+    <string name="btn_start_timer">Start Timer</string>
+    <string name="hint_warmup_notes">Notes (optional)</string>
+    <string name="warmup_element_subtitle">Prepare your body</string>
+    <string name="cooldown_element_subtitle">Wind down and stretch</string>
+    <string name="cooldown_timer_title">Cooldown Timer</string>
+    <string name="dialog_title_warmup_duration">Warm-up duration</string>
+    <string name="dialog_title_cooldown_duration">Cool-down duration</string>
+    <string name="dialog_title_custom_duration">Custom duration</string>
+    <string name="option_custom">Custom…</string>
+
+    <!-- Stretch Cooldown -->
+    <string name="stretch_cooldown_title">Cool Down</string>
+    <string name="stretch_progress_label">Stretch %1$d of %2$d</string>
+    <string name="stretch_button_next">Next  →</string>
+    <string name="stretch_button_finish">Finish</string>
+    <string name="stretch_button_skip">Skip</string>
+    <string name="stretch_skip_all_content_description">Skip all stretches</string>
 </resources>
 

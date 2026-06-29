@@ -101,23 +101,18 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="vertical"
-            android:padding="20dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Workout Sessions"
-                android:textColor="@color/fitness_text_primary"
-                android:textSize="18sp"
-                android:textStyle="bold" />
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="0dp">
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/recycler_view_history"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_weight="1"
-                android:layout_marginTop="12dp"
                 android:clipToPadding="false"
+                android:paddingBottom="8dp"
                 android:clipChildren="false" />
         </LinearLayout>
     </androidx.cardview.widget.CardView>

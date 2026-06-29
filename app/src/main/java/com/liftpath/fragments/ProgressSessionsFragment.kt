@@ -1,5 +1,6 @@
 package com.liftpath.fragments
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -9,6 +10,7 @@ import android.widget.ArrayAdapter
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.liftpath.R
+import com.liftpath.activities.TrainingDetailActivity
 import com.liftpath.adapters.SessionComparisonAdapter
 import com.liftpath.databinding.FragmentProgressSessionsBinding
 import com.liftpath.helpers.JsonHelper
@@ -66,13 +68,18 @@ class ProgressSessionsFragment : Fragment() {
         }
     }
 
+    private fun openSessionDetail(session: TrainingSession) {
+        val intent = Intent(requireContext(), TrainingDetailActivity::class.java).apply {
+            putExtra(TrainingDetailActivity.EXTRA_TRAINING_SESSION, session)
+        }
+        startActivity(intent)
+    }
+
     private fun setupRecyclerView() {
         val trainingData = jsonHelper.readTrainingData()
         adapter = SessionComparisonAdapter(
             sessions = emptyList(),
-            onSessionClick = { session ->
-                // Handle session click - could navigate to detail or start comparison
-            },
+            onSessionClick = { session -> openSessionDetail(session) },
             allSessions = trainingData.trainings
         )
         binding.recyclerSessions.layoutManager = LinearLayoutManager(requireContext())
@@ -113,9 +120,7 @@ class ProgressSessionsFragment : Fragment() {
             val trainingData = jsonHelper.readTrainingData()
             adapter = SessionComparisonAdapter(
                 sessions = filteredSessions,
-                onSessionClick = { session ->
-                    // Handle session click
-                },
+                onSessionClick = { session -> openSessionDetail(session) },
                 allSessions = trainingData.trainings
             )
             binding.recyclerSessions.adapter = adapter

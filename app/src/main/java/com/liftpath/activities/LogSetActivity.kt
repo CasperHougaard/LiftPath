@@ -2,6 +2,8 @@ package com.liftpath.activities
 
 import android.app.Activity
 import android.content.Intent
+import android.content.res.ColorStateList
+import android.graphics.Color
 import android.graphics.drawable.Animatable
 import android.os.Build
 import android.os.Bundle
@@ -16,7 +18,7 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import com.liftpath.R // <--- FIXED: ENSURE THIS IMPORT IS HERE
+import com.liftpath.R
 import com.liftpath.databinding.ActivityLogSetBinding
 import com.liftpath.helpers.BodyWeightHelper
 import com.liftpath.helpers.DialogHelper
@@ -49,6 +51,11 @@ class LogSetActivity : AppCompatActivity() {
     private var pendingTimerExerciseName: String? = null
     private var shouldFinishAfterTimer = false
     private var originalRpeHint: CharSequence? = null
+
+    // Stepper state
+    private val weightStep = 2.5f
+    private val rpeStep = 0.5f
+    private var isNoteExpanded = false
 
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -101,7 +108,13 @@ class LogSetActivity : AppCompatActivity() {
         } catch (e: Exception) {
             SetIntent.BUILD
         }
-        binding.textLogSetTitle.text = "$exerciseName (${displayIntent.displayName})"
+        binding.textLogSetTitle.text = exerciseName
+        binding.textSetNumberBadge.text = "SET $setNumber"
+        binding.textIntentLabel.text = displayIntent.displayName
+        val intentColor = getIntentColor(displayIntent)
+        binding.textSetNumberBadge.setTextColor(intentColor)
+        binding.textIntentLabel.setTextColor(intentColor)
+        binding.viewSuggestionStripe.setBackgroundColor(intentColor)
 
         setupBackgroundAnimation()
 
@@ -127,14 +140,26 @@ class LogSetActivity : AppCompatActivity() {
 
         // Store original RPE hint
         originalRpeHint = binding.textInputLayoutRpe.hint
-        
-        // Setup warmup checkbox listener
-        binding.cbWarmup.setOnCheckedChangeListener { _, isChecked ->
+
+        // Warmup chip (replaces checkbox)
+        binding.chipWarmup.setOnCheckedChangeListener { _, isChecked ->
             updateRpeFieldForWarmup(isChecked)
+            val bg = if (isChecked)
+                ColorStateList.valueOf(ContextCompat.getColor(this, R.color.intent_warmup))
+            else
+                ColorStateList.valueOf(Color.TRANSPARENT)
+            binding.chipWarmup.chipBackgroundColor = bg
+            binding.chipWarmup.setTextColor(
+                if (isChecked) ContextCompat.getColor(this, R.color.white)
+                else ContextCompat.getColor(this, R.color.fitness_text_secondary)
+            )
         }
-        
-        // Initialize RPE field state based on initial warmup state
-        updateRpeFieldForWarmup(binding.cbWarmup.isChecked)
+
+        // Initialize RPE field state based on initial warmup chip state
+        updateRpeFieldForWarmup(binding.chipWarmup.isChecked)
+
+        setupSteppers()
+        setupNoteToggle()
     }
 
     private fun setupBackgroundAnimation() {
@@ -232,10 +257,11 @@ class LogSetActivity : AppCompatActivity() {
     private fun format1(v: Float): String = String.format(Locale.US, "%.1f", v)
 
     private fun setupBodyweightMode() {
+        binding.layoutWeightStepperRow.visibility = View.GONE  // hides label + stepper together
         binding.textInputLayoutKg.visibility = View.GONE
         binding.textInputLayoutExtra.visibility = View.VISIBLE
         binding.bodyweightContainer.visibility = View.VISIBLE
-        binding.tvSuggestionHint.visibility = View.GONE
+        binding.cardSuggestionHint.visibility = View.GONE
 
         // Resolve the body weight to snapshot onto this set.
         loggedBodyweight = BodyWeightHelper.getCurrentBodyweightKg(this)
@@ -346,7 +372,7 @@ class LogSetActivity : AppCompatActivity() {
         
         // For custom workouts, don't show progression suggestions
         if (workoutType == "custom") {
-            binding.tvSuggestionHint.visibility = View.GONE
+            binding.cardSuggestionHint.visibility = View.GONE
             binding.textRpeHint.visibility = View.GONE
             return
         }
@@ -363,7 +389,7 @@ class LogSetActivity : AppCompatActivity() {
             )
             if (suggestion.displayText.isNotEmpty()) {
                 binding.textSuggestionContent.text = suggestion.displayText
-                binding.tvSuggestionHint.visibility = View.VISIBLE
+                binding.cardSuggestionHint.visibility = View.VISIBLE
             }
             val weightToUse = suggestion.suggestedWeight ?: suggestion.lastWeight
             val repsToUse = suggestion.suggestedReps ?: suggestion.lastReps
@@ -444,14 +470,14 @@ class LogSetActivity : AppCompatActivity() {
                 updateRpeHint(suggestedRpe)
             }
 
-            binding.tvSuggestionHint.visibility = View.VISIBLE
+            binding.cardSuggestionHint.visibility = View.VISIBLE
         } else {
             // First time - show suggested reps and RPE from settings
             val (minReps, _) = ProgressionHelper.getRepRange(setIntent, userSettings)
             
             val hintText = "First time! Start light, aim for $minReps reps @ RPE ${String.format(Locale.US, "%.1f", suggestedRpe)}"
             binding.textSuggestionContent.text = hintText
-            binding.tvSuggestionHint.visibility = View.VISIBLE
+            binding.cardSuggestionHint.visibility = View.VISIBLE
             
             if (binding.editTextReps.text.isNullOrBlank()) {
                 binding.editTextReps.setText(minReps.toString())
@@ -544,7 +570,7 @@ class LogSetActivity : AppCompatActivity() {
         }
 
         val note = binding.editTextNote.text.toString()
-        val isWarmup = binding.cbWarmup.isChecked
+        val isWarmup = binding.chipWarmup.isChecked
 
         // Logged sets count as completed (hadFailure = false); no checkbox
         val completed = true
@@ -657,6 +683,84 @@ class LogSetActivity : AppCompatActivity() {
         }
     }
 
+    // ── Stepper helpers ────────────────────────────────────────────
+
+    private fun setupSteppers() {
+        binding.btnWeightMinus.setOnClickListener {
+            val v = binding.editTextKg.text.toString().toFloatOrNull() ?: 0f
+            setStepperText(binding.editTextKg, formatStepperValue((v - weightStep).coerceAtLeast(0f)))
+        }
+        binding.btnWeightPlus.setOnClickListener {
+            val v = binding.editTextKg.text.toString().toFloatOrNull() ?: 0f
+            setStepperText(binding.editTextKg, formatStepperValue(v + weightStep))
+        }
+        binding.btnRepsMinus.setOnClickListener {
+            val v = binding.editTextReps.text.toString().toIntOrNull() ?: 0
+            setStepperText(binding.editTextReps, (v - 1).coerceAtLeast(0).toString())
+        }
+        binding.btnRepsPlus.setOnClickListener {
+            val v = binding.editTextReps.text.toString().toIntOrNull() ?: 0
+            setStepperText(binding.editTextReps, (v + 1).toString())
+        }
+        binding.btnRpeMinus.setOnClickListener {
+            if (binding.chipWarmup.isChecked) return@setOnClickListener
+            val v = binding.editTextRpe.text.toString().toFloatOrNull() ?: 6.0f
+            val next = (v - rpeStep).coerceIn(6.0f, 10.0f)
+            setStepperText(binding.editTextRpe, String.format(Locale.US, "%.1f", next))
+            updateRpeHint(next)
+        }
+        binding.btnRpePlus.setOnClickListener {
+            if (binding.chipWarmup.isChecked) return@setOnClickListener
+            val v = binding.editTextRpe.text.toString().toFloatOrNull() ?: 5.5f
+            val next = (v + rpeStep).coerceIn(6.0f, 10.0f)
+            setStepperText(binding.editTextRpe, String.format(Locale.US, "%.1f", next))
+            updateRpeHint(next)
+        }
+    }
+
+    /** Sets text and moves cursor to end so subsequent manual edits feel natural. */
+    private fun setStepperText(field: EditText, value: String) {
+        field.setText(value)
+        field.setSelection(field.text?.length ?: 0)
+    }
+
+    /** Avoids float edge-case: treats values within 0.001 of a whole number as integers. */
+    private fun formatStepperValue(v: Float): String {
+        val rounded = Math.round(v)
+        return if (kotlin.math.abs(v - rounded) < 0.001f) rounded.toString()
+        else String.format(Locale.US, "%.1f", v)
+    }
+
+    // ── Note toggle ────────────────────────────────────────────────
+
+    private fun setupNoteToggle() {
+        binding.buttonToggleNote.setOnClickListener {
+            isNoteExpanded = !isNoteExpanded
+            binding.textInputLayoutNote.visibility = if (isNoteExpanded) View.VISIBLE else View.GONE
+            binding.buttonToggleNote.text = if (isNoteExpanded) "Hide note" else "Add note"
+            if (isNoteExpanded) binding.editTextNote.requestFocus()  // user-initiated only
+        }
+        // Restore expanded state (e.g. prefilled note) without opening the keyboard
+        if (!binding.editTextNote.text.isNullOrBlank()) {
+            isNoteExpanded = true
+            binding.textInputLayoutNote.visibility = View.VISIBLE
+            binding.buttonToggleNote.text = "Hide note"
+        }
+    }
+
+    // ── Intent color ───────────────────────────────────────────────
+
+    private fun getIntentColor(intent: SetIntent): Int {
+        val res = when (intent) {
+            SetIntent.STRENGTH -> R.color.intent_strength
+            SetIntent.BUILD    -> R.color.intent_build
+            SetIntent.FLUSH    -> R.color.intent_flush
+            SetIntent.WARMUP   -> R.color.intent_warmup
+            else               -> R.color.fitness_text_secondary
+        }
+        return ContextCompat.getColor(this, res)
+    }
+
     private fun formatTypeLabel(type: String): String {
         return type.replaceFirstChar {
             if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
@@ -667,44 +771,32 @@ class LogSetActivity : AppCompatActivity() {
         val greyColor = ContextCompat.getColor(this, R.color.fitness_text_secondary)
         val normalTextColor = ContextCompat.getColor(this, R.color.fitness_text_primary)
         val normalHintColor = ContextCompat.getColor(this, R.color.fitness_primary)
-        
+
         if (isWarmup) {
-            // Grey out RPE field and text
             binding.editTextRpe.setTextColor(greyColor)
             binding.editTextRpe.isEnabled = false
-            
-            // Set placeholder to "(Warmup)" on TextInputLayout
             binding.textInputLayoutRpe.hint = "(Warmup)"
-            
-            // Grey out RPE label
             binding.textRpeLabel.setTextColor(greyColor)
-            
-            // Grey out RPE hint
             binding.textRpeHint.setTextColor(greyColor)
-            
-            // Clear RPE value
             binding.editTextRpe.setText("")
-            
-            // Update TextInputLayout hint color
-            binding.textInputLayoutRpe.hintTextColor = android.content.res.ColorStateList.valueOf(greyColor)
+            binding.textInputLayoutRpe.hintTextColor = ColorStateList.valueOf(greyColor)
             binding.textInputLayoutRpe.boxStrokeColor = greyColor
         } else {
-            // Restore normal colors
             binding.editTextRpe.setTextColor(normalTextColor)
             binding.editTextRpe.isEnabled = true
-            
-            // Restore original hint
             binding.textInputLayoutRpe.hint = originalRpeHint
-            
-            // Restore RPE label color
             binding.textRpeLabel.setTextColor(normalTextColor)
-            
-            // Restore RPE hint color
             binding.textRpeHint.setTextColor(ContextCompat.getColor(this, R.color.fitness_text_secondary))
-            
-            // Restore TextInputLayout hint and stroke colors
-            binding.textInputLayoutRpe.hintTextColor = android.content.res.ColorStateList.valueOf(normalHintColor)
+            binding.textInputLayoutRpe.hintTextColor = ColorStateList.valueOf(normalHintColor)
             binding.textInputLayoutRpe.boxStrokeColor = normalHintColor
         }
+
+        // Keep stepper buttons and text input layout visually in sync with the field
+        val alpha = if (isWarmup) 0.38f else 1.0f
+        binding.btnRpeMinus.alpha = alpha
+        binding.btnRpePlus.alpha = alpha
+        binding.btnRpeMinus.isClickable = !isWarmup
+        binding.btnRpePlus.isClickable = !isWarmup
+        binding.textInputLayoutRpe.alpha = alpha
     }
 }

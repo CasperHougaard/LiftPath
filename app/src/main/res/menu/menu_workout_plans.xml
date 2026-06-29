@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/action_export_plan_spec"
+        android:title="@string/menu_export_plan_spec" />
+    <item
+        android:id="@+id/action_import_plan_from_ai"
+        android:title="@string/menu_import_plan_from_ai" />
+</menu>

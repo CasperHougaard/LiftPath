@@ -12,6 +12,10 @@ import com.liftpath.helpers.WithingsStorageHelper
 
 class ProgressActivity : AppCompatActivity() {
 
+    companion object {
+        const val EXTRA_GOTO_TAB = "goto_tab"
+    }
+
     private lateinit var binding: ActivityProgressBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -50,8 +54,15 @@ class ProgressActivity : AppCompatActivity() {
             }
         }.attach()
 
-        // Default to Overview tab
-        binding.viewPagerProgress.currentItem = ProgressPagerAdapter.TAB_OVERVIEW
+        // Navigate to a specific tab if requested (e.g. from home screen body scan card)
+        val gotoTab = intent.getIntExtra(EXTRA_GOTO_TAB, ProgressPagerAdapter.TAB_OVERVIEW)
+        if (gotoTab != ProgressPagerAdapter.TAB_OVERVIEW && gotoTab < adapter.itemCount) {
+            binding.viewPagerProgress.currentItem = gotoTab
+        }
+    }
+
+    fun navigateToBodyScan() {
+        binding.viewPagerProgress.setCurrentItem(ProgressPagerAdapter.TAB_BODY_SCAN, true)
     }
 
     private fun setupClickListeners() {

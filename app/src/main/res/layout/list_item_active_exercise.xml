@@ -54,6 +54,17 @@
                 android:textStyle="bold"
                 tools:text="Bench Press" />
 
+            <ImageButton
+                android:id="@+id/button_swap_exercise"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_marginStart="6dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_swap_horiz"
+                android:contentDescription="Change exercise"
+                android:visibility="gone"
+                app:tint="@color/fitness_primary" />
+
             <TextView
                 android:id="@+id/text_intent_badge"
                 android:layout_width="wrap_content"

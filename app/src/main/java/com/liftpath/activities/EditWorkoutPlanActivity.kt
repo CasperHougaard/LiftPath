@@ -13,8 +13,10 @@ import com.liftpath.databinding.ActivityEditWorkoutPlanBinding
 import com.liftpath.helpers.DialogHelper
 import com.liftpath.helpers.JsonHelper
 import com.liftpath.helpers.showWithTransparentWindow
+import com.liftpath.models.MovementPattern
 import com.liftpath.models.PlanExerciseSelectionType
 import com.liftpath.models.PlanExerciseSlot
+import com.liftpath.models.PlanSlotType
 import com.liftpath.models.SetIntent
 import com.liftpath.models.WorkoutPlan
 import com.liftpath.adapters.PlanExerciseAdapter
@@ -91,11 +93,27 @@ class EditWorkoutPlanActivity : AppCompatActivity() {
 
         binding.buttonAddExercises.setOnClickListener {
             // Pass existing IDs; the picker allows re-selecting for duplicates
-            val preselectedIds = planConfigs.map { it.exerciseId }.toSet().toIntArray()
+            val preselectedIds = planConfigs.mapNotNull { it.exerciseId }.toSet().toIntArray()
             val intent = Intent(this, SelectExercisesForPlanActivity::class.java).apply {
                 putExtra(SelectExercisesForPlanActivity.EXTRA_PRESELECTED_IDS, preselectedIds)
             }
             selectExercisesLauncher.launch(intent)
+        }
+
+        binding.buttonAddFamilySlot.setOnClickListener {
+            showFamilyPickerDialog()
+        }
+
+        binding.buttonAddWarmup.setOnClickListener {
+            val slot = PlanExerciseSlot(slotType = PlanSlotType.WARMUP)
+            adapter.insertSlot(0, slot)
+            binding.recyclerViewPlanExercises.scrollToPosition(0)
+        }
+
+        binding.buttonAddCooldown.setOnClickListener {
+            val slot = PlanExerciseSlot(slotType = PlanSlotType.COOLDOWN)
+            adapter.addSlot(slot)
+            binding.recyclerViewPlanExercises.scrollToPosition(adapter.itemCount - 1)
         }
 
         binding.buttonSavePlan.setOnClickListener { savePlan() }
@@ -136,10 +154,43 @@ class EditWorkoutPlanActivity : AppCompatActivity() {
         adapter.notifyDataSetChanged()
     }
 
-    /** Keeps the adapter's name map in sync with the library. */
+    /** Keeps the adapter's exercise name map in sync with the library. */
     private fun refreshExerciseNames() {
         val trainingData = jsonHelper.readTrainingData()
         adapter.exerciseNames = trainingData.exerciseLibrary.associate { it.id to it.name }
+        adapter.familyNames = trainingData.exerciseFamilies?.associate { it.id to it.name } ?: emptyMap()
+    }
+
+    private fun showFamilyPickerDialog() {
+        val trainingData = jsonHelper.readTrainingData()
+        val families = trainingData.exerciseFamilies
+        if (families.isNullOrEmpty()) {
+            android.widget.Toast.makeText(this, "No exercise families available", android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
+        val names = families.map { it.name }.toTypedArray()
+        var selectedIndex = -1
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle("Select Movement Family")
+            .setSingleChoiceItems(names, -1) { _, which -> selectedIndex = which }
+            .setPositiveButton("Add") { _, _ ->
+                if (selectedIndex >= 0) {
+                    val family = families[selectedIndex]
+                    planConfigs.add(
+                        PlanExerciseSlot(
+                            selectionType = PlanExerciseSelectionType.FAMILY_SLOT,
+                            familyId = family.id,
+                            movementPattern = family.movementPattern,
+                            defaultIntent = SetIntent.BUILD
+                        )
+                    )
+                    refreshExerciseNames()
+                    adapter.notifyItemInserted(planConfigs.size - 1)
+                    binding.recyclerViewPlanExercises.scrollToPosition(planConfigs.size - 1)
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     private fun savePlan() {

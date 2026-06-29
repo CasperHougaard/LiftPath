@@ -23,7 +23,17 @@ class HistoryAdapter(private val trainings: List<TrainingSession>) : RecyclerVie
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val training = trainings[position]
         holder.binding.textTrainingTitle.text = "Training #${training.trainingNumber}"
-        holder.binding.textTrainingDate.text = training.date
+
+        val dateParts = training.date.split("/")
+        if (dateParts.size == 3) {
+            holder.binding.textTrainingDay.text = dateParts[2].trimStart('0').ifEmpty { "0" }
+            val months = arrayOf("JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC")
+            val monthIdx = (dateParts[1].toIntOrNull() ?: 1) - 1
+            holder.binding.textTrainingMonth.text = months.getOrElse(monthIdx) { dateParts[1] }
+        } else {
+            holder.binding.textTrainingDay.text = training.date
+            holder.binding.textTrainingMonth.text = ""
+        }
 
         // Format volume with comma separator
         val totalVolume = training.exercises.sumOf { (it.reps ?: 0) * (it.kg ?: 0f).toDouble() }
@@ -65,8 +75,8 @@ class HistoryAdapter(private val trainings: List<TrainingSession>) : RecyclerVie
         val totalSets = training.exercises.size
         holder.binding.textExercisesSummary.text = "$uniqueExercises exercise${if (uniqueExercises > 1) "s" else ""} • $totalSets set${if (totalSets > 1) "s" else ""} • Avg RPE: $avgRpe"
 
-        // View Report button
-        holder.binding.buttonViewReport.setOnClickListener {
+        // Card tap opens report (primary action)
+        holder.binding.root.setOnClickListener {
             val context = holder.itemView.context
             val intent = Intent(context, com.liftpath.activities.WorkoutReportActivity::class.java).apply {
                 putExtra(com.liftpath.activities.WorkoutReportActivity.EXTRA_TRAINING_SESSION, training)
@@ -74,7 +84,7 @@ class HistoryAdapter(private val trainings: List<TrainingSession>) : RecyclerVie
             context.startActivity(intent)
         }
 
-        // View Details button
+        // Details icon button
         holder.binding.buttonViewDetails.setOnClickListener {
             val context = holder.itemView.context
             val intent = Intent(context, TrainingDetailActivity::class.java).apply {

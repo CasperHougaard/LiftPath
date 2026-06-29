@@ -536,5 +536,6 @@
                     tools:text="Your training is progressing well! Volume is up 15% compared to last week, and you hit 2 new PRs." />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
+
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>

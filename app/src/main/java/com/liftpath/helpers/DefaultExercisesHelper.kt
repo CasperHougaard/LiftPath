@@ -14,9 +14,9 @@ import com.liftpath.models.Tier
 
 object DefaultExercisesHelper {
 
-    const val CATALOG_VERSION = 3
+    const val CATALOG_VERSION = 4
 
-    // --- Exercise Family Catalog (33 families, 66 exercises) ---
+    // --- Exercise Family Catalog (40 families, 84 exercises) ---
 
     val DEFAULT_FAMILIES: List<ExerciseFamily> = listOf(
         ExerciseFamily("chest_press",       "Chest Press",               MovementPattern.PUSH_HORIZONTAL,              BodyRegion.UPPER, listOf(TargetMuscle.CHEST_MIDDLE, TargetMuscle.DELT_FRONT, TargetMuscle.TRICEPS_LATERAL)),
@@ -52,9 +52,21 @@ object DefaultExercisesHelper {
         ExerciseFamily("glute_machine",     "Glute Machine",             MovementPattern.OTHER,                        BodyRegion.LOWER, listOf(TargetMuscle.GLUTES)),
         ExerciseFamily("farmers_walk",      "Farmer's Walk",             MovementPattern.CARRY,                        BodyRegion.FULL,  listOf(TargetMuscle.FOREARMS, TargetMuscle.TRAPS_UPPER)),
         ExerciseFamily("cable_leg_raises",  "Cable Leg Raises",          MovementPattern.OTHER,                        BodyRegion.LOWER, listOf(TargetMuscle.HIPFLEXORS, TargetMuscle.ABS)),
+        ExerciseFamily("front_raise",       "Front Raise",               MovementPattern.ISOLATION_SHOULDER_FLEXION,   BodyRegion.UPPER, listOf(TargetMuscle.DELT_FRONT)),
+        ExerciseFamily("upright_row",       "Upright Row",               MovementPattern.PULL_VERTICAL,                BodyRegion.UPPER, listOf(TargetMuscle.TRAPS_UPPER, TargetMuscle.DELT_SIDE, TargetMuscle.DELT_FRONT)),
+        ExerciseFamily("back_extension",    "Back Extension",            MovementPattern.HINGE,                        BodyRegion.LOWER, listOf(TargetMuscle.LOWER_BACK, TargetMuscle.GLUTES, TargetMuscle.HAMSTRINGS)),
+        ExerciseFamily("good_morning",      "Good Morning",              MovementPattern.HINGE,                        BodyRegion.LOWER, listOf(TargetMuscle.LOWER_BACK, TargetMuscle.HAMSTRINGS, TargetMuscle.GLUTES)),
+        ExerciseFamily("ab_wheel",          "Ab Wheel Rollout",          MovementPattern.CORE_STABILITY,               BodyRegion.CORE,  listOf(TargetMuscle.ABS, TargetMuscle.OBLIQUES)),
+        ExerciseFamily("kettlebell_swing",  "Kettlebell Swing",          MovementPattern.HINGE,                        BodyRegion.FULL,  listOf(TargetMuscle.GLUTES, TargetMuscle.HAMSTRINGS)),
+        ExerciseFamily("close_grip_bench",  "Close-Grip Press",          MovementPattern.PUSH_HORIZONTAL,              BodyRegion.UPPER, listOf(TargetMuscle.TRICEPS_LONG, TargetMuscle.TRICEPS_LATERAL, TargetMuscle.CHEST_MIDDLE)),
     )
 
     fun getDefaultFamilies(): List<ExerciseFamily> = DEFAULT_FAMILIES
+
+    fun getPrimaryTargets(exerciseId: Int): List<TargetMuscle>? {
+        val familyId = DEFAULT_EXERCISE_META_MAP[exerciseId] ?: return null
+        return DEFAULT_FAMILIES.find { it.id == familyId }?.primaryTargets
+    }
 
     // --- Per-exercise metadata: familyId, equipment, angle, laterality ---
 
@@ -131,7 +143,25 @@ object DefaultExercisesHelper {
         146 to "squat",
         147 to "cable_leg_raises",
         148 to "glute_machine",
-        149 to "row_horizontal"
+        149 to "row_horizontal",
+        150 to "front_raise",
+        151 to "front_raise",
+        152 to "upright_row",
+        153 to "back_extension",
+        154 to "back_extension",
+        155 to "good_morning",
+        156 to "ab_wheel",
+        157 to "kettlebell_swing",
+        158 to "close_grip_bench",
+        159 to "calf_raise",
+        160 to "leg_curl",
+        161 to "split_squat",
+        162 to "overhead_press",
+        163 to "deadlift",
+        164 to "rdl",
+        165 to "ab_crunch",
+        166 to "rotary_torso",
+        167 to "hip_thrust"
     )
 
     private val DEFAULT_EXERCISE_FULL_META: Map<Int, DefaultExerciseMeta> = mapOf(
@@ -194,13 +224,31 @@ object DefaultExercisesHelper {
         140 to DefaultExerciseMeta("chest_press",       Equipment.MACHINE,    null,                  Laterality.BILATERAL),
         141 to DefaultExerciseMeta("row_horizontal",    Equipment.MACHINE,    null,                  Laterality.BILATERAL),
         142 to DefaultExerciseMeta("leg_curl",          Equipment.MACHINE,    null,                  Laterality.BILATERAL),
-        143 to DefaultExerciseMeta("lateral_raise",     Equipment.DUMBBELL,   null,                  Laterality.BILATERAL),
+        143 to DefaultExerciseMeta("lateral_raise",     Equipment.CABLE,      null,                  Laterality.UNILATERAL),
         144 to DefaultExerciseMeta("incline_press",     Equipment.BARBELL,    ExerciseAngle.INCLINE, Laterality.BILATERAL),
         145 to DefaultExerciseMeta("glute_machine",     Equipment.MACHINE,    null,                  Laterality.UNILATERAL),
         146 to DefaultExerciseMeta("squat",             Equipment.MACHINE,    null,                  Laterality.BILATERAL),
         147 to DefaultExerciseMeta("cable_leg_raises",  Equipment.CABLE,      null,                  Laterality.UNILATERAL),
         148 to DefaultExerciseMeta("glute_machine",     Equipment.CABLE,      null,                  Laterality.UNILATERAL),
-        149 to DefaultExerciseMeta("row_horizontal",    Equipment.MACHINE,    null,                  Laterality.BILATERAL)
+        149 to DefaultExerciseMeta("row_horizontal",    Equipment.MACHINE,    null,                  Laterality.BILATERAL),
+        150 to DefaultExerciseMeta("front_raise",       Equipment.DUMBBELL,   null,                  Laterality.BILATERAL),
+        151 to DefaultExerciseMeta("front_raise",       Equipment.CABLE,      null,                  Laterality.BILATERAL),
+        152 to DefaultExerciseMeta("upright_row",       Equipment.BARBELL,    null,                  Laterality.BILATERAL),
+        153 to DefaultExerciseMeta("back_extension",    Equipment.MACHINE,    null,                  Laterality.BILATERAL),
+        154 to DefaultExerciseMeta("back_extension",    Equipment.BODYWEIGHT, null,                  Laterality.BILATERAL),
+        155 to DefaultExerciseMeta("good_morning",      Equipment.BARBELL,    null,                  Laterality.BILATERAL),
+        156 to DefaultExerciseMeta("ab_wheel",          Equipment.OTHER,      null,                  Laterality.BILATERAL),
+        157 to DefaultExerciseMeta("kettlebell_swing",  Equipment.KETTLEBELL, null,                  Laterality.BILATERAL),
+        158 to DefaultExerciseMeta("close_grip_bench",  Equipment.BARBELL,    ExerciseAngle.FLAT,    Laterality.BILATERAL),
+        159 to DefaultExerciseMeta("calf_raise",        Equipment.MACHINE,    null,                  Laterality.BILATERAL),
+        160 to DefaultExerciseMeta("leg_curl",          Equipment.BODYWEIGHT, null,                  Laterality.BILATERAL),
+        161 to DefaultExerciseMeta("split_squat",       Equipment.DUMBBELL,   null,                  Laterality.UNILATERAL),
+        162 to DefaultExerciseMeta("overhead_press",    Equipment.DUMBBELL,   null,                  Laterality.BILATERAL),
+        163 to DefaultExerciseMeta("deadlift",          Equipment.OTHER,      null,                  Laterality.BILATERAL),
+        164 to DefaultExerciseMeta("rdl",               Equipment.DUMBBELL,   null,                  Laterality.UNILATERAL),
+        165 to DefaultExerciseMeta("ab_crunch",         Equipment.CABLE,      null,                  Laterality.BILATERAL),
+        166 to DefaultExerciseMeta("rotary_torso",      Equipment.BODYWEIGHT, null,                  Laterality.BILATERAL),
+        167 to DefaultExerciseMeta("hip_thrust",        Equipment.BODYWEIGHT, null,                  Laterality.BILATERAL)
     )
 
     fun getPopularDefaults(): List<ExerciseLibraryItem> {
@@ -239,7 +287,7 @@ object DefaultExercisesHelper {
             ),
             ExerciseLibraryItem(
                 id = 4,
-                name = "Bicep Curl (Dumbbell)",
+                name = "Biceps Curl (Dumbbell)",
                 region = BodyRegion.UPPER,
                 pattern = MovementPattern.ISOLATION_ELBOW_FLEXION,
                 tier = Tier.TIER_3,
@@ -555,7 +603,7 @@ object DefaultExercisesHelper {
                 id = 117,
                 name = "Pec Deck / Machine Fly",
                 region = BodyRegion.UPPER,
-                pattern = MovementPattern.PUSH_HORIZONTAL,
+                pattern = MovementPattern.ISOLATION_SHOULDER_FLEXION,
                 tier = Tier.TIER_3,
                 primaryTargets = listOf(TargetMuscle.CHEST_MIDDLE),
                 secondaryTargets = listOf(TargetMuscle.DELT_FRONT),
@@ -717,14 +765,14 @@ object DefaultExercisesHelper {
             ),
             ExerciseLibraryItem(
                 id = 133,
-                name = "Incline press (Machine)",
+                name = "Incline Press (Machine)",
                 region = BodyRegion.UPPER,
                 pattern = MovementPattern.PUSH_HORIZONTAL,
                 tier = Tier.TIER_2,
                 primaryTargets = listOf(TargetMuscle.CHEST_UPPER),
-                secondaryTargets = listOf(TargetMuscle.CHEST_MIDDLE, TargetMuscle.TRICEPS_LONG, TargetMuscle.TRICEPS_LATERAL),
+                secondaryTargets = listOf(TargetMuscle.CHEST_MIDDLE, TargetMuscle.DELT_FRONT, TargetMuscle.TRICEPS_LATERAL),
                 note = "Back flat on pad. Full ROM.",
-                manualMechanics = Mechanics.ISOLATION
+                manualMechanics = Mechanics.COMPOUND
             ),
             ExerciseLibraryItem(
                 id = 134,
@@ -828,13 +876,13 @@ object DefaultExercisesHelper {
             ),
             ExerciseLibraryItem(
                 id = 143,
-                name = "Side Raises (Dumbbell)",
+                name = "Cable Lateral Raise",
                 region = BodyRegion.UPPER,
                 pattern = MovementPattern.ISOLATION_SHOULDER_ABDUCTION,
                 tier = Tier.TIER_3,
                 primaryTargets = listOf(TargetMuscle.DELT_SIDE),
                 secondaryTargets = emptyList(),
-                note = "Slight bend in elbow. Lead with elbows.",
+                note = "Cable keeps constant tension. Slight bend in elbow. Lead with elbows.",
                 manualMechanics = Mechanics.ISOLATION
             ),
             ExerciseLibraryItem(
@@ -844,9 +892,9 @@ object DefaultExercisesHelper {
                 pattern = MovementPattern.PUSH_HORIZONTAL,
                 tier = Tier.TIER_2,
                 primaryTargets = listOf(TargetMuscle.CHEST_UPPER),
-                secondaryTargets = listOf(TargetMuscle.CHEST_MIDDLE, TargetMuscle.TRICEPS_LONG, TargetMuscle.TRICEPS_LATERAL),
+                secondaryTargets = listOf(TargetMuscle.CHEST_MIDDLE, TargetMuscle.DELT_FRONT, TargetMuscle.TRICEPS_LATERAL),
                 note = "30-45° incline. Bar to upper chest.",
-                manualMechanics = Mechanics.ISOLATION
+                manualMechanics = Mechanics.COMPOUND
             ),
             ExerciseLibraryItem(
                 id = 145,
@@ -862,7 +910,7 @@ object DefaultExercisesHelper {
             ExerciseLibraryItem(
                 id = 146,
                 name = "Hack Squat",
-                region = BodyRegion.FULL,
+                region = BodyRegion.LOWER,
                 pattern = MovementPattern.SQUAT,
                 tier = Tier.TIER_1,
                 primaryTargets = listOf(TargetMuscle.QUADS, TargetMuscle.GLUTES),
@@ -902,6 +950,203 @@ object DefaultExercisesHelper {
                 secondaryTargets = listOf(TargetMuscle.TRAPS_MID, TargetMuscle.TRAPS_UPPER, TargetMuscle.DELT_REAR, TargetMuscle.BICEPS),
                 note = "Chest supported; pull elbows back. Squeeze lats.",
                 manualMechanics = Mechanics.COMPOUND
+            ),
+            ExerciseLibraryItem(
+                id = 150,
+                name = "Front Raise (Dumbbell)",
+                region = BodyRegion.UPPER,
+                pattern = MovementPattern.ISOLATION_SHOULDER_FLEXION,
+                tier = Tier.TIER_3,
+                primaryTargets = listOf(TargetMuscle.DELT_FRONT),
+                secondaryTargets = emptyList(),
+                note = "Raise to shoulder height. Slight bend in elbow."
+            ),
+            ExerciseLibraryItem(
+                id = 151,
+                name = "Front Raise (Cable)",
+                region = BodyRegion.UPPER,
+                pattern = MovementPattern.ISOLATION_SHOULDER_FLEXION,
+                tier = Tier.TIER_3,
+                primaryTargets = listOf(TargetMuscle.DELT_FRONT),
+                secondaryTargets = emptyList(),
+                note = "Cable keeps constant tension. Control the descent."
+            ),
+            ExerciseLibraryItem(
+                id = 152,
+                name = "Upright Row (Barbell)",
+                region = BodyRegion.UPPER,
+                pattern = MovementPattern.PULL_VERTICAL,
+                tier = Tier.TIER_2,
+                primaryTargets = listOf(TargetMuscle.TRAPS_UPPER, TargetMuscle.DELT_SIDE),
+                secondaryTargets = listOf(TargetMuscle.DELT_FRONT, TargetMuscle.BICEPS),
+                note = "Elbows lead, pull to chin level. Narrow grip for delts, wider for traps."
+            ),
+            ExerciseLibraryItem(
+                id = 153,
+                name = "Back Extension (Machine)",
+                region = BodyRegion.LOWER,
+                pattern = MovementPattern.HINGE,
+                tier = Tier.TIER_2,
+                primaryTargets = listOf(TargetMuscle.LOWER_BACK),
+                secondaryTargets = listOf(TargetMuscle.GLUTES, TargetMuscle.HAMSTRINGS),
+                note = "Round forward at hips. Extend through lower back. Controlled.",
+                manualMechanics = Mechanics.ISOLATION
+            ),
+            ExerciseLibraryItem(
+                id = 154,
+                name = "Hyperextension (45°)",
+                region = BodyRegion.LOWER,
+                pattern = MovementPattern.HINGE,
+                tier = Tier.TIER_2,
+                primaryTargets = listOf(TargetMuscle.LOWER_BACK, TargetMuscle.GLUTES),
+                secondaryTargets = listOf(TargetMuscle.HAMSTRINGS),
+                note = "Hinge at hips, not waist. Squeeze glutes at top.",
+                manualMechanics = Mechanics.ISOLATION,
+                exerciseType = ExerciseType.BODYWEIGHT
+            ),
+            ExerciseLibraryItem(
+                id = 155,
+                name = "Good Morning (Barbell)",
+                region = BodyRegion.LOWER,
+                pattern = MovementPattern.HINGE,
+                tier = Tier.TIER_2,
+                primaryTargets = listOf(TargetMuscle.LOWER_BACK, TargetMuscle.HAMSTRINGS),
+                secondaryTargets = listOf(TargetMuscle.GLUTES),
+                note = "Bar on upper back. Hinge forward to parallel. Neutral spine.",
+                manualMechanics = Mechanics.COMPOUND
+            ),
+            ExerciseLibraryItem(
+                id = 156,
+                name = "Ab Wheel Rollout",
+                region = BodyRegion.CORE,
+                pattern = MovementPattern.CORE_STABILITY,
+                tier = Tier.TIER_2,
+                primaryTargets = listOf(TargetMuscle.ABS, TargetMuscle.OBLIQUES),
+                secondaryTargets = listOf(TargetMuscle.LOWER_BACK, TargetMuscle.LATS),
+                note = "Brace hard. Roll to full extension if stable. No hip sag.",
+                exerciseType = ExerciseType.BODYWEIGHT
+            ),
+            ExerciseLibraryItem(
+                id = 157,
+                name = "Kettlebell Swing",
+                region = BodyRegion.FULL,
+                pattern = MovementPattern.HINGE,
+                tier = Tier.TIER_2,
+                primaryTargets = listOf(TargetMuscle.GLUTES, TargetMuscle.HAMSTRINGS),
+                secondaryTargets = listOf(TargetMuscle.LOWER_BACK, TargetMuscle.TRAPS_UPPER, TargetMuscle.ABS),
+                note = "Hip hinge, not squat. Snap hips to drive. Bell floats to chest height.",
+                manualMechanics = Mechanics.COMPOUND
+            ),
+            ExerciseLibraryItem(
+                id = 158,
+                name = "Close-Grip Bench Press",
+                region = BodyRegion.UPPER,
+                pattern = MovementPattern.PUSH_HORIZONTAL,
+                tier = Tier.TIER_2,
+                primaryTargets = listOf(TargetMuscle.TRICEPS_LONG, TargetMuscle.TRICEPS_LATERAL),
+                secondaryTargets = listOf(TargetMuscle.CHEST_MIDDLE, TargetMuscle.DELT_FRONT),
+                note = "Hands shoulder-width. Elbows tucked. Bar to lower chest.",
+                manualMechanics = Mechanics.COMPOUND
+            ),
+            ExerciseLibraryItem(
+                id = 159,
+                name = "Seated Calf Raise (Machine)",
+                region = BodyRegion.LOWER,
+                pattern = MovementPattern.ISOLATION_PLANTAR_FLEXION,
+                tier = Tier.TIER_3,
+                primaryTargets = listOf(TargetMuscle.CALVES),
+                secondaryTargets = emptyList(),
+                note = "Seated isolates soleus. Full stretch at bottom.",
+                manualMechanics = Mechanics.ISOLATION
+            ),
+            ExerciseLibraryItem(
+                id = 160,
+                name = "Nordic Curl",
+                region = BodyRegion.LOWER,
+                pattern = MovementPattern.ISOLATION_KNEE_FLEXION,
+                tier = Tier.TIER_2,
+                primaryTargets = listOf(TargetMuscle.HAMSTRINGS),
+                secondaryTargets = emptyList(),
+                note = "Anchor feet. Lower under control. Pull back with hamstrings.",
+                manualMechanics = Mechanics.ISOLATION,
+                exerciseType = ExerciseType.BODYWEIGHT
+            ),
+            ExerciseLibraryItem(
+                id = 161,
+                name = "Step-Up (Dumbbell)",
+                region = BodyRegion.LOWER,
+                pattern = MovementPattern.LUNGE,
+                tier = Tier.TIER_2,
+                primaryTargets = listOf(TargetMuscle.QUADS, TargetMuscle.GLUTES),
+                secondaryTargets = listOf(TargetMuscle.CALVES),
+                note = "Drive through the heel of the working leg. Full extension at top."
+            ),
+            ExerciseLibraryItem(
+                id = 162,
+                name = "Arnold Press (Dumbbell)",
+                region = BodyRegion.UPPER,
+                pattern = MovementPattern.PUSH_VERTICAL,
+                tier = Tier.TIER_2,
+                primaryTargets = listOf(TargetMuscle.DELT_FRONT, TargetMuscle.DELT_SIDE),
+                secondaryTargets = listOf(TargetMuscle.TRICEPS_LATERAL),
+                note = "Start palms in, rotate out as you press. Full ROM."
+            ),
+            ExerciseLibraryItem(
+                id = 163,
+                name = "Trap Bar Deadlift",
+                region = BodyRegion.LOWER,
+                pattern = MovementPattern.HINGE,
+                tier = Tier.TIER_1,
+                primaryTargets = listOf(TargetMuscle.HAMSTRINGS, TargetMuscle.GLUTES, TargetMuscle.QUADS),
+                secondaryTargets = listOf(TargetMuscle.LOWER_BACK, TargetMuscle.TRAPS_UPPER, TargetMuscle.FOREARMS),
+                note = "Neutral handles reduce lower-back moment. Sit into it slightly more than conventional.",
+                manualMechanics = Mechanics.COMPOUND
+            ),
+            ExerciseLibraryItem(
+                id = 164,
+                name = "Single Leg RDL (Dumbbell)",
+                region = BodyRegion.LOWER,
+                pattern = MovementPattern.HINGE,
+                tier = Tier.TIER_2,
+                primaryTargets = listOf(TargetMuscle.HAMSTRINGS, TargetMuscle.GLUTES),
+                secondaryTargets = listOf(TargetMuscle.LOWER_BACK),
+                note = "Hip-width stance. Hinge and reach dumbbell toward floor. Control balance.",
+                manualMechanics = Mechanics.COMPOUND
+            ),
+            ExerciseLibraryItem(
+                id = 165,
+                name = "Cable Crunch",
+                region = BodyRegion.CORE,
+                pattern = MovementPattern.CORE_FLEXION,
+                tier = Tier.TIER_3,
+                primaryTargets = listOf(TargetMuscle.ABS),
+                secondaryTargets = emptyList(),
+                note = "Kneel, hands by ears. Curl ribs to pelvis. Don't pull with arms.",
+                manualMechanics = Mechanics.ISOLATION
+            ),
+            ExerciseLibraryItem(
+                id = 166,
+                name = "Russian Twist",
+                region = BodyRegion.CORE,
+                pattern = MovementPattern.CORE_FLEXION,
+                tier = Tier.TIER_3,
+                primaryTargets = listOf(TargetMuscle.OBLIQUES),
+                secondaryTargets = listOf(TargetMuscle.ABS),
+                note = "Lean back ~45°. Rotate shoulders, not just arms. Control tempo.",
+                manualMechanics = Mechanics.ISOLATION,
+                exerciseType = ExerciseType.BODYWEIGHT
+            ),
+            ExerciseLibraryItem(
+                id = 167,
+                name = "Glute Bridge (Bodyweight)",
+                region = BodyRegion.LOWER,
+                pattern = MovementPattern.HINGE,
+                tier = Tier.TIER_3,
+                primaryTargets = listOf(TargetMuscle.GLUTES),
+                secondaryTargets = listOf(TargetMuscle.HAMSTRINGS),
+                note = "Drive through heels. Squeeze glutes at top. Progress to single leg.",
+                manualMechanics = Mechanics.ISOLATION,
+                exerciseType = ExerciseType.BODYWEIGHT
             ),
         )
     }
