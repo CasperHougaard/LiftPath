@@ -82,7 +82,9 @@ class ActiveTrainingActivity : AppCompatActivity() {
     // Timer state
     private var isActivityVisible = false
     private var timerReceiver: BroadcastReceiver? = null
-    
+    // Tracks end times for warmup/cooldown card timers: exerciseId → System.currentTimeMillis() + durationMs
+    private val specialTimerEndTimes = mutableMapOf<Int, Long>()
+
     // Workout timer state
     private var workoutStartTimeMillis: Long? = null
     private val workoutTimerHandler = Handler(Looper.getMainLooper())
@@ -589,6 +591,7 @@ class ActiveTrainingActivity : AppCompatActivity() {
                         plannedRpeTarget = config.rpeTarget,
                         plannedSetsTarget = config.setsTarget,
                         plannedRepsTarget = config.repsTarget,
+                        plannedDurationSeconds = config.durationSeconds,
                         plannedNotes = config.notes,
                         slotSelectionType = resolvedSelectionType,
                         slotFamilyId = resolvedFamilyId
@@ -833,6 +836,10 @@ class ActiveTrainingActivity : AppCompatActivity() {
             },
             onChangeExerciseClicked = { position ->
                 showChangeExerciseBottomSheet(position)
+            },
+            getTimerEndTimeMillis = { exerciseId -> specialTimerEndTimes[exerciseId] },
+            onSpecialTimerReset = { exerciseId ->
+                resetSpecialElementTimer(exerciseId)
             }
         )
         binding.recyclerViewActiveWorkout.adapter = adapter
@@ -987,6 +994,9 @@ class ActiveTrainingActivity : AppCompatActivity() {
     private fun isBodyweightExercise(exerciseId: Int): Boolean =
         jsonHelper.readTrainingData().exerciseLibrary.find { it.id == exerciseId }?.isBodyweight == true
 
+    private fun isTimeBasedExercise(exerciseId: Int): Boolean =
+        jsonHelper.readTrainingData().exerciseLibrary.find { it.id == exerciseId }?.isTimeBased == true
+
     private fun launchLogSetActivity(exerciseId: Int, exerciseName: String) {
         try {
             val lastWorkingSet = currentExerciseEntries
@@ -1020,6 +1030,10 @@ class ActiveTrainingActivity : AppCompatActivity() {
                 putExtra(LogSetActivity.EXTRA_WORKOUT_TYPE, setWorkoutType)
                 putExtra(LogSetActivity.EXTRA_INTENT, exerciseIntent.name)
                 putExtra(LogSetActivity.EXTRA_IS_BODYWEIGHT, isBodyweightExercise(exerciseId))
+                putExtra(LogSetActivity.EXTRA_IS_TIME_BASED, isTimeBasedExercise(exerciseId))
+                planExerciseSnapshots[exerciseId]?.plannedDurationSeconds?.takeIf { it > 0 }?.let {
+                    putExtra(LogSetActivity.EXTRA_DURATION_TARGET, it)
+                }
                 restOverride?.let { putExtra(LogSetActivity.EXTRA_REST_SECONDS_OVERRIDE, it) }
                 lastWorkingSet?.let {
                     putExtra(LogSetActivity.EXTRA_PREVIOUS_SET_REPS, it.reps)
@@ -1407,8 +1421,19 @@ class ActiveTrainingActivity : AppCompatActivity() {
         val element = groupedExercises.firstOrNull { it.exerciseId == exerciseId }
         val isWarmup = element?.slotType == PlanSlotType.WARMUP
         val title = if (isWarmup) getString(R.string.warmup_timer_title) else getString(R.string.cooldown_timer_title)
+        specialTimerEndTimes[exerciseId] = System.currentTimeMillis() + durationSeconds * 1000L
         RestTimerService.startTimer(this, durationSeconds, title, showDialog = false)
         setTimerState(TimerState.RUNNING)
+        val index = groupedExercises.indexOfFirst { it.exerciseId == exerciseId }
+        if (index >= 0) adapter.notifyItemChanged(index)
+    }
+
+    private fun resetSpecialElementTimer(exerciseId: Int) {
+        specialTimerEndTimes.remove(exerciseId)
+        RestTimerService.stopTimer(this)
+        setTimerState(TimerState.IDLE)
+        val index = groupedExercises.indexOfFirst { it.exerciseId == exerciseId }
+        if (index >= 0) adapter.notifyItemChanged(index)
     }
 
     private fun addWarmupElement(durationSeconds: Int? = null) {
@@ -1489,6 +1514,8 @@ class ActiveTrainingActivity : AppCompatActivity() {
     private fun handleSpecialCompleted(exerciseId: Int, isCompleted: Boolean) {
         val index = groupedExercises.indexOfFirst { it.exerciseId == exerciseId }
         if (index < 0) return
+        // Clean up card timer state when marking done/undone
+        specialTimerEndTimes.remove(exerciseId)
         groupedExercises[index] = groupedExercises[index].copy(isSpecialCompleted = isCompleted)
         // Save/remove a completion entry in the session log
         currentExerciseEntries.removeAll { it.exerciseId == exerciseId }
@@ -1885,6 +1912,7 @@ class ActiveTrainingActivity : AppCompatActivity() {
                 plannedRpeTarget = snapshot?.plannedRpeTarget,
                 plannedSetsTarget = snapshot?.plannedSetsTarget,
                 plannedRepsTarget = snapshot?.plannedRepsTarget,
+                plannedDurationSeconds = snapshot?.plannedDurationSeconds,
                 plannedNotes = snapshot?.plannedNotes,
                 slotType = g.slotType,
                 isSpecialCompleted = g.isSpecialCompleted,
@@ -2019,6 +2047,14 @@ class ActiveTrainingActivity : AppCompatActivity() {
         } else {
             updateTimerDisplay(0)
             setTimerState(TimerState.IDLE)
+        }
+        // Auto-complete any special element whose card timer expired while backgrounded
+        val now = System.currentTimeMillis()
+        specialTimerEndTimes.keys.toList().forEach { exerciseId ->
+            val endTime = specialTimerEndTimes[exerciseId] ?: return@forEach
+            if (now >= endTime) {
+                handleSpecialCompleted(exerciseId, true)
+            }
         }
     }
 

@@ -131,6 +131,16 @@ object ProgressAnalysisHelper {
                 bestByExercise.getOrPut(exerciseId) { ExerciseBests() }
                 val sessionBest = sessionBests.getOrPut(exerciseId) { SessionExerciseBests() }
 
+                // Timed holds use their own metric (longest hold) and are excluded from
+                // weight-based weight/1RM/volume PRs (those formulas are rep-based).
+                if (entry.isTimedEntry()) {
+                    val secs = entry.durationSeconds ?: 0
+                    if (secs > (sessionBest.bestHoldSeconds ?: 0)) {
+                        sessionBest.bestHoldSeconds = secs
+                    }
+                    return@forEach
+                }
+
                 // Track session-best weight
                 if (entry.kg > (sessionBest.bestWeight ?: 0f)) {
                     sessionBest.bestWeight = entry.kg
@@ -228,6 +238,31 @@ object ProgressAnalysisHelper {
                             )
                         )
                         lastPrDateByType["${exerciseId}_1RM"] = sessionTime
+                    }
+                }
+
+                // Longest hold (timed exercises)
+                if (sessionBest.bestHoldSeconds != null) {
+                    val prev = current.maxHoldSeconds
+                    if (prev == null) {
+                        current.maxHoldSeconds = sessionBest.bestHoldSeconds  // Baseline
+                    } else if (sessionBest.bestHoldSeconds!! > prev) {
+                        current.maxHoldSeconds = sessionBest.bestHoldSeconds
+                        val intent = session.exercises
+                            .firstOrNull { it.exerciseId == exerciseId }
+                            ?.getEffectiveIntent(session.defaultWorkoutType) ?: SetIntent.BUILD
+                        prs.add(
+                            PRRecord(
+                                exerciseId = exerciseId,
+                                exerciseName = exerciseName,
+                                intent = intent,
+                                prType = PRType.TIME_HOLD,
+                                value = sessionBest.bestHoldSeconds!!.toFloat(),
+                                previousValue = prev.toFloat(),
+                                date = session.date
+                            )
+                        )
+                        lastPrDateByType["${exerciseId}_TIME_HOLD"] = sessionTime
                     }
                 }
             }
@@ -544,6 +579,7 @@ object ProgressAnalysisHelper {
         WEIGHT,
         VOLUME,
         ONE_RM,
+        TIME_HOLD,  // Longest single-set hold for timed/isometric exercises (value in seconds)
         REPS  // Retained in enum for legacy compatibility; not emitted by canonical engine
     }
 
@@ -554,13 +590,15 @@ object ProgressAnalysisHelper {
 
     private data class SessionExerciseBests(
         var bestWeight: Float? = null,
-        var best1RM: Float? = null
+        var best1RM: Float? = null,
+        var bestHoldSeconds: Int? = null
     )
 
     private data class ExerciseBests(
         var maxWeight: Float? = null,
         var max1RM: Float? = null,
         var maxVolume: Float? = null,
+        var maxHoldSeconds: Int? = null,
         val sessionVolumes: MutableSet<String> = mutableSetOf()
     )
 

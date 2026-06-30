@@ -18,6 +18,7 @@ import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.liftpath.models.BodyRegion
 import com.liftpath.models.ExerciseLibraryItem
+import com.liftpath.models.ExerciseTargetMetric
 import com.liftpath.models.ExerciseType
 import com.liftpath.models.Mechanics
 import com.liftpath.models.MovementPattern
@@ -322,6 +323,9 @@ class EditExerciseActivity : AppCompatActivity() {
                 // Set exercise type (default Weighted for legacy/null)
                 setSelectedExerciseType(exercise.effectiveType)
 
+                // Set target metric (default Reps for legacy/null)
+                setSelectedTargetMetric(exercise.effectiveTargetMetric)
+
                 // Set Target Muscle Chips
                 setSelectedTargetMuscles(exercise.primaryTargets, exercise.secondaryTargets)
                 
@@ -346,6 +350,8 @@ class EditExerciseActivity : AppCompatActivity() {
             binding.cardDelete.visibility = View.GONE
             // New exercises default to Weighted
             setSelectedExerciseType(ExerciseType.WEIGHTED)
+            // New exercises default to Reps
+            setSelectedTargetMetric(ExerciseTargetMetric.REPS)
         }
     }
 
@@ -358,6 +364,16 @@ class EditExerciseActivity : AppCompatActivity() {
 
     private fun getSelectedExerciseType(): ExerciseType =
         if (binding.chipTypeBodyweight.isChecked) ExerciseType.BODYWEIGHT else ExerciseType.WEIGHTED
+
+    private fun setSelectedTargetMetric(metric: ExerciseTargetMetric) {
+        when (metric) {
+            ExerciseTargetMetric.TIME -> binding.chipMetricTime.isChecked = true
+            else -> binding.chipMetricReps.isChecked = true
+        }
+    }
+
+    private fun getSelectedTargetMetric(): ExerciseTargetMetric =
+        if (binding.chipMetricTime.isChecked) ExerciseTargetMetric.TIME else ExerciseTargetMetric.REPS
 
     private fun setupClickListeners() {
         binding.buttonSaveExercise.setOnClickListener { saveExercise() }
@@ -461,6 +477,7 @@ class EditExerciseActivity : AppCompatActivity() {
         val note = binding.editTextNote.text.toString().trim().takeIf { it.isNotEmpty() }
 
         val selectedType = getSelectedExerciseType()
+        val selectedMetric = getSelectedTargetMetric()
 
         val trainingData = jsonHelper.readTrainingData()
 
@@ -480,6 +497,7 @@ class EditExerciseActivity : AppCompatActivity() {
                         isFavorite = isFavorite,
                         note = note,
                         exerciseType = selectedType,
+                        targetMetric = selectedMetric,
                         familyId = selectedFamilyId
                     )
                 }
@@ -504,6 +522,7 @@ class EditExerciseActivity : AppCompatActivity() {
                 isFavorite = isFavorite,
                 note = note,
                 exerciseType = selectedType,
+                targetMetric = selectedMetric,
                 familyId = selectedFamilyId
             )
             trainingData.exerciseLibrary.add(newExercise)

@@ -75,6 +75,15 @@ enum class ExerciseType(val displayName: String) {
     @SerializedName("bodyweight") BODYWEIGHT("Bodyweight")
 }
 
+/**
+ * What metric an exercise targets. Orthogonal to [ExerciseType]: a weighted plank is
+ * WEIGHTED + TIME, a bodyweight plank is BODYWEIGHT + TIME. Null == REPS (default / legacy).
+ */
+enum class ExerciseTargetMetric(val displayName: String) {
+    @SerializedName("reps") REPS("Reps"),
+    @SerializedName("time") TIME("Time")
+}
+
 /** Group types for linked exercises (e.g. superset, circuit). Used for analytics. */
 object GroupType {
     const val SUPERSET = "SUPERSET"
@@ -226,6 +235,8 @@ data class ExerciseLibraryItem(
 
     val exerciseType: ExerciseType? = null,  // null == WEIGHTED (legacy)
 
+    val targetMetric: ExerciseTargetMetric? = null,  // null == REPS (legacy)
+
     var familyId: String? = null,
     var equipment: Equipment? = null,
     val angle: ExerciseAngle? = null,
@@ -243,6 +254,9 @@ data class ExerciseLibraryItem(
 
     val effectiveType: ExerciseType get() = exerciseType ?: ExerciseType.WEIGHTED
     val isBodyweight: Boolean get() = effectiveType == ExerciseType.BODYWEIGHT
+
+    val effectiveTargetMetric: ExerciseTargetMetric get() = targetMetric ?: ExerciseTargetMetric.REPS
+    val isTimeBased: Boolean get() = effectiveTargetMetric == ExerciseTargetMetric.TIME
 }
 
 @Parcelize
@@ -268,10 +282,18 @@ data class ExerciseEntry(
     // and `kg` is written as (bodyweightKg + addedKg) so all existing readers stay coherent.
     val bodyweightKg: Float? = null,
     val addedKg: Float? = null,
-    val familyIdSnapshot: String? = null
+    val familyIdSnapshot: String? = null,
+
+    // Time-based set support. Non-null only for timed/isometric holds (e.g. Plank). When set, this
+    // set targets duration, `reps` is written as 0, and `kg` may be 0 (bodyweight hold) or carry an
+    // optional external load (weighted hold). Null for normal rep-based sets.
+    val durationSeconds: Int? = null
 ) : Parcelable {
     /** True if this set was logged as a bodyweight set (carries a body-weight snapshot). */
     fun isBodyweightEntry(): Boolean = bodyweightKg != null
+
+    /** True if this set was logged as a timed/isometric hold rather than reps. */
+    fun isTimedEntry(): Boolean = durationSeconds != null
 
     /**
      * True only for old/pre-migration data: RPE 6 was used to denote warmup before we had
@@ -419,6 +441,9 @@ data class DraftExerciseRow(
     val plannedRpeTarget: Float? = null,
     val plannedSetsTarget: Int? = null,
     val plannedRepsTarget: String? = null,
+    // Timed-exercise target (seconds) copied from PlanExerciseSlot.durationSeconds. Distinct from the
+    // `durationSeconds` below, which is the warmup/cooldown special-element session length.
+    val plannedDurationSeconds: Int? = null,
     val plannedNotes: String? = null,
     val slotType: PlanSlotType = PlanSlotType.EXERCISE,
     val isSpecialCompleted: Boolean = false,
@@ -476,6 +501,8 @@ data class GroupedExercise(
     val slotType: PlanSlotType = PlanSlotType.EXERCISE,
     var isSpecialCompleted: Boolean = false,
     var durationSeconds: Int = 300,
+    // Timed-exercise target (seconds). Distinct from `durationSeconds` (warmup/cooldown length).
+    val plannedDurationSeconds: Int? = null,
     val slotSelectionType: PlanExerciseSelectionType? = null,
     val slotFamilyId: String? = null
 ) {

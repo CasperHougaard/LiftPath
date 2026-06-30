@@ -243,32 +243,75 @@
                     </LinearLayout>
 
                     <!-- Reps Input -->
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
-                        android:text="Repetitions"
-                        android:textColor="@color/fitness_text_secondary"
-                        android:textSize="13sp" />
-
-                    <EditText
-                        android:id="@+id/edit_text_reps"
+                    <LinearLayout
+                        android:id="@+id/reps_container"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:background="@android:color/transparent"
-                        android:hint="Enter reps"
-                        android:inputType="number"
-                        android:textColor="@color/fitness_text_primary"
-                        android:textSize="22sp"
-                        android:textStyle="bold" />
+                        android:orientation="vertical">
 
-                    <!-- Divider -->
-                    <View
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="16dp"
+                            android:text="Repetitions"
+                            android:textColor="@color/fitness_text_secondary"
+                            android:textSize="13sp" />
+
+                        <EditText
+                            android:id="@+id/edit_text_reps"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:background="@android:color/transparent"
+                            android:hint="Enter reps"
+                            android:inputType="number"
+                            android:textColor="@color/fitness_text_primary"
+                            android:textSize="22sp"
+                            android:textStyle="bold" />
+
+                        <!-- Divider -->
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:layout_marginTop="12dp"
+                            android:background="#1F000000" />
+                    </LinearLayout>
+
+                    <!-- Duration Input (timed exercises) -->
+                    <LinearLayout
+                        android:id="@+id/time_container"
                         android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginTop="12dp"
-                        android:background="#1F000000" />
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="16dp"
+                            android:text="@string/hold_seconds_hint"
+                            android:textColor="@color/fitness_text_secondary"
+                            android:textSize="13sp" />
+
+                        <EditText
+                            android:id="@+id/edit_text_duration_seconds"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:background="@android:color/transparent"
+                            android:hint="@string/hold_seconds_hint"
+                            android:inputType="number"
+                            android:textColor="@color/fitness_text_primary"
+                            android:textSize="22sp"
+                            android:textStyle="bold" />
+
+                        <!-- Divider -->
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:layout_marginTop="12dp"
+                            android:background="#1F000000" />
+                    </LinearLayout>
 
                     <!-- RPE Input -->
                     <TextView

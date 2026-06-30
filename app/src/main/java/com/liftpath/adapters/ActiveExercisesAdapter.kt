@@ -2,6 +2,7 @@ package com.liftpath.adapters
 
 import android.content.Context
 import android.graphics.Typeface
+import android.os.CountDownTimer
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.style.ForegroundColorSpan
@@ -10,6 +11,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.cardview.widget.CardView
 import androidx.core.content.ContextCompat
@@ -20,6 +22,7 @@ import com.liftpath.helpers.DialogHelper
 import com.liftpath.helpers.JsonHelper
 import com.liftpath.helpers.ProgressionHelper
 import com.liftpath.helpers.ProgressionSettingsManager
+import com.liftpath.helpers.RestTimerHelper
 import com.liftpath.helpers.WorkoutGenerator
 import com.liftpath.helpers.showWithTransparentWindow
 import com.liftpath.models.DraftExerciseRow
@@ -59,7 +62,9 @@ class ActiveExercisesAdapter(
     private val onDeleteSpecialClicked: (exerciseId: Int) -> Unit = {},
     private val onStartTimerClicked: (exerciseId: Int) -> Unit = {},
     private val onEditDurationClicked: (exerciseId: Int) -> Unit = {},
-    private val onChangeExerciseClicked: ((position: Int) -> Unit)? = null
+    private val onChangeExerciseClicked: ((position: Int) -> Unit)? = null,
+    private val getTimerEndTimeMillis: (exerciseId: Int) -> Long? = { null },
+    private val onSpecialTimerReset: (exerciseId: Int) -> Unit = {}
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     
     companion object {
@@ -67,6 +72,8 @@ class ActiveExercisesAdapter(
         private const val VIEW_TYPE_ADD_BUTTONS = 1
         private const val VIEW_TYPE_SPECIAL     = 2
     }
+
+    private val cardTimers = mutableMapOf<Int, CountDownTimer?>()
 
     /** Always use '.' as decimal separator (locale-independent) for workout numbers. */
     private fun formatOneDecimal(value: Float): String = String.format(Locale.US, "%.1f", value)
@@ -150,6 +157,12 @@ class ActiveExercisesAdapter(
         val textMarkComplete: TextView = view.findViewById(R.id.text_mark_complete)
         val cardStartTimer: CardView = view.findViewById(R.id.card_start_timer)
         val btnDelete: android.widget.ImageButton = view.findViewById(R.id.button_delete_special)
+        val cardSpecial: MaterialCardView = view as MaterialCardView
+        val layoutTimerIdle: View = view.findViewById(R.id.layout_timer_idle)
+        val layoutTimerRunning: View = view.findViewById(R.id.layout_timer_running)
+        val textCountdown: TextView = view.findViewById(R.id.text_timer_countdown)
+        val progressTimer: ProgressBar = view.findViewById(R.id.progress_timer)
+        var boundExerciseId: Int = -1
     }
 
     override fun getItemViewType(position: Int): Int = when {
@@ -182,10 +195,19 @@ class ActiveExercisesAdapter(
         }
     }
 
+    private fun formatCountdown(secs: Int): String {
+        val m = secs / 60
+        val s = secs % 60
+        return String.format(Locale.getDefault(), "%d:%02d", m, s)
+    }
+
     private fun bindSpecialViewHolder(holder: SpecialElementViewHolder, position: Int) {
         val element = groupedExercises[position]
         val isWarmup = element.slotType == PlanSlotType.WARMUP
         val isCompleted = element.isSpecialCompleted
+        val ctx = holder.itemView.context
+
+        holder.boundExerciseId = element.exerciseId
 
         holder.icon.text = if (isWarmup) "🔥" else "🧊"
         holder.label.setText(if (isWarmup) R.string.label_warmup_element else R.string.label_cooldown_element)
@@ -208,20 +230,113 @@ class ActiveExercisesAdapter(
             holder.notesText.visibility = View.GONE
         }
 
-        // Mark complete / undo button label + colour
-        holder.textMarkComplete.setText(if (isCompleted) R.string.btn_mark_incomplete else R.string.btn_mark_complete)
-        val completedColor = ContextCompat.getColor(holder.itemView.context,
-            if (isCompleted) R.color.superset_complete_green else R.color.fitness_primary)
-        holder.cardMarkComplete.setCardBackgroundColor(completedColor)
-        holder.cardMarkComplete.setOnClickListener {
-            val pos = holder.bindingAdapterPosition
-            if (pos >= 0) onSpecialCompleted(element.exerciseId, !isCompleted)
-        }
+        // Cancel any running card timer for this element before rebinding
+        cardTimers[element.exerciseId]?.cancel()
+        cardTimers[element.exerciseId] = null
 
-        // Start Timer button — both warmup and cooldown
-        holder.cardStartTimer.setOnClickListener {
-            val pos = holder.bindingAdapterPosition
-            if (pos >= 0) onStartTimerClicked(element.exerciseId)
+        val primaryColor = ContextCompat.getColor(ctx, R.color.fitness_primary)
+        val greenColor = ContextCompat.getColor(ctx, R.color.superset_complete_green)
+        val grayColor = ContextCompat.getColor(ctx, R.color.fitness_text_secondary)
+        val strokePx = (3 * ctx.resources.displayMetrics.density).toInt()
+
+        val endTimeMillis = getTimerEndTimeMillis(element.exerciseId)
+        val nowMs = System.currentTimeMillis()
+        val isTimerActive = !isCompleted && endTimeMillis != null && endTimeMillis > nowMs
+
+        val markCompleteParams = holder.cardMarkComplete.layoutParams as android.widget.LinearLayout.LayoutParams
+
+        when {
+            isCompleted -> {
+                // Completed: hide start timer, expand mark-complete to full width
+                holder.cardStartTimer.visibility = View.GONE
+                markCompleteParams.weight = 1f
+                holder.cardMarkComplete.layoutParams = markCompleteParams
+
+                holder.textMarkComplete.setText(R.string.btn_mark_incomplete)
+                holder.cardMarkComplete.setCardBackgroundColor(greenColor)
+                holder.cardMarkComplete.isClickable = true
+                holder.cardMarkComplete.setOnClickListener {
+                    val pos = holder.bindingAdapterPosition
+                    if (pos >= 0) onSpecialCompleted(element.exerciseId, false)
+                }
+
+                holder.progressTimer.visibility = View.GONE
+                holder.cardSpecial.strokeWidth = 0
+            }
+
+            isTimerActive -> {
+                // Running: show countdown in start-timer area, show Reset button
+                holder.cardStartTimer.visibility = View.VISIBLE
+                markCompleteParams.weight = 0.3f
+                holder.cardMarkComplete.layoutParams = markCompleteParams
+
+                holder.layoutTimerIdle.visibility = View.GONE
+                holder.layoutTimerRunning.visibility = View.VISIBLE
+                holder.cardStartTimer.setCardBackgroundColor(greenColor)
+                holder.cardStartTimer.isClickable = false
+
+                holder.textMarkComplete.setText(R.string.btn_reset_timer)
+                holder.cardMarkComplete.setCardBackgroundColor(grayColor)
+                holder.cardMarkComplete.isClickable = true
+                holder.cardMarkComplete.setOnClickListener {
+                    val pos = holder.bindingAdapterPosition
+                    if (pos >= 0) onSpecialTimerReset(element.exerciseId)
+                }
+
+                holder.cardSpecial.strokeWidth = strokePx
+                holder.cardSpecial.strokeColor = greenColor
+
+                holder.progressTimer.visibility = View.VISIBLE
+                holder.progressTimer.alpha = 1f
+
+                val totalMs = element.durationSeconds * 1000L
+                val remainingMs = endTimeMillis!! - nowMs
+                val initialSecs = (remainingMs / 1000).toInt()
+                holder.textCountdown.text = formatCountdown(initialSecs)
+                holder.progressTimer.progress = ((remainingMs.toFloat() / totalMs) * 100).toInt().coerceIn(0, 100)
+
+                val timer = object : CountDownTimer(remainingMs, 1000L) {
+                    override fun onTick(millisUntilFinished: Long) {
+                        val secs = (millisUntilFinished / 1000).toInt()
+                        holder.textCountdown.text = formatCountdown(secs)
+                        holder.progressTimer.progress = ((millisUntilFinished.toFloat() / totalMs) * 100).toInt().coerceIn(0, 100)
+                    }
+                    override fun onFinish() {
+                        holder.textCountdown.text = formatCountdown(0)
+                        holder.progressTimer.progress = 0
+                        val pos = holder.bindingAdapterPosition
+                        if (pos >= 0) onSpecialCompleted(element.exerciseId, true)
+                    }
+                }.start()
+                cardTimers[element.exerciseId] = timer
+            }
+
+            else -> {
+                // Idle: standard start + done buttons
+                holder.cardStartTimer.visibility = View.VISIBLE
+                markCompleteParams.weight = 0.3f
+                holder.cardMarkComplete.layoutParams = markCompleteParams
+
+                holder.layoutTimerIdle.visibility = View.VISIBLE
+                holder.layoutTimerRunning.visibility = View.GONE
+                holder.cardStartTimer.setCardBackgroundColor(primaryColor)
+                holder.cardStartTimer.isClickable = true
+                holder.cardStartTimer.setOnClickListener {
+                    val pos = holder.bindingAdapterPosition
+                    if (pos >= 0) onStartTimerClicked(element.exerciseId)
+                }
+
+                holder.textMarkComplete.setText(R.string.btn_mark_complete)
+                holder.cardMarkComplete.setCardBackgroundColor(primaryColor)
+                holder.cardMarkComplete.isClickable = true
+                holder.cardMarkComplete.setOnClickListener {
+                    val pos = holder.bindingAdapterPosition
+                    if (pos >= 0) onSpecialCompleted(element.exerciseId, true)
+                }
+
+                holder.progressTimer.visibility = View.GONE
+                holder.cardSpecial.strokeWidth = 0
+            }
         }
 
         // Delete button
@@ -774,8 +889,13 @@ class ActiveExercisesAdapter(
                 val compact = SpannableStringBuilder()
                 workingSets.forEachIndexed { i, set ->
                     if (i > 0) compact.append("  ·  ")
-                    compact.append(weightPortion(ctx, set))
-                    compact.append("×${set.reps}")
+                    if (set.isTimedEntry()) {
+                        compact.append(RestTimerHelper.formatDuration(set.durationSeconds ?: 0))
+                        if (set.kg > 0f) compact.append(" +${trimNum(set.kg)}")
+                    } else {
+                        compact.append(weightPortion(ctx, set))
+                        compact.append("×${set.reps}")
+                    }
                 }
                 holder.loggedSets.text = compact
                 holder.loggedSets.visibility = View.VISIBLE
@@ -828,7 +948,21 @@ class ActiveExercisesAdapter(
     }
 
     override fun getItemCount() = groupedExercises.size + 1
-    
+
+    override fun onViewRecycled(holder: RecyclerView.ViewHolder) {
+        super.onViewRecycled(holder)
+        if (holder is SpecialElementViewHolder && holder.boundExerciseId >= 0) {
+            cardTimers[holder.boundExerciseId]?.cancel()
+            cardTimers.remove(holder.boundExerciseId)
+        }
+    }
+
+    override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
+        super.onDetachedFromRecyclerView(recyclerView)
+        cardTimers.values.forEach { it?.cancel() }
+        cardTimers.clear()
+    }
+
     private fun showNoteDialog(context: Context, exerciseId: Int, exerciseName: String, noteText: String, position: Int) {
         DialogHelper.createBuilder(context)
             .setTitle(exerciseName)
@@ -898,18 +1032,22 @@ class ActiveExercisesAdapter(
     private fun buildPlanIndicatorText(snapshot: DraftExerciseRow): String? {
         if (!snapshot.fromPlan) return null
         val sets = snapshot.plannedSetsTarget
-        val reps = snapshot.plannedRepsTarget?.takeIf { it.isNotBlank() }
         val rpe = snapshot.plannedRpeTarget
-        if (sets == null && reps == null && rpe == null) return null
+        // Timed slots render the target as a duration instead of reps.
+        val durationSeconds = snapshot.plannedDurationSeconds?.takeIf { it > 0 }
+        val reps = if (durationSeconds != null) null
+                   else snapshot.plannedRepsTarget?.takeIf { it.isNotBlank() }
+        if (sets == null && reps == null && rpe == null && durationSeconds == null) return null
 
         val sb = StringBuilder("Plan: ")
+        val target = durationSeconds?.let { RestTimerHelper.formatDuration(it) } ?: reps
         when {
-            sets != null && reps != null -> sb.append("${sets}×${reps}")
+            sets != null && target != null -> sb.append("${sets}×${target}")
             sets != null -> sb.append("$sets sets")
-            reps != null -> sb.append("$reps reps")
+            target != null -> sb.append(if (durationSeconds != null) target else "$target reps")
         }
         if (rpe != null) {
-            if (sets != null || reps != null) sb.append(" ")
+            if (sets != null || target != null) sb.append(" ")
             sb.append("@ RPE ${formatOneDecimal(rpe)}")
         }
         return sb.toString()
@@ -1018,6 +1156,13 @@ class ActiveExercisesAdapter(
     ): CharSequence {
         val b = SpannableStringBuilder()
         b.append(prefix)
+        // Timed holds render the duration, with weight appended only when present.
+        if (set.isTimedEntry()) {
+            b.append(RestTimerHelper.formatDuration(set.durationSeconds ?: 0))
+            if (set.kg > 0f) b.append(" + ${trimNum(set.kg)} kg")
+            b.append(suffix)
+            return b
+        }
         b.append(weightPortion(context, set))
         b.append(if (spaceBeforeKg) " kg × ${set.reps}$suffix" else "kg × ${set.reps}$suffix")
         return b

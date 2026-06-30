@@ -57,6 +57,9 @@ object OneRMEstimationHelper {
      * @return Estimated 1RM in kg, or null if invalid/unreliable
      */
     fun calculateOneRM(weight: Float, actualReps: Int, rpe: Float? = null): Float? {
+        // Timed/isometric holds carry no reps (reps == 0); a rep-based 1RM is meaningless for them.
+        if (actualReps <= 0) return null
+
         // Rule A: Filter out sets with RPE < 6.5 (too light to be predictive)
         if (rpe != null && rpe < 6.5f) {
             return null

@@ -12,6 +12,7 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.liftpath.databinding.ItemSetDetailBinding
 import com.liftpath.databinding.ItemGroupedExerciseBinding
+import com.liftpath.helpers.RestTimerHelper
 import com.liftpath.models.ExerciseEntry
 import com.liftpath.models.GroupedExercise
 import com.liftpath.models.SetIntent
@@ -81,7 +82,14 @@ class TrainingDetailAdapter(
         val b = SpannableStringBuilder()
         b.append("Set ${set.setNumber}: ")
 
-        if (set.isBodyweightEntry()) {
+        if (set.isTimedEntry()) {
+            // Timed hold: show duration (m:ss), with weight appended only when present.
+            b.append(RestTimerHelper.formatDuration(set.durationSeconds ?: 0))
+            if (set.kg > 0f) {
+                val kgStr = if (set.kg % 1 == 0f) set.kg.toInt().toString() else "%.1f".format(set.kg)
+                b.append(" + ${kgStr}kg")
+            }
+        } else if (set.isBodyweightEntry()) {
             // Body weight muted (1 decimal); signed added/assisted weight in green +/red − so the
             // progression (the added part) is readable even when body weight differs between workouts.
             val bw = set.bodyweightKg ?: 0f

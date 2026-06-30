@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.liftpath.R
 import com.liftpath.helpers.ProgressAnalysisHelper
 import com.liftpath.helpers.ProgressAnalysisHelper.PRType
+import com.liftpath.helpers.RestTimerHelper
 import com.liftpath.models.SetIntent
 import java.text.SimpleDateFormat
 import java.util.*
@@ -78,6 +79,10 @@ class PRTimelineAdapter(
                     textPrType.text = "Reps PR"
                     textPrValue.text = String.format(Locale.US, "%.0f reps", pr.value)
                 }
+                PRType.TIME_HOLD -> {
+                    textPrType.text = "Hold PR"
+                    textPrValue.text = RestTimerHelper.formatDuration(pr.value.toInt())
+                }
             }
 
             // Improvement (if available)
@@ -106,6 +111,7 @@ class PRTimelineAdapter(
                     PRType.VOLUME -> itemView.context.getColor(R.color.intent_build)
                     PRType.ONE_RM -> itemView.context.getColor(R.color.fitness_accent)
                     PRType.REPS -> itemView.context.getColor(R.color.intent_flush)
+                    PRType.TIME_HOLD -> itemView.context.getColor(R.color.intent_build)
                 }
             )
         }

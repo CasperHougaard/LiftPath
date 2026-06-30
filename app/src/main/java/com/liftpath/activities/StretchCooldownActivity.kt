@@ -6,27 +6,31 @@ import android.graphics.drawable.Animatable
 import android.os.Build
 import android.os.Bundle
 import android.os.CountDownTimer
+import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.liftpath.R
 import com.liftpath.databinding.ActivityStretchCooldownBinding
 import com.liftpath.helpers.DefaultStretchesHelper
-import com.liftpath.models.StretchItem
 import com.liftpath.models.TargetMuscle
 import com.liftpath.models.TrainingSession
 
 class StretchCooldownActivity : AppCompatActivity() {
 
+    private enum class StretchState { WAITING, COUNTDOWN, STRETCHING }
+
     private lateinit var binding: ActivityStretchCooldownBinding
     private lateinit var session: TrainingSession
-    private var stretches: List<StretchItem> = emptyList()
+    private var stretches = emptyList<com.liftpath.models.StretchItem>()
     private var currentIndex = 0
     private var countDownTimer: CountDownTimer? = null
+    private var stretchState = StretchState.WAITING
 
     companion object {
         const val EXTRA_TRAINING_SESSION = "extra_training_session"
         const val EXTRA_WORKED_MUSCLES   = "extra_worked_muscles"
+        private const val READINESS_SECONDS = 5
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -34,7 +38,6 @@ class StretchCooldownActivity : AppCompatActivity() {
         binding = ActivityStretchCooldownBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Apply system bar insets
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, windowInsets ->
             val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
             binding.layoutHeader.setPadding(
@@ -51,10 +54,8 @@ class StretchCooldownActivity : AppCompatActivity() {
             windowInsets
         }
 
-        // Start background animation
         (binding.imageBgAnimation.drawable as? Animatable)?.start()
 
-        // Retrieve TrainingSession
         val s = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             intent.getParcelableExtra(EXTRA_TRAINING_SESSION, TrainingSession::class.java)
         } else {
@@ -64,22 +65,23 @@ class StretchCooldownActivity : AppCompatActivity() {
         if (s == null) { goToReport(null); return }
         session = s
 
-        // Deserialize muscles and build stretch list
         val muscleNames = intent.getStringArrayListExtra(EXTRA_WORKED_MUSCLES) ?: arrayListOf()
         val workedMuscles = muscleNames
             .mapNotNull { name -> runCatching { TargetMuscle.valueOf(name) }.getOrNull() }
             .toSet()
 
         stretches = DefaultStretchesHelper.getStretchesFor(workedMuscles)
-
-        if (stretches.isEmpty()) {
-            goToReport(session)
-            return
-        }
+        if (stretches.isEmpty()) { goToReport(session); return }
 
         binding.buttonSkipAll.setOnClickListener { goToReport(session) }
         binding.buttonSkip.setOnClickListener { advanceOrFinish() }
-        binding.buttonNext.setOnClickListener { advanceOrFinish() }
+        binding.buttonNext.setOnClickListener {
+            when (stretchState) {
+                StretchState.WAITING   -> startActualCountdown(stretches[currentIndex].durationSeconds)
+                StretchState.COUNTDOWN -> startActualCountdown(stretches[currentIndex].durationSeconds)
+                StretchState.STRETCHING -> advanceOrFinish()
+            }
+        }
 
         showStretch(currentIndex)
     }
@@ -95,28 +97,73 @@ class StretchCooldownActivity : AppCompatActivity() {
         binding.progressBar.max = total
         binding.progressBar.progress = index + 1
 
-        binding.textButtonNext.text = if (index == total - 1)
-            getString(R.string.stretch_button_finish)
-        else
-            getString(R.string.stretch_button_next)
-
-        startCountdown(stretch.durationSeconds)
+        if (index == 0) {
+            applyState(StretchState.WAITING)
+            binding.textButtonNext.text = getString(R.string.stretch_button_ready)
+        } else {
+            startReadinessCountdown(stretch.durationSeconds)
+        }
     }
 
-    private fun startCountdown(totalSeconds: Int) {
+    private fun applyState(state: StretchState) {
+        stretchState = state
+        when (state) {
+            StretchState.WAITING -> {
+                binding.textReadyHint.visibility = View.VISIBLE
+                binding.layoutTimer.visibility = View.GONE
+            }
+            StretchState.COUNTDOWN -> {
+                binding.textReadyHint.visibility = View.GONE
+                binding.layoutTimer.visibility = View.VISIBLE
+                binding.textGetReadyLabel.visibility = View.VISIBLE
+                binding.textButtonNext.text = getString(R.string.stretch_button_start)
+            }
+            StretchState.STRETCHING -> {
+                binding.textReadyHint.visibility = View.GONE
+                binding.layoutTimer.visibility = View.VISIBLE
+                binding.textGetReadyLabel.visibility = View.GONE
+                val total = stretches.size
+                binding.textButtonNext.text = if (currentIndex == total - 1)
+                    getString(R.string.stretch_button_finish)
+                else
+                    getString(R.string.stretch_button_next)
+            }
+        }
+    }
+
+    private fun startReadinessCountdown(stretchSeconds: Int) {
         countDownTimer?.cancel()
+        applyState(StretchState.COUNTDOWN)
+        binding.progressTimerFg.max = 100
+        binding.progressTimerFg.progress = 0
+        binding.textTimer.text = READINESS_SECONDS.toString()
+
+        countDownTimer = object : CountDownTimer(READINESS_SECONDS * 1000L, 50L) {
+            override fun onTick(millisUntilFinished: Long) {
+                binding.textTimer.text = (millisUntilFinished / 1000L + 1).toString()
+                val elapsed = READINESS_SECONDS * 1000L - millisUntilFinished
+                binding.progressTimerFg.progress =
+                    (elapsed.toFloat() / (READINESS_SECONDS * 1000L) * 100).toInt()
+            }
+            override fun onFinish() {
+                startActualCountdown(stretchSeconds)
+            }
+        }.start()
+    }
+
+    private fun startActualCountdown(totalSeconds: Int) {
+        countDownTimer?.cancel()
+        applyState(StretchState.STRETCHING)
         binding.progressTimerFg.max = 100
         binding.progressTimerFg.progress = 100
         binding.textTimer.text = totalSeconds.toString()
 
-        countDownTimer = object : CountDownTimer(totalSeconds * 1000L, 100L) {
+        countDownTimer = object : CountDownTimer(totalSeconds * 1000L, 50L) {
             override fun onTick(millisUntilFinished: Long) {
-                val secondsLeft = (millisUntilFinished / 1000L).toInt() + 1
-                binding.textTimer.text = secondsLeft.toString()
-                val progressPct = (millisUntilFinished.toFloat() / (totalSeconds * 1000L) * 100).toInt()
-                binding.progressTimerFg.progress = progressPct
+                binding.textTimer.text = (millisUntilFinished / 1000L + 1).toString()
+                binding.progressTimerFg.progress =
+                    (millisUntilFinished.toFloat() / (totalSeconds * 1000L) * 100).toInt()
             }
-
             override fun onFinish() {
                 binding.textTimer.text = "0"
                 binding.progressTimerFg.progress = 0

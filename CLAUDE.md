@@ -14,10 +14,11 @@ import/export. When any of the following change, verify the helper still works e
 
 1. `buildSpecMarkdown` still emits correct column order and enum value strings.
 2. `parsePlansFromMarkdown` column indices still match (column 0 = name, 1 = id, 2 = sets,
-   3 = reps, 4 = intent, 5 = rpe, 6 = rest, 7 = notes).
+   3 = reps, 4 = intent, 5 = rpe, 6 = rest, 7 = notes, 8 = family id, 9 = time (sec)).
 3. The field reference table in the export doc is still accurate.
 4. Round-trip test: export spec → add a `## Plan:` section with real exercise IDs → import →
-   confirm all fields (intent, setsTarget, rpeTarget, restTimeSeconds) are populated correctly.
+   confirm all fields (intent, setsTarget, rpeTarget, restTimeSeconds, durationSeconds) are
+   populated correctly. For a timed exercise (e.g. Plank), Reps is blank and Time (sec) is set.
 
 **Key files:**
 

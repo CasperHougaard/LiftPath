@@ -3,6 +3,7 @@ package com.liftpath.helpers
 import android.content.Context
 import android.net.Uri
 import android.util.Log
+import com.liftpath.models.ExerciseTargetMetric
 import com.liftpath.models.PlanExerciseSelectionType
 import com.liftpath.models.PlanExerciseSlot
 import com.liftpath.models.SetIntent
@@ -97,6 +98,7 @@ class JsonHelper(private val context: Context) {
         ensureDefaultFamiliesExist(data)
         ensureLibraryFamilyMappingsExist(data)
         backfillFamilyIdSnapshotsIfMissing(data)
+        backfillTimedTargetMetricIfMissing(data)
 
         // Migrate legacy WorkoutPlans: if a plan has no exerciseConfigs, generate minimal ones
         // from exerciseIds so V2 code can always rely on exerciseConfigs being present
@@ -156,6 +158,21 @@ class JsonHelper(private val context: Context) {
                     val familyId = libraryFamilyMap[entry.exerciseId] ?: continue
                     session.exercises[i] = entry.copy(familyIdSnapshot = familyId)
                 }
+            }
+        }
+    }
+
+    // Flags the known isometric default-catalog exercises (Plank, Side Plank) as TIME-based on installs
+    // whose persisted library predates the targetMetric field. Only fills items whose metric is still
+    // null, so a user who deliberately set REPS isn't overridden.
+    private fun backfillTimedTargetMetricIfMissing(data: TrainingData) {
+        val timedIds = DefaultExercisesHelper.DEFAULT_TIMED_EXERCISE_IDS
+        val needsUpdate = data.exerciseLibrary.any { it.targetMetric == null && it.id in timedIds }
+        if (!needsUpdate) return
+        for (i in data.exerciseLibrary.indices) {
+            val exercise = data.exerciseLibrary[i]
+            if (exercise.targetMetric == null && exercise.id in timedIds) {
+                data.exerciseLibrary[i] = exercise.copy(targetMetric = ExerciseTargetMetric.TIME)
             }
         }
     }

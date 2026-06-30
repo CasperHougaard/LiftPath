@@ -32,12 +32,13 @@ object WorkoutPlanMarkdownHelper {
         sb.append("```\n")
         sb.append("## Plan: [Your Plan Name]\n")
         sb.append("Notes: [Optional description]\n\n")
-        sb.append("| Exercise Name | Exercise ID | Sets | Reps | Intent | RPE Target | Rest (sec) | Notes | Family ID |\n")
-        sb.append("|---|---|---|---|---|---|---|---|---|\n")
-        sb.append("| __warmup__ |  |  |  |  |  |  |  |  |\n")
-        sb.append("| Bench Press | 1 | 4 | 8-10 | STRENGTH | 8.0 | 120 | Keep shoulder blades back |  |\n")
-        sb.append("| Horizontal Push (any) |  | 3 | 10-12 | BUILD | 7.5 | 90 |  | chest_press |\n")
-        sb.append("| __cooldown__ |  |  |  |  |  |  |  |  |\n")
+        sb.append("| Exercise Name | Exercise ID | Sets | Reps | Intent | RPE Target | Rest (sec) | Notes | Family ID | Time (sec) |\n")
+        sb.append("|---|---|---|---|---|---|---|---|---|---|\n")
+        sb.append("| __warmup__ |  |  |  |  |  |  |  |  |  |\n")
+        sb.append("| Bench Press | 1 | 4 | 8-10 | STRENGTH | 8.0 | 120 | Keep shoulder blades back |  |  |\n")
+        sb.append("| Horizontal Push (any) |  | 3 | 10-12 | BUILD | 7.5 | 90 |  | chest_press |  |\n")
+        sb.append("| Plank | 121 | 3 |  | BUILD | 7.0 | 60 | Brace core |  | 45 |\n")
+        sb.append("| __cooldown__ |  |  |  |  |  |  |  |  |  |\n")
         sb.append("```\n\n")
 
         sb.append("### Field Reference\n\n")
@@ -46,12 +47,13 @@ object WorkoutPlanMarkdownHelper {
         sb.append("| Exercise Name | No | Informational only — the ID is what matters |\n")
         sb.append("| Exercise ID | Conditional | Integer from the exercise table below. Leave blank for `__warmup__` / `__cooldown__` sentinels or when using a Family ID instead. |\n")
         sb.append("| Sets | No | Integer, e.g. `4` |\n")
-        sb.append("| Reps | No | **Rep count only** — `8`, `8-10`, or `10+`. NEVER put a duration or time here (e.g. do NOT write `30 sec` or `30-60`). For timed holds, leave this blank and describe the duration in Notes. |\n")
+        sb.append("| Reps | No | **Rep count only** — `8`, `8-10`, or `10+`. NEVER put a duration or time here (e.g. do NOT write `30 sec` or `30-60`). For timed holds, leave this blank and use the **Time (sec)** column. |\n")
         sb.append("| Intent | No | `STRENGTH`, `BUILD`, `FLUSH`, or `WARMUP` |\n")
         sb.append("| RPE Target | No | `6.0`–`10.0`, or blank |\n")
         sb.append("| Rest (sec) | No | Rest between sets in whole seconds, e.g. `120`. Leave blank if not applicable. |\n")
         sb.append("| Notes | No | Free text (avoid pipe `|` characters). Use this for hold durations, technique cues, etc. |\n")
-        sb.append("| Family ID | No | **(V3 optional)** A family ID from the families table below. If Exercise ID is blank and Family ID is set, the slot is a flexible family slot — the user can choose any matching exercise at workout time. |\n\n")
+        sb.append("| Family ID | No | **(V3 optional)** A family ID from the families table below. If Exercise ID is blank and Family ID is set, the slot is a flexible family slot — the user can choose any matching exercise at workout time. |\n")
+        sb.append("| Time (sec) | No | Target hold duration in whole seconds for **timed/isometric** exercises (e.g. Plank `45`). Leave the Reps column blank when using this. Leave Time blank for normal rep-based exercises. |\n\n")
         sb.append("**Warmup / Cool-down:** Insert a row with `__warmup__` or `__cooldown__` in the Exercise Name column and leave all other columns blank. Always place `__warmup__` as the first row and `__cooldown__` as the last row of the plan.\n\n")
 
         sb.append("---\n\n")
@@ -178,6 +180,8 @@ object WorkoutPlanMarkdownHelper {
                 val rpeTarget = cells.getOrNull(5)?.toFloatOrNull()
                 val restTimeSeconds = cells.getOrNull(6)?.toIntOrNull()
                 val slotNotes = cells.getOrNull(7)?.takeIf { it.isNotEmpty() }
+                // Column 9 (index 9): timed-exercise target in whole seconds. Blank for rep-based slots.
+                val durationSeconds = cells.getOrNull(9)?.toIntOrNull()?.takeIf { it > 0 }
 
                 if (exerciseIdParsed == null && familyIdCell != null && familyIdCell in knownFamilyIds) {
                     // V3 FAMILY_SLOT row: blank Exercise ID, valid Family ID in column 9
@@ -193,7 +197,8 @@ object WorkoutPlanMarkdownHelper {
                             rpeTarget = rpeTarget,
                             setsTarget = setsTarget,
                             repsTarget = repsTarget,
-                            notes = slotNotes
+                            notes = slotNotes,
+                            durationSeconds = durationSeconds
                         )
                     )
                     continue
@@ -215,6 +220,7 @@ object WorkoutPlanMarkdownHelper {
                         setsTarget = setsTarget,
                         repsTarget = repsTarget,
                         notes = slotNotes,
+                        durationSeconds = durationSeconds,
                         selectionType = PlanExerciseSelectionType.SPECIFIC_VARIANT
                     )
                 )

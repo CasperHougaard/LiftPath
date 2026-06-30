@@ -5,6 +5,7 @@ import com.liftpath.models.Equipment
 import com.liftpath.models.ExerciseAngle
 import com.liftpath.models.ExerciseFamily
 import com.liftpath.models.ExerciseLibraryItem
+import com.liftpath.models.ExerciseTargetMetric
 import com.liftpath.models.ExerciseType
 import com.liftpath.models.Laterality
 import com.liftpath.models.Mechanics
@@ -15,6 +16,13 @@ import com.liftpath.models.Tier
 object DefaultExercisesHelper {
 
     const val CATALOG_VERSION = 4
+
+    /**
+     * Default-catalog exercise IDs that target TIME rather than reps (isometric holds). Used by the
+     * one-time backfill migration so existing installs (whose persisted library predates the
+     * targetMetric field) auto-flag these as timed. Only applied when the item's metric is still null.
+     */
+    val DEFAULT_TIMED_EXERCISE_IDS: Set<Int> = setOf(121, 137)
 
     // --- Exercise Family Catalog (40 families, 84 exercises) ---
 
@@ -649,7 +657,8 @@ object DefaultExercisesHelper {
                 primaryTargets = listOf(TargetMuscle.ABS, TargetMuscle.OBLIQUES),
                 secondaryTargets = emptyList(),
                 note = "Neutral spine. Squeeze glutes.",
-                exerciseType = ExerciseType.BODYWEIGHT
+                exerciseType = ExerciseType.BODYWEIGHT,
+                targetMetric = ExerciseTargetMetric.TIME
             ),
             ExerciseLibraryItem(
                 id = 122,
@@ -817,7 +826,8 @@ object DefaultExercisesHelper {
                 secondaryTargets = listOf(TargetMuscle.LOWER_BACK, TargetMuscle.ABS),
                 note = "Stack feet/legs. Don't let hips sag.",
                 manualMechanics = Mechanics.ISOLATION,
-                exerciseType = ExerciseType.BODYWEIGHT
+                exerciseType = ExerciseType.BODYWEIGHT,
+                targetMetric = ExerciseTargetMetric.TIME
             ),
             ExerciseLibraryItem(
                 id = 138,

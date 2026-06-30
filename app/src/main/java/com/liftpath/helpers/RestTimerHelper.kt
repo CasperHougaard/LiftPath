@@ -1,12 +1,19 @@
 package com.liftpath.helpers
 
 import com.liftpath.models.SetIntent
+import java.util.Locale
 import kotlin.math.max
 
 /**
  * Central place for rest duration after logging a set — matches LogSetActivity behavior.
  */
 object RestTimerHelper {
+
+    /** Formats a duration in seconds as `m:ss` (e.g. 45 -> "0:45", 90 -> "1:30"). */
+    fun formatDuration(seconds: Int): String {
+        val safe = max(0, seconds)
+        return String.format(Locale.US, "%d:%02d", safe / 60, safe % 60)
+    }
 
     fun restSecondsAfterLoggedSet(
         settings: ProgressionHelper.ProgressionSettings,

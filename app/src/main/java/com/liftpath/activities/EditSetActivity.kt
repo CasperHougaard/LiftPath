@@ -22,6 +22,7 @@ class EditSetActivity : AppCompatActivity() {
     private lateinit var exerciseEntry: ExerciseEntry
     private var isEditMode = false
     private var isBodyweight = false
+    private var isTimeBased = false
 
     companion object {
         const val EXTRA_EXERCISE_ENTRY = "extra_exercise_entry"
@@ -61,14 +62,21 @@ class EditSetActivity : AppCompatActivity() {
         // Detect mode from the entry itself (entry-driven, so legacy weighted sets stay weighted
         // even if the exercise is later reclassified).
         isBodyweight = exerciseEntry.isBodyweightEntry()
+        isTimeBased = exerciseEntry.isTimedEntry()
 
         // Populate fields with existing data
-        if (isBodyweight) {
+        if (isTimeBased) {
+            setupTimeMode()
+        } else if (isBodyweight) {
             setupBodyweightMode()
         } else {
             binding.editTextKg.setText(exerciseEntry.kg.toString())
         }
-        binding.editTextReps.setText(exerciseEntry.reps.toString())
+        if (isTimeBased) {
+            binding.editTextDurationSeconds.setText((exerciseEntry.durationSeconds ?: 0).toString())
+        } else {
+            binding.editTextReps.setText(exerciseEntry.reps.toString())
+        }
 
         // Populate RPE if available
         exerciseEntry.rpe?.let {
@@ -110,6 +118,17 @@ class EditSetActivity : AppCompatActivity() {
     private fun format1(v: Float): String = String.format(Locale.US, "%.1f", v)
 
     private fun round1(v: Float): Float = Math.round(v * 10f) / 10f
+
+    private fun setupTimeMode() {
+        // Show the duration field instead of reps; weight is optional (kept in the weighted field).
+        binding.repsContainer.visibility = View.GONE
+        binding.timeContainer.visibility = View.VISIBLE
+        binding.bodyweightContainer.visibility = View.GONE
+        binding.weightedWeightContainer.visibility = View.VISIBLE
+        if (exerciseEntry.kg > 0f) {
+            binding.editTextKg.setText(formatNum(exerciseEntry.kg))
+        }
+    }
 
     private fun setupBodyweightMode() {
         binding.weightedWeightContainer.visibility = View.GONE
@@ -160,14 +179,30 @@ class EditSetActivity : AppCompatActivity() {
     }
 
     private fun saveSet() {
-        val updatedReps = binding.editTextReps.text.toString().toIntOrNull()
         val updatedRpe = binding.editTextRpe.text.toString().toFloatOrNull()
         val updatedNotes = binding.editTextNotes.text.toString().trim().ifEmpty { null }
 
-        if (updatedReps == null) {
-            Toast.makeText(this, "Please enter valid repetitions", Toast.LENGTH_SHORT).show()
-            binding.editTextReps.requestFocus()
-            return
+        // Resolve the target metric: reps (default) or a timed hold (durationSeconds).
+        val updatedReps: Int
+        val updatedDurationSeconds: Int?
+        if (isTimeBased) {
+            val dur = binding.editTextDurationSeconds.text.toString().toIntOrNull()
+            if (dur == null || dur <= 0) {
+                Toast.makeText(this, getString(R.string.toast_please_enter_duration), Toast.LENGTH_SHORT).show()
+                binding.editTextDurationSeconds.requestFocus()
+                return
+            }
+            updatedReps = 0
+            updatedDurationSeconds = dur
+        } else {
+            val parsedReps = binding.editTextReps.text.toString().toIntOrNull()
+            if (parsedReps == null) {
+                Toast.makeText(this, "Please enter valid repetitions", Toast.LENGTH_SHORT).show()
+                binding.editTextReps.requestFocus()
+                return
+            }
+            updatedReps = parsedReps
+            updatedDurationSeconds = null
         }
 
         // Validate RPE if provided (should be between 1 and 10)
@@ -177,11 +212,15 @@ class EditSetActivity : AppCompatActivity() {
             return
         }
 
-        // Resolve the load (weighted vs bodyweight).
+        // Resolve the load (time: optional kg; weighted vs bodyweight).
         val updatedKg: Float
         val updatedBodyweight: Float?
         val updatedAdded: Float?
-        if (isBodyweight) {
+        if (isTimeBased) {
+            updatedKg = binding.editTextKg.text.toString().toFloatOrNull() ?: 0f
+            updatedBodyweight = null
+            updatedAdded = null
+        } else if (isBodyweight) {
             val bw = binding.editTextBodyweight.text.toString().trim().toFloatOrNull()
             if (bw == null || bw < 20f || bw > 400f) {
                 Toast.makeText(this, getString(R.string.bodyweight_invalid), Toast.LENGTH_SHORT).show()
@@ -217,7 +256,8 @@ class EditSetActivity : AppCompatActivity() {
             rpe = updatedRpe,
             note = updatedNotes,
             bodyweightKg = updatedBodyweight,
-            addedKg = updatedAdded
+            addedKg = updatedAdded,
+            durationSeconds = updatedDurationSeconds
         )
 
         val resultIntent = Intent().apply {

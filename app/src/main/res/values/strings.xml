@@ -595,6 +595,16 @@ Leave blank if you\'re not sure.]]></string>
     <string name="exercise_type_label">Exercise type</string>
     <string name="exercise_type_weighted">Weighted</string>
     <string name="exercise_type_bodyweight">Bodyweight</string>
+    <string name="target_metric_label">Target metric</string>
+    <string name="target_metric_reps">Reps</string>
+    <string name="target_metric_time">Time</string>
+    <string name="hold_time_label">Hold time</string>
+    <string name="hold_seconds_hint">Or enter seconds</string>
+    <string name="timer_start">Start</string>
+    <string name="timer_stop">Stop</string>
+    <string name="timer_reset">Reset</string>
+    <string name="toast_please_enter_duration">Please enter or time a duration</string>
+    <string name="optional_kg_hint">kg (optional)</string>
     <string name="bodyweight_field_hint">Body weight (kg)</string>
     <string name="bodyweight_invalid">Enter a valid body weight (20–400 kg)</string>
     <string name="bodyweight_initial_title">Set your body weight</string>
@@ -655,6 +665,7 @@ Leave blank if you\'re not sure.]]></string>
     <string name="btn_add_warmup">+ Warm-up</string>
     <string name="btn_add_cooldown">+ Cool-down</string>
     <string name="btn_start_timer">Start Timer</string>
+    <string name="btn_reset_timer">Reset</string>
     <string name="hint_warmup_notes">Notes (optional)</string>
     <string name="warmup_element_subtitle">Prepare your body</string>
     <string name="cooldown_element_subtitle">Wind down and stretch</string>
@@ -671,5 +682,10 @@ Leave blank if you\'re not sure.]]></string>
     <string name="stretch_button_finish">Finish</string>
     <string name="stretch_button_skip">Skip</string>
     <string name="stretch_skip_all_content_description">Skip all stretches</string>
+    <string name="stretch_button_skip_all">Skip All Stretches</string>
+    <string name="stretch_ready_hint">Get in position for this stretch</string>
+    <string name="stretch_button_ready">I\'m Ready</string>
+    <string name="stretch_get_ready_label">Get ready…</string>
+    <string name="stretch_button_start">Start →</string>
 </resources>
 

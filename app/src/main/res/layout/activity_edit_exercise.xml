@@ -155,6 +155,39 @@
                             android:text="@string/exercise_type_bodyweight" />
                     </com.google.android.material.chip.ChipGroup>
 
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:text="@string/target_metric_label"
+                        android:textColor="@color/fitness_text_primary"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <com.google.android.material.chip.ChipGroup
+                        android:id="@+id/chip_group_target_metric"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        app:chipSpacing="8dp"
+                        app:selectionRequired="true"
+                        app:singleSelection="true">
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chip_metric_reps"
+                            style="@style/Widget.MaterialComponents.Chip.Choice"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/target_metric_reps" />
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chip_metric_time"
+                            style="@style/Widget.MaterialComponents.Chip.Choice"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/target_metric_time" />
+                    </com.google.android.material.chip.ChipGroup>
+
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/text_input_layout_exercise_name"
                         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"

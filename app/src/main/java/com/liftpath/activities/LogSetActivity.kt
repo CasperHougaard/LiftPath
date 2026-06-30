@@ -7,6 +7,8 @@ import android.graphics.Color
 import android.graphics.drawable.Animatable
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.text.Editable
 import android.text.Html
 import android.text.InputType
@@ -40,6 +42,20 @@ class LogSetActivity : AppCompatActivity() {
     private var setNumber: Int = 1
     private var workoutType: String = "heavy"
     private var isBodyweight: Boolean = false
+    private var isTimeBased: Boolean = false
+
+    // Count-up timer state (time-based exercises only)
+    private var isTimerRunning = false
+    private var currentDurationSeconds = 0
+    private val timerHandler = Handler(Looper.getMainLooper())
+    private var suppressDurationWatcher = false
+    private val timerTick = object : Runnable {
+        override fun run() {
+            currentDurationSeconds += 1
+            renderDuration()
+            timerHandler.postDelayed(this, 1000)
+        }
+    }
     private var loggedBodyweight: Float? = null
     private var previousSetReps: Int? = null
     private var lastLoggedKg: Float? = null
@@ -84,6 +100,8 @@ class LogSetActivity : AppCompatActivity() {
         const val EXTRA_INTENT = "extra_intent"
         const val EXTRA_REST_SECONDS_OVERRIDE = "extra_rest_seconds_override"
         const val EXTRA_IS_BODYWEIGHT = "extra_is_bodyweight"
+        const val EXTRA_IS_TIME_BASED = "extra_is_time_based"
+        const val EXTRA_DURATION_TARGET = "extra_duration_target"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -97,6 +115,7 @@ class LogSetActivity : AppCompatActivity() {
         setNumber = intent.getIntExtra(EXTRA_SET_NUMBER, 1)
         workoutType = intent.getStringExtra(EXTRA_WORKOUT_TYPE) ?: "heavy"
         isBodyweight = intent.getBooleanExtra(EXTRA_IS_BODYWEIGHT, false)
+        isTimeBased = intent.getBooleanExtra(EXTRA_IS_TIME_BASED, false)
         previousSetReps = intent.getIntExtra(EXTRA_PREVIOUS_SET_REPS, -1).takeIf { it > 0 }
         lastLoggedKg = intent.getFloatExtra(EXTRA_LAST_LOGGED_KG, -1f).takeIf { it > 0 }
         lastLoggedReps = intent.getIntExtra(EXTRA_LAST_LOGGED_REPS, -1).takeIf { it > 0 }
@@ -122,13 +141,15 @@ class LogSetActivity : AppCompatActivity() {
             showRpeHelpDialog()
         }
 
-        if (isBodyweight) {
-            setupBodyweightMode()
-        } else {
-            prefillLastSetFallback()
-            showWeightSuggestion()
+        when {
+            isTimeBased -> setupTimeMode()
+            isBodyweight -> setupBodyweightMode()
+            else -> {
+                prefillLastSetFallback()
+                showWeightSuggestion()
+            }
         }
-        prefillRepsFromPreviousSet()
+        if (!isTimeBased) prefillRepsFromPreviousSet()
 
         binding.buttonSaveSet.setOnClickListener {
             saveSet()
@@ -246,6 +267,79 @@ class LogSetActivity : AppCompatActivity() {
         if (setNumber <= 1) return
         val reps = previousSetReps ?: return
         binding.editTextReps.setText(reps.toString())
+    }
+
+    // --- Time-based (isometric hold) logging ---
+
+    private fun setupTimeMode() {
+        // Swap reps stepper for the timer block.
+        binding.repsContainer.visibility = View.GONE
+        binding.timeContainer.visibility = View.VISIBLE
+        // Weight stays available but is optional; bodyweight-snapshot UI is not used for timed holds.
+        binding.bodyweightContainer.visibility = View.GONE
+        binding.textInputLayoutExtra.visibility = View.GONE
+        binding.layoutWeightStepperRow.visibility = View.VISIBLE
+        binding.textInputLayoutKg.visibility = View.VISIBLE
+        binding.textInputLayoutKg.hint = getString(R.string.optional_kg_hint)
+        binding.cardSuggestionHint.visibility = View.GONE
+
+        // Prefill: last logged hold for this exercise, else the plan target.
+        val last = getLastWorkingSetFromHistory()
+        val targetSeconds = intent.getIntExtra(EXTRA_DURATION_TARGET, -1).takeIf { it > 0 }
+        currentDurationSeconds = last?.durationSeconds ?: targetSeconds ?: 0
+        if (last != null && last.kg > 0f && binding.editTextKg.text.isNullOrBlank()) {
+            binding.editTextKg.setText(formatNum(last.kg))
+        }
+        last?.rpe?.let {
+            if (binding.editTextRpe.text.isNullOrBlank()) binding.editTextRpe.setText(it.toString())
+        }
+
+        setupCountUpTimer()
+    }
+
+    private fun renderDuration() {
+        binding.textTimerDisplay.text = RestTimerHelper.formatDuration(currentDurationSeconds)
+        suppressDurationWatcher = true
+        binding.editTextDurationSeconds.setText(currentDurationSeconds.toString())
+        binding.editTextDurationSeconds.setSelection(
+            binding.editTextDurationSeconds.text?.length ?: 0
+        )
+        suppressDurationWatcher = false
+    }
+
+    private fun setupCountUpTimer() {
+        renderDuration()
+        binding.buttonTimerStartStop.setOnClickListener { toggleTimer() }
+        binding.buttonTimerReset.setOnClickListener {
+            stopCountUpTimer()
+            currentDurationSeconds = 0
+            renderDuration()
+        }
+        binding.editTextDurationSeconds.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                if (suppressDurationWatcher || isTimerRunning) return
+                currentDurationSeconds = s?.toString()?.toIntOrNull() ?: 0
+                binding.textTimerDisplay.text = RestTimerHelper.formatDuration(currentDurationSeconds)
+            }
+        })
+    }
+
+    private fun toggleTimer() {
+        if (isTimerRunning) stopCountUpTimer() else startCountUpTimer()
+    }
+
+    private fun startCountUpTimer() {
+        isTimerRunning = true
+        binding.buttonTimerStartStop.text = getString(R.string.timer_stop)
+        timerHandler.postDelayed(timerTick, 1000)
+    }
+
+    private fun stopCountUpTimer() {
+        isTimerRunning = false
+        binding.buttonTimerStartStop.text = getString(R.string.timer_start)
+        timerHandler.removeCallbacks(timerTick)
     }
 
     // --- Bodyweight set logging ---
@@ -519,17 +613,38 @@ class LogSetActivity : AppCompatActivity() {
     }
 
     private fun saveSet() {
-        val reps = binding.editTextReps.text.toString().toIntOrNull()
-        if (reps == null) {
-            Toast.makeText(this, getString(R.string.toast_please_enter_weight_reps), Toast.LENGTH_SHORT).show()
-            return
+        // Resolve the target metric: reps (default) or a timed hold (durationSeconds).
+        val reps: Int
+        val durationSeconds: Int?
+        if (isTimeBased) {
+            val dur = binding.editTextDurationSeconds.text.toString().toIntOrNull()
+            if (dur == null || dur <= 0) {
+                Toast.makeText(this, getString(R.string.toast_please_enter_duration), Toast.LENGTH_SHORT).show()
+                return
+            }
+            stopCountUpTimer()
+            reps = 0
+            durationSeconds = dur
+        } else {
+            val parsedReps = binding.editTextReps.text.toString().toIntOrNull()
+            if (parsedReps == null) {
+                Toast.makeText(this, getString(R.string.toast_please_enter_weight_reps), Toast.LENGTH_SHORT).show()
+                return
+            }
+            reps = parsedReps
+            durationSeconds = null
         }
 
-        // Resolve the load. Weighted: kg from the field. Bodyweight: effective = bodyweight + signed extra.
+        // Resolve the load. Time: optional kg (blank => 0, bodyweight hold). Weighted: kg from the
+        // field. Bodyweight: effective = bodyweight + signed extra.
         val kg: Float
         val bodyweightKgValue: Float?
         val addedKgValue: Float?
-        if (isBodyweight) {
+        if (isTimeBased) {
+            kg = binding.editTextKg.text.toString().toFloatOrNull() ?: 0f
+            bodyweightKgValue = null
+            addedKgValue = null
+        } else if (isBodyweight) {
             val bw = loggedBodyweight
             if (bw == null) {
                 Toast.makeText(this, getString(R.string.bodyweight_need_value), Toast.LENGTH_SHORT).show()
@@ -601,7 +716,8 @@ class LogSetActivity : AppCompatActivity() {
             isWarmup = isWarmup,
             explicitIntent = explicitIntent,
             bodyweightKg = bodyweightKgValue,
-            addedKg = addedKgValue
+            addedKg = addedKgValue,
+            durationSeconds = durationSeconds
         )
 
         val resultIntent = Intent().apply {
@@ -618,6 +734,11 @@ class LogSetActivity : AppCompatActivity() {
         if (!needsPermission) {
             finish()
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        timerHandler.removeCallbacks(timerTick)
     }
 
     private fun startRestTimer(rpe: Float?): Boolean {

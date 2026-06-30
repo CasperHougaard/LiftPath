@@ -198,10 +198,14 @@ object AiExportHelper {
             sb.append("| set | load | reps | RPE | est.1RM | note |\n")
             sb.append("|---:|---:|---:|---:|---:|---|\n")
             workingSets.forEach { e ->
-                val oneRm = OneRMEstimationHelper.calculateOneRM(e.kg, e.reps, e.rpe)
+                // Timed holds report duration in the reps column and skip rep-based 1RM.
+                val oneRm = if (e.isTimedEntry()) null
+                            else OneRMEstimationHelper.calculateOneRM(e.kg, e.reps, e.rpe)
+                val repsCell = if (e.isTimedEntry()) RestTimerHelper.formatDuration(e.durationSeconds ?: 0)
+                               else e.reps.toString()
                 sb.append("| ").append(e.setNumber)
                     .append(" | ").append(loadCell(e))
-                    .append(" | ").append(e.reps)
+                    .append(" | ").append(repsCell)
                     .append(" | ").append(e.rpe?.let { fmt(it) } ?: "—")
                     .append(" | ").append(oneRm?.let { fmt(it) } ?: "n/a")
                     .append(" | ").append(noteCell(e.note))
@@ -282,7 +286,9 @@ object AiExportHelper {
 
         // Volume & strength trend over the recent training block.
         val metrics = allSessions.sortedBy { it.date }.map { session ->
-            val working = session.exercises.filterNot { it.isEffectivelyWarmup() }
+            // Timed holds carry no reps; exclude them from rep-based volume and 1RM.
+            val working = session.exercises
+                .filterNot { it.isEffectivelyWarmup() || it.isTimedEntry() }
             val volume = working.sumOf { (it.kg * it.reps).toDouble() }.toFloat()
             val oneRm = working.mapNotNull {
                 OneRMEstimationHelper.calculateOneRM(it.kg, it.reps, it.rpe)
@@ -410,6 +416,7 @@ object AiExportHelper {
         ProgressAnalysisHelper.PRType.WEIGHT -> "Weight PR"
         ProgressAnalysisHelper.PRType.VOLUME -> "Volume PR"
         ProgressAnalysisHelper.PRType.ONE_RM -> "Est. 1RM PR"
+        ProgressAnalysisHelper.PRType.TIME_HOLD -> "Longest Hold PR"
         ProgressAnalysisHelper.PRType.REPS -> "Reps PR"
     }
 

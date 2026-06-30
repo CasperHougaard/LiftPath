@@ -398,6 +398,12 @@
                         android:background="@color/fitness_divider" />
 
                     <!-- ── REPS STEPPER ───────────────────────────── -->
+                    <LinearLayout
+                        android:id="@+id/reps_container"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -477,6 +483,82 @@
                                 android:src="@drawable/ic_plus"
                                 app:tint="@color/white" />
                         </com.google.android.material.card.MaterialCardView>
+                    </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- ── TIME / HOLD BLOCK (shown only for timed exercises) ─ -->
+                    <LinearLayout
+                        android:id="@+id/time_container"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/hold_time_label"
+                            android:textColor="@color/fitness_text_primary"
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/text_timer_display"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:gravity="center"
+                            android:text="0:00"
+                            android:textColor="@color/fitness_accent"
+                            android:textSize="48sp"
+                            android:textStyle="bold" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:baselineAligned="false"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/button_timer_start_stop"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:minHeight="52dp"
+                                android:text="@string/timer_start" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/button_timer_reset"
+                                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="8dp"
+                                android:minHeight="52dp"
+                                android:text="@string/timer_reset" />
+                        </LinearLayout>
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/text_input_layout_duration"
+                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:hint="@string/hold_seconds_hint"
+                            app:boxStrokeColor="@color/fitness_primary"
+                            app:hintTextColor="@color/fitness_primary">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/edit_text_duration_seconds"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:gravity="center"
+                                android:inputType="number"
+                                android:textColor="@color/fitness_text_primary"
+                                android:textSize="20sp"
+                                android:textStyle="bold" />
+                        </com.google.android.material.textfield.TextInputLayout>
                     </LinearLayout>
 
                     <!-- ── DIVIDER ─────────────────────────────────── -->
