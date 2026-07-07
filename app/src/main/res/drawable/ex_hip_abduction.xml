@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Hip Abduction -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="160dp"
+    android:height="160dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+    <path
+        android:pathData="M20,182 L180,182"
+        android:strokeColor="@color/fitness_text_secondary"
+        android:strokeWidth="4"
+        android:strokeAlpha="0.7"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M45,182 L48,100 M40,145 L90,145"
+        android:strokeColor="@color/fitness_text_secondary"
+        android:strokeWidth="4"
+        android:strokeAlpha="0.7"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M80,120 L80,136 L98,128 Z"
+        android:fillColor="@color/fitness_accent" />
+    <path
+        android:pathData="M53,103 L58,128 M58,128 L98,128 L94,175 M53,103 L38,125"
+        android:strokeColor="@color/fitness_text_primary"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M40,90 a13,13 0 1,0 26,0 a13,13 0 1,0 -26,0"
+        android:fillColor="@color/fitness_text_primary" />
+</vector>

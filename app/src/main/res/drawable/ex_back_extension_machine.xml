@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Back Extension (Machine) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="160dp"
+    android:height="160dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+    <path
+        android:pathData="M20,182 L180,182"
+        android:strokeColor="@color/fitness_text_secondary"
+        android:strokeWidth="4"
+        android:strokeAlpha="0.7"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M75,140 L105,120"
+        android:strokeColor="@color/fitness_text_secondary"
+        android:strokeWidth="4"
+        android:strokeAlpha="0.7"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M148,138 L148,182"
+        android:strokeColor="@color/fitness_text_secondary"
+        android:strokeWidth="4"
+        android:strokeAlpha="0.7"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M140,130 L152,130 L152,144 L140,144 Z"
+        android:fillColor="@color/fitness_accent" />
+    <path
+        android:pathData="M45,148 L90,126 M90,126 L140,136 M45,148 L30,172"
+        android:strokeColor="@color/fitness_text_primary"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M22,135 a13,13 0 1,0 26,0 a13,13 0 1,0 -26,0"
+        android:fillColor="@color/fitness_text_primary" />
+</vector>

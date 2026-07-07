@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -68,6 +69,7 @@ class ChangeExerciseBottomSheet : BottomSheetDialogFragment() {
     ) : RecyclerView.Adapter<ExercisePickerAdapter.VH>() {
 
         class VH(view: View) : RecyclerView.ViewHolder(view) {
+            val illustration: ImageView = view.findViewById(R.id.image_exercise_illustration)
             val name: TextView = view.findViewById(R.id.text_exercise_picker_name)
             val subtitle: TextView = view.findViewById(R.id.text_exercise_picker_subtitle)
         }
@@ -80,6 +82,7 @@ class ChangeExerciseBottomSheet : BottomSheetDialogFragment() {
 
         override fun onBindViewHolder(holder: VH, position: Int) {
             val item = items[position]
+            holder.illustration.setImageResource(item.illustrationRes ?: R.drawable.ic_dumbbell)
             holder.name.text = item.name
             val subtitleParts = mutableListOf<String>()
             item.equipment?.name?.let { subtitleParts.add(it.replace("_", " ").lowercase().replaceFirstChar { c -> c.uppercase() }) }

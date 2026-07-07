@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Abdominal Crunch (Machine) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="160dp"
+    android:height="160dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+    <path
+        android:pathData="M20,182 L180,182"
+        android:strokeColor="@color/fitness_text_secondary"
+        android:strokeWidth="4"
+        android:strokeAlpha="0.7"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M42,172 L108,172 M74,172 L74,182 M108,172 L122,126"
+        android:strokeColor="@color/fitness_text_secondary"
+        android:strokeWidth="4"
+        android:strokeAlpha="0.7"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M106,94 L128,94 L128,134 L106,134 Z"
+        android:fillColor="@color/fitness_accent" />
+    <path
+        android:pathData="M58,166 L70,132 L86,108 M58,166 L100,170 L94,182 M86,108 L112,118"
+        android:strokeColor="@color/fitness_text_primary"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M79,84 a13,13 0 1,0 26,0 a13,13 0 1,0 -26,0"
+        android:fillColor="@color/fitness_text_primary" />
+</vector>

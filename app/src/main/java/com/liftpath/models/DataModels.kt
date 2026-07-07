@@ -1,6 +1,7 @@
 package com.liftpath.models
 
 import android.os.Parcelable
+import androidx.annotation.DrawableRes
 import kotlinx.parcelize.Parcelize
 import com.google.gson.annotations.SerializedName
 import java.util.UUID
@@ -242,7 +243,8 @@ data class ExerciseLibraryItem(
     val angle: ExerciseAngle? = null,
     val grip: GripType? = null,
     val laterality: Laterality? = null,
-    val aliases: List<String>? = null
+    val aliases: List<String>? = null,
+    @DrawableRes val illustrationRes: Int? = null
 ) : Parcelable {
     val mechanics: Mechanics
         get() {
@@ -571,5 +573,7 @@ data class MuscleProgress(
 data class StretchItem(
     val name: String,
     val targetMuscles: List<TargetMuscle>,
-    val durationSeconds: Int
+    val durationSeconds: Int,
+    @DrawableRes val illustrationRes: Int,
+    val laterality: Laterality = Laterality.BILATERAL
 )

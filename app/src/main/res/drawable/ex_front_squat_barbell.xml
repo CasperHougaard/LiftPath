@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Front Squat (Barbell) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="160dp"
+    android:height="160dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+    <path
+        android:pathData="M20,182 L180,182"
+        android:strokeColor="@color/fitness_text_secondary"
+        android:strokeWidth="4"
+        android:strokeAlpha="0.7"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M90,82 L140,82"
+        android:strokeColor="@color/fitness_text_secondary"
+        android:strokeWidth="4"
+        android:strokeAlpha="0.7"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M84,68 L96,68 L96,96 L84,96 Z M134,68 L146,68 L146,96 L134,96 Z"
+        android:fillColor="@color/fitness_accent" />
+    <path
+        android:pathData="M94,78 L88,118 M88,118 L118,148 L96,182 M94,78 L98,82"
+        android:strokeColor="@color/fitness_text_primary"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M89,54 a13,13 0 1,0 26,0 a13,13 0 1,0 -26,0"
+        android:fillColor="@color/fitness_text_primary" />
+</vector>

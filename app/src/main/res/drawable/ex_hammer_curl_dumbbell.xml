@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Hammer Curl (Dumbbell) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="160dp"
+    android:height="160dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+    <path
+        android:pathData="M20,182 L180,182"
+        android:strokeColor="@color/fitness_text_secondary"
+        android:strokeWidth="4"
+        android:strokeAlpha="0.7"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M73,79 L79,79 L79,89 L73,89 Z M79,82 L85,82 L85,86 L79,86 Z M85,79 L91,79 L91,89 L85,89 Z"
+        android:fillColor="@color/fitness_accent" />
+    <path
+        android:pathData="M100,80 L97,132 M97,132 L96,158 L104,182 M100,80 L104,114 L82,84"
+        android:strokeColor="@color/fitness_text_primary"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M87,58 a13,13 0 1,0 26,0 a13,13 0 1,0 -26,0"
+        android:fillColor="@color/fitness_text_primary" />
+</vector>

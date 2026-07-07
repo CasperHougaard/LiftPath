@@ -53,6 +53,11 @@
             <include
                 android:id="@+id/tile_plan"
                 layout="@layout/item_workout_mode_tile" />
+
+            <!-- Stretch Tile -->
+            <include
+                android:id="@+id/tile_stretch"
+                layout="@layout/item_workout_mode_tile" />
         </LinearLayout>
 
         <!-- Plan List Container (Initially Hidden) -->
@@ -167,6 +172,42 @@
                 android:clipChildren="false"
                 android:clipToPadding="false"
                 android:paddingTop="4dp" />
+        </LinearLayout>
+
+        <!-- Stretch Picker Container (Initially Hidden) -->
+        <LinearLayout
+            android:id="@+id/layout_stretch_picker"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:orientation="vertical"
+            android:visibility="gone"
+            android:clipChildren="false"
+            android:clipToPadding="false">
+
+            <TextView
+                android:id="@+id/text_stretch_picker_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:text="Target Areas"
+                android:textColor="@color/fitness_text_primary"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/chip_group_stretch_areas"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+            <!-- Explicit style: the dialog theme overlay defaults buttons to borderless text style -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/button_start_stretching"
+                style="@style/Widget.MaterialComponents.Button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="Start Stretching" />
         </LinearLayout>
     </LinearLayout>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Standing Calf Stretch -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="160dp"
+    android:height="160dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+    <path
+        android:pathData="M20,178 L180,178 M46,26 L46,178"
+        android:strokeColor="@color/fitness_text_secondary"
+        android:strokeWidth="4"
+        android:strokeAlpha="0.7"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M138,146 L152,170"
+        android:strokeColor="@color/fitness_accent"
+        android:strokeWidth="14"
+        android:strokeAlpha="0.45"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M96,78 L118,122 M96,80 L48,90 M118,122 L98,150 L92,178 M118,122 L156,176 M150,177 L164,177"
+        android:strokeColor="@color/fitness_text_primary"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M75,58 a13,13 0 1,0 26,0 a13,13 0 1,0 -26,0"
+        android:fillColor="@color/fitness_text_primary" />
+</vector>

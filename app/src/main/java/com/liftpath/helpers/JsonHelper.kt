@@ -99,6 +99,7 @@ class JsonHelper(private val context: Context) {
         ensureLibraryFamilyMappingsExist(data)
         backfillFamilyIdSnapshotsIfMissing(data)
         backfillTimedTargetMetricIfMissing(data)
+        backfillIllustrationResIfMissing(data)
 
         // Migrate legacy WorkoutPlans: if a plan has no exerciseConfigs, generate minimal ones
         // from exerciseIds so V2 code can always rely on exerciseConfigs being present
@@ -173,6 +174,23 @@ class JsonHelper(private val context: Context) {
             val exercise = data.exerciseLibrary[i]
             if (exercise.targetMetric == null && exercise.id in timedIds) {
                 data.exerciseLibrary[i] = exercise.copy(targetMetric = ExerciseTargetMetric.TIME)
+            }
+        }
+    }
+
+    // Fills null illustrationRes on default-catalog exercises for installs whose persisted library
+    // predates the illustrationRes field. familyId is already non-null on these rows by the time this
+    // runs (ensureLibraryFamilyMappingsExist above), so that migration's own null-check can't be reused
+    // to carry this field — it needs its own gate.
+    private fun backfillIllustrationResIfMissing(data: TrainingData) {
+        val defaults = DefaultExercisesHelper.getPopularDefaults().associateBy { it.id }
+        val needsUpdate = data.exerciseLibrary.any { it.illustrationRes == null && defaults.containsKey(it.id) }
+        if (!needsUpdate) return
+        for (i in data.exerciseLibrary.indices) {
+            val exercise = data.exerciseLibrary[i]
+            if (exercise.illustrationRes == null) {
+                val def = defaults[exercise.id] ?: continue
+                data.exerciseLibrary[i] = exercise.copy(illustrationRes = def.illustrationRes)
             }
         }
     }

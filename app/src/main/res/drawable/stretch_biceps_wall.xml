@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Biceps Wall Stretch -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="160dp"
+    android:height="160dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+    <path
+        android:pathData="M20,178 L180,178 M162,28 L162,178"
+        android:strokeColor="@color/fitness_text_secondary"
+        android:strokeWidth="4"
+        android:strokeAlpha="0.7"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M122,75 L142,71"
+        android:strokeColor="@color/fitness_accent"
+        android:strokeWidth="14"
+        android:strokeAlpha="0.45"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M116,58 L110,120 M115,72 L160,64 M115,74 L104,108 M110,120 L100,148 L98,178 M110,120 L120,150 L124,178"
+        android:strokeColor="@color/fitness_text_primary"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M95,44 a13,13 0 1,0 26,0 a13,13 0 1,0 -26,0"
+        android:fillColor="@color/fitness_text_primary" />
+</vector>

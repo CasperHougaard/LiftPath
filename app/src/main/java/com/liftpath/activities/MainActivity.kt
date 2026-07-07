@@ -32,6 +32,7 @@ import com.liftpath.helpers.showWithTransparentWindow
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import com.liftpath.models.ActiveWorkoutDraft
+import com.liftpath.models.TargetMuscle
 import com.liftpath.models.TrainingData
 import com.liftpath.models.SetIntent
 import com.github.mikephil.charting.components.XAxis
@@ -245,6 +246,9 @@ class MainActivity : AppCompatActivity() {
             },
             onPlanSelected = { plan, planSet ->
                 launchActiveWorkout(plan.workoutType, resumeDraft = false, autoGenerate = false, planId = plan.id, planSetId = planSet?.id)
+            },
+            onStretchSelected = { muscles ->
+                launchStandaloneStretch(muscles)
             }
         )
         bottomSheet.show(supportFragmentManager, "SelectWorkoutModeBottomSheet")
@@ -293,6 +297,18 @@ class MainActivity : AppCompatActivity() {
             }
             .setNeutralButton(getString(R.string.button_cancel), null)
             .showWithTransparentWindow()
+    }
+
+    /** Standalone stretch sessions are not recorded, so no result launcher / stats refresh. */
+    private fun launchStandaloneStretch(muscles: Set<TargetMuscle>) {
+        val intent = Intent(this, StretchCooldownActivity::class.java).apply {
+            putExtra(StretchCooldownActivity.EXTRA_STANDALONE, true)
+            putStringArrayListExtra(
+                StretchCooldownActivity.EXTRA_WORKED_MUSCLES,
+                ArrayList(muscles.map { it.name })
+            )
+        }
+        startActivity(intent)
     }
 
     private fun launchActiveWorkout(workoutType: String, resumeDraft: Boolean, autoGenerate: Boolean = false, planId: String? = null, planSetId: String? = null) {
@@ -442,7 +458,12 @@ class MainActivity : AppCompatActivity() {
             binding.cardBodyScanHome.visibility = View.GONE
             return
         }
-        binding.cardBodyScanHome.visibility = View.VISIBLE
+        if (binding.cardBodyScanHome.visibility != View.VISIBLE) {
+            binding.cardBodyScanHome.visibility = View.VISIBLE
+            binding.cardBodyScanHome.startAnimation(
+                AnimationUtils.loadAnimation(this, com.liftpath.R.anim.fade_in_up)
+            )
+        }
 
         val latest = entries.maxByOrNull { it.dateMs } ?: return
         val previous = entries.filter { it.dateMs < latest.dateMs }.maxByOrNull { it.dateMs }

@@ -128,6 +128,8 @@ class LogSetActivity : AppCompatActivity() {
             SetIntent.BUILD
         }
         binding.textLogSetTitle.text = exerciseName
+        val illustrationRes = jsonHelper.readTrainingData().exerciseLibrary.find { it.id == exerciseId }?.illustrationRes
+        binding.imageLogSetIllustration.setImageResource(illustrationRes ?: R.drawable.ic_dumbbell)
         binding.textSetNumberBadge.text = "SET $setNumber"
         binding.textIntentLabel.text = displayIntent.displayName
         val intentColor = getIntentColor(displayIntent)

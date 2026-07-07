@@ -687,5 +687,7 @@ Leave blank if you\'re not sure.]]></string>
     <string name="stretch_button_ready">I\'m Ready</string>
     <string name="stretch_get_ready_label">Get ready…</string>
     <string name="stretch_button_start">Start →</string>
+    <string name="stretch_side_left">Left Side</string>
+    <string name="stretch_side_right">Right Side</string>
 </resources>
 

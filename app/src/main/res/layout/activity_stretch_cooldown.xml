@@ -103,6 +103,89 @@
                 android:textSize="16sp"
                 android:textColor="@color/fitness_primary" />
 
+            <ImageView
+                android:id="@+id/image_stretch_illustration"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:layout_marginTop="16dp"
+                android:minHeight="120dp"
+                android:scaleType="fitCenter"
+                android:importantForAccessibility="no" />
+
+            <!-- Left/Right tiles: shown only for unilateral stretches. Each tile's
+                 background fill slides in to track elapsed time for that side. -->
+            <LinearLayout
+                android:id="@+id/layout_side_tiles"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="16dp"
+                android:visibility="gone">
+
+                <FrameLayout
+                    android:id="@+id/tile_side_left"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="6dp"
+                    android:clipToOutline="true"
+                    android:background="@drawable/bg_tile_side_pending">
+
+                    <View
+                        android:id="@+id/fill_side_left"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@color/fitness_primary"
+                        android:alpha="0.22"
+                        android:transformPivotX="0dp"
+                        android:scaleX="0" />
+
+                    <TextView
+                        android:id="@+id/text_tile_left"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:gravity="center"
+                        android:text="@string/stretch_side_left"
+                        android:textAllCaps="true"
+                        android:letterSpacing="0.05"
+                        android:textStyle="bold"
+                        android:textSize="13sp"
+                        android:textColor="@color/fitness_text_primary" />
+                </FrameLayout>
+
+                <FrameLayout
+                    android:id="@+id/tile_side_right"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:layout_marginStart="6dp"
+                    android:clipToOutline="true"
+                    android:background="@drawable/bg_tile_side_pending">
+
+                    <View
+                        android:id="@+id/fill_side_right"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@color/fitness_primary"
+                        android:alpha="0.22"
+                        android:transformPivotX="0dp"
+                        android:scaleX="0" />
+
+                    <TextView
+                        android:id="@+id/text_tile_right"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:gravity="center"
+                        android:text="@string/stretch_side_right"
+                        android:textAllCaps="true"
+                        android:letterSpacing="0.05"
+                        android:textStyle="bold"
+                        android:textSize="13sp"
+                        android:textColor="@color/fitness_text_primary" />
+                </FrameLayout>
+            </LinearLayout>
+
             <!-- Shown during WAITING state (first stretch only) -->
             <TextView
                 android:id="@+id/text_ready_hint"

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Farmer's Walk -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="160dp"
+    android:height="160dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+    <path
+        android:pathData="M20,182 L180,182"
+        android:strokeColor="@color/fitness_text_secondary"
+        android:strokeWidth="4"
+        android:strokeAlpha="0.7"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M104,78 L100,120 M100,120 L124,148 L138,182 M100,120 L76,152 L58,178 M104,78 L98,142"
+        android:strokeColor="@color/fitness_text_primary"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M95,54 a13,13 0 1,0 26,0 a13,13 0 1,0 -26,0"
+        android:fillColor="@color/fitness_text_primary" />
+    <path
+        android:pathData="M78,148 a8,8 0 1,0 16,0 a8,8 0 1,0 -16,0"
+        android:fillColor="@color/fitness_accent" />
+    <path
+        android:pathData="M89,146 a9,9 0 1,0 18,0 a9,9 0 1,0 -18,0"
+        android:fillColor="@color/fitness_accent" />
+</vector>

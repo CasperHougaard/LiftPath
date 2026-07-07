@@ -110,6 +110,14 @@
                         tools:text="Strength"
                         tools:textColor="@color/intent_strength" />
                 </LinearLayout>
+
+                <ImageView
+                    android:id="@+id/image_log_set_illustration"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginStart="12dp"
+                    android:scaleType="fitCenter"
+                    android:importantForAccessibility="no" />
             </LinearLayout>
 
             <!-- ── SUGGESTION BANNER ──────────────────────── -->

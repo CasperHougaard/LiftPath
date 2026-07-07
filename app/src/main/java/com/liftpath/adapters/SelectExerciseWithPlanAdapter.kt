@@ -39,6 +39,7 @@ class SelectExerciseWithPlanAdapter(
 
     class ExerciseViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val itemViewContainer: View = view.findViewById(R.id.card_view_exercise_item)
+        val illustration: ImageView = view.findViewById(R.id.image_exercise_illustration)
         val exerciseName: TextView = view.findViewById(R.id.text_exercise_name)
         val exerciseMeta: TextView = view.findViewById(R.id.text_exercise_meta)
         val planBadge: ImageView = view.findViewById(R.id.image_plan_badge)
@@ -83,6 +84,7 @@ class SelectExerciseWithPlanAdapter(
             is ListItem.ExerciseItem -> {
                 val exerciseHolder = holder as ExerciseViewHolder
                 val exercise = item.exercise
+                exerciseHolder.illustration.setImageResource(exercise.illustrationRes ?: R.drawable.ic_dumbbell)
                 exerciseHolder.exerciseName.text = exercise.name
 
                 val metaParts = listOfNotNull(

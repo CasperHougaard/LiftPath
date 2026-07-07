@@ -33,6 +33,7 @@ class SelectExercisesAdapter(
     }
 
     class ExerciseViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val illustration: ImageView = view.findViewById(R.id.image_exercise_illustration)
         val checkbox: CheckBox = view.findViewById(R.id.checkbox_exercise)
         val exerciseName: TextView = view.findViewById(R.id.text_exercise_name)
         val exerciseMeta: TextView = view.findViewById(R.id.text_exercise_meta)
@@ -69,6 +70,7 @@ class SelectExercisesAdapter(
             is SelectListItem.ExerciseItem -> {
                 val exerciseHolder = holder as ExerciseViewHolder
                 val exercise = item.exercise
+                exerciseHolder.illustration.setImageResource(exercise.illustrationRes ?: R.drawable.ic_dumbbell)
                 exerciseHolder.exerciseName.text = exercise.name
 
                 val metaParts = listOfNotNull(

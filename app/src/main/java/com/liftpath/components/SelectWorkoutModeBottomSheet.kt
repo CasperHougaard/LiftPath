@@ -17,15 +17,20 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.DialogFragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
 import com.liftpath.R
 import com.liftpath.adapters.PlanSelectionAdapter
+import com.liftpath.helpers.DefaultStretchesHelper
 import com.liftpath.helpers.JsonHelper
 import com.liftpath.models.PlanSet
 import com.liftpath.models.PlanSetProgress
+import com.liftpath.models.TargetMuscle
 import com.liftpath.models.WorkoutPlan
 
 /**
- * Top sheet dialog for selecting workout mode: Manual, Individual Plan, or Plan Set rotation.
+ * Top sheet dialog for selecting workout mode: Manual, Individual Plan, Plan Set rotation,
+ * or a standalone Stretch session.
  * Slides down from the top.
  */
 class SelectWorkoutModeBottomSheet : DialogFragment() {
@@ -33,21 +38,26 @@ class SelectWorkoutModeBottomSheet : DialogFragment() {
     private var onCustomSelected: (() -> Unit)? = null
     /** Called with the selected plan and optionally the PlanSet it came from (null for individual plan). */
     private var onPlanSelected: ((WorkoutPlan, PlanSet?) -> Unit)? = null
+    /** Called with the target muscles for a standalone stretch session. */
+    private var onStretchSelected: ((Set<TargetMuscle>) -> Unit)? = null
 
     private lateinit var jsonHelper: JsonHelper
     private var plans: List<WorkoutPlan> = emptyList()
     private var planSets: List<PlanSet> = emptyList()
     private var planSetProgress: List<PlanSetProgress> = emptyList()
     private var isPlanListExpanded = false
+    private var isStretchPickerExpanded = false
 
     companion object {
         fun newInstance(
             onCustomSelected: () -> Unit,
-            onPlanSelected: (WorkoutPlan, PlanSet?) -> Unit
+            onPlanSelected: (WorkoutPlan, PlanSet?) -> Unit,
+            onStretchSelected: (Set<TargetMuscle>) -> Unit
         ): SelectWorkoutModeBottomSheet {
             return SelectWorkoutModeBottomSheet().apply {
                 this.onCustomSelected = onCustomSelected
                 this.onPlanSelected = onPlanSelected
+                this.onStretchSelected = onStretchSelected
             }
         }
     }
@@ -94,6 +104,7 @@ class SelectWorkoutModeBottomSheet : DialogFragment() {
         loadData()
         setupTiles(view)
         setupPlanList(view)
+        setupStretchPicker(view)
     }
 
     private fun loadData() {
@@ -120,6 +131,13 @@ class SelectWorkoutModeBottomSheet : DialogFragment() {
         planIcon.setImageResource(R.drawable.ic_plans)
         planTitle.text = "Follow Plan"
         planTile.setOnClickListener { togglePlanList(view) }
+
+        val stretchTile = view.findViewById<View>(R.id.tile_stretch)
+        val stretchIcon = stretchTile.findViewById<ImageView>(R.id.icon_tile)
+        val stretchTitle = stretchTile.findViewById<TextView>(R.id.text_tile_title)
+        stretchIcon.setImageResource(R.drawable.ic_stretch)
+        stretchTitle.text = "Stretch"
+        stretchTile.setOnClickListener { toggleStretchPicker(view) }
     }
 
     private fun setupPlanList(view: View) {
@@ -202,14 +220,81 @@ class SelectWorkoutModeBottomSheet : DialogFragment() {
     }
 
     private fun togglePlanList(view: View) {
-        val planListLayout = view.findViewById<View>(R.id.layout_plan_list)
         isPlanListExpanded = !isPlanListExpanded
-        if (isPlanListExpanded) {
-            planListLayout.visibility = View.VISIBLE
-            view.findViewById<View>(R.id.tile_custom).visibility = View.GONE
-        } else {
-            planListLayout.visibility = View.GONE
-            view.findViewById<View>(R.id.tile_custom).visibility = View.VISIBLE
+        if (isPlanListExpanded) isStretchPickerExpanded = false
+        updateSectionVisibility(view)
+    }
+
+    private fun toggleStretchPicker(view: View) {
+        isStretchPickerExpanded = !isStretchPickerExpanded
+        if (isStretchPickerExpanded) isPlanListExpanded = false
+        updateSectionVisibility(view)
+    }
+
+    /** The expanded section keeps only its own tile visible (acting as the collapse toggle). */
+    private fun updateSectionVisibility(view: View) {
+        view.findViewById<View>(R.id.layout_plan_list).visibility =
+            if (isPlanListExpanded) View.VISIBLE else View.GONE
+        view.findViewById<View>(R.id.layout_stretch_picker).visibility =
+            if (isStretchPickerExpanded) View.VISIBLE else View.GONE
+        val anyExpanded = isPlanListExpanded || isStretchPickerExpanded
+        view.findViewById<View>(R.id.tile_custom).visibility =
+            if (anyExpanded) View.GONE else View.VISIBLE
+        view.findViewById<View>(R.id.tile_plan).visibility =
+            if (isStretchPickerExpanded) View.GONE else View.VISIBLE
+        view.findViewById<View>(R.id.tile_stretch).visibility =
+            if (isPlanListExpanded) View.GONE else View.VISIBLE
+    }
+
+    private fun setupStretchPicker(view: View) {
+        val chipGroup = view.findViewById<ChipGroup>(R.id.chip_group_stretch_areas)
+
+        val fullBodyChip = Chip(requireContext()).apply {
+            id = View.generateViewId()
+            text = "Full body"
+            isCheckable = true
+            isChecked = true
+        }
+        val areaChips = DefaultStretchesHelper.STRETCH_AREAS.keys.map { area ->
+            Chip(requireContext()).apply {
+                id = View.generateViewId()
+                text = area
+                isCheckable = true
+            }
+        }
+
+        // "Full body" and specific areas are mutually exclusive; with nothing selected,
+        // fall back to "Full body" so the start button always has a valid selection.
+        fullBodyChip.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) {
+                areaChips.forEach { it.isChecked = false }
+            } else if (areaChips.none { it.isChecked }) {
+                fullBodyChip.isChecked = true
+            }
+        }
+        areaChips.forEach { chip ->
+            chip.setOnCheckedChangeListener { _, isChecked ->
+                if (isChecked) {
+                    fullBodyChip.isChecked = false
+                } else if (areaChips.none { it.isChecked }) {
+                    fullBodyChip.isChecked = true
+                }
+            }
+        }
+
+        chipGroup.addView(fullBodyChip)
+        areaChips.forEach { chipGroup.addView(it) }
+
+        view.findViewById<View>(R.id.button_start_stretching).setOnClickListener {
+            val muscles: Set<TargetMuscle> = if (fullBodyChip.isChecked) {
+                TargetMuscle.values().toSet()
+            } else {
+                areaChips.filter { it.isChecked }
+                    .flatMap { DefaultStretchesHelper.STRETCH_AREAS[it.text.toString()] ?: emptyList() }
+                    .toSet()
+            }
+            dismiss()
+            onStretchSelected?.invoke(muscles)
         }
     }
 

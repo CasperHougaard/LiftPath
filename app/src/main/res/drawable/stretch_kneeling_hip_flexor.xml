@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Kneeling Hip Flexor Stretch -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="160dp"
+    android:height="160dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+    <path
+        android:pathData="M20,178 L180,178"
+        android:strokeColor="@color/fitness_text_secondary"
+        android:strokeWidth="4"
+        android:strokeAlpha="0.7"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M108,126 Q124,148 136,166"
+        android:strokeColor="@color/fitness_accent"
+        android:strokeWidth="14"
+        android:strokeAlpha="0.45"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M102,58 L104,120 M104,120 L72,142 L70,178 M104,120 L138,170 M138,170 L170,174 M102,70 L84,112"
+        android:strokeColor="@color/fitness_text_primary"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M87,44 a13,13 0 1,0 26,0 a13,13 0 1,0 -26,0"
+        android:fillColor="@color/fitness_text_primary" />
+</vector>

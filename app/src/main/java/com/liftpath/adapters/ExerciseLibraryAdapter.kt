@@ -18,6 +18,7 @@ class ExerciseLibraryAdapter(
 ) : RecyclerView.Adapter<ExerciseLibraryAdapter.ExerciseViewHolder>() {
 
     class ExerciseViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val illustration: ImageView = view.findViewById(R.id.image_exercise_illustration)
         val exerciseName: TextView = view.findViewById(R.id.text_exercise_name)
         val exerciseMeta: TextView = view.findViewById(R.id.text_exercise_meta)
         val favoriteStar: ImageView = view.findViewById(R.id.image_favorite_star)
@@ -34,6 +35,7 @@ class ExerciseLibraryAdapter(
 
     override fun onBindViewHolder(holder: ExerciseViewHolder, position: Int) {
         val exercise = exercises[position]
+        holder.illustration.setImageResource(exercise.illustrationRes ?: R.drawable.ic_dumbbell)
         holder.exerciseName.text = exercise.name
 
         val metaParts = listOfNotNull(
