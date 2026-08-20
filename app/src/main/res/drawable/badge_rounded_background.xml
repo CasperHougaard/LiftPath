@@ -1,7 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  A solid pill, always used with android:backgroundTint / backgroundTintList. The fill must
+  be OPAQUE: View's default tint blend mode is SRC_IN, which multiplies the tint by the
+  destination's existing alpha — a transparent fill has zero alpha everywhere, so tinting it
+  produces nothing visible no matter what color is applied. The colour below is a throwaway
+  placeholder; every real usage overrides it with a tint.
+-->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
-    <solid android:color="@android:color/transparent" />
-    <corners android:radius="8dp" />
+    <solid android:color="@android:color/black" />
+    <corners android:radius="@dimen/lp_radius_sm" />
 </shape>
 

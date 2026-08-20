@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  One row of the "Up next" preview on the Workout tab: exercise name on the start edge, its
+  target on the end edge. Inflated by WorkoutFragment rather than driven by a RecyclerView —
+  the list is capped at four rows and never scrolls, so an adapter would be scaffolding around
+  a for-loop.
+
+  The target is Metric.S (mono) because it is a set of numbers read as a group ("4×6 @ 8"); the
+  name is prose and stays Archivo.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:baselineAligned="true"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingVertical="@dimen/lp_space_2">
+
+    <TextView
+        android:id="@+id/text_slot_name"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:singleLine="true"
+        android:textAppearance="@style/TextAppearance.LP.Label"
+        tools:text="Bench Press (Barbell)" />
+
+    <TextView
+        android:id="@+id/text_slot_target"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/lp_space_3"
+        android:textAppearance="@style/TextAppearance.LP.Metric.S"
+        tools:text="4×6 @ 8" />
+
+</LinearLayout>

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  PALETTE: Fog & Rose
+
+  Soft cool-white neutrals, more muted than Cloud's blue-white, with a dusty rose accent.
+  The softest-reading of the eight palettes.
+-->
+<resources>
+
+    <color name="fog_canvas">#F7F5F6</color>
+    <color name="fog_canvas_sunken">#EFEBED</color>
+    <color name="fog_surface">#FFFFFF</color>
+    <color name="fog_surface_alt">#F4F1F3</color>
+
+    <color name="fog_hairline">#E4DEE1</color>
+    <color name="fog_hairline_strong">#D2CAD0</color>
+
+    <color name="fog_ink">#1C1A1D</color>
+    <color name="fog_ink_secondary">#6A6569</color>
+    <color name="fog_ink_tertiary">#9A9498</color>
+    <color name="fog_ink_inverse">#F7F5F6</color>
+    <color name="fog_ink_inverse_secondary">#AFA8AD</color>
+
+    <color name="fog_accent">#B0567C</color>
+    <color name="fog_accent_pressed">#954565</color>
+    <color name="fog_accent_wash">#F7E7ED</color>
+
+    <color name="fog_positive">#3F6B4F</color>
+    <color name="fog_negative">#A33A2B</color>
+    <color name="fog_neutral">#8D878B</color>
+
+    <color name="fog_intent_strength">#A33A2B</color>
+    <color name="fog_intent_build">#B0567C</color>
+    <color name="fog_intent_flush">#3F6B4F</color>
+    <color name="fog_intent_warmup">#8D878B</color>
+
+    <color name="fog_chart_volume">#3F6B4F</color>
+    <color name="fog_chart_rpe">#B0567C</color>
+    <color name="fog_chart_time">#4A6B82</color>
+    <color name="fog_chart_fatigue">#A33A2B</color>
+    <color name="fog_chart_grid">#EAE4E7</color>
+
+    <color name="fog_ripple">#141C1A1D</color>
+    <color name="fog_ripple_inverse">#22F7F5F6</color>
+
+</resources>

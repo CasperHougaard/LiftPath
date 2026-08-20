@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  One row inside the Library tab's Circuits list. A ROW, not a card — it sits inside
+  card_circuits in fragment_library.xml, the same arrangement list_item_exercise_library uses.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:minHeight="@dimen/lp_row_min_height"
+        android:orientation="horizontal"
+        android:paddingHorizontal="@dimen/lp_space_2"
+        android:paddingVertical="@dimen/lp_space_2">
+
+        <TextView
+            android:id="@+id/text_circuit_icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="@dimen/lp_space_3"
+            android:text="@string/circuit_icon"
+            android:textAppearance="@style/TextAppearance.LP.Title" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="@dimen/lp_space_3"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/text_circuit_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="@style/TextAppearance.LP.Label"
+                tools:text="Lower Lactate" />
+
+            <TextView
+                android:id="@+id/text_circuit_summary"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="@style/TextAppearance.LP.Caption"
+                tools:text="~3 rounds · 90s rest" />
+
+            <TextView
+                android:id="@+id/text_circuit_stations"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/lp_space_1"
+                android:textAppearance="@style/TextAppearance.LP.Caption"
+                android:textColor="?attr/lpInkTertiary"
+                tools:text="Hip Thrust · Split Squat · Wall Sit · +2" />
+        </LinearLayout>
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/button_delete_circuit"
+            style="@style/Widget.LP.Card.IconAction"
+            android:layout_marginEnd="@dimen/lp_space_2"
+            app:strokeColor="?attr/lpHairlineStrong">
+
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="@string/cd_delete_circuit"
+                android:padding="@dimen/lp_icon_action_padding"
+                android:src="@drawable/ic_delete"
+                app:tint="?attr/lpInkSecondary" />
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/button_edit_circuit"
+            style="@style/Widget.LP.Card.IconAction"
+            app:strokeColor="?attr/lpHairlineStrong">
+
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="@string/cd_edit_circuit"
+                android:padding="@dimen/lp_icon_action_padding"
+                android:src="@drawable/ic_edit_pencil"
+                app:tint="?attr/lpInkSecondary" />
+        </com.google.android.material.card.MaterialCardView>
+    </LinearLayout>
+
+    <View
+        android:id="@+id/divider_circuit_row"
+        style="@style/Widget.LP.Divider"
+        android:layout_marginStart="@dimen/lp_space_2" />
+</LinearLayout>

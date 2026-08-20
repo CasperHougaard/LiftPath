@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@color/fitness_background">
+    android:background="?attr/lpCanvas">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -18,9 +18,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/button_add_special"
-            android:textColor="@color/fitness_text_primary"
-            android:textSize="24sp"
-            android:textStyle="bold" />
+            android:textAppearance="@style/TextAppearance.LP.Title" />
 
         <TextView
             android:id="@+id/text_header_subtitle"
@@ -28,9 +26,8 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:layout_marginBottom="24dp"
-            android:text="Choose an option"
-            android:textColor="@color/fitness_text_secondary"
-            android:textSize="14sp" />
+            android:text="@string/subtitle_choose_an_option"
+            android:textAppearance="@style/TextAppearance.LP.Body" />
 
         <!-- Tiles Container -->
         <LinearLayout
@@ -52,6 +49,11 @@
             <!-- SuperSet Tile -->
             <include
                 android:id="@+id/tile_superset"
+                layout="@layout/item_workout_mode_tile" />
+
+            <!-- Circuit Tile -->
+            <include
+                android:id="@+id/tile_circuit"
                 layout="@layout/item_workout_mode_tile" />
         </LinearLayout>
     </LinearLayout>

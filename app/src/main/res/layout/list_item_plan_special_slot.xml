@@ -1,12 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+<!--
+  A warm-up or cool-down slot while authoring a plan. No progressive disclosure — there is
+  nothing to collapse, just a duration and an optional note — so it stays fully visible,
+  matching list_item_plan_exercise's dense card treatment so the two read as one list.
+-->
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    style="@style/Widget.LP.Card.Dense"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="8dp"
-    app:cardBackgroundColor="@color/fitness_card_background"
-    app:cardCornerRadius="8dp"
-    app:cardElevation="2dp">
+    android:layout_marginBottom="@dimen/lp_card_gap_dense"
+    android:clickable="false"
+    android:focusable="false">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -19,21 +24,23 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
+            android:minHeight="@dimen/lp_row_min_height"
             android:orientation="horizontal"
-            android:padding="12dp">
+            android:paddingHorizontal="@dimen/lp_card_padding_dense"
+            android:paddingVertical="@dimen/lp_space_2">
 
             <TextView
                 android:id="@+id/text_slot_icon"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
+                android:layout_width="26dp"
+                android:layout_height="26dp"
                 android:gravity="center"
-                android:textSize="18sp"
-                android:text="🔥" />
+                android:text="🔥"
+                android:textSize="16sp" />
 
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
+                android:layout_marginStart="@dimen/lp_space_3"
                 android:layout_weight="1"
                 android:orientation="vertical">
 
@@ -42,118 +49,96 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="@string/label_warmup_element"
-                    android:textColor="@color/fitness_text_primary"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
+                    android:textAppearance="@style/TextAppearance.LP.Label" />
 
                 <TextView
                     android:id="@+id/text_slot_subtitle"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
                     android:text="@string/warmup_element_subtitle"
-                    android:textColor="@color/fitness_text_secondary"
-                    android:textSize="12sp" />
+                    android:textAppearance="@style/TextAppearance.LP.Caption" />
             </LinearLayout>
 
-            <!-- Move up -->
             <ImageButton
                 android:id="@+id/button_move_up"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="Move up"
+                android:contentDescription="@string/cd_move_up"
+                android:padding="@dimen/lp_space_1"
                 android:src="@drawable/ic_arrow_up"
-                android:padding="6dp"
-                app:tint="@color/fitness_text_secondary" />
+                app:tint="?attr/lpInkTertiary" />
 
-            <!-- Move down -->
             <ImageButton
                 android:id="@+id/button_move_down"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="Move down"
+                android:contentDescription="@string/cd_move_down"
+                android:padding="@dimen/lp_space_1"
                 android:src="@drawable/ic_arrow_down"
-                android:padding="6dp"
-                app:tint="@color/fitness_text_secondary" />
+                app:tint="?attr/lpInkTertiary" />
 
-            <!-- Remove -->
             <ImageButton
                 android:id="@+id/button_remove_slot"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="Remove"
-                android:src="@android:drawable/ic_menu_delete"
-                android:tint="@color/fitness_accent" />
+                android:contentDescription="@string/cd_delete_exercise"
+                android:padding="@dimen/lp_space_1"
+                android:src="@drawable/ic_delete"
+                app:tint="?attr/lpNegative" />
         </LinearLayout>
 
-        <!-- Divider -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="@color/fitness_text_secondary"
-            android:alpha="0.2" />
+        <View style="@style/Widget.LP.Divider" />
 
-        <!-- Duration + Notes section -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="12dp"
-            android:paddingTop="8dp">
+            android:paddingHorizontal="@dimen/lp_card_padding_dense"
+            android:paddingTop="@dimen/lp_space_3"
+            android:paddingBottom="@dimen/lp_card_padding_dense">
 
-            <!-- Duration row -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
+                android:layout_marginBottom="@dimen/lp_space_3"
                 android:gravity="center_vertical"
-                android:layout_marginBottom="10dp">
+                android:orientation="horizontal">
 
                 <TextView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Duration (min)"
-                    android:textColor="@color/fitness_text_secondary"
-                    android:textSize="12sp" />
+                    android:text="@string/label_duration_minutes"
+                    android:textAppearance="@style/TextAppearance.LP.Caption" />
 
                 <EditText
                     android:id="@+id/edit_slot_duration"
+                    style="@style/Widget.LP.EditText.Boxed"
                     android:layout_width="64dp"
                     android:layout_height="wrap_content"
-                    android:backgroundTint="@color/fitness_primary"
-                    android:gravity="center"
-                    android:hint="5"
+                    android:hint="@string/hint_five"
                     android:inputType="number"
-                    android:maxLength="3"
-                    android:textColor="@color/fitness_text_primary"
-                    android:textColorHint="@color/fitness_text_secondary"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
+                    android:maxLength="3" />
             </LinearLayout>
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Notes"
-                android:textColor="@color/fitness_text_secondary"
-                android:textSize="12sp"
-                android:layout_marginBottom="4dp" />
+                android:layout_marginBottom="@dimen/lp_space_1"
+                android:text="@string/label_notes"
+                android:textAppearance="@style/TextAppearance.LP.Caption" />
 
             <EditText
                 android:id="@+id/edit_slot_notes"
+                style="@style/Widget.LP.EditText.Boxed.Notes"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:backgroundTint="@color/fitness_primary"
                 android:hint="@string/hint_warmup_notes"
                 android:inputType="textMultiLine"
-                android:minLines="2"
-                android:textColor="@color/fitness_text_primary"
-                android:textColorHint="@color/fitness_text_secondary"
-                android:textSize="13sp" />
+                android:minLines="2" />
         </LinearLayout>
     </LinearLayout>
-</androidx.cardview.widget.CardView>
+</com.google.android.material.card.MaterialCardView>

@@ -1,22 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Plan rotations (A/B/C): a browsing list of rotations, so AIRY spacing throughout. -->
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/fitness_background"
+    android:background="?attr/lpCanvas"
     android:fitsSystemWindows="true">
 
     <ImageView
         android:id="@+id/image_bg_animation"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:alpha="1.0"
+        android:contentDescription="@null"
         android:scaleType="centerCrop"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/avd_background_flow" />
+        app:srcCompat="@drawable/lp_bg_ambient_flow"
+        app:tint="?attr/lpAccent" />
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
@@ -32,9 +34,8 @@
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:padding="24dp">
+            android:padding="@dimen/lp_gutter">
 
-            <!-- Header -->
             <LinearLayout
                 android:id="@+id/layout_header"
                 android:layout_width="match_parent"
@@ -44,85 +45,75 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent">
 
-                <androidx.cardview.widget.CardView
+                <com.google.android.material.card.MaterialCardView
                     android:id="@+id/button_back"
+                    style="@style/Widget.LP.Card.Control"
                     android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:foreground="?attr/selectableItemBackground"
-                    app:cardBackgroundColor="@color/fitness_card_background"
-                    app:cardCornerRadius="24dp"
-                    app:cardElevation="0dp">
+                    android:layout_height="48dp">
 
                     <ImageView
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
-                        android:padding="12dp"
+                        android:contentDescription="@null"
+                        android:padding="@dimen/lp_space_3"
                         android:src="@drawable/ic_arrow_back_24"
-                        app:tint="@color/fitness_text_primary" />
-                </androidx.cardview.widget.CardView>
+                        app:tint="?attr/lpInk" />
+                </com.google.android.material.card.MaterialCardView>
 
                 <TextView
                     android:id="@+id/text_header_title"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="16dp"
+                    android:layout_marginStart="@dimen/lp_space_4"
                     android:layout_weight="1"
-                    android:text="Plan Rotations"
-                    android:textColor="@color/fitness_text_primary"
-                    android:textSize="22sp"
-                    android:textStyle="bold" />
+                    android:text="@string/title_plan_rotations"
+                    android:textAppearance="@style/TextAppearance.LP.Title" />
             </LinearLayout>
 
-            <!-- Subtitle -->
             <TextView
                 android:id="@+id/text_subtitle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="Group plans into a rotation (A/B/C) to undulate automatically."
-                android:textColor="@color/fitness_text_secondary"
-                android:textSize="13sp"
+                android:layout_marginTop="@dimen/lp_space_2"
+                android:text="@string/subtitle_plan_rotations"
+                android:textAppearance="@style/TextAppearance.LP.Body"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/layout_header" />
 
-            <!-- Empty state -->
             <TextView
                 android:id="@+id/text_empty_state"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="48dp"
+                android:layout_marginTop="@dimen/lp_space_10"
                 android:gravity="center"
-                android:text="No plan rotations yet.\nTap + to create one."
-                android:textColor="@color/fitness_text_secondary"
-                android:textSize="15sp"
+                android:text="@string/empty_state_no_plan_rotations"
+                android:textAppearance="@style/TextAppearance.LP.Body"
                 android:visibility="gone"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/text_subtitle" />
 
-            <!-- List -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/recycler_view_plan_sets"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="@dimen/lp_space_5"
                 android:clipToPadding="false"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/text_subtitle" />
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.core.widget.NestedScrollView>
 
-    <!-- FAB -->
+    <!-- FAB stays Material's default filled circle — the one place in the app a floating
+         accent circle is appropriate, since it must float above scrolling content. -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_create_plan_set"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_margin="24dp"
-        android:contentDescription="Create plan rotation"
+        android:layout_margin="@dimen/lp_gutter"
+        android:contentDescription="@string/cd_create_plan_rotation"
         android:src="@drawable/ic_plus"
-        app:backgroundTint="@color/fitness_primary"
+        app:backgroundTint="?attr/lpAccent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:tint="@color/white" />
+        app:tint="?attr/lpInkInverse" />
 </androidx.constraintlayout.widget.ConstraintLayout>

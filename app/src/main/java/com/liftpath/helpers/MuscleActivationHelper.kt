@@ -13,7 +13,7 @@ object MuscleActivationHelper {
      * Data class representing the activation state of muscles in a workout.
      * 
      * Note: If a muscle is Primary in one exercise and Secondary in another,
-     * it will appear in both sets. The SVG visualizer should use Primary color
+     * it will appear in both sets. The muscle map visualizer should use Primary color
      * when rendering (Primary takes precedence).
      */
     data class MuscleActivationState(

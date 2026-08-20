@@ -17,17 +17,14 @@
         android:paddingStart="18dp"
         android:paddingEnd="18dp"
         android:text="@string/button_finish"
-        android:textAllCaps="false"
-        android:textColor="@android:color/white"
-        android:textSize="14sp"
-        android:textStyle="bold"
-        android:letterSpacing="0.02"
-        app:backgroundTint="@color/fitness_primary"
-        app:rippleColor="#40FFFFFF"
+        android:textAppearance="@style/TextAppearance.LP.Button"
+        android:textColor="?attr/lpInkInverse"
+        app:backgroundTint="?attr/lpAccent"
+        app:rippleColor="?attr/lpRippleInverse"
         app:icon="@drawable/ic_check"
         app:iconGravity="textStart"
         app:iconPadding="8dp"
         app:iconSize="20dp"
-        app:iconTint="@android:color/white"
-        app:cornerRadius="20dp" />
+        app:iconTint="?attr/lpInkInverse"
+        app:cornerRadius="@dimen/lp_radius_sm" />
 </FrameLayout>

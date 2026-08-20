@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  PALETTE: Paper & Bronze — DARK
+
+  Warm near-black rather than the blue-tinted #111827 that reads as "framework dark".
+  Accent luminance is lifted: #A6753C is close to unreadable on near-black, so dark
+  mode uses #D2A164. Same for the semantic and intent colours.
+
+  Light-first per the design decision: this is a faithful translation, not an
+  art-directed dark theme.
+-->
+<resources>
+
+    <color name="paper_canvas">#12110F</color>
+    <color name="paper_canvas_sunken">#0C0B0A</color>
+    <color name="paper_surface">#1C1A17</color>
+    <color name="paper_surface_alt">#241F1B</color>
+
+    <color name="paper_hairline">#302B25</color>
+    <color name="paper_hairline_strong">#443D35</color>
+
+    <color name="paper_ink">#F5F2EC</color>
+    <color name="paper_ink_secondary">#A39C90</color>
+    <color name="paper_ink_tertiary">#726B60</color>
+    <color name="paper_ink_inverse">#12110F</color>
+    <color name="paper_ink_inverse_secondary">#55504A</color>
+
+    <color name="paper_accent">#D2A164</color>
+    <color name="paper_accent_pressed">#B9884C</color>
+    <color name="paper_accent_wash">#2A2118</color>
+
+    <color name="paper_positive">#7FB08F</color>
+    <color name="paper_negative">#D98374</color>
+    <color name="paper_neutral">#8C8880</color>
+
+    <color name="paper_intent_strength">#D98374</color>
+    <color name="paper_intent_build">#D2A164</color>
+    <color name="paper_intent_flush">#7FB08F</color>
+    <color name="paper_intent_warmup">#8C8880</color>
+
+    <color name="paper_chart_volume">#7FB08F</color>
+    <color name="paper_chart_rpe">#D2A164</color>
+    <color name="paper_chart_time">#8AAAC4</color>
+    <color name="paper_chart_fatigue">#D98374</color>
+    <color name="paper_chart_grid">#2A2620</color>
+
+    <color name="paper_ripple">#1AF5F2EC</color>
+    <color name="paper_ripple_inverse">#2212110F</color>
+
+</resources>

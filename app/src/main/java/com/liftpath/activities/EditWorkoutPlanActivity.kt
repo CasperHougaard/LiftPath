@@ -10,9 +10,12 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.liftpath.R
 import com.liftpath.databinding.ActivityEditWorkoutPlanBinding
+import com.liftpath.components.CircuitPickerBottomSheet
+import com.liftpath.helpers.CircuitStore
 import com.liftpath.helpers.DialogHelper
 import com.liftpath.helpers.JsonHelper
 import com.liftpath.helpers.showWithTransparentWindow
+import com.liftpath.models.CircuitTemplate
 import com.liftpath.models.MovementPattern
 import com.liftpath.models.PlanExerciseSelectionType
 import com.liftpath.models.PlanExerciseSlot
@@ -46,6 +49,14 @@ class EditWorkoutPlanActivity : AppCompatActivity() {
         }
     }
 
+    // Authoring a brand new circuit from the plan editor: on success, reopen the picker so the
+    // circuit just saved is right there to pick.
+    private val editCircuitLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            showCircuitPicker()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityEditWorkoutPlanBinding.inflate(layoutInflater)
@@ -68,7 +79,7 @@ class EditWorkoutPlanActivity : AppCompatActivity() {
     }
 
     private fun updateHeaderTitle() {
-        binding.textHeaderTitle.text = if (isEditing) "Edit Workout Plan" else "Create Workout Plan"
+        binding.textHeaderTitle.setText(if (isEditing) R.string.title_edit_workout_plan else R.string.title_create_workout_plan)
     }
 
     private fun setupRecyclerView() {
@@ -116,6 +127,10 @@ class EditWorkoutPlanActivity : AppCompatActivity() {
             binding.recyclerViewPlanExercises.scrollToPosition(adapter.itemCount - 1)
         }
 
+        binding.buttonAddCircuit.setOnClickListener {
+            showCircuitPicker()
+        }
+
         binding.buttonSavePlan.setOnClickListener { savePlan() }
     }
 
@@ -159,21 +174,50 @@ class EditWorkoutPlanActivity : AppCompatActivity() {
         val trainingData = jsonHelper.readTrainingData()
         adapter.exerciseNames = trainingData.exerciseLibrary.associate { it.id to it.name }
         adapter.familyNames = trainingData.exerciseFamilies?.associate { it.id to it.name } ?: emptyMap()
+
+        val circuits = CircuitStore.circuits(trainingData)
+        val exerciseNameById = trainingData.exerciseLibrary.associate { it.id to it.name }
+        adapter.circuitNames = circuits.associate { it.id to it.name }
+        adapter.circuitStationSummaries = circuits.associate { circuit ->
+            circuit.id to circuit.items.mapNotNull { exerciseNameById[it.exerciseId] }.joinToString(" · ")
+        }
+    }
+
+    private fun showCircuitPicker() {
+        val trainingData = jsonHelper.readTrainingData()
+        CircuitPickerBottomSheet.newInstance(
+            circuits = CircuitStore.circuits(trainingData),
+            library = trainingData.exerciseLibrary,
+            onCircuitSelected = { template -> addCircuitSlot(template) },
+            onNewCircuit = { editCircuitLauncher.launch(Intent(this, EditCircuitActivity::class.java)) }
+        ).show(supportFragmentManager, "CircuitPickerBottomSheet")
+    }
+
+    private fun addCircuitSlot(template: CircuitTemplate) {
+        val slot = PlanExerciseSlot(
+            slotType = PlanSlotType.CIRCUIT,
+            circuitId = template.id,
+            setsTarget = template.suggestedRounds,
+            restTimeSeconds = template.restBetweenRoundsSeconds
+        )
+        refreshExerciseNames()
+        adapter.addSlot(slot)
+        binding.recyclerViewPlanExercises.scrollToPosition(adapter.itemCount - 1)
     }
 
     private fun showFamilyPickerDialog() {
         val trainingData = jsonHelper.readTrainingData()
         val families = trainingData.exerciseFamilies
         if (families.isNullOrEmpty()) {
-            android.widget.Toast.makeText(this, "No exercise families available", android.widget.Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.toast_no_exercise_families), Toast.LENGTH_SHORT).show()
             return
         }
         val names = families.map { it.name }.toTypedArray()
         var selectedIndex = -1
-        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-            .setTitle("Select Movement Family")
+        DialogHelper.createBuilder(this)
+            .setTitle(getString(R.string.dialog_title_select_movement_family))
             .setSingleChoiceItems(names, -1) { _, which -> selectedIndex = which }
-            .setPositiveButton("Add") { _, _ ->
+            .setPositiveButton(getString(R.string.button_add)) { _, _ ->
                 if (selectedIndex >= 0) {
                     val family = families[selectedIndex]
                     planConfigs.add(
@@ -189,8 +233,8 @@ class EditWorkoutPlanActivity : AppCompatActivity() {
                     binding.recyclerViewPlanExercises.scrollToPosition(planConfigs.size - 1)
                 }
             }
-            .setNegativeButton("Cancel", null)
-            .show()
+            .setNegativeButton(getString(R.string.button_cancel), null)
+            .showWithTransparentWindow()
     }
 
     private fun savePlan() {
@@ -242,14 +286,18 @@ class EditWorkoutPlanActivity : AppCompatActivity() {
     private fun showIntentDialog(position: Int) {
         if (position < 0 || position >= planConfigs.size) return
         val currentIntent = planConfigs[position].defaultIntent ?: SetIntent.BUILD
-        val options = arrayOf("Strength", "Build", "Flush")
+        val options = arrayOf(
+            SetIntent.STRENGTH.displayName,
+            SetIntent.BUILD.displayName,
+            SetIntent.FLUSH.displayName
+        )
         val currentIndex = when (currentIntent) {
             SetIntent.STRENGTH -> 0
             SetIntent.FLUSH -> 2
             else -> 1
         }
         DialogHelper.createBuilder(this)
-            .setTitle("Set Intent")
+            .setTitle(getString(R.string.dialog_title_set_intent))
             .setSingleChoiceItems(options, currentIndex) { dialog, which ->
                 val selected = when (which) {
                     0 -> SetIntent.STRENGTH

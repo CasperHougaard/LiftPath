@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  PALETTE: Steel & Signal
+
+  Neutral technical greys with one high-chroma signal orange, the most
+  "instrument panel" of the four.
+
+  This is the palette where accent restraint matters most: #E8502A is loud, so it is
+  held back from the intent and chart sets entirely and reserved for UI accent
+  (hero glow, active tab, links). Strength gets a deeper red and build an ochre, both
+  clearly separated from the signal colour, so a chart never competes with the chrome.
+-->
+<resources>
+
+    <color name="steel_canvas">#F5F6F7</color>
+    <color name="steel_canvas_sunken">#ECEEF0</color>
+    <color name="steel_surface">#FFFFFF</color>
+    <color name="steel_surface_alt">#F3F5F6</color>
+
+    <color name="steel_hairline">#E2E5E8</color>
+    <color name="steel_hairline_strong">#CFD4D9</color>
+
+    <color name="steel_ink">#17191C</color>
+    <color name="steel_ink_secondary">#61666D</color>
+    <color name="steel_ink_tertiary">#91979E</color>
+    <color name="steel_ink_inverse">#F5F6F7</color>
+    <color name="steel_ink_inverse_secondary">#A6ACB2</color>
+
+    <color name="steel_accent">#E8502A</color>
+    <color name="steel_accent_pressed">#C74020</color>
+    <color name="steel_accent_wash">#FCEAE4</color>
+
+    <color name="steel_positive">#2F7D5A</color>
+    <color name="steel_negative">#C0392B</color>
+    <color name="steel_neutral">#838A91</color>
+
+    <!-- Signal orange deliberately absent here; see the file header. -->
+    <color name="steel_intent_strength">#C0392B</color>
+    <color name="steel_intent_build">#B07A16</color>
+    <color name="steel_intent_flush">#2F7D5A</color>
+    <color name="steel_intent_warmup">#838A91</color>
+
+    <color name="steel_chart_volume">#2F7D5A</color>
+    <color name="steel_chart_rpe">#B07A16</color>
+    <color name="steel_chart_time">#3D6E99</color>
+    <color name="steel_chart_fatigue">#C0392B</color>
+    <color name="steel_chart_grid">#E7EAEC</color>
+
+    <color name="steel_ripple">#1417191C</color>
+    <color name="steel_ripple_inverse">#22F5F6F7</color>
+
+</resources>

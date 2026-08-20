@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  A filled dot. Drawn white and tinted at the point of use (android:backgroundTint), the same
+  trick lp_bg_ambient_flow and lp_hero_glow use — the Workout tab needs one dot per day and one
+  per readiness verdict, in four different token colours, and a drawable per colour would be
+  four drawables to keep in sync with the palettes.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <solid android:color="#FFFFFF" />
+</shape>

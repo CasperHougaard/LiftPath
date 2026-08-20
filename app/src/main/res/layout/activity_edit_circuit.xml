@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Create or edit a circuit. Same shape as activity_edit_workout_plan: airy header and setup
+  fields, dense station cards, pinned save.
+
+  The rounds field is deliberately optional and labelled as a suggestion — the runner never
+  enforces it, so a screen that demanded a number here would be lying about what it does.
+-->
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?attr/lpCanvas"
+    android:fitsSystemWindows="true"
+    tools:context=".activities.EditCircuitActivity">
+
+    <ImageView
+        android:id="@+id/image_bg_animation"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:contentDescription="@null"
+        android:scaleType="centerCrop"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@drawable/lp_bg_ambient_flow"
+        app:tint="?attr/lpAccent" />
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:background="@android:color/transparent"
+        android:clipToPadding="false"
+        android:fillViewport="true"
+        app:layout_constraintBottom_toTopOf="@id/button_save_circuit"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="@dimen/lp_gutter">
+
+            <!-- HEADER -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <com.google.android.material.card.MaterialCardView
+                    style="@style/Widget.LP.Card.Control"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:clickable="false"
+                    android:focusable="false">
+
+                    <ImageButton
+                        android:id="@+id/button_back"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="?attr/selectableItemBackground"
+                        android:contentDescription="@string/progress_back_content_description"
+                        android:padding="@dimen/lp_space_3"
+                        android:src="@drawable/ic_arrow_back_24"
+                        app:tint="?attr/lpInk" />
+                </com.google.android.material.card.MaterialCardView>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/lp_space_4"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/text_header_title"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/title_create_circuit"
+                        android:textAppearance="@style/TextAppearance.LP.Title" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/edit_circuit_subtitle"
+                        android:textAppearance="@style/TextAppearance.LP.Body" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- SETUP -->
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.LP.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/lp_space_5">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/lp_card_padding">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/edit_circuit_section_setup"
+                        android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.LP.TextInputLayout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/lp_space_2"
+                        android:hint="@string/edit_circuit_hint_name">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/edit_text_circuit_name"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="text"
+                            android:maxLines="1" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/lp_space_3"
+                        android:baselineAligned="false"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            style="@style/Widget.LP.TextInputLayout.Numeric"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="@dimen/lp_card_gap_dense"
+                            android:layout_weight="1"
+                            android:hint="@string/edit_circuit_hint_rounds">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/edit_text_circuit_rounds"
+                                style="@style/Widget.LP.TextInputEditText.Numeric"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="number" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            style="@style/Widget.LP.TextInputLayout.Numeric"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:hint="@string/edit_circuit_hint_rest">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/edit_text_circuit_rest"
+                                style="@style/Widget.LP.TextInputEditText.Numeric"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="number" />
+                        </com.google.android.material.textfield.TextInputLayout>
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/lp_space_2"
+                        android:text="@string/edit_circuit_rounds_helper"
+                        android:textAppearance="@style/TextAppearance.LP.Caption"
+                        android:textColor="?attr/lpInkTertiary" />
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.LP.TextInputLayout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/lp_space_3"
+                        android:hint="@string/edit_circuit_hint_notes">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/edit_text_circuit_notes"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="top"
+                            android:inputType="textMultiLine"
+                            android:maxLines="4"
+                            android:minLines="2" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- STATIONS -->
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.LP.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/lp_card_gap">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/lp_card_padding">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/edit_circuit_section_stations"
+                        android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/lp_space_1"
+                        android:text="@string/edit_circuit_stations_helper"
+                        android:textAppearance="@style/TextAppearance.LP.Caption"
+                        android:textColor="?attr/lpInkTertiary" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/button_add_stations"
+                        style="@style/Widget.LP.Button"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/lp_space_3"
+                        android:text="@string/btn_add_stations"
+                        app:icon="@drawable/ic_plus"
+                        app:iconGravity="textStart" />
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/recycler_view_circuit_items"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/lp_space_4"
+                        android:nestedScrollingEnabled="false" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <!-- SAVE — PINNED -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/button_save_circuit"
+        style="@style/Widget.LP.Button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/lp_gutter"
+        android:layout_marginEnd="@dimen/lp_gutter"
+        android:layout_marginBottom="@dimen/lp_gutter"
+        android:minHeight="60dp"
+        android:text="@string/button_save_circuit"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -385,7 +385,9 @@ object OneRMEstimationHelper {
     ): Map<String, Float> {
         return sets.groupBy { it.date }
             .mapValues { (_, sessionSets) ->
-                sessionSets.sumOf { (it.kg * it.reps).toDouble() }.toFloat()
+                // Timed holds carry no reps, so they contribute no rep-based volume.
+                sessionSets.filterNot { it.isTimedSet() }
+                    .sumOf { (it.kg * it.reps).toDouble() }.toFloat()
             }
     }
 
@@ -403,8 +405,9 @@ object OneRMEstimationHelper {
     ): Map<String, Float?> {
         return sets.groupBy { it.date }
             .mapValues { (_, sessionSets) ->
-                // Find set with highest volume (weight × reps)
-                val topSet = sessionSets.maxByOrNull { it.kg * it.reps }
+                // Find set with highest volume (weight × reps); a hold has no rep volume.
+                val topSet = sessionSets.filterNot { it.isTimedSet() }
+                    .maxByOrNull { it.kg * it.reps }
                 
                 if (topSet != null && topSet.rpe != null && topSet.rpe > 0) {
                     // Calculate efficiency: (weight × reps) / RPE
@@ -786,8 +789,9 @@ object OneRMEstimationHelper {
                 }
                 val maxOneRM = oneRMs.maxOrNull()
                 
-                val volume = intentSets.sumOf { (it.kg * it.reps).toDouble() }.toFloat()
-                val totalReps = intentSets.sumOf { it.reps }
+                val repSets = intentSets.filterNot { it.isTimedSet() }
+                val volume = repSets.sumOf { (it.kg * it.reps).toDouble() }.toFloat()
+                val totalReps = repSets.sumOf { it.reps }
                 
                 val rpes = intentSets.mapNotNull { it.rpe }
                 val avgRPE = if (rpes.isNotEmpty()) rpes.average().toFloat() else null

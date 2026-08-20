@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Progress > Sessions tab page. AIRY spacing — a browsing surface, not a working one.
+  Compare-mode header/footer are not wired up by ProgressSessionsFragment yet (visibility
+  stays GONE, nothing toggles it); kept in the tree rather than deleted since removing it
+  would mean re-deriving the constraint chain for a feature that may still land, restyled
+  to the token system like everything else on this page.
+-->
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -13,10 +20,9 @@
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingStart="24dp"
-        android:paddingTop="16dp"
-        android:paddingEnd="24dp"
-        android:paddingBottom="8dp"
+        android:paddingHorizontal="@dimen/lp_gutter"
+        android:paddingTop="@dimen/lp_space_4"
+        android:paddingBottom="@dimen/lp_space_2"
         android:visibility="gone"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -27,17 +33,14 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="@string/progress_compare_mode"
-            android:textColor="@color/fitness_text_primary"
-            android:textSize="16sp"
-            android:textStyle="bold" />
+            android:textAppearance="@style/TextAppearance.LP.Heading" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/button_cancel_compare"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
+            style="@style/Widget.LP.Button.Text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/cancel"
-            android:textColor="@color/fitness_primary" />
+            android:text="@string/cancel" />
     </LinearLayout>
 
     <!-- Time Filter -->
@@ -47,10 +50,9 @@
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingStart="24dp"
-        android:paddingTop="16dp"
-        android:paddingEnd="24dp"
-        android:paddingBottom="8dp"
+        android:paddingHorizontal="@dimen/lp_gutter"
+        android:paddingTop="@dimen/lp_space_4"
+        android:paddingBottom="@dimen/lp_space_2"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/layout_compare_header">
@@ -60,16 +62,14 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="@string/progress_sessions_title"
-            android:textColor="@color/fitness_text_primary"
-            android:textSize="18sp"
-            android:textStyle="bold" />
+            android:textAppearance="@style/TextAppearance.LP.Heading" />
 
         <Spinner
             android:id="@+id/spinner_time_filter"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="@drawable/spinner_background"
-            android:padding="8dp"
+            android:padding="@dimen/lp_space_2"
             android:popupBackground="@drawable/spinner_popup_background" />
     </LinearLayout>
 
@@ -79,9 +79,8 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:clipToPadding="false"
-        android:paddingStart="24dp"
-        android:paddingEnd="24dp"
-        android:paddingBottom="24dp"
+        android:paddingHorizontal="@dimen/lp_gutter"
+        android:paddingBottom="@dimen/lp_gutter"
         app:layout_constraintBottom_toTopOf="@id/layout_compare_mode"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -94,10 +93,9 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center"
-        android:padding="48dp"
+        android:padding="@dimen/lp_space_6"
         android:text="@string/progress_no_sessions"
-        android:textColor="@color/fitness_text_secondary"
-        android:textSize="14sp"
+        android:textAppearance="@style/TextAppearance.LP.Body"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -109,98 +107,95 @@
         android:id="@+id/layout_compare_mode"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/fitness_card_background"
-        android:elevation="8dp"
+        android:background="?attr/lpSurface"
         android:gravity="center"
         android:orientation="horizontal"
-        android:paddingStart="24dp"
-        android:paddingTop="16dp"
-        android:paddingEnd="24dp"
-        android:paddingBottom="24dp"
+        android:paddingHorizontal="@dimen/lp_gutter"
+        android:paddingTop="@dimen/lp_space_4"
+        android:paddingBottom="@dimen/lp_space_6"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent">
 
-        <androidx.cardview.widget.CardView
+        <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_session_a"
+            style="@style/Widget.LP.Card"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            app:cardBackgroundColor="@color/fitness_primary"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="2dp">
+            app:cardBackgroundColor="?attr/lpAccent"
+            app:cardCornerRadius="@dimen/lp_radius_sm"
+            app:strokeWidth="0dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center"
                 android:orientation="vertical"
-                android:padding="12dp">
+                android:padding="@dimen/lp_space_3">
 
                 <TextView
                     android:id="@+id/text_session_a_date"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textColor="@color/white"
-                    android:textSize="14sp"
-                    android:textStyle="bold"
+                    android:textAppearance="@style/TextAppearance.LP.Label"
+                    android:textColor="?attr/lpInkInverse"
                     tools:text="Jan 15" />
 
                 <TextView
                     android:id="@+id/text_session_a_volume"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textColor="@color/white"
-                    android:textSize="12sp"
+                    android:textAppearance="@style/TextAppearance.LP.Metric.S"
+                    android:textColor="?attr/lpInkInverseSecondary"
                     tools:text="1,250kg" />
             </LinearLayout>
-        </androidx.cardview.widget.CardView>
+        </com.google.android.material.card.MaterialCardView>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_marginEnd="16dp"
+            android:layout_marginStart="@dimen/lp_space_4"
+            android:layout_marginEnd="@dimen/lp_space_4"
             android:text="@string/vs"
-            android:textColor="@color/fitness_text_secondary"
-            android:textSize="16sp"
-            android:textStyle="bold" />
+            android:textAppearance="@style/TextAppearance.LP.Heading"
+            android:textColor="?attr/lpInkSecondary" />
 
-        <androidx.cardview.widget.CardView
+        <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_session_b"
+            style="@style/Widget.LP.Card"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            app:cardBackgroundColor="@color/fitness_accent"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="2dp">
+            app:cardBackgroundColor="?attr/lpAccent"
+            app:cardCornerRadius="@dimen/lp_radius_sm"
+            app:strokeWidth="0dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center"
                 android:orientation="vertical"
-                android:padding="12dp">
+                android:padding="@dimen/lp_space_3">
 
                 <TextView
                     android:id="@+id/text_session_b_date"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/progress_select_session"
-                    android:textColor="@color/white"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
+                    android:textAppearance="@style/TextAppearance.LP.Label"
+                    android:textColor="?attr/lpInkInverse" />
 
                 <TextView
                     android:id="@+id/text_session_b_volume"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textColor="@color/white"
-                    android:textSize="12sp"
+                    android:textAppearance="@style/TextAppearance.LP.Metric.S"
+                    android:textColor="?attr/lpInkInverseSecondary"
                     android:visibility="gone"
                     tools:text="1,350kg" />
             </LinearLayout>
-        </androidx.cardview.widget.CardView>
+        </com.google.android.material.card.MaterialCardView>
     </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

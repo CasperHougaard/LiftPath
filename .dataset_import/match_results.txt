@@ -1,0 +1,84 @@
+1|Deadlift (Barbell)|FUZZY|0157|cable deadlift|cable|0.727
+2|Back Squat (Barbell)|FUZZY|1004|band squat|band|0.8
+4|Biceps Curl (Dumbbell)|FUZZY|2404|ez-bar biceps curl (with arm blaster)|ez barbell|0.759
+5|Triceps Pushdown (Cable)|FUZZY|0241|cable triceps pushdown (v-bar)|cable|0.842
+7|Bench Press (Barbell)|FUZZY|1254|band bench press|band|0.815
+8|Split Squat (Barbell)|FUZZY|2368|split squats|body weight|0.957
+9|Calf Raise (Machine)|FUZZY|1383|hack calf raise|sled machine|0.8
+10|Decline Bench Press (Barbell)|FUZZY|0753|smith decline bench press|smith machine|0.864
+11|Incline Dumbbell Press|FUZZY|0438|dumbbell w-press|dumbbell|0.737
+12|Seated Cable Row|FUZZY|0689|seated leg raise|body weight|0.688
+13|Triceps Extension (Single Arm)|FUZZY|0607|lever triceps extension|leverage machine|0.85
+14|Machine Shoulder Press|FUZZY|0997|band shoulder press|band|0.829
+15|Dips (Bodyweight)|FUZZY|0677|ring dips|body weight|0.615
+16|Abdominal Crunch (Machine)|FUZZY|0469|groin crunch|body weight|0.714
+17|Bench Press (Paused)|FUZZY|1254|band bench press|band|0.815
+18|Seated Leg Curl (Machine)|FUZZY|0599|lever seated leg curl|leverage machine|0.833
+100|Overhead Press (Barbell)|FUZZY|0577|lever chest press|leverage machine|0.71
+101|Pull Up (Bodyweight)|EXACT|0651|pull up (neutral grip)|body weight|1.0
+102|Chin Up|EXACT|1326|chin-up|body weight|1.0
+103|Romanian Deadlift (Barbell)|FUZZY|0085|barbell romanian deadlift|barbell|0.81
+104|Leg Press|FUZZY|0760|smith leg press|smith machine|0.75
+105|Bulgarian Split Squat (Dumbbell)|FUZZY|0098|barbell side split squat|barbell|0.711
+106|Lat Pulldown (Wide Grip)|FUZZY|0198|cable pulldown|cable|0.769
+107|Dumbbell Row|FUZZY|0376|dumbbell raise|dumbbell|0.769
+108|Face Pull (Cable)|FUZZY|0776|snatch pull|barbell|0.7
+109|Lateral Raise (Dumbbell)|FUZZY|0178|cable lateral raise|cable|0.812
+110|Leg Extension (Machine)|FUZZY|0585|lever leg extension|leverage machine|0.812
+111|Hip Thrust (Barbell)|FUZZY|0484|hip raise (bent knee)|body weight|0.632
+112|Skullcrusher (EZ Bar)|FUZZY|0777|spell caster|dumbbell|0.583
+113|Hammer Curl (Dumbbell)|FUZZY|0165|cable hammer curl (with rope)|cable|0.786
+114|Front Squat (Barbell)|FUZZY|1433|smith front squat (clean grip)|smith machine|0.786
+115|Walking Lunges|FUZZY|1460|walking lunge|body weight|0.963
+116|Incline Dumbbell Fly|FUZZY|0308|dumbbell fly|dumbbell|0.75
+117|Pec Deck / Machine Fly|FUZZY|0158|cable decline fly|cable|0.649
+118|Dumbbell Shoulder Press (Seated)|FUZZY|0405|dumbbell seated shoulder press|dumbbell|0.868
+119|Reverse Fly (Dumbbell)|FUZZY|0993|band reverse fly|band|0.815
+120|Hanging Leg Raise|EXACT|0472|hanging leg raise|body weight|1.0
+121|Plank|FUZZY|0648|power clean|barbell|0.5
+122|Cable Woodchopper|FUZZY|1324|cable upper row|cable|0.625
+123|Sumo Deadlift|FUZZY|0752|smith deadlift|smith machine|0.815
+124|Barbell Shrug|EXACT|0095|barbell shrug|barbell|1.0
+125|Farmer's Walk|FUZZY|2133|farmers walk|dumbbell|0.96
+126|Glute Bridge (Barbell)|FUZZY|3561|glute bridge march|body weight|0.8
+127|Goblet Squat|FUZZY|1760|dumbbell goblet squat|dumbbell|0.727
+128|Barbell Row (Pendlay)|FUZZY|0031|barbell curl|barbell|0.783
+129|Cable Crossover|FUZZY|0155|cable cross-over variation|cable|0.732
+130|Preacher Curl (EZ Bar)|FUZZY|0195|cable preacher curl|cable|0.812
+131|Push Up|EXACT|0662|push-up|body weight|1.0
+132|Rotary Torso (Machine)|FUZZY|1773|one arm towel row|body weight|0.552
+133|Incline Press (Machine)|FUZZY|0493|incline push-up|body weight|0.714
+134|Hip Adduction|FUZZY|0168|cable hip adduction|cable|0.812
+135|Hip Abduction|FUZZY|0710|side hip abduction|body weight|0.839
+136|Romanian Deadlift (Dumbbell)|FUZZY|0085|barbell romanian deadlift|barbell|0.81
+137|Side Plank|FUZZY|0709|side hip (on parallel bars)|body weight|0.667
+138|Eccentric Heel Drop|FUZZY|0814|triceps dip|body weight|0.533
+139|Chest Press (Machine Wide)|FUZZY|0577|lever chest press|leverage machine|0.786
+140|Chest Press (Machine)|FUZZY|0577|lever chest press|leverage machine|0.786
+141|Row (Machine)|FUZZY|0499|inverted row|body weight|0.4
+142|Prone Leg Curl|FUZZY|0496|inverse leg curl (bench support)|body weight|0.733
+143|Cable Lateral Raise|EXACT|0178|cable lateral raise|cable|1.0
+144|Incline Barbell Press|FUZZY|0169|cable incline bench press|cable|0.696
+145|Glute (Machine)|FUZZY|3193|glute-ham raise|body weight|0.5
+146|Hack Squat|FUZZY|0743|sled hack squat|sled machine|0.8
+147|Cable Straight Leg Raises|FUZZY|0475|hanging straight leg raise|body weight|0.784
+148|Cable Straight Back Kicks|FUZZY|0239|cable straight back seated row|cable|0.764
+149|Low Row (Machine)|FUZZY|0761|smith narrow row|smith machine|0.522
+150|Front Raise (Dumbbell)|FUZZY|0978|band front raise|band|0.815
+151|Front Raise (Cable)|FUZZY|0978|band front raise|band|0.815
+152|Upright Row (Barbell)|FUZZY|0246|cable upright row|cable|0.786
+153|Back Extension (Machine)|FUZZY|0573|lever back extension|leverage machine|0.824
+154|Hyperextension (45°)|EXACT|0489|hyperextension|body weight|1.0
+155|Good Morning (Barbell)|FUZZY|0044|barbell good morning|barbell|0.75
+156|Ab Wheel Rollout|FUZZY|0857|wheel rollerout|wheel roller|0.839
+157|Kettlebell Swing|EXACT|0549|kettlebell swing|kettlebell|1.0
+158|Close-Grip Bench Press|FUZZY|0751|smith close-grip bench press|smith machine|0.88
+159|Seated Calf Raise (Machine)|FUZZY|0594|lever seated calf raise|leverage machine|0.85
+160|Nordic Curl|FUZZY|1016|band wrist curl|band|0.615
+161|Step-Up (Dumbbell)|FUZZY|1008|band step-up|band|0.737
+162|Arnold Press (Dumbbell)|FUZZY|2137|dumbbell arnold press|dumbbell|0.727
+163|Trap Bar Deadlift|EXACT|0811|trap bar deadlift|trap bar|1.0
+164|Single Leg RDL (Dumbbell)|FUZZY|0727|single leg calf raise (on a dumbbell)|dumbbell|0.686
+165|Cable Crunch|FUZZY|0223|cable side crunch|cable|0.828
+166|Russian Twist|EXACT|0687|russian twist|body weight|1.0
+167|Glute Bridge (Bodyweight)|FUZZY|3561|glute bridge march|body weight|0.8

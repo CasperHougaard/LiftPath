@@ -1,6 +1,5 @@
 package com.liftpath.fragments
 
-import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -17,10 +16,13 @@ import com.liftpath.databinding.FragmentProgressExercisesBinding
 import com.liftpath.helpers.JsonHelper
 import com.liftpath.helpers.OneRMEstimationHelper
 import com.liftpath.helpers.ProgressSettingsManager
+import com.liftpath.helpers.RestTimerHelper
+import com.liftpath.helpers.SetMetrics
 import com.liftpath.models.ExerciseSet
 import com.liftpath.models.SetIntent
 import java.text.SimpleDateFormat
 import java.util.*
+import com.liftpath.helpers.lpColor
 
 class ProgressExercisesFragment : Fragment() {
 
@@ -45,6 +47,9 @@ class ProgressExercisesFragment : Fragment() {
     // Family entries for the family filter spinner: (familyId?, displayName).
     private var familyEntries: List<Pair<String?, String>> = emptyList()
     private var selectedFamilyId: String? = null
+    // True when the selected exercise targets duration rather than reps. Its charts and stats
+    // report hold time, because volume/1RM/reps are all zero for a hold.
+    private var isTimedExercise = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -215,6 +220,7 @@ class ProgressExercisesFragment : Fragment() {
 
     private fun loadExerciseData(exerciseId: Int) {
         val trainingData = jsonHelper.readTrainingData()
+        isTimedExercise = trainingData.exerciseLibrary.find { it.id == exerciseId }?.isTimeBased == true
 
         // Group sets by date and intent
         val metricsByDateAndIntent = mutableMapOf<String, MutableMap<SetIntent, MutableList<ExerciseSet>>>()
@@ -232,7 +238,10 @@ class ProgressExercisesFragment : Fragment() {
                         setNumber = entry.setNumber,
                         kg = entry.kg,
                         reps = entry.reps,
-                        rpe = entry.rpe
+                        rpe = entry.rpe,
+                        durationSeconds = entry.durationSeconds,
+                        bodyweightKg = entry.bodyweightKg,
+                        addedKg = entry.addedKg
                     )
                     
                     metricsByDateAndIntent
@@ -271,8 +280,12 @@ class ProgressExercisesFragment : Fragment() {
         // Setup combined chart
         setupCombinedChart(metricsByDateAndIntent, filteredDates, sessionWorkoutTypes)
         
-        // Update estimation
-        updateEstimation(exerciseId)
+        // Update estimation — a rep-based 1RM projection is meaningless for a hold.
+        if (isTimedExercise) {
+            binding.cardEstimation.visibility = View.GONE
+        } else {
+            updateEstimation(exerciseId)
+        }
         
         // Update trends
         updateTrends(metricsByDateAndIntent, filteredDates, sessionWorkoutTypes)
@@ -282,6 +295,14 @@ class ProgressExercisesFragment : Fragment() {
         metrics: Map<String, Map<SetIntent, List<ExerciseSet>>>,
         filteredDates: List<String>
     ) {
+        if (isTimedExercise) {
+            updateHoldStats(metrics, filteredDates)
+            return
+        }
+        // Reset labels in case the previous selection was a timed exercise.
+        binding.textBuildMetricLabel.setText(R.string.progress_avg_volume)
+        binding.textFlushMetricLabel.setText(R.string.progress_total_reps)
+
         // Strength stats
         val strengthSessions = filteredDates.count { date ->
             metrics[date]?.containsKey(SetIntent.STRENGTH) == true
@@ -306,7 +327,8 @@ class ProgressExercisesFragment : Fragment() {
             metrics[date]?.containsKey(SetIntent.BUILD) == true
         }
         val buildVolumes = filteredDates.mapNotNull { date ->
-            metrics[date]?.get(SetIntent.BUILD)?.sumOf { (it.kg * it.reps).toDouble() }?.toFloat()
+            metrics[date]?.get(SetIntent.BUILD)?.filterNot { it.isTimedSet() }
+                ?.sumOf { (it.kg * it.reps).toDouble() }?.toFloat()
         }
         val avgBuildVolume = if (buildVolumes.isNotEmpty()) buildVolumes.average() else null
 
@@ -323,7 +345,7 @@ class ProgressExercisesFragment : Fragment() {
             metrics[date]?.containsKey(SetIntent.FLUSH) == true
         }
         val flushReps = filteredDates.mapNotNull { date ->
-            metrics[date]?.get(SetIntent.FLUSH)?.sumOf { it.reps }
+            metrics[date]?.get(SetIntent.FLUSH)?.filterNot { it.isTimedSet() }?.sumOf { it.reps }
         }
         val totalFlushReps = flushReps.sum()
 
@@ -334,6 +356,44 @@ class ProgressExercisesFragment : Fragment() {
         } else {
             binding.cardFlushStats.visibility = View.GONE
         }
+    }
+
+    /**
+     * Stats for a timed exercise. 1RM is meaningless for a hold, so that card is hidden and the
+     * remaining two report the longest hold and the total time under tension across the window.
+     */
+    private fun updateHoldStats(
+        metrics: Map<String, Map<SetIntent, List<ExerciseSet>>>,
+        filteredDates: List<String>
+    ) {
+        binding.cardStrengthStats.visibility = View.GONE
+
+        val setsInWindow = filteredDates.flatMap { date ->
+            metrics[date]?.values?.flatten().orEmpty()
+        }
+        val holdSets = setsInWindow.filter { it.isTimedSet() }
+        val sessionCount = filteredDates.count { date ->
+            metrics[date]?.values?.flatten()?.any { it.isTimedSet() } == true
+        }
+
+        if (holdSets.isEmpty()) {
+            binding.cardBuildStats.visibility = View.GONE
+            binding.cardFlushStats.visibility = View.GONE
+            return
+        }
+
+        val bestHold = holdSets.maxOf { it.durationSeconds ?: 0 }
+        val totalHold = holdSets.sumOf { it.durationSeconds ?: 0 }
+
+        binding.cardBuildStats.visibility = View.VISIBLE
+        binding.textBuildMetricLabel.setText(R.string.progress_best_hold)
+        binding.textBuildVolume.text = RestTimerHelper.formatDuration(bestHold)
+        binding.textBuildSessions.text = "$sessionCount sessions"
+
+        binding.cardFlushStats.visibility = View.VISIBLE
+        binding.textFlushMetricLabel.setText(R.string.total_hold_time_label)
+        binding.textFlushReps.text = RestTimerHelper.formatHoldTotal(totalHold)
+        binding.textFlushSessions.text = "$sessionCount sessions"
     }
 
     private fun setupCombinedChart(
@@ -349,8 +409,38 @@ class ProgressExercisesFragment : Fragment() {
         var hasLeftAxisData = false
         var hasRightAxisData = false
 
+        // Timed exercises have no 1RM, volume or reps to plot — chart hold time instead:
+        // best single hold as a line, total time under tension as bars.
+        if (isTimedExercise) {
+            val bestHoldEntries = mutableListOf<Entry>()
+            filteredDates.forEachIndexed { index, dateStr ->
+                val holdSets = metrics[dateStr]?.values?.flatten()?.filter { it.isTimedSet() }
+                if (!holdSets.isNullOrEmpty()) {
+                    val best = holdSets.maxOf { it.durationSeconds ?: 0 }
+                    val total = holdSets.sumOf { it.durationSeconds ?: 0 }
+                    bestHoldEntries.add(Entry(index.toFloat(), best.toFloat()))
+                    barEntries.add(BarEntry(index.toFloat(), total.toFloat()))
+                }
+            }
+            if (bestHoldEntries.isNotEmpty()) {
+                hasLeftAxisData = true
+                hasRightAxisData = true
+                lineDataSets.add(
+                    LineDataSet(bestHoldEntries, getString(R.string.progress_best_hold)).apply {
+                        color = requireContext().lpColor(R.attr.lpIntentStrength)
+                        setCircleColor(requireContext().lpColor(R.attr.lpIntentStrength))
+                        circleRadius = 4f
+                        lineWidth = 2.5f
+                        setDrawValues(false)
+                        axisDependency = YAxis.AxisDependency.LEFT
+                        mode = LineDataSet.Mode.CUBIC_BEZIER
+                    }
+                )
+            }
+        }
+
         // Strength 1RM Line (if enabled)
-        if (showStrength) {
+        if (!isTimedExercise && showStrength) {
             val strengthEntries = mutableListOf<Entry>()
             filteredDates.forEachIndexed { index, dateStr ->
                 val strengthSets = metrics[dateStr]?.get(SetIntent.STRENGTH)
@@ -366,8 +456,8 @@ class ProgressExercisesFragment : Fragment() {
             if (strengthEntries.isNotEmpty()) {
                 hasLeftAxisData = true
                 val strengthDataSet = LineDataSet(strengthEntries, "1RM (Strength)").apply {
-                    color = Color.parseColor("#DC2626")
-                    setCircleColor(Color.parseColor("#DC2626"))
+                    color = requireContext().lpColor(R.attr.lpIntentStrength)
+                    setCircleColor(requireContext().lpColor(R.attr.lpIntentStrength))
                     circleRadius = 4f
                     lineWidth = 2.5f
                     setDrawValues(false)
@@ -379,11 +469,12 @@ class ProgressExercisesFragment : Fragment() {
         }
 
         // Build Volume Bars (if enabled)
-        if (showBuild) {
+        if (!isTimedExercise && showBuild) {
             filteredDates.forEachIndexed { index, dateStr ->
                 val buildSets = metrics[dateStr]?.get(SetIntent.BUILD)
                 if (buildSets != null && buildSets.isNotEmpty()) {
-                    val volume = buildSets.sumOf { (it.kg * it.reps).toDouble() }.toFloat()
+                    val volume = buildSets.filterNot { it.isTimedSet() }
+                        .sumOf { (it.kg * it.reps).toDouble() }.toFloat()
                     barEntries.add(BarEntry(index.toFloat(), volume))
                 }
             }
@@ -391,20 +482,21 @@ class ProgressExercisesFragment : Fragment() {
         }
 
         // Flush Reps Line (if enabled)
-        if (showFlush) {
+        if (!isTimedExercise && showFlush) {
             val flushEntries = mutableListOf<Entry>()
             filteredDates.forEachIndexed { index, dateStr ->
                 val flushSets = metrics[dateStr]?.get(SetIntent.FLUSH)
                 if (flushSets != null && flushSets.isNotEmpty()) {
-                    val totalReps = flushSets.sumOf { it.reps }.toFloat()
+                    val totalReps = flushSets.filterNot { it.isTimedSet() }
+                        .sumOf { it.reps }.toFloat()
                     flushEntries.add(Entry(index.toFloat(), totalReps))
                 }
             }
             if (flushEntries.isNotEmpty()) {
                 hasRightAxisData = true
                 val flushDataSet = LineDataSet(flushEntries, "Reps (Flush)").apply {
-                    color = Color.parseColor("#10B981")
-                    setCircleColor(Color.parseColor("#10B981"))
+                    color = requireContext().lpColor(R.attr.lpIntentFlush)
+                    setCircleColor(requireContext().lpColor(R.attr.lpIntentFlush))
                     circleRadius = 4f
                     lineWidth = 2.5f
                     setDrawValues(false)
@@ -418,7 +510,7 @@ class ProgressExercisesFragment : Fragment() {
         if (lineDataSets.isEmpty() && barEntries.isEmpty()) {
             binding.chartCombined.visibility = View.GONE
             binding.textEmptyState.visibility = View.VISIBLE
-            binding.textEmptyState.text = "No data available for selected intents"
+            binding.textEmptyState.text = getString(R.string.progress_no_data_selected_intents)
             return
         }
 
@@ -437,7 +529,7 @@ class ProgressExercisesFragment : Fragment() {
         // Fix: always provide a non-null BarData (empty when no bars) so getBarData() ≠ null.
         if (barEntries.isNotEmpty()) {
             combinedData.setData(BarData(BarDataSet(barEntries, "Volume (Build)").apply {
-                color = Color.parseColor("#F59E0B")
+                color = requireContext().lpColor(R.attr.lpIntentBuild)
                 setDrawValues(false)
                 axisDependency = YAxis.AxisDependency.RIGHT
             }).apply { barWidth = 0.4f })
@@ -445,18 +537,21 @@ class ProgressExercisesFragment : Fragment() {
             combinedData.setData(BarData())
         }
 
+        val ctx = requireContext()
         binding.chartCombined.apply {
             data = combinedData
             description.isEnabled = false
-            setBackgroundColor(Color.WHITE)
+            setBackgroundColor(ctx.lpColor(R.attr.lpSurface))
             setDrawGridBackground(false)
             legend.isEnabled = true
             legend.textSize = 11f
+            legend.textColor = ctx.lpColor(R.attr.lpInkSecondary)
 
             xAxis.apply {
                 position = XAxis.XAxisPosition.BOTTOM
                 setDrawGridLines(true)
-                gridColor = Color.parseColor("#E0E0E0")
+                gridColor = ctx.lpColor(R.attr.lpChartGrid)
+                textColor = ctx.lpColor(R.attr.lpInkTertiary)
                 labelRotationAngle = -45f
                 valueFormatter = object : ValueFormatter() {
                     override fun getFormattedValue(value: Float): String {
@@ -481,7 +576,8 @@ class ProgressExercisesFragment : Fragment() {
             axisLeft.isEnabled = hasLeftAxisData
             axisLeft.apply {
                 setDrawGridLines(true)
-                gridColor = Color.parseColor("#E0E0E0")
+                gridColor = ctx.lpColor(R.attr.lpChartGrid)
+                textColor = ctx.lpColor(R.attr.lpInkTertiary)
                 axisMinimum = 0f
                 if (hasLeftAxisData) resetAxisMaximum() else axisMaximum = 100f
                 setScaleEnabled(false)
@@ -490,6 +586,7 @@ class ProgressExercisesFragment : Fragment() {
             axisRight.isEnabled = hasRightAxisData
             axisRight.apply {
                 setDrawGridLines(false)
+                textColor = ctx.lpColor(R.attr.lpInkTertiary)
                 axisMinimum = 0f
                 if (hasRightAxisData) resetAxisMaximum() else axisMaximum = 100f
                 setScaleEnabled(false)
@@ -531,7 +628,10 @@ class ProgressExercisesFragment : Fragment() {
                         setNumber = entry.setNumber,
                         kg = entry.kg,
                         reps = entry.reps,
-                        rpe = entry.rpe
+                        rpe = entry.rpe,
+                        durationSeconds = entry.durationSeconds,
+                        bodyweightKg = entry.bodyweightKg,
+                        addedKg = entry.addedKg
                     ))
                 }
         }
@@ -579,7 +679,8 @@ class ProgressExercisesFragment : Fragment() {
 
         // Calculate volume trend
         val volumes = filteredDates.mapNotNull { date ->
-            metrics[date]?.values?.flatten()?.sumOf { (it.kg * it.reps).toDouble() }?.toFloat()
+            metrics[date]?.values?.flatten()?.filterNot { it.isTimedSet() }
+                ?.sumOf { (it.kg * it.reps).toDouble() }?.toFloat()
         }
         
         if (volumes.size >= 4) {
@@ -637,10 +738,11 @@ class ProgressExercisesFragment : Fragment() {
     }
 
     private fun getTrendColor(percentage: Float): Int {
+        // Matches ExerciseTrendAdapter.getChangeColor's up/down/stable convention.
         return when {
-            percentage > 5 -> Color.parseColor("#10B981")
-            percentage < -5 -> Color.parseColor("#F59E0B")
-            else -> Color.parseColor("#6B7280")
+            percentage > 5 -> requireContext().lpColor(R.attr.lpPositive)
+            percentage < -5 -> requireContext().lpColor(R.attr.lpNegative)
+            else -> requireContext().lpColor(R.attr.lpInkTertiary)
         }
     }
 

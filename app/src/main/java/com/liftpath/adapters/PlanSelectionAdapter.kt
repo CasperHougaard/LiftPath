@@ -4,11 +4,10 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
-import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.card.MaterialCardView
 import com.liftpath.R
 import com.liftpath.models.WorkoutPlan
-import java.util.Locale
 
 class PlanSelectionAdapter(
     private var plans: List<WorkoutPlan>,
@@ -16,9 +15,8 @@ class PlanSelectionAdapter(
 ) : RecyclerView.Adapter<PlanSelectionAdapter.PlanViewHolder>() {
 
     class PlanViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val cardView: CardView = view.findViewById(R.id.card_view_plan_item)
+        val cardView: MaterialCardView = view.findViewById(R.id.card_view_plan_item)
         val planName: TextView = view.findViewById(R.id.text_plan_name)
-        val workoutTypeBadge: TextView = view.findViewById(R.id.text_workout_type_badge)
         val exerciseCount: TextView = view.findViewById(R.id.text_exercise_count)
     }
 
@@ -33,10 +31,6 @@ class PlanSelectionAdapter(
         holder.planName.text = plan.name
         holder.exerciseCount.text = "${plan.exerciseIds.size} exercise${if (plan.exerciseIds.size != 1) "s" else ""}"
 
-        // Hide workout type badge (removed from UI)
-        holder.workoutTypeBadge.visibility = View.GONE
-
-        // Set click listener on the entire card
         holder.cardView.setOnClickListener {
             onPlanClicked(plan)
         }

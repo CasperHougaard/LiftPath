@@ -29,6 +29,9 @@ object AiExportHelper {
     /** All-time-best rows capped to keep the paste size LLM-friendly. */
     private const val MAX_ALL_TIME_ROWS = 15
 
+    /** Suggested week-on-week increment for a timed hold, the analogue of a weight jump. */
+    private const val HOLD_PROGRESSION_STEP_SECONDS = 5
+
     fun buildMarkdown(
         context: Context,
         trainingData: TrainingData,
@@ -166,8 +169,14 @@ object AiExportHelper {
         if (session.planName != null) sb.append("Plan: ").append(session.planName).append("\n")
         sb.append("Summary: ").append(summary.totalSets).append(" working sets · ")
             .append(summary.exerciseCount).append(" exercises · volume ")
-            .append(fmtVol(summary.totalVolume)).append(" kg · PRs this session: ")
-            .append(summary.prCount).append("\n")
+            .append(fmtVol(summary.totalVolume)).append(" kg")
+        // Timed holds contribute no rep-based volume, so report their work separately.
+        if (summary.holdSetCount > 0) {
+            sb.append(" · hold time ")
+                .append(RestTimerHelper.formatHoldTotal(summary.totalHoldSeconds))
+                .append(" over ").append(summary.holdSetCount).append(" holds")
+        }
+        sb.append(" · PRs this session: ").append(summary.prCount).append("\n")
 
         // Per-exercise trend rows (current vs prior same-intent session), keyed for lookup.
         val trendsById = WorkoutComparisonHelper
@@ -217,14 +226,7 @@ object AiExportHelper {
             if (isLatest) {
                 trendsById[exerciseId]?.let { t ->
                     sb.append(trendLine(t)).append("\n")
-                    val suggestion = ProgressionHelper.getIntentSuggestion(
-                        exerciseId, intent, trainingData, settings
-                    )
-                    if (suggestion.displayText.isNotBlank()) {
-                        sb.append("Next session: ").append(suggestion.displayText)
-                        suggestion.badge?.let { sb.append(" [").append(it).append("]") }
-                        sb.append("\n")
-                    }
+                    sb.append(nextSessionLine(exerciseId, intent, t, libItem, trainingData, settings))
                 }
             }
         }
@@ -235,8 +237,8 @@ object AiExportHelper {
             sb.append("\nPRs set this session:\n")
             prs.forEach { pr ->
                 sb.append("- ").append(pr.exerciseName).append(": ")
-                    .append(prTypeLabel(pr.prType)).append(" ").append(fmt(pr.value))
-                pr.previousValue?.let { sb.append(" (prev ").append(fmt(it)).append(")") }
+                    .append(prTypeLabel(pr.prType)).append(" ").append(prValue(pr))
+                pr.previousValue?.let { sb.append(" (prev ").append(prValue(pr, it)).append(")") }
                 sb.append("\n")
             }
         }
@@ -256,13 +258,14 @@ object AiExportHelper {
             .sortedByDescending { it.lastPrDate }
         if (summaries.isNotEmpty()) {
             sb.append("\n### All-time bests (most recently improved first)\n")
-            sb.append("| exercise | best weight | best est.1RM | best volume | last PR |\n")
-            sb.append("|---|---:|---:|---:|---|\n")
+            sb.append("| exercise | best weight | best est.1RM | best volume | longest hold | last PR |\n")
+            sb.append("|---|---:|---:|---:|---:|---|\n")
             summaries.take(MAX_ALL_TIME_ROWS).forEach { s ->
                 sb.append("| ").append(s.exerciseName)
                     .append(" | ").append(s.bestWeight?.let { fmt(it) } ?: "—")
                     .append(" | ").append(s.best1RM?.let { fmt(it) } ?: "—")
                     .append(" | ").append(s.bestVolume?.let { fmtVol(it) } ?: "—")
+                    .append(" | ").append(s.bestHoldSeconds?.let { RestTimerHelper.formatDuration(it) } ?: "—")
                     .append(" | ").append(if (s.lastPrDate > 0L) dateMs.format(Date(s.lastPrDate)) else "—")
                     .append(" |\n")
             }
@@ -278,8 +281,10 @@ object AiExportHelper {
             sb.append("\n### Recent PRs (last 30 days)\n")
             recentPrs.forEach { pr ->
                 sb.append("- ").append(pr.date).append(" — ").append(pr.exerciseName)
-                    .append(": ").append(prTypeLabel(pr.prType)).append(" ").append(fmt(pr.value))
-                pr.previousValue?.let { sb.append(" (prev ").append(fmt(it)).append(")") }
+                    .append(": ").append(prTypeLabel(pr.prType)).append(" ").append(prValue(pr))
+                pr.previousValue?.let {
+                    sb.append(" (prev ").append(prValue(pr, it)).append(")")
+                }
                 sb.append("\n")
             }
         }
@@ -346,16 +351,7 @@ object AiExportHelper {
         return parts.joinToString(" · ")
     }
 
-    private fun loadCell(e: ExerciseEntry): String {
-        if (!e.isBodyweightEntry()) return fmt(e.kg)
-        val base = fmt(e.bodyweightKg ?: 0f)
-        val added = e.addedKg ?: 0f
-        return when {
-            added > 0f -> "BW$base+${fmt(added)}=${fmt(e.kg)}"
-            added < 0f -> "BW$base-${fmt(-added)}=${fmt(e.kg)}"
-            else -> "BW$base=${fmt(e.kg)}"
-        }
-    }
+    private fun loadCell(e: ExerciseEntry): String = SetFormatter.loadCellPlain(e)
 
     private fun noteCell(note: String?): String {
         val n = note?.trim().orEmpty()
@@ -383,7 +379,64 @@ object AiExportHelper {
         return if (parts.isEmpty()) "no comparable metrics" else parts.joinToString(", ")
     }
 
+    /**
+     * "Next session" guidance.
+     *
+     * [ProgressionHelper] is rep-and-absolute-kg based: for a bodyweight exercise its suggested
+     * weight is total load (body weight + extra), and for a timed hold it has no meaningful input
+     * at all (reps are 0). Emitting its raw output for those would feed a model advice like
+     * "increase to 87.5 kg" on a pull-up, so both cases are handled explicitly here.
+     */
+    private fun nextSessionLine(
+        exerciseId: Int,
+        intent: SetIntent,
+        t: com.liftpath.models.ExerciseTrendData,
+        libItem: ExerciseLibraryItem?,
+        trainingData: TrainingData,
+        settings: ProgressionHelper.ProgressionSettings
+    ): String {
+        if (t.isTimedExercise || libItem?.isTimeBased == true) {
+            val best = t.currentBestHoldSeconds ?: return ""
+            val target = best + HOLD_PROGRESSION_STEP_SECONDS
+            return "Next session: hold ${RestTimerHelper.formatDuration(target)} " +
+                "(+${HOLD_PROGRESSION_STEP_SECONDS}s on ${RestTimerHelper.formatDuration(best)})\n"
+        }
+
+        val suggestion = ProgressionHelper.getIntentSuggestion(
+            exerciseId, intent, trainingData, settings
+        )
+        if (suggestion.displayText.isBlank()) return ""
+        val sb = StringBuilder("Next session: ").append(suggestion.displayText)
+        // Make the units unambiguous: for a bodyweight lift the figure is total load, not plate weight.
+        if (libItem?.isBodyweight == true) sb.append(" (total load = body weight + added)")
+        suggestion.badge?.let { sb.append(" [").append(it).append("]") }
+        return sb.append("\n").toString()
+    }
+
     private fun trendLine(t: com.liftpath.models.ExerciseTrendData): String {
+        // A timed exercise has no rep-based volume or 1RM; report hold time instead.
+        if (t.isTimedExercise) {
+            val sb = StringBuilder("Trend vs last ").append(t.intent.displayName)
+                .append(" session (").append(t.intentSessionCount).append(" prior): ")
+            val prev = t.previousBestHoldSeconds
+            val cur = t.currentBestHoldSeconds ?: 0
+            if (prev == null) {
+                sb.append("building baseline (no prior same-intent session).")
+            } else {
+                sb.append("best hold ").append(RestTimerHelper.formatDuration(prev))
+                    .append("→").append(RestTimerHelper.formatDuration(cur))
+                    .append(pctText(prev.toFloat(), cur.toFloat()))
+                    .append("; total ")
+                    .append(RestTimerHelper.formatHoldTotal(t.currentTotalHoldSeconds))
+                t.currentLoadSeconds?.let {
+                    sb.append("; load-seconds ").append(fmtVol(it)).append(" kg·s")
+                }
+                sb.append(".")
+            }
+            if (t.hasNewAllTimePR) sb.append(" NEW ALL-TIME PR.")
+            return sb.toString()
+        }
+
         val sb = StringBuilder("Trend vs last ").append(t.intent.displayName)
             .append(" session (").append(t.intentSessionCount).append(" prior): ")
         if (t.previousVolume == null && t.previousEstimated1RM == null) {
@@ -410,6 +463,19 @@ object AiExportHelper {
         val sign = if (t.percentageChange >= 0) "+" else ""
         return "$dir, $sign${String.format(Locale.US, "%.1f", t.percentageChange)}% over " +
             "${t.sessionCount} sessions (confidence ${String.format(Locale.US, "%.0f", t.confidence * 100)}%)"
+    }
+
+    /**
+     * A PR's value with its unit. Hold PRs carry seconds, not kilograms, so they must not be
+     * formatted with the shared numeric formatter.
+     */
+    private fun prValue(
+        pr: ProgressAnalysisHelper.PRRecord,
+        value: Float = pr.value
+    ): String = if (pr.prType == ProgressAnalysisHelper.PRType.TIME_HOLD) {
+        RestTimerHelper.formatDuration(value.toInt())
+    } else {
+        fmt(value)
     }
 
     private fun prTypeLabel(type: ProgressAnalysisHelper.PRType): String = when (type) {

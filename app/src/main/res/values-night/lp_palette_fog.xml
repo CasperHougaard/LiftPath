@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  PALETTE: Fog & Rose — DARK
+
+  Neutral cool near-black. Rose lifts from #B0567C to #E58BAE to stay legible.
+-->
+<resources>
+
+    <color name="fog_canvas">#141215</color>
+    <color name="fog_canvas_sunken">#0D0C0E</color>
+    <color name="fog_surface">#1E1B1E</color>
+    <color name="fog_surface_alt">#262227</color>
+
+    <color name="fog_hairline">#322D31</color>
+    <color name="fog_hairline_strong">#464044</color>
+
+    <color name="fog_ink">#F5F2F3</color>
+    <color name="fog_ink_secondary">#A49EA1</color>
+    <color name="fog_ink_tertiary">#736D70</color>
+    <color name="fog_ink_inverse">#141215</color>
+    <color name="fog_ink_inverse_secondary">#565053</color>
+
+    <color name="fog_accent">#E58BAE</color>
+    <color name="fog_accent_pressed">#C96F92</color>
+    <color name="fog_accent_wash">#2E1D24</color>
+
+    <color name="fog_positive">#7FB08F</color>
+    <color name="fog_negative">#D98374</color>
+    <color name="fog_neutral">#8D878B</color>
+
+    <color name="fog_intent_strength">#D98374</color>
+    <color name="fog_intent_build">#E58BAE</color>
+    <color name="fog_intent_flush">#7FB08F</color>
+    <color name="fog_intent_warmup">#8D878B</color>
+
+    <color name="fog_chart_volume">#7FB08F</color>
+    <color name="fog_chart_rpe">#E58BAE</color>
+    <color name="fog_chart_time">#8AAAC4</color>
+    <color name="fog_chart_fatigue">#D98374</color>
+    <color name="fog_chart_grid">#272227</color>
+
+    <color name="fog_ripple">#1AF5F2F3</color>
+    <color name="fog_ripple_inverse">#22141215</color>
+
+</resources>

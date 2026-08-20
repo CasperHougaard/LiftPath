@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Chip fill. Selected chips go INK rather than accent — same restraint rule as the
+  buttons, so a row of filter chips never turns into a row of coloured blocks.
+-->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:color="?attr/lpInk"
+        android:state_checked="true" />
+    <item
+        android:alpha="0.5"
+        android:color="?attr/lpSurface"
+        android:state_enabled="false" />
+    <item android:color="?attr/lpSurface" />
+</selector>

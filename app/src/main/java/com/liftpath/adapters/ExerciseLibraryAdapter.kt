@@ -5,8 +5,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
-import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.card.MaterialCardView
 import com.liftpath.R
 import com.liftpath.models.ExerciseFamily
 import com.liftpath.models.ExerciseLibraryItem
@@ -22,7 +22,8 @@ class ExerciseLibraryAdapter(
         val exerciseName: TextView = view.findViewById(R.id.text_exercise_name)
         val exerciseMeta: TextView = view.findViewById(R.id.text_exercise_meta)
         val favoriteStar: ImageView = view.findViewById(R.id.image_favorite_star)
-        val editButton: CardView = view.findViewById(R.id.button_edit_exercise)
+        val editButton: MaterialCardView = view.findViewById(R.id.button_edit_exercise)
+        val divider: View = view.findViewById(R.id.divider_exercise_row)
     }
 
     private val familyNameMap: Map<String, String> get() = families.associate { it.id to it.name }
@@ -50,6 +51,10 @@ class ExerciseLibraryAdapter(
         }
 
         holder.favoriteStar.visibility = if (exercise.isFavorite) View.VISIBLE else View.GONE
+
+        // The row draws its own bottom hairline, so the last one has to hide it or the
+        // list would show a divider directly against the card's own bottom edge.
+        holder.divider.visibility = if (position == exercises.size - 1) View.GONE else View.VISIBLE
 
         holder.editButton.setOnClickListener {
             onEditClicked(exercise)

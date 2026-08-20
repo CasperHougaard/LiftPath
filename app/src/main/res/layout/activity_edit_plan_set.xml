@@ -1,22 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Create/edit a plan rotation. AIRY — authored occasionally, not mid-set. -->
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/fitness_background"
+    android:background="?attr/lpCanvas"
     android:fitsSystemWindows="true">
 
     <ImageView
         android:id="@+id/image_bg_animation"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:alpha="1.0"
+        android:contentDescription="@null"
         android:scaleType="centerCrop"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/avd_background_flow" />
+        app:srcCompat="@drawable/lp_bg_ambient_flow"
+        app:tint="?attr/lpAccent" />
 
     <androidx.core.widget.NestedScrollView
         android:id="@+id/scroll_view_content"
@@ -34,161 +36,145 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="24dp">
+            android:padding="@dimen/lp_gutter">
 
             <!-- Header -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/lp_space_5"
                 android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:layout_marginBottom="24dp">
+                android:orientation="horizontal">
 
-                <androidx.cardview.widget.CardView
+                <com.google.android.material.card.MaterialCardView
                     android:id="@+id/button_back"
+                    style="@style/Widget.LP.Card.Control"
                     android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:foreground="?attr/selectableItemBackground"
-                    app:cardBackgroundColor="@color/fitness_card_background"
-                    app:cardCornerRadius="24dp"
-                    app:cardElevation="0dp">
+                    android:layout_height="48dp">
 
                     <ImageView
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
-                        android:padding="12dp"
+                        android:contentDescription="@null"
+                        android:padding="@dimen/lp_space_3"
                         android:src="@drawable/ic_arrow_back_24"
-                        app:tint="@color/fitness_text_primary" />
-                </androidx.cardview.widget.CardView>
+                        app:tint="?attr/lpInk" />
+                </com.google.android.material.card.MaterialCardView>
 
                 <TextView
                     android:id="@+id/text_header_title"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="16dp"
+                    android:layout_marginStart="@dimen/lp_space_4"
                     android:layout_weight="1"
-                    android:text="Create Rotation"
-                    android:textColor="@color/fitness_text_primary"
-                    android:textSize="22sp"
-                    android:textStyle="bold" />
+                    android:text="@string/title_create_rotation"
+                    android:textAppearance="@style/TextAppearance.LP.Title" />
             </LinearLayout>
 
-            <!-- Rotation name -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Rotation Name"
-                android:textColor="@color/fitness_text_secondary"
-                android:textSize="13sp"
-                android:layout_marginBottom="6dp" />
+                android:layout_marginBottom="@dimen/lp_space_2"
+                android:text="@string/label_rotation_name"
+                android:textAppearance="@style/TextAppearance.LP.Caption" />
 
-            <EditText
-                android:id="@+id/edit_text_plan_set_name"
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.LP.TextInputLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:backgroundTint="@color/fitness_primary"
-                android:hint="e.g. Push / Pull / Legs"
-                android:inputType="textCapSentences"
-                android:textColor="@color/fitness_text_primary"
-                android:textColorHint="@color/fitness_text_secondary"
-                android:textSize="16sp"
-                android:layout_marginBottom="20dp" />
+                android:layout_marginBottom="@dimen/lp_space_4"
+                android:hint="@string/hint_rotation_name_example">
 
-            <!-- Notes -->
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/edit_text_plan_set_name"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textCapSentences" />
+            </com.google.android.material.textfield.TextInputLayout>
+
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Notes (optional)"
-                android:textColor="@color/fitness_text_secondary"
-                android:textSize="13sp"
-                android:layout_marginBottom="6dp" />
+                android:layout_marginBottom="@dimen/lp_space_2"
+                android:text="@string/label_notes_optional"
+                android:textAppearance="@style/TextAppearance.LP.Caption" />
 
-            <EditText
-                android:id="@+id/edit_text_notes"
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.LP.TextInputLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:backgroundTint="@color/fitness_primary"
-                android:hint="e.g. 4-day upper/lower split"
-                android:inputType="textMultiLine"
-                android:minLines="2"
-                android:textColor="@color/fitness_text_primary"
-                android:textColorHint="@color/fitness_text_secondary"
-                android:textSize="14sp"
-                android:layout_marginBottom="24dp" />
+                android:layout_marginBottom="@dimen/lp_space_5"
+                android:hint="@string/hint_rotation_notes_example">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/edit_text_notes"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="top"
+                    android:inputType="textMultiLine"
+                    android:minLines="2" />
+            </com.google.android.material.textfield.TextInputLayout>
 
             <!-- Plans section -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/lp_card_gap"
                 android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:layout_marginBottom="12dp">
+                android:orientation="horizontal">
 
                 <TextView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Plans in Rotation"
-                    android:textColor="@color/fitness_text_primary"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
+                    android:text="@string/label_plans_in_rotation"
+                    android:textAppearance="@style/TextAppearance.LP.Heading" />
 
                 <TextView
                     android:id="@+id/text_plan_count_label"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textColor="@color/fitness_text_secondary"
-                    android:textSize="13sp" />
+                    android:textAppearance="@style/TextAppearance.LP.Metric.S" />
             </LinearLayout>
 
-            <!-- Empty hint -->
             <TextView
                 android:id="@+id/text_empty_plans"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center"
-                android:paddingVertical="16dp"
-                android:text="No plans added yet. Tap Add Plan."
-                android:textColor="@color/fitness_text_secondary"
-                android:textSize="14sp"
+                android:paddingVertical="@dimen/lp_space_5"
+                android:text="@string/empty_state_no_rotation_plans"
+                android:textAppearance="@style/TextAppearance.LP.Body"
                 android:visibility="gone" />
 
-            <!-- Plan order list -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/recycler_view_plan_order"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:nestedScrollingEnabled="false" />
 
-            <!-- Add plan button -->
-            <TextView
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/button_add_plan"
+                style="@style/Widget.LP.Button.Outlined"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:background="@drawable/fitness_card_background"
-                android:gravity="center"
-                android:paddingVertical="14dp"
-                android:text="+ Add Plan"
-                android:textColor="@color/fitness_primary"
-                android:textSize="15sp"
-                android:textStyle="bold" />
+                android:layout_marginTop="@dimen/lp_card_gap_dense"
+                android:text="@string/btn_add_plan"
+                app:icon="@drawable/ic_plus"
+                app:iconGravity="textStart" />
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
-    <!-- Save button -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/button_save_plan_set"
-        android:layout_width="0dp"
+        style="@style/Widget.LP.Button"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="24dp"
-        android:text="Save Rotation"
-        android:textAllCaps="false"
-        android:textSize="16sp"
-        app:backgroundTint="@color/fitness_primary"
-        app:cornerRadius="12dp"
+        android:layout_marginStart="@dimen/lp_gutter"
+        android:layout_marginEnd="@dimen/lp_gutter"
+        android:layout_marginBottom="@dimen/lp_gutter"
+        android:minHeight="60dp"
+        android:text="@string/btn_save_rotation"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />

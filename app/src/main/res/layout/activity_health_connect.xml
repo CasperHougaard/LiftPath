@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/fitness_background"
+    android:background="?attr/lpCanvas"
     android:fitsSystemWindows="true"
     tools:context=".activities.HealthConnectActivity">
 
@@ -18,7 +18,8 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/avd_background_flow" />
+        app:srcCompat="@drawable/lp_bg_ambient_flow"
+        app:tint="?attr/lpAccent" />
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
@@ -33,7 +34,7 @@
             android:clipChildren="false"
             android:clipToPadding="false"
             android:orientation="vertical"
-            android:padding="24dp">
+            android:padding="@dimen/lp_space_6">
 
             <!-- HEADER -->
             <LinearLayout
@@ -43,130 +44,118 @@
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
-                <androidx.cardview.widget.CardView
+                <com.google.android.material.card.MaterialCardView
                     android:id="@+id/button_back"
+                    style="@style/Widget.LP.Card.Control"
                     android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:foreground="?attr/selectableItemBackground"
-                    app:cardBackgroundColor="@color/fitness_card_background"
-                    app:cardCornerRadius="24dp"
-                    app:cardElevation="0dp">
+                    android:layout_height="48dp">
 
                     <ImageButton
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:background="@android:color/transparent"
-                        android:contentDescription="Back"
-                        android:padding="12dp"
+                        android:clickable="false"
+                        android:contentDescription="@string/progress_back_content_description"
+                        android:focusable="false"
+                        android:padding="@dimen/lp_space_3"
                         android:src="@drawable/ic_arrow_back_24"
-                        app:tint="@color/fitness_text_primary" />
-                </androidx.cardview.widget.CardView>
+                        app:tint="?attr/lpInk" />
+                </com.google.android.material.card.MaterialCardView>
 
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="16dp"
+                    android:layout_marginStart="@dimen/lp_space_4"
                     android:layout_weight="1"
                     android:orientation="vertical">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Health Connect"
-                        android:textColor="@color/fitness_text_primary"
-                        android:textSize="26sp"
-                        android:textStyle="bold" />
+                        android:text="@string/health_connect_title"
+                        android:textAppearance="@style/TextAppearance.LP.Title" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="Sync activities from other fitness apps"
-                        android:textColor="@color/fitness_text_secondary"
-                        android:textSize="14sp" />
+                        android:layout_marginTop="@dimen/lp_space_1"
+                        android:text="@string/health_connect_subtitle"
+                        android:textAppearance="@style/TextAppearance.LP.Body" />
                 </LinearLayout>
             </LinearLayout>
 
             <!-- STATUS CARD -->
-            <androidx.cardview.widget.CardView
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.LP.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                app:cardBackgroundColor="@color/fitness_card_background"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="4dp">
+                android:layout_marginTop="@dimen/lp_space_6"
+                android:clickable="false"
+                android:focusable="false">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="20dp">
+                    android:padding="@dimen/lp_card_padding">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Status"
-                        android:textColor="@color/fitness_text_primary"
-                        android:textSize="18sp"
-                        android:textStyle="bold" />
+                        android:text="@string/health_connect_status_title"
+                        android:textAppearance="@style/TextAppearance.LP.Heading" />
 
                     <TextView
                         android:id="@+id/text_status"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="Checking..."
-                        android:textColor="@color/fitness_text_secondary"
-                        android:textSize="14sp" />
+                        android:layout_marginTop="@dimen/lp_space_2"
+                        android:text="@string/health_connect_checking"
+                        android:textAppearance="@style/TextAppearance.LP.Body" />
 
                     <TextView
                         android:id="@+id/text_permission_status"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text=""
-                        android:textColor="@color/fitness_text_secondary"
-                        android:textSize="12sp" />
+                        android:layout_marginTop="@dimen/lp_space_2"
+                        android:textAppearance="@style/TextAppearance.LP.Caption" />
 
-                    <androidx.appcompat.widget.AppCompatButton
+                    <com.google.android.material.button.MaterialButton
                         android:id="@+id/button_request_permissions"
+                        style="@style/Widget.LP.Button.Outlined"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:text="Request Permissions"
+                        android:layout_marginTop="@dimen/lp_space_3"
+                        android:text="@string/health_connect_request_permissions"
                         android:visibility="gone" />
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
 
             <!-- SETTINGS CARD -->
-            <androidx.cardview.widget.CardView
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.LP.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                app:cardBackgroundColor="@color/fitness_card_background"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="4dp">
+                android:layout_marginTop="@dimen/lp_space_4"
+                android:clickable="false"
+                android:focusable="false">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="20dp">
+                    android:padding="@dimen/lp_card_padding">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Settings"
-                        android:textColor="@color/fitness_text_primary"
-                        android:textSize="18sp"
-                        android:textStyle="bold" />
+                        android:text="@string/health_connect_settings_title"
+                        android:textAppearance="@style/TextAppearance.LP.Heading" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
+                        android:layout_marginTop="@dimen/lp_space_4"
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
@@ -174,131 +163,119 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Keep activities for (days)"
-                            android:textColor="@color/fitness_text_primary"
-                            android:textSize="14sp" />
+                            android:text="@string/health_connect_retention_label"
+                            android:textAppearance="@style/TextAppearance.LP.Label" />
 
                         <EditText
                             android:id="@+id/edit_retention_days"
+                            style="@style/Widget.LP.EditText.Boxed"
                             android:layout_width="80dp"
                             android:layout_height="wrap_content"
                             android:inputType="number"
-                            android:text="14"
-                            android:textColor="@color/fitness_text_primary"
-                            android:textSize="14sp"
-                            android:backgroundTint="@color/fitness_primary" />
+                            android:text="@string/health_connect_retention_default" />
                     </LinearLayout>
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="Activities older than this will be removed on sync"
-                        android:textColor="@color/fitness_text_secondary"
-                        android:textSize="11sp" />
+                        android:layout_marginTop="@dimen/lp_space_2"
+                        android:text="@string/health_connect_retention_hint"
+                        android:textAppearance="@style/TextAppearance.LP.Caption" />
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
 
             <!-- SYNC CARD -->
-            <androidx.cardview.widget.CardView
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.LP.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                app:cardBackgroundColor="@color/fitness_card_background"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="4dp">
+                android:layout_marginTop="@dimen/lp_space_4"
+                android:clickable="false"
+                android:focusable="false">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="20dp">
+                    android:padding="@dimen/lp_card_padding">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Sync Activities"
-                        android:textColor="@color/fitness_text_primary"
-                        android:textSize="18sp"
-                        android:textStyle="bold" />
+                        android:text="@string/health_connect_sync_title"
+                        android:textAppearance="@style/TextAppearance.LP.Heading" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="Fetch activities from the last 7 days"
-                        android:textColor="@color/fitness_text_secondary"
-                        android:textSize="12sp" />
+                        android:layout_marginTop="@dimen/lp_space_2"
+                        android:text="@string/health_connect_sync_description"
+                        android:textAppearance="@style/TextAppearance.LP.Caption" />
 
-                    <androidx.appcompat.widget.AppCompatButton
+                    <com.google.android.material.button.MaterialButton
                         android:id="@+id/button_sync"
+                        style="@style/Widget.LP.Button"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
-                        android:text="Sync Now"
+                        android:layout_marginTop="@dimen/lp_space_4"
+                        android:text="@string/health_connect_sync_now"
                         android:enabled="false" />
 
                     <TextView
                         android:id="@+id/text_last_sync"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:text=""
-                        android:textColor="@color/fitness_text_secondary"
-                        android:textSize="11sp" />
+                        android:layout_marginTop="@dimen/lp_space_3"
+                        android:textAppearance="@style/TextAppearance.LP.Caption" />
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
 
             <!-- ACTIVITIES LIST CARD -->
-            <androidx.cardview.widget.CardView
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.LP.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                app:cardBackgroundColor="@color/fitness_card_background"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="4dp">
+                android:layout_marginTop="@dimen/lp_space_4"
+                android:clickable="false"
+                android:focusable="false">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="20dp">
+                    android:padding="@dimen/lp_card_padding">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Synced Activities"
-                        android:textColor="@color/fitness_text_primary"
-                        android:textSize="18sp"
-                        android:textStyle="bold" />
+                        android:text="@string/health_connect_activities_title"
+                        android:textAppearance="@style/TextAppearance.LP.Heading" />
 
                     <TextView
                         android:id="@+id/text_activities_count"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="No activities synced"
-                        android:textColor="@color/fitness_text_secondary"
-                        android:textSize="12sp" />
+                        android:layout_marginTop="@dimen/lp_space_2"
+                        android:text="@string/health_connect_no_activities_synced"
+                        android:textAppearance="@style/TextAppearance.LP.Caption" />
 
                     <LinearLayout
                         android:id="@+id/layout_activities_list"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
+                        android:layout_marginTop="@dimen/lp_space_4"
                         android:orientation="vertical" />
 
                     <TextView
                         android:id="@+id/text_no_activities"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
-                        android:text="No activities found. Try syncing to fetch activities from Health Connect."
-                        android:textColor="@color/fitness_text_secondary"
-                        android:textSize="12sp"
+                        android:layout_marginTop="@dimen/lp_space_4"
+                        android:text="@string/health_connect_no_activities_found"
+                        android:textAppearance="@style/TextAppearance.LP.Caption"
                         android:visibility="gone" />
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>

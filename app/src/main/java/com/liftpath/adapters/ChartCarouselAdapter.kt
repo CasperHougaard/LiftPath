@@ -21,6 +21,8 @@ import com.liftpath.models.SetIntent
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import com.liftpath.helpers.lpColor
+import androidx.annotation.AttrRes
 
 enum class ChartType {
     VOLUME,
@@ -65,26 +67,18 @@ class ChartCarouselAdapter(
         private val binding: ItemChartPageBinding
     ) : RecyclerView.ViewHolder(binding.root) {
 
-        private fun getThemeAwareColor(colorResId: Int): Int {
-            return ContextCompat.getColor(binding.root.context, colorResId)
+        /** Resolves an `lp*` design-token attribute against the active palette. */
+        private fun getThemeAwareColor(@AttrRes attrId: Int): Int {
+            return binding.root.context.lpColor(attrId)
         }
 
-        private fun getThemeAwareGridColor(): Int {
-            val context = binding.root.context
-            return try {
-                ContextCompat.getColor(context, R.color.fitness_chart_grid)
-            } catch (e: Exception) {
-                // Fallback if color resource doesn't exist
-                val isDarkMode = (context.resources.configuration.uiMode and 
-                    android.content.res.Configuration.UI_MODE_NIGHT_MASK) == 
-                    android.content.res.Configuration.UI_MODE_NIGHT_YES
-                if (isDarkMode) {
-                    Color.parseColor("#374151") // Gray-700 for dark mode
-                } else {
-                    Color.parseColor("#E0E0E0") // Gray-200 for light mode
-                }
-            }
-        }
+        /**
+         * Grid lines. The old manual dark-mode branch is gone: lpChartGrid has a
+         * values-night variant per palette, so day/night is resolved by the resource
+         * system rather than by inspecting uiMode here.
+         */
+        private fun getThemeAwareGridColor(): Int =
+            binding.root.context.lpColor(R.attr.lpChartGrid)
 
         fun bind(chartData: ChartData) {
             binding.textChartTitle.text = chartData.title
@@ -142,37 +136,32 @@ class ChartCarouselAdapter(
             // Color code bars based on dominant intent for fatigue chart
             if (chartData.type == ChartType.FATIGUE && chartData.dominantIntents != null) {
                 val context = binding.root.context
+                // Intent colours come from the token set so the bars match the intent
+                // badges elsewhere in the app and follow the selected palette. The old
+                // hardcoded Tailwind hexes did neither.
                 val colors = chartData.dominantIntents.map { intent ->
-                    when (intent) {
-                        SetIntent.STRENGTH -> {
-                            // Red for strength
-                            Color.parseColor("#DC2626") // Red-600
+                    context.lpColor(
+                        when (intent) {
+                            SetIntent.STRENGTH -> R.attr.lpIntentStrength
+                            SetIntent.BUILD    -> R.attr.lpIntentBuild
+                            SetIntent.FLUSH    -> R.attr.lpIntentFlush
+                            else               -> R.attr.lpIntentWarmup
                         }
-                        SetIntent.BUILD -> {
-                            // Amber for build
-                            Color.parseColor("#F59E0B") // Amber-500
-                        }
-                        SetIntent.FLUSH -> {
-                            // Green for flush
-                            Color.parseColor("#10B981") // Emerald-500
-                        }
-                        else -> {
-                            // Default color
-                            ContextCompat.getColor(context, R.color.fitness_text_secondary)
-                        }
-                    }
+                    )
                 }
                 dataSet.colors = colors
             } else if (chartData.type == ChartType.FATIGUE && chartData.workoutTypes != null) {
                 // Legacy fallback: use workoutType if dominantIntents not available
                 val context = binding.root.context
                 val colors = chartData.workoutTypes.map { workoutType ->
-                    when (workoutType?.lowercase(Locale.getDefault())) {
-                        "heavy" -> Color.parseColor("#DC2626") // Red-600 (Strength)
-                        "light" -> Color.parseColor("#F59E0B") // Amber-500 (Build)
-                        "custom" -> Color.parseColor("#10B981") // Emerald-500 (Flush)
-                        else -> ContextCompat.getColor(context, R.color.fitness_text_secondary)
-                    }
+                    context.lpColor(
+                        when (workoutType?.lowercase(Locale.getDefault())) {
+                            "heavy"  -> R.attr.lpIntentStrength
+                            "light"  -> R.attr.lpIntentBuild
+                            "custom" -> R.attr.lpIntentFlush
+                            else     -> R.attr.lpIntentWarmup
+                        }
+                    )
                 }
                 dataSet.colors = colors
             } else {
@@ -194,7 +183,7 @@ class ChartCarouselAdapter(
             val xAxis = chart.xAxis
             xAxis.position = XAxis.XAxisPosition.BOTTOM
             xAxis.textSize = 10f
-            xAxis.textColor = getThemeAwareColor(R.color.fitness_text_secondary)
+            xAxis.textColor = getThemeAwareColor(R.attr.lpInkSecondary)
             xAxis.setLabelCount(minOf(chartData.entries.size, 6), true)
             
             if (chartData.type == ChartType.FATIGUE) {
@@ -230,7 +219,7 @@ class ChartCarouselAdapter(
             xAxis.gridLineWidth = 1f
             xAxis.enableGridDashedLine(0f, 0f, 0f)
             xAxis.setDrawAxisLine(true)
-            xAxis.axisLineColor = getThemeAwareColor(R.color.fitness_text_secondary)
+            xAxis.axisLineColor = getThemeAwareColor(R.attr.lpInkSecondary)
             xAxis.axisLineWidth = 1f
 
             // Configure Y-axis
@@ -238,17 +227,17 @@ class ChartCarouselAdapter(
             leftAxis.axisMinimum = 0f
             leftAxis.axisMaximum = niceMaximum
             leftAxis.textSize = 10f
-            leftAxis.textColor = getThemeAwareColor(R.color.fitness_text_secondary)
+            leftAxis.textColor = getThemeAwareColor(R.attr.lpInkSecondary)
             leftAxis.setDrawGridLines(true)
             leftAxis.gridColor = getThemeAwareGridColor()
             leftAxis.gridLineWidth = 1f
             leftAxis.enableGridDashedLine(0f, 0f, 0f)
             leftAxis.setDrawZeroLine(true)
-            leftAxis.zeroLineColor = getThemeAwareColor(R.color.fitness_text_secondary)
+            leftAxis.zeroLineColor = getThemeAwareColor(R.attr.lpInkSecondary)
             leftAxis.zeroLineWidth = 1f
             leftAxis.setLabelCount(5, true)
             leftAxis.setDrawAxisLine(true)
-            leftAxis.axisLineColor = getThemeAwareColor(R.color.fitness_text_secondary)
+            leftAxis.axisLineColor = getThemeAwareColor(R.attr.lpInkSecondary)
             leftAxis.axisLineWidth = 1f
             leftAxis.spaceTop = 5f
             leftAxis.spaceBottom = 0f
@@ -296,7 +285,7 @@ class ChartCarouselAdapter(
             val xAxis = chart.xAxis
             xAxis.position = XAxis.XAxisPosition.BOTTOM
             xAxis.textSize = 10f
-            xAxis.textColor = getThemeAwareColor(R.color.fitness_text_secondary)
+            xAxis.textColor = getThemeAwareColor(R.attr.lpInkSecondary)
             // For fatigue chart with 28 days, show more labels
             val labelCount = if (chartData.type == ChartType.FATIGUE) {
                 minOf(chartData.entries.size, 14) // Show up to 14 labels for 28 days
@@ -326,7 +315,7 @@ class ChartCarouselAdapter(
             xAxis.gridLineWidth = 1f
             xAxis.enableGridDashedLine(0f, 0f, 0f)
             xAxis.setDrawAxisLine(true)
-            xAxis.axisLineColor = getThemeAwareColor(R.color.fitness_text_secondary)
+            xAxis.axisLineColor = getThemeAwareColor(R.attr.lpInkSecondary)
             xAxis.axisLineWidth = 1f
 
             // Configure Y-axis
@@ -334,17 +323,17 @@ class ChartCarouselAdapter(
             leftAxis.axisMinimum = 0f
             leftAxis.axisMaximum = niceMaximum
             leftAxis.textSize = 10f
-            leftAxis.textColor = getThemeAwareColor(R.color.fitness_text_secondary)
+            leftAxis.textColor = getThemeAwareColor(R.attr.lpInkSecondary)
             leftAxis.setDrawGridLines(true)
             leftAxis.gridColor = getThemeAwareGridColor()
             leftAxis.gridLineWidth = 1f
             leftAxis.enableGridDashedLine(0f, 0f, 0f)
             leftAxis.setDrawZeroLine(true)
-            leftAxis.zeroLineColor = getThemeAwareColor(R.color.fitness_text_secondary)
+            leftAxis.zeroLineColor = getThemeAwareColor(R.attr.lpInkSecondary)
             leftAxis.zeroLineWidth = 1f
             leftAxis.setLabelCount(5, true)
             leftAxis.setDrawAxisLine(true)
-            leftAxis.axisLineColor = getThemeAwareColor(R.color.fitness_text_secondary)
+            leftAxis.axisLineColor = getThemeAwareColor(R.attr.lpInkSecondary)
             leftAxis.axisLineWidth = 1f
             leftAxis.spaceTop = 5f
             leftAxis.spaceBottom = 0f

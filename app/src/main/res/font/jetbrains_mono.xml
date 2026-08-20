@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  JetBrains Mono — LiftPath's metric face (SIL Open Font License 1.1).
+  Reserved for numbers that change: weights, 1RM, timers, deltas. Monospaced
+  digits mean a ticking timer or an animated roll-up never reflows its
+  neighbours, which is the single biggest "cheap" tell in a tracking app.
+-->
+<font-family xmlns:app="http://schemas.android.com/apk/res-auto">
+    <font
+        app:font="@font/jetbrains_mono_medium"
+        app:fontStyle="normal"
+        app:fontWeight="500" />
+    <font
+        app:font="@font/jetbrains_mono_bold"
+        app:fontStyle="normal"
+        app:fontWeight="700" />
+</font-family>

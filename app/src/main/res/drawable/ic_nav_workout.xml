@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Nav icon: Workout. Part of a 4-icon set drawn to one 24dp grid and one 2dp stroke weight,
+  because the existing ic_* set mixes outline and filled styles and that mismatch is
+  unmissable when four icons sit side by side in a nav bar.
+
+  Replaces the house glyph this slot used while the tab was called "Today" — a home icon on a
+  tab labelled "Workout" reads as a fifth destination that isn't there. Drawn here rather than
+  reusing ic_dumbbell, which is a heavier weight and looks foreign beside the other three.
+
+  Geometry: two 2dp-stroked end plates at x=2.5 and x=19.5, two collars inboard of them, and a
+  2dp bar across the middle at y=11..13. Symmetric about both axes so it sits optically centred
+  in the nav item's 24dp box.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Outer end plates. -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M1.5,7.5h2v9h-2zM20.5,7.5h2v9h-2z" />
+    <!-- Inner collars. -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M4.5,5.5h2.5v13h-2.5zM17,5.5h2.5v13h-2.5z" />
+    <!-- The bar. -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M7,11h10v2h-10z" />
+</vector>

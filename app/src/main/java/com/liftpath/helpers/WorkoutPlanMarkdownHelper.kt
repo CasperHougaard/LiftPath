@@ -1,6 +1,8 @@
 package com.liftpath.helpers
 
 import android.util.Log
+import com.liftpath.models.CircuitItem
+import com.liftpath.models.CircuitTemplate
 import com.liftpath.models.ExerciseLibraryItem
 import com.liftpath.models.MovementPattern
 import com.liftpath.models.PlanExerciseSelectionType
@@ -19,6 +21,34 @@ object WorkoutPlanMarkdownHelper {
     private const val TAG = "WorkoutPlanMarkdown"
     private val PLAN_HEADING = Regex("""^## Plan:\s*(.+)""")
     private val NOTES_LINE = Regex("""^Notes:\s*(.*)""", RegexOption.IGNORE_CASE)
+    private val CIRCUIT_HEADING = Regex("""^### Circuit:\s*(.+)""")
+    private val SUGGESTED_ROUNDS_LINE = Regex("""^Suggested rounds:\s*(.*)""", RegexOption.IGNORE_CASE)
+    private val REST_SECONDS_LINE = Regex("""^Rest \(sec\):\s*(.*)""", RegexOption.IGNORE_CASE)
+    private const val CIRCUIT_ROW_PREFIX = "__circuit__:"
+
+    /** An imported exercise reference whose ID does not exist in the current library. */
+    data class UnresolvedExerciseRef(val rawId: Int, val displayName: String)
+
+    /**
+     * Result of parsing an imported plan file. [unresolved] lists every exercise ID referenced by the
+     * import that is not in the current library (deduped). The [plans] still contain those slots (with
+     * their raw IDs) so they can be remapped or dropped via [applyRemap]. [circuits] are the templates
+     * parsed from any `### Circuit:` blocks (new ones, or matched by name to an existing stored circuit).
+     * [unresolvedCircuitNames] lists `__circuit__:` rows whose name matched no known circuit.
+     */
+    data class PlanImportResult(
+        val plans: List<WorkoutPlan>,
+        val unresolved: List<UnresolvedExerciseRef>,
+        val circuits: List<CircuitTemplate> = emptyList(),
+        val unresolvedCircuitNames: List<String> = emptyList()
+    )
+
+    /** Outcome of applying a remap: the surviving plans plus the names of any plans dropped as empty. */
+    data class RemapOutcome(
+        val plans: List<WorkoutPlan>,
+        val droppedPlanNames: List<String>,
+        val circuits: List<CircuitTemplate> = emptyList()
+    )
 
     fun buildSpecMarkdown(trainingData: TrainingData): String {
         val sb = StringBuilder()
@@ -56,7 +86,41 @@ object WorkoutPlanMarkdownHelper {
         sb.append("| Time (sec) | No | Target hold duration in whole seconds for **timed/isometric** exercises (e.g. Plank `45`). Leave the Reps column blank when using this. Leave Time blank for normal rep-based exercises. |\n\n")
         sb.append("**Warmup / Cool-down:** Insert a row with `__warmup__` or `__cooldown__` in the Exercise Name column and leave all other columns blank. Always place `__warmup__` as the first row and `__cooldown__` as the last row of the plan.\n\n")
 
+        sb.append("**Circuits:** A circuit (a fixed list of exercises done back-to-back, repeated for rounds, rest only ")
+        sb.append("between rounds) is defined once in the `## Circuits` section below as a `### Circuit:` block, then ")
+        sb.append("referenced from a plan with a single row: `| __circuit__: <name> |  | <rounds> |  |  |  | <rest sec> | <notes> |  |  |`. ")
+        sb.append("Sets = the *suggested* round count — **a suggestion only, the athlete may run more or fewer rounds**; ")
+        sb.append("leave it blank to suggest none. Rest (sec) is the rest between rounds. Example:\n\n")
+        sb.append("```\n")
+        sb.append("## Plan: Leg Day\n\n")
+        sb.append("| Exercise Name | Exercise ID | Sets | Reps | Intent | RPE Target | Rest (sec) | Notes | Family ID | Time (sec) |\n")
+        sb.append("|---|---|---|---|---|---|---|---|---|---|\n")
+        sb.append("| Back Squat (Barbell) | 5 | 4 | 6-8 | STRENGTH | 8.0 | 150 |  |  |  |\n")
+        sb.append("| __circuit__: Lower Lactate |  | 3 |  |  |  | 90 |  |  |  |\n")
+        sb.append("```\n\n")
+
         sb.append("---\n\n")
+
+        // Circuits: reusable round-based blocks, referenced from plans via `__circuit__:` rows above.
+        val circuits = trainingData.circuits.orEmpty()
+        if (circuits.isNotEmpty()) {
+            sb.append("## Circuits\n\n")
+            sb.append("Each block defines one reusable circuit. **Suggested rounds is a suggestion only** — ")
+            sb.append("the runner never stops the athlete at that count, so do not phrase it as a requirement.\n\n")
+            for (circuit in circuits.sortedBy { it.name }) {
+                sb.append("### Circuit: ${circuit.name}\n")
+                sb.append("Suggested rounds: ${circuit.suggestedRounds?.toString() ?: "any"}\n")
+                sb.append("Rest (sec): ${circuit.restBetweenRoundsSeconds}\n\n")
+                sb.append("| Exercise Name | Exercise ID | Reps | Time (sec) | Load (kg) | Notes |\n")
+                sb.append("|---|---|---|---|---|---|\n")
+                for (item in circuit.items) {
+                    val exercise = trainingData.exerciseLibrary.find { it.id == item.exerciseId }
+                    sb.append("| ${exercise?.name ?: "Exercise ${item.exerciseId}"} | ${item.exerciseId} | ${item.targetReps ?: ""} | ${item.targetDurationSeconds ?: ""} | ${item.targetKg?.let { SetFormatter.trimNum(it) } ?: ""} | ${item.notes ?: ""} |\n")
+                }
+                sb.append("\n")
+            }
+            sb.append("---\n\n")
+        }
 
         // Exercise families for V3 family-slot support
         val families = trainingData.exerciseFamilies ?: DefaultExercisesHelper.DEFAULT_FAMILIES
@@ -86,13 +150,23 @@ object WorkoutPlanMarkdownHelper {
 
     fun parsePlansFromMarkdown(
         markdown: String,
-        exerciseLibrary: List<ExerciseLibraryItem>
-    ): List<WorkoutPlan> {
+        exerciseLibrary: List<ExerciseLibraryItem>,
+        existingCircuits: List<CircuitTemplate> = emptyList()
+    ): PlanImportResult {
         val exerciseById = exerciseLibrary.associateBy { it.id }
+        // Referenced IDs missing from the library, kept in first-seen order (rawId -> display name).
+        val unresolved = LinkedHashMap<Int, String>()
+        // __circuit__: rows whose name matched no known circuit, kept in first-seen order.
+        val unresolvedCircuitNames = LinkedHashSet<String>()
         // Stable family IDs from the default catalog — used to validate column 9 values
         val knownFamilyIds: Set<String> = DefaultExercisesHelper.DEFAULT_FAMILIES.map { it.id }.toSet()
         val familyById = DefaultExercisesHelper.DEFAULT_FAMILIES.associateBy { it.id }
         val lines = markdown.lines()
+
+        val parsedCircuits = parseCircuitBlocks(lines, exerciseById, unresolved)
+        // Existing circuits win a name clash, so re-importing the same spec reuses their id/rounds/rest
+        // rather than spawning a duplicate.
+        val circuitsByName = (parsedCircuits + existingCircuits).associateBy { normalizeCircuitName(it.name) }
 
         // Split the document into (planName, sectionLines) pairs
         val sections = mutableListOf<Pair<String, List<String>>>()
@@ -168,6 +242,26 @@ object WorkoutPlanMarkdownHelper {
                     slots.add(PlanExerciseSlot(id = UUID.randomUUID().toString(), slotType = PlanSlotType.COOLDOWN))
                     continue
                 }
+                if (nameLower.startsWith(CIRCUIT_ROW_PREFIX)) {
+                    val circuitName = nameCellRaw.trim().substringAfter(":").trim()
+                    val template = circuitsByName[normalizeCircuitName(circuitName)]
+                    if (template == null) {
+                        if (circuitName.isNotEmpty()) unresolvedCircuitNames.add(circuitName)
+                        Log.w(TAG, "Circuit \"$circuitName\" not found — dropping row")
+                        continue
+                    }
+                    slots.add(
+                        PlanExerciseSlot(
+                            id = UUID.randomUUID().toString(),
+                            slotType = PlanSlotType.CIRCUIT,
+                            circuitId = template.id,
+                            setsTarget = cells.getOrNull(2)?.toIntOrNull(),
+                            restTimeSeconds = cells.getOrNull(6)?.toIntOrNull(),
+                            notes = cells.getOrNull(7)?.takeIf { it.isNotEmpty() }
+                        )
+                    )
+                    continue
+                }
 
                 val exerciseIdParsed = idCellRaw.toIntOrNull()
                 val familyIdCell = cells.getOrNull(8)?.trim()?.takeIf { it.isNotEmpty() }
@@ -206,8 +300,10 @@ object WorkoutPlanMarkdownHelper {
 
                 val exerciseId = exerciseIdParsed ?: continue
                 if (!exerciseById.containsKey(exerciseId)) {
-                    Log.w(TAG, "Exercise ID $exerciseId not in library — skipping")
-                    continue
+                    // Unknown ID: keep the slot so the user can remap it, and record it as unresolved.
+                    val displayName = nameCellRaw.trim().takeIf { it.isNotEmpty() } ?: "Exercise $exerciseId"
+                    unresolved.putIfAbsent(exerciseId, displayName)
+                    Log.w(TAG, "Exercise ID $exerciseId not in library — flagged for remap")
                 }
 
                 slots.add(
@@ -246,6 +342,167 @@ object WorkoutPlanMarkdownHelper {
             )
         }
 
-        return plans
+        return PlanImportResult(
+            plans = plans,
+            unresolved = unresolved.map { (rawId, name) -> UnresolvedExerciseRef(rawId, name) },
+            circuits = parsedCircuits,
+            unresolvedCircuitNames = unresolvedCircuitNames.toList()
+        )
+    }
+
+    /** `### Circuit:` blocks live outside any `## Plan:` section, so they're scanned over the whole document. */
+    private fun parseCircuitBlocks(
+        lines: List<String>,
+        exerciseById: Map<Int, ExerciseLibraryItem>,
+        unresolved: MutableMap<Int, String>
+    ): List<CircuitTemplate> {
+        val blocks = mutableListOf<Pair<String, List<String>>>()
+        var i = 0
+        while (i < lines.size) {
+            val match = CIRCUIT_HEADING.find(lines[i])
+            if (match != null) {
+                val name = match.groupValues[1].trim()
+                val body = mutableListOf<String>()
+                i++
+                // A block ends at the next heading of any level.
+                while (i < lines.size && !lines[i].trimStart().startsWith("#")) {
+                    body.add(lines[i])
+                    i++
+                }
+                blocks.add(name to body)
+            } else {
+                i++
+            }
+        }
+
+        val today = SimpleDateFormat("yyyy/MM/dd", Locale.US).format(Date())
+        return blocks.mapNotNull { (name, body) ->
+            if (name.isEmpty()) return@mapNotNull null
+            var suggestedRounds: Int? = null
+            var restSeconds = 90
+            val items = mutableListOf<CircuitItem>()
+            var inTable = false
+            var headerSkipped = false
+            var separatorSkipped = false
+
+            for (line in body) {
+                if (!inTable) {
+                    SUGGESTED_ROUNDS_LINE.find(line.trim())?.let {
+                        suggestedRounds = it.groupValues[1].trim().toIntOrNull()
+                    }
+                    REST_SECONDS_LINE.find(line.trim())?.let {
+                        restSeconds = it.groupValues[1].trim().toIntOrNull() ?: restSeconds
+                    }
+                }
+                if (line.contains("|")) {
+                    inTable = true
+                    if (!headerSkipped) { headerSkipped = true; continue }
+                    if (!separatorSkipped) { separatorSkipped = true; continue }
+                    val cells = line.split("|").map { it.trim() }
+                    val data = cells.drop(1).dropLast(1)
+                    if (data.size < 2) continue
+                    val exerciseId = data.getOrNull(1)?.toIntOrNull() ?: continue
+                    // Circuit member exercises flow through the same remap path as plan exercises.
+                    if (!exerciseById.containsKey(exerciseId)) {
+                        val displayName = data.getOrNull(0)?.trim()?.takeIf { it.isNotEmpty() } ?: "Exercise $exerciseId"
+                        unresolved.putIfAbsent(exerciseId, displayName)
+                    }
+                    items.add(
+                        CircuitItem(
+                            exerciseId = exerciseId,
+                            targetReps = data.getOrNull(2)?.takeIf { it.isNotEmpty() },
+                            targetDurationSeconds = data.getOrNull(3)?.toIntOrNull()?.takeIf { it > 0 },
+                            targetKg = data.getOrNull(4)?.toFloatOrNull(),
+                            notes = data.getOrNull(5)?.takeIf { it.isNotEmpty() }
+                        )
+                    )
+                } else if (inTable && line.isBlank()) {
+                    inTable = false
+                    headerSkipped = false
+                    separatorSkipped = false
+                }
+            }
+
+            if (items.isEmpty()) return@mapNotNull null
+            CircuitTemplate(
+                name = name,
+                suggestedRounds = suggestedRounds,
+                restBetweenRoundsSeconds = restSeconds,
+                items = items,
+                createdDate = today
+            )
+        }
+    }
+
+    private fun normalizeCircuitName(name: String): String = name.trim().lowercase()
+
+    /**
+     * Applies a user-chosen remap to parsed plans. [mapping] keys are the unresolved raw IDs; each value is
+     * either the chosen replacement library ID, or `null` to drop that exercise. Specific-variant slots
+     * whose exerciseId is a mapping key are rewritten (or removed when the value is null); plans that end up
+     * with no real exercises are dropped. Slots with known IDs and warmup/cooldown/family/circuit slots pass
+     * through. [circuits] are remapped the same way and dropped once they have no stations left.
+     */
+    fun applyRemap(
+        plans: List<WorkoutPlan>,
+        mapping: Map<Int, Int?>,
+        circuits: List<CircuitTemplate> = emptyList()
+    ): RemapOutcome {
+        val droppedPlanNames = mutableListOf<String>()
+        val resultPlans = mutableListOf<WorkoutPlan>()
+
+        val droppedCircuitIds = mutableSetOf<String>()
+        val resultCircuits = circuits.mapNotNull { circuit ->
+            val newItems = circuit.items.mapNotNull { item ->
+                if (mapping.containsKey(item.exerciseId)) {
+                    val replacement = mapping[item.exerciseId] ?: return@mapNotNull null
+                    item.copy(exerciseId = replacement)
+                } else {
+                    item
+                }
+            }
+            if (newItems.isEmpty()) {
+                Log.w(TAG, "Circuit \"${circuit.name}\" has no exercises after remap — dropping")
+                droppedCircuitIds.add(circuit.id)
+                null
+            } else {
+                circuit.copy(items = newItems)
+            }
+        }
+
+        for (plan in plans) {
+            val newSlots = mutableListOf<PlanExerciseSlot>()
+            for (slot in plan.exerciseConfigs.orEmpty()) {
+                val slotExerciseId = slot.exerciseId
+                val isSpecific = slot.effectiveSelectionType == PlanExerciseSelectionType.SPECIFIC_VARIANT &&
+                    slot.slotType == PlanSlotType.EXERCISE && slotExerciseId != null
+                when {
+                    slot.isCircuit && slot.circuitId in droppedCircuitIds -> Unit // circuit left with no stations after remap
+                    isSpecific && mapping.containsKey(slotExerciseId) -> {
+                        val replacement = mapping[slotExerciseId]
+                        if (replacement != null) newSlots.add(slot.copy(exerciseId = replacement))
+                        // replacement == null -> user chose to skip: drop the slot.
+                    }
+                    else -> newSlots.add(slot)
+                }
+            }
+
+            // A plan is "empty" if it has no real exercise/family slots (warmup/cooldown alone don't count).
+            val hasRealExercise = newSlots.any { !it.isSpecialElement }
+            if (!hasRealExercise) {
+                droppedPlanNames.add(plan.name)
+                Log.w(TAG, "Plan \"${plan.name}\" has no exercises after remap — dropping")
+                continue
+            }
+
+            val legacyIds = newSlots.mapNotNull {
+                if (it.slotType == PlanSlotType.EXERCISE &&
+                    it.effectiveSelectionType == PlanExerciseSelectionType.SPECIFIC_VARIANT
+                ) it.exerciseId else null
+            }
+            resultPlans.add(plan.copy(exerciseIds = legacyIds.toMutableList(), exerciseConfigs = newSlots))
+        }
+
+        return RemapOutcome(resultPlans, droppedPlanNames, resultCircuits)
     }
 }

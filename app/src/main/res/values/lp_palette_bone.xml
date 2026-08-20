@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  PALETTE: Bone & Moss
+
+  Warm bone neutrals with a deep green accent. Reads recovery/longevity rather than
+  performance. The ink carries a green undertone (#1A1C18) so the accent feels native
+  to the neutrals instead of applied on top of them.
+
+  Moss IS the flush intent here, and it also serves as lpPositive — the one palette
+  where accent and "good" legitimately coincide, since a recovery-coded system wants
+  green to mean the same thing in both roles.
+-->
+<resources>
+
+    <color name="bone_canvas">#F8F7F3</color>
+    <color name="bone_canvas_sunken">#F0EFE9</color>
+    <color name="bone_surface">#FFFFFF</color>
+    <color name="bone_surface_alt">#F6F5F0</color>
+
+    <color name="bone_hairline">#E5E3DA</color>
+    <color name="bone_hairline_strong">#D3D0C4</color>
+
+    <color name="bone_ink">#1A1C18</color>
+    <color name="bone_ink_secondary">#676B62</color>
+    <color name="bone_ink_tertiary">#979B90</color>
+    <color name="bone_ink_inverse">#F8F7F3</color>
+    <color name="bone_ink_inverse_secondary">#ACAFA5</color>
+
+    <color name="bone_accent">#3F6B4F</color>
+    <color name="bone_accent_pressed">#33573F</color>
+    <color name="bone_accent_wash">#E8EFE8</color>
+
+    <color name="bone_positive">#3F6B4F</color>
+    <color name="bone_negative">#A33A2B</color>
+    <color name="bone_neutral">#8A8D82</color>
+
+    <color name="bone_intent_strength">#A33A2B</color>
+    <color name="bone_intent_build">#A6753C</color>
+    <color name="bone_intent_flush">#3F6B4F</color>
+    <color name="bone_intent_warmup">#8A8D82</color>
+
+    <color name="bone_chart_volume">#3F6B4F</color>
+    <color name="bone_chart_rpe">#A6753C</color>
+    <color name="bone_chart_time">#4A6B82</color>
+    <color name="bone_chart_fatigue">#A33A2B</color>
+    <color name="bone_chart_grid">#E9E7DE</color>
+
+    <color name="bone_ripple">#141A1C18</color>
+    <color name="bone_ripple_inverse">#22F8F7F3</color>
+
+</resources>

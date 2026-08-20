@@ -7,25 +7,25 @@
     android:viewportHeight="200">
     <path
         android:pathData="M20,182 L180,182"
-        android:strokeColor="@color/fitness_text_secondary"
+        android:strokeColor="?attr/lpInkSecondary"
         android:strokeWidth="4"
         android:strokeAlpha="0.7"
         android:strokeLineCap="round"
         android:strokeLineJoin="round" />
     <path
         android:pathData="M65,20 L135,20"
-        android:strokeColor="@color/fitness_text_secondary"
+        android:strokeColor="?attr/lpInkSecondary"
         android:strokeWidth="4"
         android:strokeAlpha="0.7"
         android:strokeLineCap="round"
         android:strokeLineJoin="round" />
     <path
         android:pathData="M94,58 L90,112 M90,112 L100,148 L88,178 M94,58 L76,42 L100,20"
-        android:strokeColor="@color/fitness_text_primary"
+        android:strokeColor="?attr/lpInk"
         android:strokeWidth="6"
         android:strokeLineCap="round"
         android:strokeLineJoin="round" />
     <path
         android:pathData="M84,35 a13,13 0 1,0 26,0 a13,13 0 1,0 -26,0"
-        android:fillColor="@color/fitness_text_primary" />
+        android:fillColor="?attr/lpInk" />
 </vector>

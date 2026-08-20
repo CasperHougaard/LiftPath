@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Progress > Muscles: per-body-region volume chart + contributing exercises. AIRY. -->
 <androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -14,129 +15,100 @@
         android:clipChildren="false"
         android:clipToPadding="false"
         android:orientation="vertical"
-        android:padding="24dp">
+        android:padding="@dimen/lp_gutter">
 
-        <!-- Muscle Group Selector -->
+        <!-- Muscle group selector -->
         <com.google.android.material.chip.ChipGroup
             android:id="@+id/chip_group_muscles"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:chipSpacing="8dp"
-            app:singleSelection="true"
-            app:selectionRequired="true">
+            app:chipSpacing="@dimen/lp_card_gap_dense"
+            app:selectionRequired="true"
+            app:singleSelection="true">
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chip_all"
-                style="@style/Widget.MaterialComponents.Chip.Choice"
+                style="@style/Widget.LP.Chip.Choice"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:checked="true"
-                android:text="@string/muscle_all"
-                app:chipBackgroundColor="@color/chip_choice_background"
-                app:chipStrokeColor="@color/fitness_primary"
-                app:chipStrokeWidth="1dp" />
+                android:text="@string/muscle_all" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chip_chest"
-                style="@style/Widget.MaterialComponents.Chip.Choice"
+                style="@style/Widget.LP.Chip.Choice"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:checked="false"
-                android:text="@string/muscle_chest"
-                app:chipBackgroundColor="@color/chip_choice_background"
-                app:chipStrokeColor="@color/fitness_primary"
-                app:chipStrokeWidth="1dp" />
+                android:text="@string/muscle_chest" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chip_back"
-                style="@style/Widget.MaterialComponents.Chip.Choice"
+                style="@style/Widget.LP.Chip.Choice"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/muscle_back"
-                app:chipBackgroundColor="@color/chip_choice_background"
-                app:chipStrokeColor="@color/fitness_primary"
-                app:chipStrokeWidth="1dp" />
+                android:text="@string/muscle_back" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chip_shoulders"
-                style="@style/Widget.MaterialComponents.Chip.Choice"
+                style="@style/Widget.LP.Chip.Choice"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/muscle_shoulders"
-                app:chipBackgroundColor="@color/chip_choice_background"
-                app:chipStrokeColor="@color/fitness_primary"
-                app:chipStrokeWidth="1dp" />
+                android:text="@string/muscle_shoulders" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chip_arms"
-                style="@style/Widget.MaterialComponents.Chip.Choice"
+                style="@style/Widget.LP.Chip.Choice"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/muscle_arms"
-                app:chipBackgroundColor="@color/chip_choice_background"
-                app:chipStrokeColor="@color/fitness_primary"
-                app:chipStrokeWidth="1dp" />
+                android:text="@string/muscle_arms" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chip_legs"
-                style="@style/Widget.MaterialComponents.Chip.Choice"
+                style="@style/Widget.LP.Chip.Choice"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/muscle_legs"
-                app:chipBackgroundColor="@color/chip_choice_background"
-                app:chipStrokeColor="@color/fitness_primary"
-                app:chipStrokeWidth="1dp" />
+                android:text="@string/muscle_legs" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chip_core"
-                style="@style/Widget.MaterialComponents.Chip.Choice"
+                style="@style/Widget.LP.Chip.Choice"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/muscle_core"
-                app:chipBackgroundColor="@color/chip_choice_background"
-                app:chipStrokeColor="@color/fitness_primary"
-                app:chipStrokeWidth="1dp" />
+                android:text="@string/muscle_core" />
         </com.google.android.material.chip.ChipGroup>
 
-        <!-- Volume Chart Card -->
-        <androidx.cardview.widget.CardView
+        <!-- Volume chart -->
+        <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_volume_chart"
+            style="@style/Widget.LP.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            app:cardBackgroundColor="@color/fitness_card_background"
-            app:cardCornerRadius="24dp"
-            app:cardElevation="6dp">
+            android:layout_marginTop="@dimen/lp_card_gap">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="20dp">
+                android:padding="@dimen/lp_card_padding">
 
                 <TextView
                     android:id="@+id/text_muscle_title"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/progress_muscle_volume"
-                    android:textColor="@color/fitness_text_primary"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
+                    android:textAppearance="@style/TextAppearance.LP.Heading" />
 
                 <TextView
                     android:id="@+id/text_muscle_subtitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:textColor="@color/fitness_text_secondary"
-                    android:textSize="12sp"
+                    android:textAppearance="@style/TextAppearance.LP.Caption"
                     tools:text="Weekly volume over last 3 months" />
 
-                <!-- Time Range Selector -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
+                    android:layout_marginTop="@dimen/lp_space_3"
                     android:gravity="center_vertical"
                     android:orientation="horizontal">
 
@@ -145,23 +117,22 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="@string/progress_time_range"
-                        android:textColor="@color/fitness_text_secondary"
-                        android:textSize="14sp" />
+                        android:textAppearance="@style/TextAppearance.LP.Label"
+                        android:textColor="?attr/lpInkTertiary" />
 
                     <Spinner
                         android:id="@+id/spinner_time_range"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:background="@drawable/spinner_background"
-                        android:padding="8dp"
+                        android:padding="@dimen/lp_space_2"
                         android:popupBackground="@drawable/spinner_popup_background" />
                 </LinearLayout>
 
-                <!-- Weighted Volume Toggle -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
+                    android:layout_marginTop="@dimen/lp_space_2"
                     android:gravity="center_vertical"
                     android:orientation="horizontal">
 
@@ -170,62 +141,58 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="@string/weighted_volume_label"
-                        android:textColor="@color/fitness_text_secondary"
-                        android:textSize="14sp" />
+                        android:textAppearance="@style/TextAppearance.LP.Label"
+                        android:textColor="?attr/lpInkTertiary" />
 
-                    <Switch
+                    <com.google.android.material.materialswitch.MaterialSwitch
                         android:id="@+id/switch_weighted_volume"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" />
+                        android:layout_height="wrap_content"
+                        app:showText="false" />
                 </LinearLayout>
 
                 <com.github.mikephil.charting.charts.BarChart
                     android:id="@+id/chart_muscle_volume"
                     android:layout_width="match_parent"
                     android:layout_height="280dp"
-                    android:layout_marginTop="16dp" />
+                    android:layout_marginTop="@dimen/lp_space_4" />
 
                 <TextView
                     android:id="@+id/text_empty_state"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center"
-                    android:padding="48dp"
+                    android:padding="@dimen/lp_space_8"
                     android:text="@string/progress_no_muscle_data"
-                    android:textColor="@color/fitness_text_secondary"
-                    android:textSize="14sp"
+                    android:textAppearance="@style/TextAppearance.LP.Body"
                     android:visibility="gone" />
             </LinearLayout>
-        </androidx.cardview.widget.CardView>
+        </com.google.android.material.card.MaterialCardView>
 
-        <!-- Stats Summary -->
-        <androidx.cardview.widget.CardView
+        <!-- Summary -->
+        <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_muscle_stats"
+            style="@style/Widget.LP.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            app:cardBackgroundColor="@color/fitness_card_background"
-            app:cardCornerRadius="20dp"
-            app:cardElevation="4dp">
+            android:layout_marginTop="@dimen/lp_card_gap">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="20dp">
+                android:padding="@dimen/lp_card_padding">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/progress_summary"
-                    android:textColor="@color/fitness_text_primary"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
+                    android:textAppearance="@style/TextAppearance.LP.Heading" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
+                    android:layout_marginTop="@dimen/lp_space_4"
                     android:baselineAligned="false"
                     android:orientation="horizontal">
 
@@ -240,17 +207,15 @@
                             android:id="@+id/text_total_volume"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:textColor="@color/fitness_primary"
-                            android:textSize="22sp"
-                            android:textStyle="bold"
+                            android:textAppearance="@style/TextAppearance.LP.Metric.L"
                             tools:text="45,000" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
                             android:text="@string/progress_total_volume_kg"
-                            android:textColor="@color/fitness_text_secondary"
-                            android:textSize="11sp" />
+                            android:textAppearance="@style/TextAppearance.LP.Caption" />
                     </LinearLayout>
 
                     <LinearLayout
@@ -264,17 +229,15 @@
                             android:id="@+id/text_avg_weekly"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:textColor="@color/fitness_primary"
-                            android:textSize="22sp"
-                            android:textStyle="bold"
+                            android:textAppearance="@style/TextAppearance.LP.Metric.L"
                             tools:text="3,750" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
                             android:text="@string/progress_avg_weekly"
-                            android:textColor="@color/fitness_text_secondary"
-                            android:textSize="11sp" />
+                            android:textAppearance="@style/TextAppearance.LP.Caption" />
                     </LinearLayout>
 
                     <LinearLayout
@@ -284,41 +247,39 @@
                         android:gravity="center"
                         android:orientation="vertical">
 
+                        <!-- Color set in Kotlin: positive/negative/tertiary by trend sign. -->
                         <TextView
                             android:id="@+id/text_trend"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:textColor="@color/fitness_accent"
-                            android:textSize="22sp"
-                            android:textStyle="bold"
-                            tools:text="+12%" />
+                            android:textAppearance="@style/TextAppearance.LP.Metric.L"
+                            tools:text="+12%"
+                            tools:textColor="?attr/lpPositive" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
                             android:text="@string/progress_trend"
-                            android:textColor="@color/fitness_text_secondary"
-                            android:textSize="11sp" />
+                            android:textAppearance="@style/TextAppearance.LP.Caption" />
                     </LinearLayout>
                 </LinearLayout>
             </LinearLayout>
-        </androidx.cardview.widget.CardView>
+        </com.google.android.material.card.MaterialCardView>
 
-        <!-- Contributing Exercises -->
+        <!-- Contributing exercises -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
+            android:layout_marginTop="@dimen/lp_section_gap"
             android:text="@string/progress_contributing_exercises"
-            android:textColor="@color/fitness_text_primary"
-            android:textSize="18sp"
-            android:textStyle="bold" />
+            android:textAppearance="@style/TextAppearance.LP.Heading" />
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recycler_contributing_exercises"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="@dimen/lp_space_3"
             android:nestedScrollingEnabled="false"
             tools:itemCount="3"
             tools:listitem="@layout/item_exercise_trend" />
@@ -327,12 +288,11 @@
             android:id="@+id/text_no_exercises"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="@dimen/lp_space_3"
             android:gravity="center"
-            android:padding="24dp"
+            android:padding="@dimen/lp_space_6"
             android:text="@string/progress_no_exercises"
-            android:textColor="@color/fitness_text_secondary"
-            android:textSize="14sp"
+            android:textAppearance="@style/TextAppearance.LP.Body"
             android:visibility="gone" />
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>

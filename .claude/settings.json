@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -c ' *)",
+      "Bash(python -c ' *)",
+      "Read(//c/Projects/TriPath/app/src/main/**)",
+      "Bash(./gradlew :app:testDebugUnitTest -q)",
+      "Bash(./gradlew :app:compileDebugKotlin)"
+    ],
+    "additionalDirectories": [
+      "C:\\Projects\\TriPath\\app\\src\\main\\java\\com\\tripath\\domain\\health",
+      "C:\\Projects\\TriPath\\app\\src\\main"
+    ]
+  }
+}

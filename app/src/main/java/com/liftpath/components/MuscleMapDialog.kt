@@ -5,22 +5,22 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.webkit.WebChromeClient
-import android.webkit.WebView
-import android.webkit.WebViewClient
-import android.widget.ProgressBar
-import android.widget.TextView
 import androidx.fragment.app.DialogFragment
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.liftpath.R
 import com.liftpath.databinding.DialogMuscleMapBinding
-import com.liftpath.helpers.MuscleActivationHelper
+import com.liftpath.helpers.MuscleMapColorResolver
+import com.liftpath.helpers.MuscleMapRenderer
 import com.liftpath.models.TargetMuscle
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
- * Reusable bottom sheet dialog for displaying muscle activation map.
- * Shows a WebView with the muscle map SVG and highlights activated muscles.
+ * Reusable bottom sheet dialog showing the illustrated muscle map with activated muscles
+ * highlighted.
  */
 class MuscleMapDialog : BottomSheetDialogFragment() {
 
@@ -29,7 +29,6 @@ class MuscleMapDialog : BottomSheetDialogFragment() {
 
     private var primaryMuscles: Set<TargetMuscle> = emptySet()
     private var secondaryMuscles: Set<TargetMuscle> = emptySet()
-    private var isWebViewReady = false
 
     companion object {
         private const val ARG_PRIMARY_MUSCLES = "primary_muscles"
@@ -37,7 +36,7 @@ class MuscleMapDialog : BottomSheetDialogFragment() {
 
         /**
          * Creates a new instance of MuscleMapDialog.
-         * 
+         *
          * @param primaryMuscles Set of primary target muscles to highlight
          * @param secondaryMuscles Set of secondary target muscles to highlight
          * @return New MuscleMapDialog instance
@@ -86,16 +85,14 @@ class MuscleMapDialog : BottomSheetDialogFragment() {
             }.toSet()
         }
 
-        // Setup UI
         setupSummary()
-        setupWebView()
         setupCloseButton()
 
-        // Show empty state if no muscles activated
         if (primaryMuscles.isEmpty() && secondaryMuscles.isEmpty()) {
             showEmptyState()
         } else {
             hideEmptyState()
+            updateMuscleMap()
         }
     }
 
@@ -105,87 +102,22 @@ class MuscleMapDialog : BottomSheetDialogFragment() {
         binding.textMuscleSummary.text = "$activatedCount/$totalCount"
     }
 
-    private fun setupWebView() {
-        binding.webviewMuscleMap.settings.apply {
-            javaScriptEnabled = true
-            useWideViewPort = true
-            loadWithOverviewMode = true
-            allowFileAccess = true
-            allowContentAccess = true
-            allowFileAccessFromFileURLs = true
-            allowUniversalAccessFromFileURLs = true
-        }
-        binding.webviewMuscleMap.setBackgroundColor(android.graphics.Color.TRANSPARENT)
-
-        // Add WebChromeClient to capture JavaScript console messages
-        binding.webviewMuscleMap.webChromeClient = object : WebChromeClient() {
-            override fun onConsoleMessage(consoleMessage: android.webkit.ConsoleMessage?): Boolean {
-                consoleMessage?.let {
-                    android.util.Log.d("MuscleMapDialog", 
-                        "${it.message()} -- From line ${it.lineNumber()} of ${it.sourceId()}")
-                }
-                return true
-            }
-        }
-
-        binding.webviewMuscleMap.webViewClient = object : WebViewClient() {
-            override fun onPageFinished(view: WebView?, url: String?) {
-                super.onPageFinished(view, url)
-                isWebViewReady = true
-                binding.progressLoading.visibility = View.GONE
-                updateMuscleMap()
-            }
-        }
-
-        binding.webviewMuscleMap.loadUrl("file:///android_asset/muscle_map.html")
-    }
-
     private fun updateMuscleMap() {
-        if (!isWebViewReady) {
-            android.util.Log.d("MuscleMapDialog", "WebView not ready yet")
-            return
-        }
-
-        if (primaryMuscles.isEmpty() && secondaryMuscles.isEmpty()) {
-            return // Empty state is already shown
-        }
-
-        // Convert muscle sets to JavaScript arrays
-        val primaryArray = primaryMuscles.joinToString(
-            prefix = "[",
-            postfix = "]",
-            separator = ", "
-        ) { "'${it.name}'" }
-
-        val secondaryArray = secondaryMuscles.joinToString(
-            prefix = "[",
-            postfix = "]",
-            separator = ", "
-        ) { "'${it.name}'" }
-
-        // Call JavaScript setHighlights function
-        val jsCode = """
-            (function() {
-                try {
-                    if (typeof setHighlights === 'function') {
-                        setHighlights($primaryArray, $secondaryArray);
-                        return 'setHighlights called';
-                    } else if (typeof window.setHighlights === 'function') {
-                        window.setHighlights($primaryArray, $secondaryArray);
-                        return 'window.setHighlights called';
-                    } else {
-                        console.error('setHighlights function not found!');
-                        return 'ERROR: setHighlights not found';
-                    }
-                } catch (e) {
-                    console.error('Error calling setHighlights:', e);
-                    return 'ERROR: ' + e.message;
-                }
-            })();
-        """.trimIndent()
-
-        binding.webviewMuscleMap.evaluateJavascript(jsCode) { result ->
-            android.util.Log.d("MuscleMapDialog", "JavaScript result: $result")
+        val context = context ?: return
+        lifecycleScope.launch {
+            val muscleRoles = MuscleMapColorResolver.resolveHighlightColors(primaryMuscles, secondaryMuscles)
+            val maskRoles = MuscleMapColorResolver.flattenToMaskCategories(
+                muscleRoles, rank = MuscleMapColorResolver::highlightRank
+            )
+            val maskColors = maskRoles.map { (maskResId, role) ->
+                maskResId to MuscleMapColorResolver.colorFor(context, role)
+            }
+            val bitmap = withContext(Dispatchers.Default) {
+                MuscleMapRenderer.render(context, maskColors)
+            }
+            if (_binding == null) return@launch
+            binding.imageMuscleMap.setImageBitmap(bitmap)
+            binding.progressLoading.visibility = View.GONE
         }
     }
 
@@ -211,4 +143,3 @@ class MuscleMapDialog : BottomSheetDialogFragment() {
         _binding = null
     }
 }
-

@@ -1,0 +1,537 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  WORKOUT tab — the home surface, hosted by MainActivity's bottom navigation.
+
+  Rebuilt from fragment_today.xml. That file was written before the bottom bar existed, so it
+  carried four navigation tiles (Progress / History / Exercises / Plans) that the bar made
+  redundant, plus a stack of analytics cards. Those analytics moved to Progress > Overview,
+  which is where a user goes to *look* at numbers; this screen exists to get a session started.
+
+  Top to bottom, it answers four questions in the order they get asked:
+    1. what am I doing now?      → the hero (resume / next in rotation / start), + mode tiles
+    2. what has this been hitting? → the body status figure, a muscle map tinted by effort over
+                                   the last two weeks (WorkoutFragment.updateBodyStatus). Readiness
+                                   (fatigue/recovery) moved to Settings — see SettingsActivity's
+                                   Training section for the ReadinessDashboardActivity entry point.
+    3. what's in today's session? → the up-next plan preview
+    4. how has it been going?    → last session + a 21-day dot strip
+
+  Insets are the host's job (MainActivity.applyWindowInsets), so no fitsSystemWindows here, and
+  the ambient background lives in the host layout so it bleeds behind every tab.
+
+  Accent budget: ?attr/lpAccent appears exactly twice as a flat fill — the hero glow and the
+  "See plan" link — plus one variable use, the body status figure's per-muscle effort tint.
+  That restraint is the point; adding another flat use costs the other two their emphasis.
+-->
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/scroll_view"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/transparent"
+    android:clipToPadding="false"
+    android:fillViewport="true"
+    tools:context="com.liftpath.fragments.WorkoutFragment">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:paddingHorizontal="@dimen/lp_gutter"
+        android:paddingTop="@dimen/lp_space_6"
+        android:paddingBottom="@dimen/lp_space_6">
+
+        <!-- ==================== HEADER ==================== -->
+
+        <TextView
+            android:id="@+id/text_workout_date"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:textAppearance="@style/TextAppearance.LP.Caption"
+            app:layout_constraintEnd_toStartOf="@id/card_settings"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:text="TUESDAY 18 AUGUST" />
+
+        <TextView
+            android:id="@+id/text_workout_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/lp_space_1"
+            android:text="@string/workout_title"
+            android:textAppearance="@style/TextAppearance.LP.Display"
+            app:layout_constraintEnd_toStartOf="@id/card_settings"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/text_workout_date" />
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_settings"
+            style="@style/Widget.LP.Card.Control"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="@dimen/lp_space_3"
+            app:layout_constraintBottom_toBottomOf="@id/text_workout_title"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/text_workout_date">
+
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="@string/settings"
+                android:padding="11dp"
+                android:src="@drawable/ic_settings"
+                app:tint="?attr/lpInkSecondary" />
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- ==================== HERO ====================
+             One card, three states (see WorkoutFragment.updateHero). The eyebrow is the state
+             label, so the card can say "In progress" / "Next in Push-Pull" / nothing without
+             changing shape underneath the user. -->
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_start_workout"
+            style="@style/Widget.LP.Card.Hero"
+            android:layout_width="match_parent"
+            android:layout_height="140dp"
+            android:layout_marginTop="@dimen/lp_space_6"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/text_workout_title">
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:paddingHorizontal="@dimen/lp_space_6">
+
+                <!-- Radial bronze falloff, sized larger than the card is tall so the light
+                     reads as ambient rather than as a disc. No negative margin to bleed it
+                     off-card: ConstraintLayout clamps those, and a translationX would shift
+                     the glow at draw time without moving icon_play with it, decentring the
+                     pair. The gradient already fades to fully transparent at its edge. -->
+                <View
+                    android:id="@+id/bg_circle"
+                    android:layout_width="120dp"
+                    android:layout_height="120dp"
+                    android:background="@drawable/lp_hero_glow"
+                    android:backgroundTint="?attr/lpAccent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <ImageView
+                    android:id="@+id/icon_play"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:contentDescription="@null"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_play"
+                    app:layout_constraintBottom_toBottomOf="@id/bg_circle"
+                    app:layout_constraintEnd_toEndOf="@id/bg_circle"
+                    app:layout_constraintStart_toStartOf="@id/bg_circle"
+                    app:layout_constraintTop_toTopOf="@id/bg_circle"
+                    app:tint="?attr/lpInkInverse" />
+
+                <!-- Eyebrow + title + sub are a packed vertical chain so the group sits
+                     optically centred whether or not the eyebrow is showing. -->
+                <TextView
+                    android:id="@+id/text_hero_eyebrow"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="@style/TextAppearance.LP.Caption"
+                    android:textColor="?attr/lpInkInverseSecondary"
+                    android:visibility="gone"
+                    app:layout_constraintBottom_toTopOf="@id/text_hero_title"
+                    app:layout_constraintEnd_toStartOf="@id/bg_circle"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintVertical_chainStyle="packed"
+                    tools:text="IN PROGRESS"
+                    tools:visibility="visible" />
+
+                <TextView
+                    android:id="@+id/text_hero_title"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/lp_space_2"
+                    android:ellipsize="end"
+                    android:maxLines="2"
+                    android:text="@string/home_hero_start"
+                    android:textAppearance="@style/TextAppearance.LP.Title"
+                    android:textColor="?attr/lpInkInverse"
+                    app:layout_constraintBottom_toTopOf="@id/text_hero_sub"
+                    app:layout_constraintEnd_toStartOf="@id/bg_circle"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/text_hero_eyebrow"
+                    app:layout_goneMarginTop="0dp" />
+
+                <TextView
+                    android:id="@+id/text_hero_sub"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/lp_space_2"
+                    android:text="@string/home_hero_modes"
+                    android:textAppearance="@style/TextAppearance.LP.Caption"
+                    android:textColor="?attr/lpInkInverseSecondary"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toStartOf="@id/bg_circle"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/text_hero_title" />
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- ==================== MODE TILES ====================
+             The hero commits to one interpretation of "start"; these are the three ways to
+             override it, named rather than hidden behind the sheet's first screen. Three equal
+             cards rather than chips: a chip communicates "filter", these commit to an action, so
+             they get the same tappable-card language as the rest of the screen. -->
+
+        <LinearLayout
+            android:id="@+id/layout_modes"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/lp_space_3"
+            android:orientation="horizontal"
+            app:layout_constraintTop_toBottomOf="@id/card_start_workout">
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/tile_manual"
+                style="@style/Widget.LP.Card.Interactive"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="@dimen/lp_space_2"
+                android:layout_weight="1">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:paddingVertical="@dimen/lp_space_3">
+
+                    <ImageView
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:contentDescription="@null"
+                        android:importantForAccessibility="no"
+                        android:src="@drawable/ic_dumbbell"
+                        app:tint="?attr/lpInkSecondary" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/lp_space_1"
+                        android:text="@string/workout_chip_manual"
+                        android:textAppearance="@style/TextAppearance.LP.Label" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/tile_plan"
+                style="@style/Widget.LP.Card.Interactive"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="@dimen/lp_space_2"
+                android:layout_weight="1">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:paddingVertical="@dimen/lp_space_3">
+
+                    <ImageView
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:contentDescription="@null"
+                        android:importantForAccessibility="no"
+                        android:src="@drawable/ic_plans"
+                        app:tint="?attr/lpInkSecondary" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/lp_space_1"
+                        android:text="@string/workout_chip_plan"
+                        android:textAppearance="@style/TextAppearance.LP.Label" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/tile_stretch"
+                style="@style/Widget.LP.Card.Interactive"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:paddingVertical="@dimen/lp_space_3">
+
+                    <ImageView
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:contentDescription="@null"
+                        android:importantForAccessibility="no"
+                        android:src="@drawable/ic_stretch"
+                        app:tint="?attr/lpInkSecondary" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/lp_space_1"
+                        android:text="@string/workout_chip_stretch"
+                        android:textAppearance="@style/TextAppearance.LP.Label" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
+
+        <!-- ==================== BODY STATUS ====================
+             The illustrated muscle map (MuscleMapRenderer), tinted per muscle by effort over the
+             last two weeks (WorkoutFragment.updateBodyStatus / ProgressAnalysisHelper.
+             getRecentMuscleEffort) rather than the upper/lower readiness verdict this card used
+             to show — readiness moved to Settings. Hidden when there is no recent training so a
+             fresh install does not show a blank silhouette. -->
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_body_status"
+            style="@style/Widget.LP.Card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/lp_card_gap"
+            android:visibility="gone"
+            app:layout_constraintTop_toBottomOf="@id/layout_modes"
+            tools:visibility="visible">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="@dimen/lp_card_padding">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/workout_body_status"
+                    android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+                <ImageView
+                    android:id="@+id/image_body_status"
+                    android:layout_width="match_parent"
+                    android:layout_height="220dp"
+                    android:layout_marginTop="@dimen/lp_space_2"
+                    android:background="@android:color/transparent"
+                    android:contentDescription="@string/cd_muscle_map"
+                    android:scaleType="fitCenter" />
+
+                <TextView
+                    android:id="@+id/text_body_status_summary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/lp_space_2"
+                    android:textAppearance="@style/TextAppearance.LP.Label"
+                    android:textColor="?attr/lpInkTertiary"
+                    tools:text="Chest, Triceps · last 2 weeks" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- ==================== UP NEXT ====================
+             Static card: the hero already starts this session, so making the whole card a
+             second start button would be two hit targets for one action. The only tap here is
+             the "See plan" link. -->
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_up_next"
+            style="@style/Widget.LP.Card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/lp_card_gap"
+            android:visibility="gone"
+            app:layout_constraintTop_toBottomOf="@id/card_body_status"
+            app:layout_goneMarginTop="@dimen/lp_card_gap"
+            tools:visibility="visible">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="@dimen/lp_card_padding">
+
+                <TextView
+                    android:id="@+id/text_up_next_eyebrow"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/workout_up_next"
+                    android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+                <TextView
+                    android:id="@+id/text_up_next_plan"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/lp_space_2"
+                    android:textAppearance="@style/TextAppearance.LP.Heading"
+                    tools:text="Push Day A" />
+
+                <View
+                    style="@style/Widget.LP.Divider"
+                    android:layout_marginTop="@dimen/lp_space_3" />
+
+                <!-- item_up_next_slot rows, inflated by WorkoutFragment. -->
+                <LinearLayout
+                    android:id="@+id/layout_up_next_rows"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/lp_space_1"
+                    android:orientation="vertical" />
+
+                <TextView
+                    android:id="@+id/text_up_next_more"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/lp_space_1"
+                    android:textAppearance="@style/TextAppearance.LP.Label"
+                    android:textColor="?attr/lpInkTertiary"
+                    android:visibility="gone"
+                    tools:text="+2 more"
+                    tools:visibility="visible" />
+
+                <TextView
+                    android:id="@+id/text_see_plan"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="end"
+                    android:layout_marginTop="@dimen/lp_space_3"
+                    android:background="?attr/selectableItemBackground"
+                    android:padding="@dimen/lp_space_1"
+                    android:text="@string/workout_see_plan"
+                    android:textAppearance="@style/TextAppearance.LP.Label"
+                    android:textColor="?attr/lpAccent" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- ==================== LAST SESSION ==================== -->
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_last_session"
+            style="@style/Widget.LP.Card.Interactive"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/lp_card_gap"
+            app:layout_constraintTop_toBottomOf="@id/card_up_next"
+            app:layout_goneMarginTop="@dimen/lp_card_gap">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="@dimen/lp_card_padding">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/workout_last_session"
+                        android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+                    <!-- PR count. Mono and positive-tinted; hidden when the session set none,
+                         because a "0 PRs" badge reads as a failure it isn't. -->
+                    <TextView
+                        android:id="@+id/text_last_session_prs"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textAppearance="@style/TextAppearance.LP.Metric.S"
+                        android:textColor="?attr/lpPositive"
+                        android:visibility="gone"
+                        tools:text="1 PR"
+                        tools:visibility="visible" />
+                </LinearLayout>
+
+                <!-- "Today" / "3 days ago" is prose, so Archivo not mono. WorkoutFragment
+                     recolours this by recency. -->
+                <TextView
+                    android:id="@+id/text_last_session_when"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/lp_space_2"
+                    android:text="@string/home_last_workout_never"
+                    android:textAppearance="@style/TextAppearance.LP.Heading" />
+
+                <TextView
+                    android:id="@+id/text_last_session_detail"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/lp_space_1"
+                    android:maxLines="2"
+                    android:text="@string/home_last_workout_never_sub"
+                    android:textAppearance="@style/TextAppearance.LP.Body" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- ==================== MOMENTUM ====================
+             21 dots, one per day. Links to Progress > Overview, which is where the volume /
+             RPE / time / fatigue trend charts now live. -->
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_momentum"
+            style="@style/Widget.LP.Card.Interactive"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/lp_card_gap"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/card_last_session">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="@dimen/lp_card_padding">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/workout_momentum"
+                    android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+                <!-- Dots, added by WorkoutFragment. Fixed height so the card does not resize
+                     between an empty and a full three weeks. -->
+                <LinearLayout
+                    android:id="@+id/layout_momentum_dots"
+                    android:layout_width="match_parent"
+                    android:layout_height="10dp"
+                    android:layout_marginTop="@dimen/lp_space_3"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal" />
+
+                <TextView
+                    android:id="@+id/text_momentum_summary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/lp_space_3"
+                    android:text="@string/home_week_placeholder"
+                    android:textAppearance="@style/TextAppearance.LP.Heading" />
+
+                <TextView
+                    android:id="@+id/text_momentum_insight"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/lp_space_1"
+                    android:maxLines="2"
+                    android:text="@string/home_week_insight_empty"
+                    android:textAppearance="@style/TextAppearance.LP.Body" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.core.widget.NestedScrollView>

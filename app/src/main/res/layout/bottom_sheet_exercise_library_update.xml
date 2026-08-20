@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@color/fitness_background">
+    android:background="?attr/lpCanvas">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -17,9 +17,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/title_library_update"
-            android:textColor="@color/fitness_text_primary"
-            android:textSize="24sp"
-            android:textStyle="bold" />
+            android:textAppearance="@style/TextAppearance.LP.Title" />
 
         <TextView
             android:id="@+id/text_header_subtitle"
@@ -28,8 +26,7 @@
             android:layout_marginTop="4dp"
             android:layout_marginBottom="16dp"
             android:text="@string/subtitle_library_update"
-            android:textColor="@color/fitness_text_secondary"
-            android:textSize="14sp" />
+            android:textAppearance="@style/TextAppearance.LP.Body" />
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recycler_merge_candidates"
@@ -52,7 +49,7 @@
                 android:layout_height="wrap_content"
                 android:text="@string/button_skip"
                 android:textAllCaps="false"
-                android:textColor="@color/fitness_text_secondary" />
+                android:textColor="?attr/lpInkSecondary" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/button_apply_updates"
@@ -61,8 +58,8 @@
                 android:layout_marginStart="8dp"
                 android:text="@string/button_apply_updates"
                 android:textAllCaps="false"
-                android:textColor="@color/white"
-                app:backgroundTint="@color/fitness_primary" />
+                android:textColor="?attr/lpInkInverse"
+                app:backgroundTint="?attr/lpAccent" />
         </LinearLayout>
     </LinearLayout>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

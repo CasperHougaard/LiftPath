@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Day/night switches that are not colours.
+
+  These exist so the four palette themes need no night variants of their own: the
+  colours vary via values-night/lp_palette_*.xml, and the two boolean system-bar flags
+  vary here. Four themes total instead of eight.
+-->
+<resources>
+    <!-- Light content behind the status/nav bars means DARK icons are needed. -->
+    <bool name="lp_light_system_bars">true</bool>
+</resources>

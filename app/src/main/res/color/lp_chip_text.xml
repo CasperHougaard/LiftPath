@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Chip label. Inverts against lp_chip_background: ink fill when checked means the label
+  must flip to inverse ink to stay readable.
+-->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:color="?attr/lpInkInverse"
+        android:state_checked="true" />
+    <item
+        android:color="?attr/lpInkTertiary"
+        android:state_enabled="false" />
+    <item android:color="?attr/lpInk" />
+</selector>

@@ -1,41 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  "Start workout" — the top sheet reached from the hero card. Three top-level choices
+  (Manual / Follow Plan / Stretch); picking Plan or Stretch swaps the tile row for that
+  mode's picker in place, collapsing back to the tile row on re-tap
+  (SelectWorkoutModeBottomSheet.updateSectionVisibility).
+-->
 <androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@color/fitness_background"
+    android:background="?attr/lpCanvas"
     android:clipChildren="false">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="24dp"
+        android:padding="@dimen/lp_gutter"
         android:fitsSystemWindows="false"
         android:clipChildren="false"
         android:clipToPadding="false">
 
-        <!-- Header -->
         <TextView
             android:id="@+id/text_header_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Start Workout"
-            android:textColor="@color/fitness_text_primary"
-            android:textSize="24sp"
-            android:textStyle="bold" />
+            android:text="@string/start_workout_title"
+            android:textAppearance="@style/TextAppearance.LP.Title" />
 
         <TextView
             android:id="@+id/text_header_subtitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:layout_marginBottom="24dp"
-            android:text="Choose how you want to start"
-            android:textColor="@color/fitness_text_secondary"
-            android:textSize="14sp" />
+            android:layout_marginBottom="@dimen/lp_space_5"
+            android:text="@string/start_workout_subtitle"
+            android:textAppearance="@style/TextAppearance.LP.Body" />
 
-        <!-- Main Tiles Container -->
+        <!-- Main tiles -->
         <LinearLayout
             android:id="@+id/layout_main_tiles"
             android:layout_width="match_parent"
@@ -44,91 +45,81 @@
             android:clipChildren="false"
             android:clipToPadding="false">
 
-            <!-- Custom Tile -->
             <include
                 android:id="@+id/tile_custom"
                 layout="@layout/item_workout_mode_tile" />
 
-            <!-- Plan Tile -->
             <include
                 android:id="@+id/tile_plan"
                 layout="@layout/item_workout_mode_tile" />
 
-            <!-- Stretch Tile -->
             <include
                 android:id="@+id/tile_stretch"
                 layout="@layout/item_workout_mode_tile" />
         </LinearLayout>
 
-        <!-- Plan List Container (Initially Hidden) -->
+        <!-- Plan list (hidden until "Follow Plan" is tapped) -->
         <LinearLayout
             android:id="@+id/layout_plan_list"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="@dimen/lp_card_gap"
             android:orientation="vertical"
             android:visibility="gone"
             android:clipChildren="false"
             android:clipToPadding="false">
 
-            <!-- Continue plan set card (shown when user has an active rotation) -->
-            <androidx.cardview.widget.CardView
+            <!-- Shown only when a rotation is mid-way through. Ink-filled, matching the
+                 hero card language elsewhere — this is the one recommended action in the
+                 sheet, so it earns the same darkest-thing-on-screen treatment rather than
+                 a solid accent fill. -->
+            <com.google.android.material.card.MaterialCardView
                 android:id="@+id/card_continue_rotation"
+                style="@style/Widget.LP.Card.Hero"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:visibility="gone"
-                app:cardBackgroundColor="@color/fitness_primary"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                android:layout_marginBottom="@dimen/lp_card_gap"
+                android:visibility="gone">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:foreground="?attr/selectableItemBackground"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:padding="@dimen/lp_card_padding">
 
                     <TextView
                         android:id="@+id/text_continue_label"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Continue Rotation"
-                        android:textColor="@color/white"
-                        android:textSize="12sp"
-                        android:alpha="0.8" />
+                        android:text="@string/label_continue_rotation"
+                        android:textAppearance="@style/TextAppearance.LP.Caption"
+                        android:textColor="?attr/lpInkInverseSecondary" />
 
                     <TextView
                         android:id="@+id/text_continue_plan_set_name"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textColor="@color/white"
-                        android:textSize="17sp"
-                        android:textStyle="bold" />
+                        android:layout_marginTop="2dp"
+                        android:textAppearance="@style/TextAppearance.LP.Heading"
+                        android:textColor="?attr/lpInkInverse" />
 
                     <TextView
                         android:id="@+id/text_continue_next_plan"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:textColor="@color/white"
-                        android:textSize="13sp"
-                        android:alpha="0.85" />
+                        android:textAppearance="@style/TextAppearance.LP.Label"
+                        android:textColor="?attr/lpInkInverseSecondary" />
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
 
-            <!-- Individual plans section -->
             <TextView
                 android:id="@+id/text_plan_list_title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                android:text="Individual Plans"
-                android:textColor="@color/fitness_text_primary"
-                android:textSize="16sp"
-                android:textStyle="bold" />
+                android:layout_marginBottom="@dimen/lp_space_2"
+                android:text="@string/label_individual_plans"
+                android:textAppearance="@style/TextAppearance.LP.Caption" />
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/recycler_view_plans"
@@ -136,31 +127,26 @@
                 android:layout_height="wrap_content"
                 android:nestedScrollingEnabled="false"
                 android:clipChildren="false"
-                android:clipToPadding="false"
-                android:paddingTop="4dp" />
+                android:clipToPadding="false" />
 
             <TextView
                 android:id="@+id/text_empty_plans"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="@dimen/lp_space_4"
                 android:layout_gravity="center"
-                android:text="No plans available. Create one from the Plans screen."
-                android:textColor="@color/fitness_text_secondary"
-                android:textSize="14sp"
+                android:text="@string/empty_state_no_plans_create_one"
+                android:textAppearance="@style/TextAppearance.LP.Body"
                 android:visibility="gone" />
 
-            <!-- Plan rotations section -->
             <TextView
                 android:id="@+id/text_rotations_title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
-                android:layout_marginBottom="12dp"
-                android:text="Plan Rotations"
-                android:textColor="@color/fitness_text_primary"
-                android:textSize="16sp"
-                android:textStyle="bold"
+                android:layout_marginTop="@dimen/lp_space_5"
+                android:layout_marginBottom="@dimen/lp_space_2"
+                android:text="@string/label_plan_rotations"
+                android:textAppearance="@style/TextAppearance.LP.Caption"
                 android:visibility="gone" />
 
             <androidx.recyclerview.widget.RecyclerView
@@ -170,16 +156,15 @@
                 android:nestedScrollingEnabled="false"
                 android:visibility="gone"
                 android:clipChildren="false"
-                android:clipToPadding="false"
-                android:paddingTop="4dp" />
+                android:clipToPadding="false" />
         </LinearLayout>
 
-        <!-- Stretch Picker Container (Initially Hidden) -->
+        <!-- Stretch picker (hidden until "Stretch" is tapped) -->
         <LinearLayout
             android:id="@+id/layout_stretch_picker"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="@dimen/lp_card_gap"
             android:orientation="vertical"
             android:visibility="gone"
             android:clipChildren="false"
@@ -189,25 +174,23 @@
                 android:id="@+id/text_stretch_picker_title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                android:text="Target Areas"
-                android:textColor="@color/fitness_text_primary"
-                android:textSize="16sp"
-                android:textStyle="bold" />
+                android:layout_marginBottom="@dimen/lp_space_2"
+                android:text="@string/label_target_areas"
+                android:textAppearance="@style/TextAppearance.LP.Caption" />
 
             <com.google.android.material.chip.ChipGroup
                 android:id="@+id/chip_group_stretch_areas"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
+                android:layout_height="wrap_content"
+                app:chipSpacing="@dimen/lp_card_gap_dense" />
 
-            <!-- Explicit style: the dialog theme overlay defaults buttons to borderless text style -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/button_start_stretching"
-                style="@style/Widget.MaterialComponents.Button"
+                style="@style/Widget.LP.Button"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="Start Stretching" />
+                android:layout_marginTop="@dimen/lp_space_4"
+                android:text="@string/btn_start_stretching" />
         </LinearLayout>
     </LinearLayout>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

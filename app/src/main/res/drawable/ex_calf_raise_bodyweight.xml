@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Calf Raise (Bodyweight) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="160dp"
+    android:height="160dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+    <path
+        android:pathData="M20,182 L180,182"
+        android:strokeColor="?attr/lpInkSecondary"
+        android:strokeWidth="4"
+        android:strokeAlpha="0.7"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M100,80 L100,150 M100,150 L92,178 M100,150 L108,178"
+        android:strokeColor="?attr/lpInk"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M92,178 L86,174 M108,178 L114,174"
+        android:strokeColor="?attr/lpInk"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M100,60 L100,44"
+        android:strokeColor="?attr/lpAccent"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M92,44 L100,34 L108,44"
+        android:strokeColor="?attr/lpAccent"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M87,66 a13,13 0 1,0 26,0 a13,13 0 1,0 -26,0"
+        android:fillColor="?attr/lpInk" />
+</vector>

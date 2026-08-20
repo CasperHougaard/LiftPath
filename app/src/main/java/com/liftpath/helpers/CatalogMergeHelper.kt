@@ -199,6 +199,9 @@ object CatalogMergeHelper {
         val data = jsonHelper.readTrainingData()
         val bundledCatalog = DefaultExercisesHelper.getPopularDefaults()
         val updatedPrefs = applyMerge(data, appliedRows, prefs, bundledCatalog)
+        // The merge may have just added the bodyweight/band exercises a starter circuit needs —
+        // give seeding an immediate chance rather than waiting for a later cold read.
+        DefaultCircuitsHelper.seedIfNeeded(data)
         jsonHelper.writeTrainingData(data)
         prefsManager.savePrefs(updatedPrefs)
     }

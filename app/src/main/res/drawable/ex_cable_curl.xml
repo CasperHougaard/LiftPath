@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Cable Curl (low pulley) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="160dp"
+    android:height="160dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+    <path
+        android:pathData="M20,182 L180,182"
+        android:strokeColor="?attr/lpInkSecondary"
+        android:strokeWidth="4"
+        android:strokeAlpha="0.7"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M84,96 L66,163 M59,170 a7,7 0 1,0 14,0 a7,7 0 1,0 -14,0"
+        android:strokeColor="?attr/lpInkSecondary"
+        android:strokeWidth="4"
+        android:strokeAlpha="0.7"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M78,90 L90,90 L90,98 L78,98 Z"
+        android:fillColor="?attr/lpAccent" />
+    <path
+        android:pathData="M100,80 L97,132 M97,132 L96,158 L104,182 M100,80 L107,108 L84,94"
+        android:strokeColor="?attr/lpInk"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M87,58 a13,13 0 1,0 26,0 a13,13 0 1,0 -26,0"
+        android:fillColor="?attr/lpInk" />
+</vector>

@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  One station's inputs in the round-log sheet.
+
+  Inflated per station into a plain LinearLayout (not a RecyclerView) by
+  CircuitRoundLogBottomSheet: a circuit is a handful of rows, and holding the views means the
+  sheet can read the numbers straight off the fields at save time instead of keeping a model in
+  sync through text watchers.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingVertical="@dimen/lp_space_2">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:baselineAligned="false"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/text_log_number"
+            android:layout_width="26dp"
+            android:layout_height="26dp"
+            android:background="@drawable/lp_badge_ink"
+            android:gravity="center"
+            android:textAppearance="@style/TextAppearance.LP.Metric.S"
+            android:textColor="?attr/lpInkInverse"
+            tools:text="1" />
+
+        <TextView
+            android:id="@+id/text_log_name"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/lp_space_3"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textAppearance="@style/TextAppearance.LP.Label"
+            tools:text="Hip Thrust (Barbell)" />
+
+        <TextView
+            android:id="@+id/text_log_target"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="@style/TextAppearance.LP.Caption"
+            android:textColor="?attr/lpInkTertiary"
+            tools:text="60kg × 12" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/lp_space_2"
+        android:baselineAligned="false"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:id="@+id/layout_log_kg"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="@dimen/lp_card_gap_dense"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/label_log_kg"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/lp_space_1"
+                android:text="@string/circuit_station_hint_kg"
+                android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+            <EditText
+                android:id="@+id/edit_log_kg"
+                style="@style/Widget.LP.EditText.Boxed"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="@string/circuit_log_hint_bodyweight"
+                android:inputType="numberDecimal" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/layout_log_reps"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/label_log_reps"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/lp_space_1"
+                android:text="@string/circuit_station_hint_reps"
+                android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+            <EditText
+                android:id="@+id/edit_log_reps"
+                style="@style/Widget.LP.EditText.Boxed"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="number" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/layout_log_time"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/lp_space_1"
+                android:text="@string/circuit_station_hint_time"
+                android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+            <EditText
+                android:id="@+id/edit_log_time"
+                style="@style/Widget.LP.EditText.Boxed"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="number" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <View
+        style="@style/Widget.LP.Divider"
+        android:layout_marginTop="@dimen/lp_space_3" />
+</LinearLayout>

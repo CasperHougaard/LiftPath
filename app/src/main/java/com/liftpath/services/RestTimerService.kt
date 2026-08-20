@@ -14,6 +14,7 @@ import androidx.core.app.NotificationManagerCompat
 import com.liftpath.R
 import com.liftpath.activities.ActiveTrainingActivity
 import com.liftpath.activities.RestTimerDialogActivity
+import com.liftpath.helpers.BluetoothBeepHelper
 import com.liftpath.helpers.ProgressionSettingsManager
 
 class RestTimerService : Service() {
@@ -163,7 +164,10 @@ class RestTimerService : Service() {
                     
                     // Vibrate phone
                     vibratePhone()
-                    
+
+                    // Beep over Bluetooth (if that's the active audio route) without ducking music
+                    BluetoothBeepHelper.playIfBluetoothActive(this@RestTimerService)
+
                     // Show completion notification that auto-dismisses after 5 seconds
                     showCompletionNotification()
                     
@@ -238,18 +242,21 @@ class RestTimerService : Service() {
                     
                     // Vibrate phone
                     vibratePhone()
-                    
+
+                    // Beep over Bluetooth (if that's the active audio route) without ducking music
+                    BluetoothBeepHelper.playIfBluetoothActive(this@RestTimerService)
+
                     // Broadcast completion (activity will handle UI updates)
                     sendBroadcast(Intent("com.liftpath.REST_TIMER_COMPLETE").apply {
                         setPackage(applicationContext.packageName)
                     })
-                    
+
                     // Stop foreground service and self
                     stopForeground(true)
                     stopSelf()
                 }
             }.start()
-            
+
             // Update foreground notification (required for foreground service)
             try {
                 startForeground(NOTIFICATION_ID, createMinimalNotification())

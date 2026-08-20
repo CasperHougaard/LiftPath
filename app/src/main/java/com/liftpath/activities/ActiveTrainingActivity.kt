@@ -25,9 +25,14 @@ import com.liftpath.helpers.showWithTransparentWindow
 import com.liftpath.helpers.DurationHelper
 import com.liftpath.models.*
 import com.liftpath.services.RestTimerService
+import com.liftpath.watch.WatchCommand
+import com.liftpath.watch.WatchExercise
+import com.liftpath.watch.WatchLink
+import com.liftpath.watch.WatchState
 import com.liftpath.components.MuscleMapDialog
 import com.liftpath.components.AddSpecialBottomSheet
 import com.liftpath.components.ChangeExerciseBottomSheet
+import com.liftpath.components.CircuitPickerBottomSheet
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -38,8 +43,9 @@ import android.view.Menu
 import android.view.MenuItem
 import android.widget.EditText
 import android.text.InputType
+import com.liftpath.helpers.lpColor
 
-class ActiveTrainingActivity : AppCompatActivity() {
+class ActiveTrainingActivity : AppCompatActivity(), WatchLink.Host {
 
     private lateinit var binding: ActivityActiveTrainingBinding
     private lateinit var jsonHelper: JsonHelper
@@ -141,8 +147,7 @@ class ActiveTrainingActivity : AppCompatActivity() {
                         }
                         
                         val newGroup = GroupedExercise(exerciseId, exerciseName, emptyList())
-                        groupedExercises.add(newGroup)
-                        adapter.notifyItemInserted(groupedExercises.size - 1)
+                        val insertIndex = insertRegularExerciseGroup(newGroup)
 
                         // First time a bodyweight exercise is added with no known body weight: ask for it.
                         if (isBodyweightExercise(exerciseId) && BodyWeightHelper.needsInitialBodyweight(this)) {
@@ -150,9 +155,9 @@ class ActiveTrainingActivity : AppCompatActivity() {
                         }
 
                         // If added as superset partner, link to previous exercise (or existing superset group)
-                        if (addAsSupersetPartner && groupedExercises.size >= 2) {
+                        if (addAsSupersetPartner && insertIndex >= 1) {
                             addAsSupersetPartner = false
-                            val lastIndex = groupedExercises.size - 1
+                            val lastIndex = insertIndex
                             val prevIndex = lastIndex - 1
                             val prevGroup = groupedExercises[prevIndex]
                             val lastGroup = groupedExercises[lastIndex]
@@ -197,6 +202,20 @@ class ActiveTrainingActivity : AppCompatActivity() {
             if (updatedSets != null) {
                 updateSetsFromEditActivity(updatedSets)
             }
+        }
+    }
+
+    // Authoring a brand new circuit from the active workout: on success, reopen the picker so
+    // the circuit just saved is right there to pick.
+    private val editCircuitLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            showCircuitPicker()
+        }
+    }
+
+    private val circuitRunnerLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            handleCircuitRunnerResult(result.data)
         }
     }
 
@@ -289,6 +308,10 @@ class ActiveTrainingActivity : AppCompatActivity() {
                 startWorkoutTimer()
             }
         }
+
+        // Last, so buildWatchState() sees a fully constructed screen. Whatever the draft
+        // restore above settles on gets republished by its own persistDraft() call.
+        WatchLink.attachHost(this)
     }
 
     // --- NAVIGATION ---
@@ -405,7 +428,7 @@ class ActiveTrainingActivity : AppCompatActivity() {
                     }
                     
                     // Add exercise as empty GroupedExercise (no sets yet)
-                    groupedExercises.add(GroupedExercise(exerciseId, exerciseName, emptyList()))
+                    insertRegularExerciseGroup(GroupedExercise(exerciseId, exerciseName, emptyList()), notify = false)
                 }
 
                 adapter.notifyDataSetChanged()
@@ -518,6 +541,25 @@ class ActiveTrainingActivity : AppCompatActivity() {
                 }
                 return@forEach
             }
+            // Plan-authored circuit: the slot only carries the round/rest overrides, the
+            // stations live on the referenced CircuitTemplate.
+            if (config.isCircuit) {
+                val template = CircuitStore.find(trainingData, config.circuitId)
+                if (template != null && groupedExercises.none { it.circuit?.templateId == template.id }) {
+                    val nextId = CIRCUIT_ROW_ID_BASE - groupedExercises.count { it.isCircuit }
+                    insertRegularExerciseGroup(
+                        GroupedExercise(
+                            exerciseId = nextId,
+                            exerciseName = template.name,
+                            sets = emptyList(),
+                            slotType = PlanSlotType.CIRCUIT,
+                            circuit = CircuitStore.templateToInstance(template, config)
+                        ),
+                        notify = false
+                    )
+                }
+                return@forEach
+            }
             // V3: resolve concrete exercise from slot (SPECIFIC_VARIANT or FAMILY_SLOT)
             val resolvedSelectionType = config.effectiveSelectionType
             val exercise: ExerciseLibraryItem?
@@ -566,14 +608,15 @@ class ActiveTrainingActivity : AppCompatActivity() {
                         }
                     }
 
-                    groupedExercises.add(
+                    insertRegularExerciseGroup(
                         GroupedExercise(
                             exerciseId = exerciseId,
                             exerciseName = exercise.name,
                             sets = emptyList(),
                             slotSelectionType = resolvedSelectionType,
                             slotFamilyId = resolvedFamilyId
-                        )
+                        ),
+                        notify = false
                     )
                     exerciseWorkoutTypes[exerciseId] = if (workoutType == "custom") "custom" else plan.workoutType
 
@@ -611,6 +654,7 @@ class ActiveTrainingActivity : AppCompatActivity() {
             }
         }
 
+        normalizeSpecialSlotOrder()
         adapter.notifyDataSetChanged()
         persistDraft()
         if (showToast) {
@@ -654,13 +698,13 @@ class ActiveTrainingActivity : AppCompatActivity() {
         if (appliedPlanId != null) {
             // Plan is applied - change tint to indicate active state
             binding.buttonPlan.setColorFilter(
-                ContextCompat.getColor(this, R.color.fitness_primary),
+                this.lpColor(R.attr.lpAccent),
                 android.graphics.PorterDuff.Mode.SRC_IN
             )
         } else {
             // No plan applied - use default tint
             binding.buttonPlan.setColorFilter(
-                ContextCompat.getColor(this, R.color.fitness_primary),
+                this.lpColor(R.attr.lpAccent),
                 android.graphics.PorterDuff.Mode.SRC_IN
             )
         }
@@ -840,7 +884,10 @@ class ActiveTrainingActivity : AppCompatActivity() {
             getTimerEndTimeMillis = { exerciseId -> specialTimerEndTimes[exerciseId] },
             onSpecialTimerReset = { exerciseId ->
                 resetSpecialElementTimer(exerciseId)
-            }
+            },
+            onStartCircuitClicked = { position -> launchCircuitRunner(position) },
+            onDeleteCircuitClicked = { exerciseId -> deleteCircuit(exerciseId) },
+            onCircuitSettingsClicked = { position -> showCircuitSettingsDialog(position) }
         )
         binding.recyclerViewActiveWorkout.adapter = adapter
         binding.recyclerViewActiveWorkout.layoutManager = LinearLayoutManager(this)
@@ -923,8 +970,8 @@ class ActiveTrainingActivity : AppCompatActivity() {
     }
 
     private fun showMuscleOverview() {
-        // Extract unique exercise IDs from grouped exercises (exclude sentinel IDs for warmup/cooldown)
-        val exerciseIds = groupedExercises.filter { !it.isSpecialElement }.map { it.exerciseId }.distinct()
+        // Extract unique exercise IDs from grouped exercises (exclude sentinel IDs for warmup/cooldown/circuit)
+        val exerciseIds = groupedExercises.filter { !it.isSpecialElement && !it.isCircuit }.map { it.exerciseId }.distinct()
         
         // Load ExerciseLibraryItem objects for these IDs
         val trainingData = jsonHelper.readTrainingData()
@@ -992,10 +1039,10 @@ class ActiveTrainingActivity : AppCompatActivity() {
     }
 
     private fun isBodyweightExercise(exerciseId: Int): Boolean =
-        jsonHelper.readTrainingData().exerciseLibrary.find { it.id == exerciseId }?.isBodyweight == true
+        ExerciseModeResolver.isBodyweight(jsonHelper.readTrainingData().exerciseLibrary, exerciseId)
 
     private fun isTimeBasedExercise(exerciseId: Int): Boolean =
-        jsonHelper.readTrainingData().exerciseLibrary.find { it.id == exerciseId }?.isTimeBased == true
+        ExerciseModeResolver.isTimeBased(jsonHelper.readTrainingData().exerciseLibrary, exerciseId)
 
     private fun launchLogSetActivity(exerciseId: Int, exerciseName: String) {
         try {
@@ -1218,6 +1265,9 @@ class ActiveTrainingActivity : AppCompatActivity() {
             },
             onSuperSetSelected = {
                 handleAddExerciseAsSupersetPartner()
+            },
+            onCircuitSelected = {
+                showCircuitPicker()
             }
         )
         bottomSheet.show(supportFragmentManager, "AddSpecialBottomSheet")
@@ -1458,6 +1508,114 @@ class ActiveTrainingActivity : AppCompatActivity() {
         }
     }
 
+    private fun showCircuitPicker() {
+        val data = jsonHelper.readTrainingData()
+        CircuitPickerBottomSheet.newInstance(
+            circuits = CircuitStore.circuits(data),
+            library = data.exerciseLibrary,
+            onCircuitSelected = { template -> addCircuitElement(template) },
+            onNewCircuit = { editCircuitLauncher.launch(Intent(this, EditCircuitActivity::class.java)) }
+        ).show(supportFragmentManager, "CircuitPickerBottomSheet")
+    }
+
+    private fun addCircuitElement(template: CircuitTemplate) {
+        val nextId = CIRCUIT_ROW_ID_BASE - groupedExercises.count { it.isCircuit }
+        val group = GroupedExercise(
+            exerciseId = nextId,
+            exerciseName = template.name,
+            sets = emptyList(),
+            slotType = PlanSlotType.CIRCUIT,
+            circuit = CircuitStore.templateToInstance(template)
+        )
+        insertRegularExerciseGroup(group)
+        persistDraft()
+    }
+
+    private fun deleteCircuit(exerciseId: Int) {
+        val index = groupedExercises.indexOfFirst { it.exerciseId == exerciseId }
+        if (index < 0) return
+        val instanceId = groupedExercises[index].circuit?.instanceId
+        groupedExercises.removeAt(index)
+        adapter.notifyItemRemoved(index)
+        if (instanceId != null) currentExerciseEntries.removeAll { it.groupId == instanceId }
+        persistDraft()
+    }
+
+    private fun launchCircuitRunner(position: Int) {
+        if (position < 0 || position >= groupedExercises.size) return
+        val group = groupedExercises[position]
+        val instance = group.circuit ?: return
+        val entries = currentExerciseEntries.filter { it.groupId == instance.instanceId }
+        val intent = Intent(this, CircuitRunnerActivity::class.java).apply {
+            putExtra(CircuitRunnerActivity.EXTRA_CIRCUIT_INSTANCE, instance)
+            putParcelableArrayListExtra(CircuitRunnerActivity.EXTRA_CIRCUIT_ENTRIES, ArrayList(entries))
+            putExtra(CircuitRunnerActivity.EXTRA_WORKOUT_TYPE, workoutType)
+        }
+        circuitRunnerLauncher.launch(intent)
+    }
+
+    private fun handleCircuitRunnerResult(data: Intent?) {
+        data ?: return
+        val instance = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            data.getParcelableExtra(CircuitRunnerActivity.RESULT_CIRCUIT_INSTANCE, CircuitInstance::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            data.getParcelableExtra(CircuitRunnerActivity.RESULT_CIRCUIT_INSTANCE)
+        } ?: return
+        val entries = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            data.getParcelableArrayListExtra(CircuitRunnerActivity.RESULT_CIRCUIT_ENTRIES, ExerciseEntry::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            data.getParcelableArrayListExtra(CircuitRunnerActivity.RESULT_CIRCUIT_ENTRIES)
+        } ?: emptyList()
+
+        val index = groupedExercises.indexOfFirst { it.circuit?.instanceId == instance.instanceId }
+        if (index < 0) return
+        groupedExercises[index] = groupedExercises[index].copy(circuit = instance)
+        currentExerciseEntries.removeAll { it.groupId == instance.instanceId }
+        currentExerciseEntries.addAll(entries)
+        adapter.notifyItemChanged(index)
+        persistDraft()
+    }
+
+    private fun showCircuitSettingsDialog(position: Int) {
+        if (position < 0 || position >= groupedExercises.size) return
+        val group = groupedExercises[position]
+        val circuit = group.circuit ?: return
+
+        val container = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(48, 24, 48, 0)
+        }
+        val roundsInput = EditText(this).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER
+            hint = getString(R.string.edit_circuit_hint_rounds)
+            circuit.suggestedRounds?.let { setText(it.toString()) }
+        }
+        val restInput = EditText(this).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER
+            hint = getString(R.string.edit_circuit_hint_rest)
+            setText(circuit.restBetweenRoundsSeconds.toString())
+        }
+        container.addView(roundsInput)
+        container.addView(restInput)
+
+        DialogHelper.createBuilder(this)
+            .setTitle(group.exerciseName)
+            .setView(container)
+            .setPositiveButton(getString(R.string.button_ok)) { _, _ ->
+                val rounds = roundsInput.text.toString().toIntOrNull()
+                val rest = restInput.text.toString().toIntOrNull() ?: circuit.restBetweenRoundsSeconds
+                groupedExercises[position] = group.copy(
+                    circuit = circuit.copy(suggestedRounds = rounds, restBetweenRoundsSeconds = rest)
+                )
+                adapter.notifyItemChanged(position)
+                persistDraft()
+            }
+            .setNegativeButton(getString(R.string.button_cancel), null)
+            .showWithTransparentWindow()
+    }
+
     private fun showDurationPickerDialog(isWarmup: Boolean, onSelected: (Int) -> Unit) {
         val title = if (isWarmup) getString(R.string.dialog_title_warmup_duration) else getString(R.string.dialog_title_cooldown_duration)
         val options = arrayOf("5 min", "10 min", "15 min", "20 min", getString(R.string.option_custom))
@@ -1509,6 +1667,28 @@ class ActiveTrainingActivity : AppCompatActivity() {
             adapter.notifyItemInserted(groupedExercises.size - 1)
         }
         persistDraft()
+    }
+
+    // Warmup is pinned at index 0 by addSpecialElement's insertAtFront and nothing ever
+    // inserts before it, so only cooldown needs an active guard: insert regular exercises
+    // before it instead of appending past it, so it stays last no matter what's added after.
+    private fun insertRegularExerciseGroup(group: GroupedExercise, notify: Boolean = true): Int {
+        val cooldownIndex = groupedExercises.indexOfFirst { it.slotType == PlanSlotType.COOLDOWN }
+        val insertIndex = if (cooldownIndex >= 0) cooldownIndex else groupedExercises.size
+        groupedExercises.add(insertIndex, group)
+        if (notify) adapter.notifyItemInserted(insertIndex)
+        return insertIndex
+    }
+
+    private fun normalizeSpecialSlotOrder() {
+        val warmupIndex = groupedExercises.indexOfFirst { it.slotType == PlanSlotType.WARMUP }
+        if (warmupIndex > 0) {
+            groupedExercises.add(0, groupedExercises.removeAt(warmupIndex))
+        }
+        val cooldownIndex = groupedExercises.indexOfFirst { it.slotType == PlanSlotType.COOLDOWN }
+        if (cooldownIndex in 0 until groupedExercises.size - 1) {
+            groupedExercises.add(groupedExercises.removeAt(cooldownIndex))
+        }
     }
 
     private fun handleSpecialCompleted(exerciseId: Int, isCompleted: Boolean) {
@@ -1570,6 +1750,14 @@ class ActiveTrainingActivity : AppCompatActivity() {
             val trainingData = jsonHelper.readTrainingData()
             val nextTrainingNumber = (trainingData.trainings.maxOfOrNull { it.trainingNumber } ?: 0) + 1
 
+            // Round data (rounds run, work time per round) has nowhere else to live — the
+            // set list alone can't tell "3 rounds of 5 stations" from 15 unrelated sets.
+            val circuitLogs = groupedExercises
+                .mapNotNull { it.circuit }
+                .filter { it.completedRounds > 0 }
+                .map { CircuitStore.instanceToLog(it) }
+                .ifEmpty { null }
+
             val newSession = TrainingSession(
                 trainingNumber = nextTrainingNumber,
                 date = binding.textDate.text.toString(),
@@ -1577,7 +1765,8 @@ class ActiveTrainingActivity : AppCompatActivity() {
                 defaultWorkoutType = workoutType,
                 planId = appliedPlanId,
                 planName = appliedPlanName,
-                durationSeconds = durationSeconds
+                durationSeconds = durationSeconds,
+                circuitLogs = circuitLogs
             )
 
             trainingData.trainings.add(newSession)
@@ -1729,7 +1918,8 @@ class ActiveTrainingActivity : AppCompatActivity() {
                         isSpecialCompleted = row.isSpecialCompleted,
                         durationSeconds = row.durationSeconds,
                         slotSelectionType = row.slotSelectionType,
-                        slotFamilyId = row.slotFamilyId
+                        slotFamilyId = row.slotFamilyId,
+                        circuit = row.circuit
                     )
                 )
                 // Restore plan snapshots from draft rows
@@ -1742,8 +1932,12 @@ class ActiveTrainingActivity : AppCompatActivity() {
             rebuildGroupedExercisesFromEntries()
         }
 
+        // Self-heal drafts persisted before warmup/cooldown pinning was enforced.
+        normalizeSpecialSlotOrder()
+        adapter.notifyDataSetChanged()
+
         groupedExercises.forEach { group ->
-            if (!group.isSpecialElement && !exerciseIntents.containsKey(group.exerciseId)) {
+            if (!group.isSpecialElement && !group.isCircuit && !exerciseIntents.containsKey(group.exerciseId)) {
                 exerciseIntents[group.exerciseId] = SetIntent.BUILD
             }
         }
@@ -1893,6 +2087,7 @@ class ActiveTrainingActivity : AppCompatActivity() {
     private fun persistDraft() {
         if (groupedExercises.isEmpty() && currentExerciseEntries.isEmpty()) {
             draftManager.clearDraft()
+            WatchLink.publish(buildWatchState())
             return
         }
         val entriesCopy = currentExerciseEntries.map { it.copy() }
@@ -1918,7 +2113,8 @@ class ActiveTrainingActivity : AppCompatActivity() {
                 isSpecialCompleted = g.isSpecialCompleted,
                 durationSeconds = g.durationSeconds,
                 slotSelectionType = g.slotSelectionType,
-                slotFamilyId = g.slotFamilyId
+                slotFamilyId = g.slotFamilyId,
+                circuit = g.circuit
             )
         }
         val supersetPairs = mutableListOf<SupersetPair>()
@@ -1950,6 +2146,10 @@ class ActiveTrainingActivity : AppCompatActivity() {
             workoutSource = workoutSource
         )
         draftManager.saveDraft(draft)
+        // Single publish point for the watch. persistDraft() is already called from every
+        // mutation path in this screen, so the watch cannot drift out of date unless the draft
+        // does too — which would be a bug worth having anyway.
+        WatchLink.publish(buildWatchState())
     }
 
     private fun persistDraftIfHasEntries() {
@@ -1957,6 +2157,132 @@ class ActiveTrainingActivity : AppCompatActivity() {
             persistDraft()
         }
     }
+
+    // --- WATCH LINK (Garmin Fenix) ---
+
+    /**
+     * Projects the session down to what a watch screen can act on: what to do next, how many
+     * sets remain, and what to load. Everything else stays on the phone.
+     *
+     * Warmup/cooldown special elements are excluded — they carry no sets, so there is nothing
+     * to log against them from the wrist.
+     */
+    override fun buildWatchState(): WatchState {
+        val library = jsonHelper.readTrainingData().exerciseLibrary
+        val exercises = groupedExercises
+            .filter { it.slotType == PlanSlotType.EXERCISE }
+            .map { group ->
+                val id = group.exerciseId
+                val snapshot = planExerciseSnapshots[id]
+                WatchExercise(
+                    exerciseId = id,
+                    name = group.exerciseName,
+                    setsDone = currentExerciseEntries.count {
+                        it.exerciseId == id && !it.isEffectivelyWarmup()
+                    },
+                    setsTarget = snapshot?.plannedSetsTarget ?: 0,
+                    repsTarget = parseWatchRepsTarget(snapshot?.plannedRepsTarget),
+                    suggestedKg = lastLoggedKg[id] ?: 0f,
+                    isBodyweight = ExerciseModeResolver.isBodyweight(library, id)
+                )
+            }
+        return WatchState(
+            sessionActive = exercises.isNotEmpty(),
+            restRemainingSeconds = RestTimerService.getRemainingSeconds(this),
+            exercises = exercises
+        )
+    }
+
+    /** Plans store reps as free text ("8-12", "10", "AMRAP"). The watch needs one number. */
+    private fun parseWatchRepsTarget(raw: String?): Int =
+        raw?.trimStart()?.takeWhile { it.isDigit() }?.toIntOrNull() ?: 0
+
+    override fun onWatchCommand(command: WatchCommand) {
+        when (command) {
+            is WatchCommand.LogSet -> logSetFromWatch(command)
+
+            is WatchCommand.StartRest -> if (canPostNotifications()) {
+                val name = groupedExercises.firstOrNull()?.exerciseName ?: "Rest"
+                RestTimerService.startTimer(this, command.seconds, name, showDialog = false)
+                setTimerState(TimerState.RUNNING)
+                WatchLink.publish(buildWatchState())
+            }
+
+            WatchCommand.StopRest -> {
+                RestTimerService.stopTimer(this)
+                setTimerState(TimerState.IDLE)
+                WatchLink.publish(buildWatchState())
+            }
+
+            WatchCommand.Sync -> WatchLink.publish(buildWatchState())
+        }
+    }
+
+    /**
+     * The watch's equivalent of [launchLogSetActivity] plus its result callback, collapsed into
+     * one step — there is no form to fill in, the numbers arrive already decided.
+     *
+     * Set numbering, workout type and intent are derived exactly as the phone path derives
+     * them, so a set logged from the wrist is indistinguishable from one logged here. It also
+     * routes through [updateExercises], which means superset highlighting, intent locking and
+     * the draft write all happen for free.
+     */
+    private fun logSetFromWatch(command: WatchCommand.LogSet) {
+        val exerciseId = command.exerciseId
+        val group = groupedExercises.firstOrNull { it.exerciseId == exerciseId }
+        if (group == null) {
+            // The watch was showing a stale projection — the exercise has since been removed.
+            Log.w(TAG, "watch logged a set for exercise $exerciseId, no longer in the session")
+            return
+        }
+
+        val lastWorkingSet = currentExerciseEntries
+            .filter { it.exerciseId == exerciseId && !it.isWarmup }
+            .maxByOrNull { it.setNumber }
+        val setNumber = (lastWorkingSet?.setNumber ?: currentExerciseEntries
+            .filter { it.exerciseId == exerciseId }
+            .maxByOrNull { it.setNumber }?.setNumber ?: 0) + 1
+
+        // The watch only ever sends added load. `kg` must stay (bodyweight + added) so every
+        // existing reader of ExerciseEntry keeps working — see the note on ExerciseEntry.kg.
+        val bodyweightKg = if (ExerciseModeResolver.isBodyweight(
+                jsonHelper.readTrainingData().exerciseLibrary, exerciseId
+            )
+        ) {
+            BodyWeightHelper.getCurrentBodyweightKg(this)
+        } else {
+            null
+        }
+
+        // familyIdSnapshot is deliberately left null: JsonHelper backfills it from the live
+        // library when the session is written, the same as for a phone-logged set.
+        val entry = ExerciseEntry(
+            exerciseId = exerciseId,
+            exerciseName = group.exerciseName,
+            setNumber = setNumber,
+            kg = if (bodyweightKg != null) bodyweightKg + command.kg else command.kg,
+            reps = command.reps,
+            workoutType = exerciseWorkoutTypes[exerciseId] ?: workoutType,
+            rpe = command.rpe,
+            explicitIntent = exerciseIntents[exerciseId] ?: SetIntent.BUILD,
+            bodyweightKg = bodyweightKg,
+            addedKg = if (bodyweightKg != null) command.kg else null
+        )
+
+        updateExercises(entry)
+
+        // Not startRestTimerAfterLoggedSet: that one can launch a runtime permission request,
+        // and a button press on a wrist must never try to raise a dialog on a phone that may
+        // be asleep in a pocket. If the permission is missing the watch simply gets no timer.
+        if (canPostNotifications()) {
+            startRestTimerAfterLoggedSet(exerciseId, entry.rpe)
+        }
+    }
+
+    private fun canPostNotifications(): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED
 
     // --- TIMER LOGIC ---
 
@@ -2028,6 +2354,7 @@ class ActiveTrainingActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        WatchLink.detachHost(this)
         stopTimerIfRunning()
         stopWorkoutTimer()
         timerReceiver?.let {
@@ -2239,7 +2566,7 @@ class ActiveTrainingActivity : AppCompatActivity() {
             for (i in 0 until count) {
                 val child = numberPicker.getChildAt(i)
                 if (child is android.widget.TextView) {
-                    child.setTextColor(ContextCompat.getColor(this, R.color.fitness_text_primary))
+                    child.setTextColor(this.lpColor(R.attr.lpInk))
                     child.textSize = 18f
                 }
             }

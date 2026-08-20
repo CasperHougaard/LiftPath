@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
-    <solid android:color="@color/fitness_highlight_background" />
+    <solid android:color="?attr/lpSurfaceAlt" />
     <stroke
         android:width="2dp"
-        android:color="@color/fitness_highlight_border" />
+        android:color="?attr/lpPositive" />
     <corners android:radius="8dp" />
 </shape>
 

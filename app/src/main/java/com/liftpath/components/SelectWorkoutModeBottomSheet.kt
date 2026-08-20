@@ -1,6 +1,7 @@
 package com.liftpath.components
 
 import android.app.Dialog
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
@@ -12,6 +13,7 @@ import android.view.Window
 import android.view.WindowManager
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.DialogFragment
@@ -23,9 +25,11 @@ import com.liftpath.R
 import com.liftpath.adapters.PlanSelectionAdapter
 import com.liftpath.helpers.DefaultStretchesHelper
 import com.liftpath.helpers.JsonHelper
+import com.liftpath.helpers.PlanRotationHelper
+import com.liftpath.helpers.lpColor
 import com.liftpath.models.PlanSet
-import com.liftpath.models.PlanSetProgress
 import com.liftpath.models.TargetMuscle
+import com.liftpath.models.TrainingData
 import com.liftpath.models.WorkoutPlan
 
 /**
@@ -42,22 +46,30 @@ class SelectWorkoutModeBottomSheet : DialogFragment() {
     private var onStretchSelected: ((Set<TargetMuscle>) -> Unit)? = null
 
     private lateinit var jsonHelper: JsonHelper
+    private var trainingData: TrainingData = TrainingData()
     private var plans: List<WorkoutPlan> = emptyList()
     private var planSets: List<PlanSet> = emptyList()
-    private var planSetProgress: List<PlanSetProgress> = emptyList()
     private var isPlanListExpanded = false
     private var isStretchPickerExpanded = false
+
+    /** Which section the sheet opens on. */
+    enum class Section { NONE, PLAN, STRETCH }
 
     companion object {
         fun newInstance(
             onCustomSelected: () -> Unit,
             onPlanSelected: (WorkoutPlan, PlanSet?) -> Unit,
-            onStretchSelected: (Set<TargetMuscle>) -> Unit
+            onStretchSelected: (Set<TargetMuscle>) -> Unit,
+            initialSection: Section = Section.NONE
         ): SelectWorkoutModeBottomSheet {
             return SelectWorkoutModeBottomSheet().apply {
                 this.onCustomSelected = onCustomSelected
                 this.onPlanSelected = onPlanSelected
                 this.onStretchSelected = onStretchSelected
+                // The Workout tab's mode chips name the section, so opening collapsed would
+                // charge the user a tap for a choice they already made.
+                this.isPlanListExpanded = initialSection == Section.PLAN
+                this.isStretchPickerExpanded = initialSection == Section.STRETCH
             }
         }
     }
@@ -105,13 +117,14 @@ class SelectWorkoutModeBottomSheet : DialogFragment() {
         setupTiles(view)
         setupPlanList(view)
         setupStretchPicker(view)
+        // Applies whichever section newInstance asked for; a no-op for Section.NONE.
+        updateSectionVisibility(view)
     }
 
     private fun loadData() {
-        val trainingData = jsonHelper.readTrainingData()
+        trainingData = jsonHelper.readTrainingData()
         plans = trainingData.workoutPlans.toList()
         planSets = trainingData.planSets.toList()
-        planSetProgress = trainingData.planSetProgress.toList()
     }
 
     private fun setupTiles(view: View) {
@@ -119,7 +132,7 @@ class SelectWorkoutModeBottomSheet : DialogFragment() {
         val customIcon = customTile.findViewById<ImageView>(R.id.icon_tile)
         val customTitle = customTile.findViewById<TextView>(R.id.text_tile_title)
         customIcon.setImageResource(R.drawable.ic_dumbbell)
-        customTitle.text = "Manual"
+        customTitle.text = getString(R.string.workout_mode_manual)
         customTile.setOnClickListener {
             dismiss()
             onCustomSelected?.invoke()
@@ -129,14 +142,14 @@ class SelectWorkoutModeBottomSheet : DialogFragment() {
         val planIcon = planTile.findViewById<ImageView>(R.id.icon_tile)
         val planTitle = planTile.findViewById<TextView>(R.id.text_tile_title)
         planIcon.setImageResource(R.drawable.ic_plans)
-        planTitle.text = "Follow Plan"
+        planTitle.text = getString(R.string.workout_mode_follow_plan)
         planTile.setOnClickListener { togglePlanList(view) }
 
         val stretchTile = view.findViewById<View>(R.id.tile_stretch)
         val stretchIcon = stretchTile.findViewById<ImageView>(R.id.icon_tile)
         val stretchTitle = stretchTile.findViewById<TextView>(R.id.text_tile_title)
         stretchIcon.setImageResource(R.drawable.ic_stretch)
-        stretchTitle.text = "Stretch"
+        stretchTitle.text = getString(R.string.workout_mode_stretch)
         stretchTile.setOnClickListener { toggleStretchPicker(view) }
     }
 
@@ -191,33 +204,34 @@ class SelectWorkoutModeBottomSheet : DialogFragment() {
         val continuePlanSetName = view.findViewById<TextView>(R.id.text_continue_plan_set_name)
         val continueNextPlan = view.findViewById<TextView>(R.id.text_continue_next_plan)
 
-        // Find the most recently completed plan set
-        val latestProgress = planSetProgress.maxByOrNull { it.lastCompletedAt ?: 0L }
-        val activePlanSet = latestProgress?.planSetId?.let { id -> planSets.find { it.id == id } }
-        val nextPlan = activePlanSet?.let { resolveNextPlan(it) }
-
-        if (activePlanSet != null && nextPlan != null) {
-            continueCard.visibility = View.VISIBLE
-            continuePlanSetName.text = activePlanSet.name
-            continueNextPlan.text = "→ Next: ${nextPlan.name}"
-            continueCard.setOnClickListener {
-                dismiss()
-                onPlanSelected?.invoke(nextPlan, activePlanSet)
+        // Same resolution the Workout tab hero uses, so this card never disagrees with it.
+        when (val routine = PlanRotationHelper.resolveActiveRoutine(trainingData)) {
+            is PlanRotationHelper.ActiveRoutine.Rotation -> {
+                continueCard.visibility = View.VISIBLE
+                continuePlanSetName.text = routine.planSet.name
+                continueNextPlan.visibility = View.VISIBLE
+                continueNextPlan.text = getString(R.string.label_continue_next_plan, routine.nextPlan.name)
+                continueCard.setOnClickListener {
+                    dismiss()
+                    onPlanSelected?.invoke(routine.nextPlan, routine.planSet)
+                }
             }
-        } else {
-            continueCard.visibility = View.GONE
+            is PlanRotationHelper.ActiveRoutine.SinglePlan -> {
+                continueCard.visibility = View.VISIBLE
+                continuePlanSetName.text = routine.plan.name
+                continueNextPlan.visibility = View.GONE
+                continueCard.setOnClickListener {
+                    dismiss()
+                    onPlanSelected?.invoke(routine.plan, null)
+                }
+            }
+            null -> continueCard.visibility = View.GONE
         }
     }
 
-    /** Returns the next plan in rotation for a given PlanSet, or null if unavailable. */
-    private fun resolveNextPlan(planSet: PlanSet): WorkoutPlan? {
-        if (planSet.planIds.isEmpty()) return null
-        val progress = planSetProgress.find { it.planSetId == planSet.id }
-        val lastIndex = planSet.planIds.indexOf(progress?.lastCompletedPlanId)
-        val nextIndex = if (lastIndex == -1) 0 else (lastIndex + 1) % planSet.planIds.size
-        val nextPlanId = planSet.planIds.getOrNull(nextIndex) ?: return null
-        return plans.find { it.id == nextPlanId }
-    }
+    /** Next plan in rotation. Shared with the Workout tab via [PlanRotationHelper]. */
+    private fun resolveNextPlan(planSet: PlanSet): WorkoutPlan? =
+        PlanRotationHelper.nextPlan(trainingData, planSet)
 
     private fun togglePlanList(view: View) {
         isPlanListExpanded = !isPlanListExpanded
@@ -251,15 +265,17 @@ class SelectWorkoutModeBottomSheet : DialogFragment() {
 
         val fullBodyChip = Chip(requireContext()).apply {
             id = View.generateViewId()
-            text = "Full body"
+            text = getString(R.string.stretch_area_full_body)
             isCheckable = true
             isChecked = true
+            styleAsChoiceChip()
         }
         val areaChips = DefaultStretchesHelper.STRETCH_AREAS.keys.map { area ->
             Chip(requireContext()).apply {
                 id = View.generateViewId()
                 text = area
                 isCheckable = true
+                styleAsChoiceChip()
             }
         }
 
@@ -298,6 +314,21 @@ class SelectWorkoutModeBottomSheet : DialogFragment() {
         }
     }
 
+    /**
+     * Applies [R.style.Widget_LP_Chip_Choice] to a programmatically-created chip. XML-inflated
+     * chips get this via `style="@style/Widget.LP.Chip.Choice"`, but that attribute set only
+     * applies at inflation time, so chips built in code need it mirrored here.
+     */
+    private fun Chip.styleAsChoiceChip() {
+        setTextAppearance(R.style.TextAppearance_LP_Label)
+        chipBackgroundColor = ContextCompat.getColorStateList(context, R.color.lp_chip_background)
+        setTextColor(ContextCompat.getColorStateList(context, R.color.lp_chip_text))
+        chipStrokeColor = ColorStateList.valueOf(context.lpColor(R.attr.lpHairline))
+        chipStrokeWidth = resources.getDimension(R.dimen.lp_hairline_width)
+        chipCornerRadius = resources.getDimension(R.dimen.lp_radius_sm)
+        rippleColor = ColorStateList.valueOf(context.lpColor(R.attr.lpRipple))
+    }
+
     /** Inline adapter for showing plan sets (rotations) in the plan list. */
     private class PlanSetSelectionAdapter(
         private val items: List<Pair<PlanSet, WorkoutPlan>>,  // (planSet, nextPlan)
@@ -319,7 +350,7 @@ class SelectWorkoutModeBottomSheet : DialogFragment() {
         override fun onBindViewHolder(holder: VH, position: Int) {
             val (planSet, nextPlan) = items[position]
             holder.name.text = planSet.name
-            holder.sub.text = "Next: ${nextPlan.name}"
+            holder.sub.text = holder.itemView.context.getString(R.string.label_continue_next_plan, nextPlan.name)
             holder.itemView.setOnClickListener { onClicked(planSet, nextPlan) }
         }
 

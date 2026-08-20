@@ -1,19 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    style="@style/Widget.LP.Card.Dense"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginHorizontal="4dp"
-    android:layout_marginVertical="6dp"
-    app:cardBackgroundColor="@color/fitness_card_background"
-    app:cardCornerRadius="12dp"
-    app:cardElevation="2dp">
+    android:layout_marginHorizontal="@dimen/lp_space_1"
+    android:layout_marginVertical="@dimen/lp_card_gap_dense"
+    android:clickable="false"
+    android:focusable="false">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="12dp">
+        android:padding="@dimen/lp_card_padding_dense">
 
         <!-- Row 1: Set Header with Delete Button -->
         <LinearLayout
@@ -21,41 +22,39 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:layout_marginBottom="8dp">
+            android:layout_marginBottom="@dimen/lp_space_2">
 
             <TextView
                 android:id="@+id/text_set_number"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Set 1"
-                android:textAppearance="@style/TextAppearance.AppCompat.Subhead"
-                android:textStyle="bold"
-                android:textColor="@color/fitness_text_primary" />
+                android:textAppearance="@style/TextAppearance.LP.Heading"
+                tools:text="Set 1" />
 
             <!-- Warmup Toggle - compact inline -->
             <CheckBox
                 android:id="@+id/cb_warmup"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:buttonTint="@color/fitness_primary"
-                android:text="Warmup"
-                android:textColor="@color/fitness_text_secondary"
-                android:textSize="12sp"
+                android:buttonTint="?attr/lpAccent"
+                android:text="@string/label_warmup"
+                android:textAppearance="@style/TextAppearance.LP.Label"
+                android:textColor="?attr/lpInkSecondary"
                 android:minHeight="0dp"
                 android:minWidth="0dp"
-                android:paddingStart="4dp" />
+                android:paddingStart="@dimen/lp_space_1" />
 
             <!-- Delete Button -->
             <ImageButton
                 android:id="@+id/button_delete"
                 android:layout_width="36dp"
                 android:layout_height="36dp"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="@dimen/lp_space_2"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/button_delete"
                 android:src="@drawable/ic_delete"
-                app:tint="@color/fitness_error" />
+                app:tint="?attr/lpNegative" />
 
         </LinearLayout>
 
@@ -68,53 +67,50 @@
 
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/text_input_layout_kg"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
+                style="@style/Widget.LP.TextInputLayout.Numeric"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:layout_marginEnd="6dp"
+                android:layout_marginEnd="@dimen/lp_card_gap_dense"
                 android:hint="@string/hint_kg">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/edit_text_kg"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="numberDecimal"
-                    android:textSize="14sp" />
+                    android:inputType="numberDecimal" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/text_input_layout_reps"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
+                style="@style/Widget.LP.TextInputLayout.Numeric"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:layout_marginHorizontal="6dp"
+                android:layout_marginHorizontal="@dimen/lp_card_gap_dense"
                 android:hint="@string/hint_reps">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/edit_text_reps"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="number"
-                    android:textSize="14sp" />
+                    android:inputType="number" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/text_input_layout_rpe"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
+                style="@style/Widget.LP.TextInputLayout.Numeric"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:layout_marginStart="6dp"
+                android:layout_marginStart="@dimen/lp_card_gap_dense"
                 android:hint="@string/hint_rpe">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/edit_text_rpe"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="numberDecimal"
-                    android:textSize="14sp" />
+                    android:inputType="numberDecimal" />
             </com.google.android.material.textfield.TextInputLayout>
 
         </LinearLayout>
@@ -126,29 +122,28 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:layout_marginTop="8dp">
+            android:layout_marginTop="@dimen/lp_space_2">
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/button_note"
-                style="@style/Widget.MaterialComponents.Button.TextButton"
+                style="@style/Widget.LP.Button.Text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/button_add_note"
-                android:textSize="12sp"
                 android:minHeight="32dp"
+                android:text="@string/button_add_note"
                 app:icon="@drawable/ic_note"
                 app:iconSize="16dp"
-                app:iconTint="@color/fitness_primary" />
+                app:iconTint="?attr/lpAccent" />
 
             <TextView
                 android:id="@+id/text_note_preview"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="@dimen/lp_space_2"
                 android:visibility="gone"
-                android:textColor="@color/fitness_text_secondary"
-                android:textSize="12sp"
+                android:textAppearance="@style/TextAppearance.LP.Label"
+                android:textColor="?attr/lpInkSecondary"
                 android:textStyle="italic"
                 android:maxLines="1"
                 android:ellipsize="end" />
@@ -157,4 +152,4 @@
 
     </LinearLayout>
 
-</androidx.cardview.widget.CardView>
+</com.google.android.material.card.MaterialCardView>

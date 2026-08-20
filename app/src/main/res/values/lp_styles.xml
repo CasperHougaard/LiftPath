@@ -1,0 +1,361 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  LiftPath component styles.
+
+  The core move: cards are defined by a 1dp HAIRLINE, not a shadow. The old layouts had
+  85 cards at 4dp elevation and 68 at 2dp; a Material-2 drop shadow over a grey canvas
+  resolves to a grey blur, which is what "cheap" actually looks like up close.
+  Elevation 0 + hairline + a surface brighter than the canvas separates without mud and
+  stays crisp on every display.
+
+  Every colour here is ?attr/, so all of it follows the user's selected palette.
+
+  These styles are OPT-IN, not theme defaults (the one exception is tabStyle, wired in
+  Theme.LiftPath.Base, because tabs are simple enough to switch safely everywhere).
+  Layouts adopt them with style="@style/Widget.LP.*" as each migration wave lands.
+  Wiring them as global defaults now would half-flatten the ~20 unmigrated screens that
+  mix MaterialCardView with legacy CardView, which would look broken rather than better.
+
+  Themes live in themes.xml; the type scale lives in lp_type.xml.
+-->
+<resources>
+
+    <!-- ================= SHAPE ================= -->
+
+    <style name="ShapeAppearance.LP.Small" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">@dimen/lp_radius_sm</item>
+    </style>
+
+    <style name="ShapeAppearance.LP.Medium" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">@dimen/lp_radius_md</item>
+    </style>
+
+    <style name="ShapeAppearance.LP.Large" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">@dimen/lp_radius_lg</item>
+    </style>
+
+    <!-- ================= CARDS ================= -->
+
+    <!-- The default card. Static content; no ripple, no lift. -->
+    <style name="Widget.LP.Card" parent="Widget.MaterialComponents.CardView">
+        <item name="cardBackgroundColor">?attr/lpSurface</item>
+        <item name="cardElevation">0dp</item>
+        <item name="cardCornerRadius">@dimen/lp_radius_md</item>
+        <item name="strokeColor">?attr/lpHairline</item>
+        <item name="strokeWidth">@dimen/lp_hairline_width</item>
+        <item name="rippleColor">?attr/lpRipple</item>
+        <!-- Must clip children or a nested background bleeds past the radius. -->
+        <item name="cardPreventCornerOverlap">true</item>
+        <item name="cardUseCompatPadding">false</item>
+    </style>
+
+    <!-- Tappable card. MaterialCardView derives its own ripple from rippleColor once
+         clickable, so no android:foreground hack is needed. -->
+    <style name="Widget.LP.Card.Interactive" parent="Widget.LP.Card">
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+
+    <!-- Dense variant for working surfaces (active workout, log set, pickers). Tighter
+         radius so a shorter card does not read as a pill by accident. -->
+    <style name="Widget.LP.Card.Dense" parent="Widget.LP.Card">
+        <item name="cardCornerRadius">@dimen/lp_radius_sm</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+
+    <!-- The hero. Ink fill, no hairline (it would read as an outline on near-black),
+         largest radius. The one surface allowed to dominate a screen. -->
+    <style name="Widget.LP.Card.Hero" parent="Widget.LP.Card">
+        <item name="cardBackgroundColor">?attr/lpInk</item>
+        <item name="cardCornerRadius">@dimen/lp_radius_lg</item>
+        <item name="strokeWidth">0dp</item>
+        <item name="rippleColor">?attr/lpRippleInverse</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+
+    <!-- Small square controls (the settings gear). Circular via a radius past 50%. -->
+    <style name="Widget.LP.Card.Control" parent="Widget.LP.Card">
+        <item name="cardCornerRadius">24dp</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+
+    <!--
+      The one primary action inside a dense card — ink-filled, like Widget.LP.Button, but
+      built as a card so it can hold an icon+label row without MaterialButton's insets.
+      Ink rather than accent for the reason given on the button styles: the most important
+      action is the darkest thing present, and accent stays reserved for state. That only
+      works because progressive disclosure keeps exactly one card expanded at a time — a
+      list of ink slabs would be a different, worse screen.
+    -->
+    <style name="Widget.LP.Card.Action" parent="Widget.LP.Card">
+        <item name="cardBackgroundColor">?attr/lpInk</item>
+        <item name="cardCornerRadius">@dimen/lp_radius_sm</item>
+        <item name="strokeWidth">0dp</item>
+        <item name="rippleColor">?attr/lpRippleInverse</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+
+    <!--
+      40dp square secondary action sitting beside a Card.Action. Hairline outline only;
+      the icon inside carries whatever semantic colour the action needs (positive for
+      complete, negative for delete) so the frame stays quiet.
+    -->
+    <style name="Widget.LP.Card.IconAction" parent="Widget.LP.Card">
+        <item name="android:layout_width">@dimen/lp_icon_action_size</item>
+        <item name="android:layout_height">@dimen/lp_icon_action_size</item>
+        <item name="cardCornerRadius">@dimen/lp_radius_sm</item>
+        <item name="strokeColor">?attr/lpHairlineStrong</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+
+    <!-- ================= STEPPERS ================= -->
+
+    <!--
+      The −/+ pair flanking a numeric field. Deliberately NOT symmetric: increment carries an
+      accent wash, decrement stays a plain hairline tile. Adding weight or a rep is the common
+      move, and the asymmetry means you can find the right one without reading the glyph.
+
+      A wash rather than a solid accent fill: three filled accent squares stacked down the log
+      screen would out-shout the Save button, which is the actual primary action.
+    -->
+    <style name="Widget.LP.Stepper" parent="Widget.LP.Card">
+        <item name="android:layout_width">@dimen/lp_stepper_size</item>
+        <item name="android:layout_height">@dimen/lp_stepper_size</item>
+        <item name="cardBackgroundColor">?attr/lpSurfaceAlt</item>
+        <item name="cardCornerRadius">@dimen/lp_radius_sm</item>
+        <item name="strokeColor">?attr/lpHairlineStrong</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+
+    <style name="Widget.LP.Stepper.Increment" parent="Widget.LP.Stepper">
+        <item name="cardBackgroundColor">?attr/lpAccentWash</item>
+        <item name="strokeColor">?attr/lpAccent</item>
+    </style>
+
+    <!-- ================= ROWS ================= -->
+
+    <!-- Hairline-separated list row for dense surfaces — the alternative to giving
+         every item in a list its own card, which is what makes long lists look busy. -->
+    <style name="Widget.LP.Row" parent="">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:minHeight">@dimen/lp_row_min_height</item>
+        <item name="android:background">?attr/selectableItemBackground</item>
+        <item name="android:paddingHorizontal">@dimen/lp_card_padding</item>
+        <item name="android:paddingVertical">@dimen/lp_space_3</item>
+        <item name="android:gravity">center_vertical</item>
+    </style>
+
+    <!-- ================= BUTTONS ================= -->
+
+    <!--
+      Primary CTA is INK, not accent. Same logic as the hero card: the most important
+      action is the darkest thing on the screen, and colour is spent on state instead.
+      Note this differs from Material's default button, which fills with colorPrimary
+      (= lpAccent) — that is intentional, and unmigrated screens using
+      Widget.MaterialComponents.Button stay accent-filled until their wave lands.
+    -->
+    <style name="Widget.LP.Button" parent="Widget.MaterialComponents.Button">
+        <item name="android:textAppearance">@style/TextAppearance.LP.Button</item>
+        <item name="backgroundTint">?attr/lpInk</item>
+        <item name="android:textColor">?attr/lpInkInverse</item>
+        <item name="iconTint">?attr/lpInkInverse</item>
+        <item name="rippleColor">?attr/lpRippleInverse</item>
+        <item name="elevation">0dp</item>
+        <item name="cornerRadius">@dimen/lp_radius_sm</item>
+        <item name="android:minHeight">52dp</item>
+    </style>
+
+    <!-- Secondary action. Hairline outline, ink label — no fill, no shadow. -->
+    <style name="Widget.LP.Button.Outlined" parent="Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="android:textAppearance">@style/TextAppearance.LP.Button</item>
+        <item name="android:textColor">?attr/lpInk</item>
+        <item name="strokeColor">?attr/lpHairlineStrong</item>
+        <item name="strokeWidth">@dimen/lp_hairline_width</item>
+        <item name="iconTint">?attr/lpInk</item>
+        <item name="rippleColor">?attr/lpRipple</item>
+        <item name="cornerRadius">@dimen/lp_radius_sm</item>
+        <item name="android:minHeight">52dp</item>
+    </style>
+
+    <!-- Tertiary / inline action. The one button style that uses the accent. -->
+    <style name="Widget.LP.Button.Text" parent="Widget.MaterialComponents.Button.TextButton">
+        <item name="android:textAppearance">@style/TextAppearance.LP.Button</item>
+        <item name="android:textColor">?attr/lpAccent</item>
+        <item name="iconTint">?attr/lpAccent</item>
+        <item name="rippleColor">?attr/lpRipple</item>
+        <item name="cornerRadius">@dimen/lp_radius_sm</item>
+    </style>
+
+    <!-- Destructive. Outlined rather than filled: a red slab invites the mis-tap it is
+         warning about. -->
+    <style name="Widget.LP.Button.Destructive" parent="Widget.LP.Button.Outlined">
+        <item name="android:textColor">?attr/lpNegative</item>
+        <item name="strokeColor">?attr/lpNegative</item>
+        <item name="iconTint">?attr/lpNegative</item>
+    </style>
+
+    <!-- ================= TEXT FIELDS ================= -->
+
+    <style name="Widget.LP.TextInputLayout" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+        <item name="boxStrokeColor">@color/lp_text_input_stroke</item>
+        <item name="boxStrokeWidth">@dimen/lp_hairline_width</item>
+        <item name="boxStrokeWidthFocused">2dp</item>
+        <item name="boxCornerRadiusTopStart">@dimen/lp_radius_sm</item>
+        <item name="boxCornerRadiusTopEnd">@dimen/lp_radius_sm</item>
+        <item name="boxCornerRadiusBottomStart">@dimen/lp_radius_sm</item>
+        <item name="boxCornerRadiusBottomEnd">@dimen/lp_radius_sm</item>
+        <item name="hintTextColor">?attr/lpAccent</item>
+        <item name="android:textColorHint">?attr/lpInkTertiary</item>
+        <item name="materialThemeOverlay">@style/ThemeOverlay.LP.TextInputEditText</item>
+    </style>
+
+    <style name="ThemeOverlay.LP.TextInputEditText" parent="">
+        <item name="editTextStyle">@style/Widget.LP.TextInputEditText</item>
+    </style>
+
+    <style name="Widget.LP.TextInputEditText" parent="Widget.MaterialComponents.TextInputEditText.OutlinedBox">
+        <item name="android:textAppearance">@style/TextAppearance.LP.Input</item>
+        <item name="android:textColor">?attr/lpInk</item>
+    </style>
+
+    <!-- Numeric entry (weight, reps, RPE). Mono for the same reason the metrics are:
+         the field width stops shifting as digits change. -->
+    <style name="Widget.LP.TextInputLayout.Numeric" parent="Widget.LP.TextInputLayout">
+        <item name="materialThemeOverlay">@style/ThemeOverlay.LP.TextInputEditText.Numeric</item>
+    </style>
+
+    <style name="ThemeOverlay.LP.TextInputEditText.Numeric" parent="">
+        <item name="editTextStyle">@style/Widget.LP.TextInputEditText.Numeric</item>
+    </style>
+
+    <style name="Widget.LP.TextInputEditText.Numeric" parent="Widget.LP.TextInputEditText">
+        <item name="android:textAppearance">@style/TextAppearance.LP.Metric.M</item>
+        <item name="android:gravity">center</item>
+    </style>
+
+    <!-- Numeric entry that IS the screen: the weight/reps/RPE fields between two steppers.
+         Metric.L so the value stays readable at a glance while the field is being nudged. -->
+    <style name="Widget.LP.TextInputLayout.Numeric.Large" parent="Widget.LP.TextInputLayout.Numeric">
+        <item name="materialThemeOverlay">@style/ThemeOverlay.LP.TextInputEditText.NumericLarge</item>
+    </style>
+
+    <style name="ThemeOverlay.LP.TextInputEditText.NumericLarge" parent="">
+        <item name="editTextStyle">@style/Widget.LP.TextInputEditText.NumericLarge</item>
+    </style>
+
+    <style name="Widget.LP.TextInputEditText.NumericLarge" parent="Widget.LP.TextInputEditText.Numeric">
+        <item name="android:textAppearance">@style/TextAppearance.LP.Metric.L</item>
+    </style>
+
+    <!--
+      Compact boxed field for a dense grid of small numeric inputs (plan-authoring sets /
+      RPE / reps / rest, all four visible at once). @drawable/lp_input_box supplies the
+      hairline box that TextInputLayout would otherwise draw at nearly double the height.
+    -->
+    <style name="Widget.LP.EditText.Boxed" parent="android:Widget.EditText">
+        <item name="android:background">@drawable/lp_input_box</item>
+        <item name="android:textAppearance">@style/TextAppearance.LP.Metric.M</item>
+        <item name="android:textColorHint">?attr/lpInkTertiary</item>
+        <item name="android:gravity">center</item>
+        <item name="android:paddingHorizontal">@dimen/lp_space_2</item>
+        <item name="android:paddingVertical">@dimen/lp_space_2</item>
+        <item name="android:minHeight">40dp</item>
+    </style>
+
+    <!-- Same box, left-aligned and multi-line for a notes field. -->
+    <style name="Widget.LP.EditText.Boxed.Notes">
+        <item name="android:textAppearance">@style/TextAppearance.LP.Body</item>
+        <item name="android:gravity">top|start</item>
+        <item name="android:minHeight">0dp</item>
+    </style>
+
+    <!-- ================= CHIPS ================= -->
+
+    <style name="Widget.LP.Chip.Filter" parent="Widget.MaterialComponents.Chip.Filter">
+        <item name="android:textAppearance">@style/TextAppearance.LP.Label</item>
+        <item name="chipBackgroundColor">@color/lp_chip_background</item>
+        <item name="android:textColor">@color/lp_chip_text</item>
+        <item name="chipStrokeColor">?attr/lpHairline</item>
+        <item name="chipStrokeWidth">@dimen/lp_hairline_width</item>
+        <item name="chipCornerRadius">@dimen/lp_radius_sm</item>
+        <item name="rippleColor">?attr/lpRipple</item>
+        <item name="checkedIconTint">?attr/lpInkInverse</item>
+    </style>
+
+    <!-- Tap-to-open chip (e.g. the bodyweight value on the log screen) — not a selection. -->
+    <style name="Widget.LP.Chip.Action" parent="Widget.MaterialComponents.Chip.Action">
+        <item name="android:textAppearance">@style/TextAppearance.LP.Label</item>
+        <item name="chipBackgroundColor">?attr/lpSurfaceAlt</item>
+        <item name="android:textColor">?attr/lpInk</item>
+        <item name="chipStrokeColor">?attr/lpHairlineStrong</item>
+        <item name="chipStrokeWidth">@dimen/lp_hairline_width</item>
+        <item name="chipCornerRadius">@dimen/lp_radius_sm</item>
+        <item name="rippleColor">?attr/lpRipple</item>
+    </style>
+
+    <style name="Widget.LP.Chip.Choice" parent="Widget.MaterialComponents.Chip.Choice">
+        <item name="android:textAppearance">@style/TextAppearance.LP.Label</item>
+        <item name="chipBackgroundColor">@color/lp_chip_background</item>
+        <item name="android:textColor">@color/lp_chip_text</item>
+        <item name="chipStrokeColor">?attr/lpHairline</item>
+        <item name="chipStrokeWidth">@dimen/lp_hairline_width</item>
+        <item name="chipCornerRadius">@dimen/lp_radius_sm</item>
+        <item name="rippleColor">?attr/lpRipple</item>
+    </style>
+
+    <!-- ================= TABS ================= -->
+
+    <style name="Widget.LP.TabLayout" parent="Widget.MaterialComponents.TabLayout">
+        <item name="tabIndicatorColor">?attr/lpAccent</item>
+        <item name="tabIndicatorHeight">2dp</item>
+        <item name="tabIndicatorFullWidth">false</item>
+        <item name="tabSelectedTextColor">?attr/lpInk</item>
+        <item name="tabTextColor">?attr/lpInkTertiary</item>
+        <item name="tabTextAppearance">@style/TextAppearance.LP.Tab</item>
+        <item name="tabRippleColor">?attr/lpRipple</item>
+        <item name="tabMode">fixed</item>
+        <item name="tabGravity">fill</item>
+        <item name="android:background">@android:color/transparent</item>
+    </style>
+
+    <!-- ================= BOTTOM NAVIGATION ================= -->
+
+    <style name="Widget.LP.BottomNav" parent="Widget.MaterialComponents.BottomNavigationView">
+        <item name="android:background">?attr/lpSurface</item>
+        <item name="itemIconTint">@color/lp_bottom_nav_item</item>
+        <item name="itemTextColor">@color/lp_bottom_nav_item</item>
+        <item name="itemRippleColor">?attr/lpRipple</item>
+        <item name="itemTextAppearanceActive">@style/TextAppearance.LP.NavLabel</item>
+        <item name="itemTextAppearanceInactive">@style/TextAppearance.LP.NavLabel</item>
+        <item name="labelVisibilityMode">labeled</item>
+        <!-- elevation 0: the bar is separated by a hairline, like every other surface. -->
+        <item name="elevation">0dp</item>
+    </style>
+
+    <!-- ================= MISC ================= -->
+
+    <!-- Eyebrow label above a metric. -->
+    <style name="Widget.LP.Eyebrow" parent="">
+        <item name="android:textAppearance">@style/TextAppearance.LP.Caption</item>
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+    </style>
+
+    <!-- 1dp hairline divider. Use instead of nesting another card. -->
+    <style name="Widget.LP.Divider" parent="">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">@dimen/lp_hairline_width</item>
+        <item name="android:background">?attr/lpHairline</item>
+    </style>
+
+</resources>

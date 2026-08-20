@@ -1,21 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- One plan rotation in the "start workout" sheet's rotations list. -->
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    style="@style/Widget.LP.Card.Interactive"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="8dp"
-    android:clickable="true"
-    android:focusable="true"
-    app:cardBackgroundColor="@color/fitness_card_background"
-    app:cardCornerRadius="10dp"
-    app:cardElevation="2dp">
+    android:layout_marginBottom="@dimen/lp_card_gap_dense">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:padding="14dp">
+        android:padding="@dimen/lp_card_padding_dense">
 
         <LinearLayout
             android:layout_width="0dp"
@@ -27,23 +25,23 @@
                 android:id="@+id/text_plan_name_rotation"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="@color/fitness_text_primary"
-                android:textSize="15sp"
-                android:textStyle="bold" />
+                android:textAppearance="@style/TextAppearance.LP.Label"
+                tools:text="Push / Pull / Legs" />
 
             <TextView
                 android:id="@+id/text_plan_next_rotation"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:textColor="@color/fitness_primary"
-                android:textSize="12sp" />
+                android:textAppearance="@style/TextAppearance.LP.Caption"
+                android:textColor="?attr/lpAccent"
+                tools:text="Next: Push Day" />
         </LinearLayout>
 
         <ImageView
             android:layout_width="18dp"
             android:layout_height="18dp"
-            android:src="@drawable/ic_arrow_forward"
-            app:tint="@color/fitness_text_secondary" />
+            android:contentDescription="@null"
+            android:src="@drawable/ic_arrow_forward_24"
+            app:tint="?attr/lpInkTertiary" />
     </LinearLayout>
-</androidx.cardview.widget.CardView>
+</com.google.android.material.card.MaterialCardView>

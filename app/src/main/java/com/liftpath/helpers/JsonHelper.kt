@@ -11,14 +11,33 @@ import com.liftpath.models.TrainingData
 import com.liftpath.models.WorkoutPlan
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
-import java.io.File
 import java.io.IOException
 import java.nio.charset.StandardCharsets
 
-class JsonHelper(private val context: Context) {
+/**
+ * Reads and writes `training_data.json`, the app's single persisted data file.
+ *
+ * There is exactly one instance per process, held by `LiftPathApplication` — see the KDoc on
+ * [readTrainingData] for why that matters. Storage is reached through a [TrainingDataStore] so
+ * the parsing, migration and recovery logic below can be unit-tested without a `Context`.
+ */
+class JsonHelper(
+    private val store: TrainingDataStore,
+    /**
+     * Invoked after every successful write. In production this arms the debounced backup;
+     * tests pass a no-op so they never touch WorkManager.
+     */
+    private val onDataChanged: () -> Unit
+) {
+
+    constructor(context: Context) : this(
+        FileTrainingDataStore(context.applicationContext.filesDir),
+        // Single choke point for every data change in the app — arms a debounced backup
+        // so no write can escape without eventually reaching the configured destinations.
+        { BackupScheduler.onDataChanged(context.applicationContext) }
+    )
 
     private val gson = Gson()
-    private val file = File(context.filesDir, "training_data.json")
     private val TAG = "JsonHelper"
 
     /** In-memory copy of the last read/write; avoids re-parsing JSON on every screen (e.g. each list row). */
@@ -30,11 +49,21 @@ class JsonHelper(private val context: Context) {
         cachedTrainingData = null
     }
 
+    /**
+     * The current training data, parsed from disk on first call and cached thereafter.
+     *
+     * Callers may mutate the returned object in place and then hand it back to
+     * [writeTrainingData] — that is the established idiom across the app. Because there is one
+     * shared instance, a mutation is visible to every screen immediately, which is what makes
+     * the data consistent app-wide. The corollary is that a caller which mutates and then
+     * *abandons* the edit would leak it; such a caller must copy first instead.
+     */
     fun readTrainingData(): TrainingData {
         cachedTrainingData?.let { return it }
 
         // 1. NO FILE (Fresh Install)
-        if (!file.exists()) {
+        val json = store.read()
+        if (json == null) {
             Log.i(TAG, "No training data found. Creating fresh data with Default Library.")
             val newData = TrainingData()
             // Seed the library immediately
@@ -46,7 +75,6 @@ class JsonHelper(private val context: Context) {
 
         // 2. FILE EXISTS (Load it)
         val data = try {
-            val json = file.readText()
             val parsed = gson.fromJson(json, TrainingData::class.java) ?: TrainingData()
 
             // 3. SAFETY CHECK: If library is empty for some reason, re-seed it.
@@ -62,13 +90,8 @@ class JsonHelper(private val context: Context) {
         } catch (e: Exception) {
             Log.e(TAG, "Error reading or parsing training_data.json. Backing up and creating a new data file.", e)
 
-            // If the file is corrupt, create a backup and start with a fresh one.
-            try {
-                val backupFile = File(context.filesDir, "training_data.json.bak.${System.currentTimeMillis()}")
-                file.renameTo(backupFile)
-            } catch (backupEx: Exception) {
-                Log.e(TAG, "Could not back up corrupt file.", backupEx)
-            }
+            // If the file is corrupt, move it aside so the user keeps a recovery chance.
+            store.archiveCurrent()
 
             // Return fresh data with defaults
             val freshData = TrainingData()
@@ -93,13 +116,15 @@ class JsonHelper(private val context: Context) {
         if (data.planSets == null) data.planSets = mutableListOf()
         if (data.planSetProgress == null) data.planSetProgress = mutableListOf()
         if (data.exerciseFamilies == null) data.exerciseFamilies = mutableListOf()
+        if (data.circuits == null) data.circuits = mutableListOf()
 
         // Idempotent family migrations — each function only fills null fields, safe to re-run
         ensureDefaultFamiliesExist(data)
         ensureLibraryFamilyMappingsExist(data)
         backfillFamilyIdSnapshotsIfMissing(data)
         backfillTimedTargetMetricIfMissing(data)
-        backfillIllustrationResIfMissing(data)
+        refreshIllustrationResFromDefaults(data)
+        DefaultCircuitsHelper.seedIfNeeded(data)
 
         // Migrate legacy WorkoutPlans: if a plan has no exerciseConfigs, generate minimal ones
         // from exerciseIds so V2 code can always rely on exerciseConfigs being present
@@ -178,18 +203,17 @@ class JsonHelper(private val context: Context) {
         }
     }
 
-    // Fills null illustrationRes on default-catalog exercises for installs whose persisted library
-    // predates the illustrationRes field. familyId is already non-null on these rows by the time this
-    // runs (ensureLibraryFamilyMappingsExist above), so that migration's own null-check can't be reused
-    // to carry this field — it needs its own gate.
-    private fun backfillIllustrationResIfMissing(data: TrainingData) {
+    // Re-resolves illustrationRes on default-catalog exercises from the CURRENT build's defaults.
+    // illustrationRes stores a compiled R.drawable id, which is NOT stable across app builds — a value
+    // persisted by an older build can resolve to an unrelated drawable after resources shift (e.g. a
+    // library dependency adds drawables). So we always overwrite it from defaults[id], never trust the
+    // stored int. Custom exercises (id not in the default catalog) are left untouched.
+    private fun refreshIllustrationResFromDefaults(data: TrainingData) {
         val defaults = DefaultExercisesHelper.getPopularDefaults().associateBy { it.id }
-        val needsUpdate = data.exerciseLibrary.any { it.illustrationRes == null && defaults.containsKey(it.id) }
-        if (!needsUpdate) return
         for (i in data.exerciseLibrary.indices) {
             val exercise = data.exerciseLibrary[i]
-            if (exercise.illustrationRes == null) {
-                val def = defaults[exercise.id] ?: continue
+            val def = defaults[exercise.id] ?: continue
+            if (exercise.illustrationRes != def.illustrationRes) {
                 data.exerciseLibrary[i] = exercise.copy(illustrationRes = def.illustrationRes)
             }
         }
@@ -198,8 +222,9 @@ class JsonHelper(private val context: Context) {
     fun writeTrainingData(trainingData: TrainingData) {
         try {
             val json = gson.toJson(trainingData)
-            file.writeText(json)
+            store.write(json)
             cachedTrainingData = trainingData
+            onDataChanged()
         } catch (e: Exception) {
             Log.e(TAG, "Error writing to training_data.json", e)
         }
@@ -212,90 +237,28 @@ class JsonHelper(private val context: Context) {
         writeTrainingData(freshData)
     }
 
-    fun exportTrainingData(destinationUri: Uri): Result<Unit> = runCatching {
-        // Ensure we have a file to export
-        if (!file.exists()) {
-            val freshData = TrainingData()
-            freshData.exerciseLibrary.addAll(DefaultExercisesHelper.getPopularDefaults())
-            writeTrainingData(freshData)
-        }
-        
-        val resolver = context.contentResolver
-        resolver.openOutputStream(destinationUri)?.use { outputStream ->
-            file.inputStream().use { inputStream ->
-                inputStream.copyTo(outputStream)
-            }
-            outputStream.flush()
-        } ?: throw IOException("Unable to open destination")
-    }.onFailure {
-        Log.e(TAG, "Failed to export training data", it)
+    // ------------------------------------------------------- bulk transfer
+    // Used by TrainingDataTransfer to move whole-file contents in and out. Kept here rather
+    // than exposing the store, so the destructive replace stays with the data's owner.
+
+    /** The persisted JSON as it sits on disk, seeding and writing defaults first if absent. */
+    fun snapshotJson(): String {
+        store.read()?.let { return it }
+        val freshData = TrainingData()
+        freshData.exerciseLibrary.addAll(DefaultExercisesHelper.getPopularDefaults())
+        writeTrainingData(freshData)
+        return store.read() ?: throw IOException("Unable to read training data")
     }
 
-    fun importTrainingData(sourceUri: Uri): Result<Unit> = runCatching {
-        val resolver = context.contentResolver
-        val json = resolver.openInputStream(sourceUri)?.bufferedReader()?.use { it.readText() }
-            ?: throw IOException("Unable to read source")
-        
-        // Validate parse before overwriting
+    /**
+     * Replace all training data with [json]. Parses before touching anything, so an invalid
+     * file fails without destroying what's there; the outgoing data is then archived under a
+     * timestamped name so a mistaken import is itself recoverable.
+     */
+    fun replaceAllFromJson(json: String) {
         val data = gson.fromJson(json, TrainingData::class.java)
             ?: throw IllegalArgumentException("Invalid training data")
-
-        if (file.exists()) {
-            val backupFile = File(context.filesDir, "training_data.json.bak.${System.currentTimeMillis()}")
-            file.copyTo(backupFile, overwrite = true)
-        }
-        
+        store.archiveCurrent()
         writeTrainingData(data)
-    }.onFailure {
-        Log.e(TAG, "Failed to import training data", it)
-    }
-
-    fun exportExerciseLibrary(destinationUri: Uri): Result<Unit> = runCatching {
-        val data = readTrainingData()
-        val prettyGson = GsonBuilder().setPrettyPrinting().create()
-        val json = prettyGson.toJson(data.exerciseLibrary)
-        val bytes = json.toByteArray(StandardCharsets.UTF_8)
-        context.contentResolver.openOutputStream(destinationUri)?.use { outputStream ->
-            outputStream.write(bytes)
-            outputStream.flush()
-        } ?: throw IOException("Unable to open destination")
-    }.onFailure {
-        Log.e(TAG, "Failed to export exercise library", it)
-    }
-
-    /** Write a pre-built text/markdown document (e.g. the AI export) to a user-picked location. */
-    fun exportAiMarkdown(destinationUri: Uri, markdown: String): Result<Unit> = runCatching {
-        val bytes = markdown.toByteArray(StandardCharsets.UTF_8)
-        context.contentResolver.openOutputStream(destinationUri)?.use { outputStream ->
-            outputStream.write(bytes)
-            outputStream.flush()
-        } ?: throw IOException("Unable to open destination")
-    }.onFailure {
-        Log.e(TAG, "Failed to export AI markdown", it)
-    }
-
-    /** Export the full exercise catalog + plan spec to a user-picked .md file. */
-    fun exportWorkoutPlanSpec(destinationUri: Uri): Result<Unit> = runCatching {
-        val data = readTrainingData()
-        val markdown = WorkoutPlanMarkdownHelper.buildSpecMarkdown(data)
-        val bytes = markdown.toByteArray(StandardCharsets.UTF_8)
-        context.contentResolver.openOutputStream(destinationUri)?.use { outputStream ->
-            outputStream.write(bytes)
-            outputStream.flush()
-        } ?: throw IOException("Unable to open destination")
-    }.onFailure {
-        Log.e(TAG, "Failed to export workout plan spec", it)
-    }
-
-    /** Parse AI-generated plan(s) from a .md file and return the new WorkoutPlan objects. */
-    fun importWorkoutPlans(sourceUri: Uri): Result<List<WorkoutPlan>> = runCatching {
-        val markdown = context.contentResolver.openInputStream(sourceUri)
-            ?.bufferedReader(StandardCharsets.UTF_8)
-            ?.use { it.readText() }
-            ?: throw IOException("Unable to read source")
-        val data = readTrainingData()
-        WorkoutPlanMarkdownHelper.parsePlansFromMarkdown(markdown, data.exerciseLibrary)
-    }.onFailure {
-        Log.e(TAG, "Failed to import workout plans", it)
     }
 }

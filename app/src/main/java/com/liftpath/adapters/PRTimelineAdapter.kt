@@ -13,6 +13,7 @@ import com.liftpath.helpers.RestTimerHelper
 import com.liftpath.models.SetIntent
 import java.text.SimpleDateFormat
 import java.util.*
+import com.liftpath.helpers.lpColor
 
 class PRTimelineAdapter(
     private var prs: List<ProgressAnalysisHelper.PRRecord>
@@ -54,10 +55,10 @@ class PRTimelineAdapter(
             textIntentBadge.text = pr.intent.displayName.uppercase()
             textIntentBadge.backgroundTintList = android.content.res.ColorStateList.valueOf(
                 when (pr.intent) {
-                    SetIntent.STRENGTH -> itemView.context.getColor(R.color.intent_strength)
-                    SetIntent.BUILD -> itemView.context.getColor(R.color.intent_build)
-                    SetIntent.FLUSH -> itemView.context.getColor(R.color.intent_flush)
-                    else -> itemView.context.getColor(R.color.fitness_primary)
+                    SetIntent.STRENGTH -> itemView.context.lpColor(R.attr.lpIntentStrength)
+                    SetIntent.BUILD -> itemView.context.lpColor(R.attr.lpIntentBuild)
+                    SetIntent.FLUSH -> itemView.context.lpColor(R.attr.lpIntentFlush)
+                    else -> itemView.context.lpColor(R.attr.lpAccent)
                 }
             )
 
@@ -107,11 +108,11 @@ class PRTimelineAdapter(
             // Icon tint based on PR type
             imagePrIcon.backgroundTintList = android.content.res.ColorStateList.valueOf(
                 when (pr.prType) {
-                    PRType.WEIGHT -> itemView.context.getColor(R.color.intent_strength)
-                    PRType.VOLUME -> itemView.context.getColor(R.color.intent_build)
-                    PRType.ONE_RM -> itemView.context.getColor(R.color.fitness_accent)
-                    PRType.REPS -> itemView.context.getColor(R.color.intent_flush)
-                    PRType.TIME_HOLD -> itemView.context.getColor(R.color.intent_build)
+                    PRType.WEIGHT -> itemView.context.lpColor(R.attr.lpIntentStrength)
+                    PRType.VOLUME -> itemView.context.lpColor(R.attr.lpIntentBuild)
+                    PRType.ONE_RM -> itemView.context.lpColor(R.attr.lpAccent)
+                    PRType.REPS -> itemView.context.lpColor(R.attr.lpIntentFlush)
+                    PRType.TIME_HOLD -> itemView.context.lpColor(R.attr.lpIntentBuild)
                 }
             )
         }

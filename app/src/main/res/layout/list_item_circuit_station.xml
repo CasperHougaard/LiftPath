@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  One station in the running circuit (activity_circuit_runner.xml).
+
+  Read at arm's length mid-round, so: position, name, and the target in one line. The right-hand
+  slot shows either a stopwatch button (timed stations, where you need to know when the hold is
+  up) or what you logged for this round once it's entered.
+-->
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/card_station"
+    style="@style/Widget.LP.Card.Dense"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="@dimen/lp_card_gap_dense"
+    android:clickable="false"
+    android:focusable="false">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:minHeight="@dimen/lp_row_min_height"
+        android:orientation="horizontal"
+        android:paddingHorizontal="@dimen/lp_card_padding_dense"
+        android:paddingVertical="@dimen/lp_space_2">
+
+        <TextView
+            android:id="@+id/text_station_number"
+            android:layout_width="26dp"
+            android:layout_height="26dp"
+            android:background="@drawable/lp_badge_ink"
+            android:gravity="center"
+            android:textAppearance="@style/TextAppearance.LP.Metric.S"
+            android:textColor="?attr/lpInkInverse"
+            tools:text="1" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/lp_space_3"
+            android:layout_marginEnd="@dimen/lp_space_2"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/text_station_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textAppearance="@style/TextAppearance.LP.Label"
+                tools:text="Hip Thrust (Barbell)" />
+
+            <TextView
+                android:id="@+id/text_station_logged"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textAppearance="@style/TextAppearance.LP.Caption"
+                android:textColor="?attr/lpInkTertiary"
+                android:visibility="gone"
+                tools:text="last round 60kg × 12"
+                tools:visibility="visible" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/text_station_target"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="@style/TextAppearance.LP.Metric.M"
+            tools:text="60kg × 12" />
+
+        <!-- Timed stations only: a stopwatch for the hold, which then pre-fills the log sheet. -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/button_station_timer"
+            style="@style/Widget.LP.Card.IconAction"
+            android:layout_marginStart="@dimen/lp_space_2"
+            android:visibility="gone"
+            app:strokeColor="?attr/lpHairlineStrong"
+            tools:visibility="visible">
+
+            <ImageView
+                android:id="@+id/image_station_timer"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="@string/cd_station_timer"
+                android:padding="@dimen/lp_icon_action_padding"
+                android:src="@drawable/ic_timer_24"
+                app:tint="?attr/lpAccent" />
+        </com.google.android.material.card.MaterialCardView>
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

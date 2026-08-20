@@ -19,6 +19,7 @@ import com.liftpath.models.BodyRegion
 import com.liftpath.models.Mechanics
 import com.liftpath.models.MovementPattern
 import com.liftpath.models.Tier
+import com.liftpath.helpers.lpColor
 
 class ExerciseMergeAdapter(
     private val candidates: MutableList<MergeCandidate>
@@ -86,7 +87,7 @@ class ExerciseMergeAdapter(
 
             fun applySelection(keepSelected: Boolean) {
                 val ctx = itemView.context
-                val primaryColor = androidx.core.content.ContextCompat.getColor(ctx, R.color.fitness_primary)
+                val primaryColor = ctx.lpColor(R.attr.lpAccent)
                 val transparent = android.graphics.Color.TRANSPARENT
                 val white = android.graphics.Color.WHITE
 

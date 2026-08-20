@@ -4,6 +4,7 @@ import android.content.Intent
 import android.graphics.drawable.Animatable
 import android.os.Bundle
 import android.view.View
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -12,6 +13,7 @@ import com.liftpath.databinding.ActivityPlanSetBinding
 import com.liftpath.helpers.DialogHelper
 import com.liftpath.helpers.JsonHelper
 import com.liftpath.helpers.showWithTransparentWindow
+import com.liftpath.models.ActiveRoutineType
 import com.liftpath.models.PlanSet
 import com.liftpath.R
 
@@ -53,6 +55,8 @@ class PlanSetActivity : AppCompatActivity() {
             planSets = mutableListOf(),
             planSetProgress = emptyList(),
             planNames = planNames,
+            activePlanSetId = null,
+            onUseClicked = { planSet -> useRotation(planSet) },
             onEditClicked = { planSet ->
                 val intent = Intent(this, EditPlanSetActivity::class.java).apply {
                     putExtra(EditPlanSetActivity.EXTRA_PLAN_SET_ID, planSet.id)
@@ -65,6 +69,17 @@ class PlanSetActivity : AppCompatActivity() {
         binding.recyclerViewPlanSets.layoutManager = LinearLayoutManager(this)
     }
 
+    /** Declares [planSet] the Plan tab's active routine; the Workout tab trusts this over
+     *  the completion-based heuristic (see PlanRotationHelper.resolveActiveRoutine). */
+    private fun useRotation(planSet: PlanSet) {
+        val data = jsonHelper.readTrainingData()
+        data.activeRoutineType = ActiveRoutineType.ROTATION
+        data.activePlanSetId = planSet.id
+        jsonHelper.writeTrainingData(data)
+        Toast.makeText(this, getString(R.string.toast_rotation_set_active, planSet.name), Toast.LENGTH_SHORT).show()
+        loadData()
+    }
+
     private fun setupClickListeners() {
         binding.buttonBack.setOnClickListener { onBackPressedDispatcher.onBackPressed() }
         binding.fabCreatePlanSet.setOnClickListener {
@@ -75,11 +90,15 @@ class PlanSetActivity : AppCompatActivity() {
     private fun loadData() {
         val trainingData = jsonHelper.readTrainingData()
         val planNames = trainingData.workoutPlans.associate { it.id to it.name }
+        val activePlanSetId = trainingData.activePlanSetId
+            .takeIf { trainingData.activeRoutineType == ActiveRoutineType.ROTATION }
         // Rebuild adapter with fresh plan names and progress
         binding.recyclerViewPlanSets.adapter = PlanSetListAdapter(
             planSets = trainingData.planSets.toMutableList(),
             planSetProgress = trainingData.planSetProgress,
             planNames = planNames,
+            activePlanSetId = activePlanSetId,
+            onUseClicked = { planSet -> useRotation(planSet) },
             onEditClicked = { planSet ->
                 val intent = Intent(this, EditPlanSetActivity::class.java).apply {
                     putExtra(EditPlanSetActivity.EXTRA_PLAN_SET_ID, planSet.id)
@@ -96,12 +115,16 @@ class PlanSetActivity : AppCompatActivity() {
 
     private fun confirmDelete(planSet: PlanSet) {
         DialogHelper.createBuilder(this)
-            .setTitle("Delete Rotation")
-            .setMessage("Delete \"${planSet.name}\"? This will not delete the individual plans.")
+            .setTitle(getString(R.string.dialog_title_delete_rotation))
+            .setMessage(getString(R.string.dialog_message_delete_rotation, planSet.name))
             .setPositiveButton(getString(R.string.button_delete)) { _, _ ->
                 val data = jsonHelper.readTrainingData()
                 data.planSets.removeAll { it.id == planSet.id }
                 data.planSetProgress.removeAll { it.planSetId == planSet.id }
+                if (data.activeRoutineType == ActiveRoutineType.ROTATION && data.activePlanSetId == planSet.id) {
+                    data.activeRoutineType = null
+                    data.activePlanSetId = null
+                }
                 jsonHelper.writeTrainingData(data)
                 loadData()
             }

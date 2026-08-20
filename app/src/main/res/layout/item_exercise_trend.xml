@@ -1,32 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  One exercise's trend card — shared by Progress > Exercises, Progress > Muscles'
+  "contributing exercises" list, and WorkoutReportActivity's per-exercise breakdown
+  (ExerciseTrendAdapter). All three show the same comparison (this session vs last, PRs,
+  1RM), so this card is intentionally the single place that layout is defined.
+
+  The card's stroke is the PR-recency signal (set in ExerciseTrendAdapter: positive within
+  7 days, accent within 30, tertiary otherwise) — colour here in the XML is just the resting
+  hairline state before that logic runs.
+-->
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/card_exercise_trend"
+    style="@style/Widget.LP.Card"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginStart="4dp"
-    android:layout_marginTop="4dp"
-    android:layout_marginEnd="4dp"
-    android:layout_marginBottom="12dp"
-    app:cardBackgroundColor="@color/fitness_card_background"
-    app:cardCornerRadius="16dp"
-    app:cardElevation="2dp"
-    app:strokeWidth="2dp"
-    app:strokeColor="@color/pr_older">
+    android:layout_marginBottom="@dimen/lp_card_gap">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="@dimen/lp_card_padding">
 
-        <!-- Exercise Name with Intent Badge -->
+        <!-- Name + intent badge + PR star -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
             <TextView
                 android:id="@+id/text_exercise_name"
@@ -35,54 +38,49 @@
                 android:layout_weight="1"
                 android:ellipsize="end"
                 android:maxLines="1"
-                android:textColor="@color/fitness_text_primary"
-                android:textSize="18sp"
-                android:textStyle="bold"
+                android:textAppearance="@style/TextAppearance.LP.Heading"
                 tools:text="Bench Press" />
 
             <TextView
                 android:id="@+id/text_intent_badge"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="@dimen/lp_space_2"
                 android:background="@drawable/bg_chip"
-                android:backgroundTint="@color/fitness_primary"
-                android:paddingStart="10dp"
-                android:paddingTop="4dp"
-                android:paddingEnd="10dp"
-                android:paddingBottom="4dp"
-                android:textAllCaps="true"
-                android:textColor="@color/white"
-                android:textSize="11sp"
-                android:textStyle="bold"
+                android:backgroundTint="?attr/lpAccent"
+                android:paddingHorizontal="@dimen/lp_space_2"
+                android:paddingVertical="@dimen/lp_space_1"
+                android:textAppearance="@style/TextAppearance.LP.Caption"
+                android:textColor="?attr/lpInkInverse"
                 tools:text="STRENGTH" />
 
             <ImageView
                 android:id="@+id/image_pr_badge"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:layout_marginStart="8dp"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:layout_marginStart="@dimen/lp_space_2"
+                android:contentDescription="@string/pr_badge"
                 android:src="@drawable/ic_star"
                 android:visibility="gone"
-                android:contentDescription="@string/pr_badge"
-                app:tint="@color/fitness_accent"
+                app:tint="?attr/lpAccent"
                 tools:visibility="visible" />
         </LinearLayout>
 
-        <!-- Volume Comparison -->
+        <!-- Headline metric: volume, or hold time for timed exercises -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
+            android:layout_marginTop="@dimen/lp_space_3"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
             <TextView
+                android:id="@+id/text_volume_label"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/volume_label"
-                android:textColor="@color/fitness_text_secondary"
-                android:textSize="13sp" />
+                android:textAppearance="@style/TextAppearance.LP.Label"
+                android:textColor="?attr/lpInkTertiary" />
 
             <View
                 android:layout_width="0dp"
@@ -93,17 +91,15 @@
                 android:id="@+id/text_volume_current"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="@color/fitness_text_primary"
-                android:textSize="14sp"
-                android:textStyle="bold"
+                android:textAppearance="@style/TextAppearance.LP.Metric.M"
                 tools:text="1,250kg" />
 
             <TextView
                 android:id="@+id/text_volume_comparison"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:textSize="13sp"
+                android:layout_marginStart="@dimen/lp_space_2"
+                android:textAppearance="@style/TextAppearance.LP.Metric.S"
                 android:visibility="gone"
                 tools:text="vs 1,100kg"
                 tools:visibility="visible" />
@@ -112,23 +108,22 @@
                 android:id="@+id/text_volume_change"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
-                android:textSize="13sp"
-                android:textStyle="bold"
+                android:layout_marginStart="@dimen/lp_space_2"
+                android:textAppearance="@style/TextAppearance.LP.Metric.S"
                 android:visibility="gone"
                 tools:text="+14%"
-                tools:textColor="@color/fitness_highlight_border"
+                tools:textColor="?attr/lpPositive"
                 tools:visibility="visible" />
         </LinearLayout>
 
-        <!-- 1RM Comparison -->
+        <!-- 1RM comparison (rep-based only) -->
         <LinearLayout
             android:id="@+id/layout_1rm"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:orientation="horizontal"
+            android:layout_marginTop="@dimen/lp_space_2"
             android:gravity="center_vertical"
+            android:orientation="horizontal"
             android:visibility="gone"
             tools:visibility="visible">
 
@@ -136,8 +131,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/estimated_1rm_label"
-                android:textColor="@color/fitness_text_secondary"
-                android:textSize="13sp" />
+                android:textAppearance="@style/TextAppearance.LP.Label"
+                android:textColor="?attr/lpInkTertiary" />
 
             <View
                 android:layout_width="0dp"
@@ -148,17 +143,15 @@
                 android:id="@+id/text_1rm_current"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="@color/fitness_text_primary"
-                android:textSize="14sp"
-                android:textStyle="bold"
+                android:textAppearance="@style/TextAppearance.LP.Metric.M"
                 tools:text="85kg" />
 
             <TextView
                 android:id="@+id/text_1rm_comparison"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:textSize="13sp"
+                android:layout_marginStart="@dimen/lp_space_2"
+                android:textAppearance="@style/TextAppearance.LP.Metric.S"
                 android:visibility="gone"
                 tools:text="vs 80kg"
                 tools:visibility="visible" />
@@ -167,32 +160,32 @@
                 android:id="@+id/text_1rm_change"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
-                android:textSize="13sp"
-                android:textStyle="bold"
+                android:layout_marginStart="@dimen/lp_space_2"
+                android:textAppearance="@style/TextAppearance.LP.Metric.S"
                 android:visibility="gone"
                 tools:text="+6%"
-                tools:textColor="@color/fitness_highlight_border"
+                tools:textColor="?attr/lpPositive"
                 tools:visibility="visible" />
         </LinearLayout>
 
-        <!-- Top Set Comparison -->
+        <!-- Top set, or load×time for a weighted hold -->
         <LinearLayout
             android:id="@+id/layout_top_set"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:orientation="horizontal"
+            android:layout_marginTop="@dimen/lp_space_2"
             android:gravity="center_vertical"
+            android:orientation="horizontal"
             android:visibility="gone"
             tools:visibility="visible">
 
             <TextView
+                android:id="@+id/text_top_set_label"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/top_set_label"
-                android:textColor="@color/fitness_text_secondary"
-                android:textSize="13sp" />
+                android:textAppearance="@style/TextAppearance.LP.Label"
+                android:textColor="?attr/lpInkTertiary" />
 
             <View
                 android:layout_width="0dp"
@@ -203,31 +196,26 @@
                 android:id="@+id/text_top_set_current"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="@color/fitness_text_primary"
-                android:textSize="14sp"
-                android:textStyle="bold"
+                android:textAppearance="@style/TextAppearance.LP.Metric.M"
                 tools:text="80kg × 8" />
 
             <TextView
                 android:id="@+id/text_top_set_comparison"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:textSize="13sp"
+                android:layout_marginStart="@dimen/lp_space_2"
+                android:textAppearance="@style/TextAppearance.LP.Metric.S"
                 android:visibility="gone"
                 tools:text="vs 75kg × 8"
                 tools:visibility="visible" />
         </LinearLayout>
 
-        <!-- Personal Records Section -->
+        <!-- All-time records -->
         <View
             android:id="@+id/divider_prs"
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_marginTop="12dp"
-            android:layout_marginBottom="8dp"
-            android:background="@color/fitness_text_secondary"
-            android:alpha="0.2"
+            style="@style/Widget.LP.Divider"
+            android:layout_marginTop="@dimen/lp_space_3"
+            android:layout_marginBottom="@dimen/lp_space_2"
             android:visibility="gone" />
 
         <TextView
@@ -235,151 +223,130 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/all_time_records"
-            android:textColor="@color/fitness_text_secondary"
-            android:textSize="12sp"
-            android:textStyle="bold"
+            android:textAppearance="@style/TextAppearance.LP.Caption"
             android:visibility="gone" />
 
-        <!-- PR Grid (2x2) -->
         <LinearLayout
             android:id="@+id/layout_pr_grid"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="@dimen/lp_space_2"
             android:orientation="horizontal"
             android:visibility="gone">
 
-            <!-- Left Column -->
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_marginEnd="@dimen/lp_space_2"
                 android:layout_weight="1"
-                android:layout_marginEnd="8dp"
                 android:orientation="vertical">
 
-                <!-- Weight PR -->
                 <LinearLayout
                     android:id="@+id/layout_pr_weight"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
                     android:visibility="gone">
-                    
+
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/weight_pr_label"
-                        android:textColor="@color/fitness_text_secondary"
-                        android:textSize="11sp" />
-                    
+                        android:textAppearance="@style/TextAppearance.LP.Caption" />
+
                     <TextView
                         android:id="@+id/text_pr_weight"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textColor="@color/fitness_text_primary"
-                        android:textSize="14sp"
-                        android:textStyle="bold"
+                        android:textAppearance="@style/TextAppearance.LP.Metric.M"
                         tools:text="100kg" />
                 </LinearLayout>
 
-                <!-- Volume PR -->
                 <LinearLayout
                     android:id="@+id/layout_pr_volume"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
+                    android:layout_marginTop="@dimen/lp_space_2"
                     android:orientation="vertical"
                     android:visibility="gone">
-                    
+
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/volume_pr_label"
-                        android:textColor="@color/fitness_text_secondary"
-                        android:textSize="11sp" />
-                    
+                        android:textAppearance="@style/TextAppearance.LP.Caption" />
+
                     <TextView
                         android:id="@+id/text_pr_volume"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textColor="@color/fitness_text_primary"
-                        android:textSize="14sp"
-                        android:textStyle="bold"
+                        android:textAppearance="@style/TextAppearance.LP.Metric.M"
                         tools:text="3,250kg" />
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- Right Column -->
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/lp_space_2"
                 android:layout_weight="1"
-                android:layout_marginStart="8dp"
                 android:orientation="vertical">
 
-                <!-- 1RM PR -->
                 <LinearLayout
                     android:id="@+id/layout_pr_1rm"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
                     android:visibility="gone">
-                    
+
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/one_rm_pr_label"
-                        android:textColor="@color/fitness_text_secondary"
-                        android:textSize="11sp" />
-                    
+                        android:textAppearance="@style/TextAppearance.LP.Caption" />
+
                     <TextView
                         android:id="@+id/text_pr_1rm"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textColor="@color/fitness_text_primary"
-                        android:textSize="14sp"
-                        android:textStyle="bold"
+                        android:textAppearance="@style/TextAppearance.LP.Metric.M"
                         tools:text="125kg" />
                 </LinearLayout>
 
-                <!-- Reps PR -->
+                <!-- Longest hold PR (timed/isometric exercises). Reps PRs are not part of the
+                     canonical PR system, so this slot carries the hold record instead. -->
                 <LinearLayout
                     android:id="@+id/layout_pr_reps"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
+                    android:layout_marginTop="@dimen/lp_space_2"
                     android:orientation="vertical"
                     android:visibility="gone">
-                    
+
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/reps_pr_label"
-                        android:textColor="@color/fitness_text_secondary"
-                        android:textSize="11sp" />
-                    
+                        android:text="@string/longest_hold_label"
+                        android:textAppearance="@style/TextAppearance.LP.Caption" />
+
                     <TextView
                         android:id="@+id/text_pr_reps"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textColor="@color/fitness_text_primary"
-                        android:textSize="14sp"
-                        android:textStyle="bold"
-                        tools:text="22 @ 52.5kg" />
+                        android:textAppearance="@style/TextAppearance.LP.Metric.M"
+                        tools:text="1:30" />
                 </LinearLayout>
             </LinearLayout>
         </LinearLayout>
 
-        <!-- First Time Note -->
         <TextView
             android:id="@+id/text_first_time_note"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="@dimen/lp_space_2"
             android:text="@string/no_previous_data"
-            android:textColor="@color/fitness_primary"
-            android:textSize="12sp"
-            android:textStyle="italic"
+            android:textAppearance="@style/TextAppearance.LP.Label"
+            android:textColor="?attr/lpAccent"
             android:visibility="gone"
             tools:visibility="gone" />
     </LinearLayout>

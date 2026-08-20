@@ -1,0 +1,752 @@
+[
+ {
+  "our_id": 1,
+  "our_name": "Deadlift (Barbell)",
+  "ds_id": "0032",
+  "instructions": "1. Stand with your feet shoulder-width apart and the barbell on the ground in front of you.\n2. Bend your knees and hinge at the hips to lower your torso and grip the barbell with an overhand grip, hands slightly wider than shoulder-width apart.\n3. Keep your back straight and chest lifted as you drive through your heels to lift the barbell off the ground, extending your hips and knees.\n4. As you stand up straight, squeeze your glutes and keep your core engaged.\n5. Lower the barbell back down to the ground by bending at the hips and knees, keeping your back straight.\n6. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/1.jpg",
+  "gifAssetPath": "exercises/gifs/1.gif",
+  "src_image": "images/0032-ila4NZS.jpg",
+  "src_gif": "videos/0032-ila4NZS.gif"
+ },
+ {
+  "our_id": 2,
+  "our_name": "Back Squat (Barbell)",
+  "ds_id": "0043",
+  "instructions": "1. Stand with your feet shoulder-width apart, toes slightly turned out.\n2. Hold the barbell across your upper back, resting it on your traps or rear delts.\n3. Engage your core and keep your chest up as you begin to lower your body down.\n4. Bend at the knees and hips, pushing your hips back and down as if sitting into a chair.\n5. Lower yourself until your thighs are parallel to the ground or slightly below.\n6. Keep your knees in line with your toes and your weight in your heels.\n7. Drive through your heels to stand back up, extending your hips and knees.\n8. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/2.jpg",
+  "gifAssetPath": "exercises/gifs/2.gif",
+  "src_image": "images/0043-qXTaZnJ.jpg",
+  "src_gif": "videos/0043-qXTaZnJ.gif"
+ },
+ {
+  "our_id": 4,
+  "our_name": "Biceps Curl (Dumbbell)",
+  "ds_id": "0294",
+  "instructions": "1. Stand up straight with a dumbbell in each hand, palms facing forward and arms fully extended.\n2. Keeping your upper arms stationary, exhale and curl the weights while contracting your biceps.\n3. Continue to raise the weights until your biceps are fully contracted and the dumbbells are at shoulder level.\n4. Hold the contracted position for a brief pause as you squeeze your biceps.\n5. Inhale and slowly begin to lower the dumbbells back to the starting position.\n6. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/4.jpg",
+  "gifAssetPath": "exercises/gifs/4.gif",
+  "src_image": "images/0294-NbVPDMW.jpg",
+  "src_gif": "videos/0294-NbVPDMW.gif"
+ },
+ {
+  "our_id": 5,
+  "our_name": "Triceps Pushdown (Cable)",
+  "ds_id": "0241",
+  "instructions": "1. Attach a v-bar attachment to the cable machine at the highest setting.\n2. Stand facing the cable machine with your feet shoulder-width apart.\n3. Grasp the v-bar with an overhand grip, palms facing down, and your hands shoulder-width apart.\n4. Keep your elbows close to your sides and your upper arms stationary throughout the exercise.\n5. Engage your triceps and exhale as you push the v-bar down until your arms are fully extended.\n6. Pause for a moment at the bottom of the movement, squeezing your triceps.\n7. Inhale as you slowly return the v-bar to the starting position, maintaining control.\n8. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/5.jpg",
+  "gifAssetPath": "exercises/gifs/5.gif",
+  "src_image": "images/0241-gAwDzB3.jpg",
+  "src_gif": "videos/0241-gAwDzB3.gif"
+ },
+ {
+  "our_id": 7,
+  "our_name": "Bench Press (Barbell)",
+  "ds_id": "0025",
+  "instructions": "1. Lie flat on a bench with your feet flat on the ground and your back pressed against the bench.\n2. Grasp the barbell with an overhand grip slightly wider than shoulder-width apart.\n3. Lift the barbell off the rack and hold it directly above your chest with your arms fully extended.\n4. Lower the barbell slowly towards your chest, keeping your elbows tucked in.\n5. Pause for a moment when the barbell touches your chest.\n6. Push the barbell back up to the starting position by extending your arms.\n7. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/7.jpg",
+  "gifAssetPath": "exercises/gifs/7.gif",
+  "src_image": "images/0025-EIeI8Vf.jpg",
+  "src_gif": "videos/0025-EIeI8Vf.gif"
+ },
+ {
+  "our_id": 8,
+  "our_name": "Split Squat (Barbell)",
+  "ds_id": "2810",
+  "instructions": "1. Start by standing with your feet shoulder-width apart, holding a barbell across your upper back.\n2. Take a large step forward with your right foot, keeping your torso upright.\n3. Lower your body by bending your knees and hips until your right thigh is parallel to the ground.\n4. Pause for a moment, then push through your right heel to return to the starting position.\n5. Repeat with your left leg forward for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/8.jpg",
+  "gifAssetPath": "exercises/gifs/8.gif",
+  "src_image": "images/2810-HBYyX94.jpg",
+  "src_gif": "videos/2810-HBYyX94.gif"
+ },
+ {
+  "our_id": 9,
+  "our_name": "Calf Raise (Machine)",
+  "ds_id": "1383",
+  "instructions": "1. Adjust the sled machine to a comfortable weight.\n2. Stand on the sled machine with your toes on the platform and your heels hanging off.\n3. Hold onto the handles for stability.\n4. Raise your heels as high as possible by pushing through the balls of your feet.\n5. Pause for a moment at the top, then slowly lower your heels back down to the starting position.\n6. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/9.jpg",
+  "gifAssetPath": "exercises/gifs/9.gif",
+  "src_image": "images/1383-2ORFMoR.jpg",
+  "src_gif": "videos/1383-2ORFMoR.gif"
+ },
+ {
+  "our_id": 10,
+  "our_name": "Decline Bench Press (Barbell)",
+  "ds_id": "0033",
+  "instructions": "1. Lie on a decline bench with your feet secured and your head lower than your hips.\n2. Grasp the barbell with an overhand grip slightly wider than shoulder-width apart.\n3. Unrack the barbell and lower it slowly towards your chest, keeping your elbows tucked in.\n4. Pause for a moment at the bottom, then push the barbell back up to the starting position.\n5. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/10.jpg",
+  "gifAssetPath": "exercises/gifs/10.gif",
+  "src_image": "images/0033-GrO65fd.jpg",
+  "src_gif": "videos/0033-GrO65fd.gif"
+ },
+ {
+  "our_id": 11,
+  "our_name": "Incline Dumbbell Press",
+  "ds_id": "3545",
+  "instructions": "1. Sit on an incline bench with a dumbbell in each hand, resting on your thighs.\n2. Lean back on the bench and use your thighs to help raise the dumbbells to shoulder height, palms facing forward.\n3. Once at shoulder height, rotate your wrists so that the palms of your hands are facing forward.\n4. Push the dumbbells up with your chest and shoulders, extending your arms fully.\n5. Lower the dumbbells back down to the starting position, keeping your elbows slightly bent.\n6. Repeat for the desired number of repetitions, alternating arms.",
+  "imageAssetPath": "exercises/images/11.jpg",
+  "gifAssetPath": "exercises/gifs/11.gif",
+  "src_image": "images/3545-TVdivgY.jpg",
+  "src_gif": "videos/3545-TVdivgY.gif"
+ },
+ {
+  "our_id": 12,
+  "our_name": "Seated Cable Row",
+  "ds_id": "0861",
+  "instructions": "1. Sit on the cable row machine with your feet flat on the footrests and your knees slightly bent.\n2. Grasp the handles with an overhand grip, keeping your back straight and your shoulders relaxed.\n3. Pull the handles towards your body, squeezing your shoulder blades together.\n4. Pause for a moment at the peak of the movement, then slowly release the handles back to the starting position.\n5. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/12.jpg",
+  "gifAssetPath": "exercises/gifs/12.gif",
+  "src_image": "images/0861-fUBheHs.jpg",
+  "src_gif": "videos/0861-fUBheHs.gif"
+ },
+ {
+  "our_id": 13,
+  "our_name": "Triceps Extension (Single Arm)",
+  "ds_id": "0149",
+  "instructions": "1. Stand facing the cable machine with your feet shoulder-width apart.\n2. Hold the cable handle with your right hand and bring your arm up so that your upper arm is parallel to the ground and your elbow is bent at a 90-degree angle.\n3. Keep your upper arm stationary and extend your forearm backward, fully straightening your arm.\n4. Pause for a moment, then slowly return to the starting position.\n5. Repeat with your left arm.\n6. Continue alternating arms for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/13.jpg",
+  "gifAssetPath": "exercises/gifs/13.gif",
+  "src_image": "images/0149-Gchi5Tr.jpg",
+  "src_gif": "videos/0149-Gchi5Tr.gif"
+ },
+ {
+  "our_id": 14,
+  "our_name": "Machine Shoulder Press",
+  "ds_id": "0603",
+  "instructions": "1. Adjust the seat height and position yourself on the machine with your back against the backrest.\n2. Grasp the handles with an overhand grip and position your hands at shoulder level.\n3. Push the handles upward until your arms are fully extended, but do not lock your elbows.\n4. Pause for a moment at the top, then slowly lower the handles back down to the starting position.\n5. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/14.jpg",
+  "gifAssetPath": "exercises/gifs/14.gif",
+  "src_image": "images/0603-67n3r98.jpg",
+  "src_gif": "videos/0603-67n3r98.gif"
+ },
+ {
+  "our_id": 15,
+  "our_name": "Dips (Bodyweight)",
+  "ds_id": "0251",
+  "instructions": "1. Position yourself on parallel bars with your arms fully extended and your body straight.\n2. Lower your body by bending your elbows until your shoulders are below your elbows.\n3. Push yourself back up to the starting position by straightening your arms.\n4. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/15.jpg",
+  "gifAssetPath": "exercises/gifs/15.gif",
+  "src_image": "images/0251-9WTm7dq.jpg",
+  "src_gif": "videos/0251-9WTm7dq.gif"
+ },
+ {
+  "our_id": 16,
+  "our_name": "Abdominal Crunch (Machine)",
+  "ds_id": "1452",
+  "instructions": "1. Sit on the leverage machine with your back against the pad and your feet flat on the floor.\n2. Grasp the handles or place your hands on the side pads for support.\n3. Engage your abs and slowly lean back, allowing the pad to move with you.\n4. Once your upper body is at a 45-degree angle, contract your abs and crunch forward, bringing your chest towards your knees.\n5. Pause for a moment at the top, then slowly release and return to the starting position.\n6. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/16.jpg",
+  "gifAssetPath": "exercises/gifs/16.gif",
+  "src_image": "images/1452-Wgaz7pm.jpg",
+  "src_gif": "videos/1452-Wgaz7pm.gif"
+ },
+ {
+  "our_id": 17,
+  "our_name": "Bench Press (Paused)",
+  "ds_id": "0025",
+  "instructions": "1. Lie flat on a bench with your feet flat on the ground and your back pressed against the bench.\n2. Grasp the barbell with an overhand grip slightly wider than shoulder-width apart.\n3. Lift the barbell off the rack and hold it directly above your chest with your arms fully extended.\n4. Lower the barbell slowly towards your chest, keeping your elbows tucked in.\n5. Pause for a moment when the barbell touches your chest.\n6. Push the barbell back up to the starting position by extending your arms.\n7. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/17.jpg",
+  "gifAssetPath": "exercises/gifs/17.gif",
+  "src_image": "images/0025-EIeI8Vf.jpg",
+  "src_gif": "videos/0025-EIeI8Vf.gif"
+ },
+ {
+  "our_id": 18,
+  "our_name": "Seated Leg Curl (Machine)",
+  "ds_id": "0599",
+  "instructions": "1. Adjust the machine to fit your body and sit on it with your back against the backrest.\n2. Place your lower legs under the padded lever, just above your ankles.\n3. Grasp the handles on the sides of the machine for support.\n4. Keeping your upper legs stationary, exhale and curl your legs up as far as possible.\n5. Hold the contracted position for a brief pause as you squeeze your hamstrings.\n6. Inhale and slowly lower the lever back to the starting position.\n7. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/18.jpg",
+  "gifAssetPath": "exercises/gifs/18.gif",
+  "src_image": "images/0599-Zg3XY7P.jpg",
+  "src_gif": "videos/0599-Zg3XY7P.gif"
+ },
+ {
+  "our_id": 100,
+  "our_name": "Overhead Press (Barbell)",
+  "ds_id": "1456",
+  "instructions": "1. Stand with your feet shoulder-width apart and hold the barbell with an overhand grip, hands slightly closer than shoulder-width apart.\n2. Lift the barbell to shoulder height, keeping your elbows close to your body.\n3. Press the barbell overhead, extending your arms fully.\n4. Lower the barbell back to shoulder height.\n5. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/100.jpg",
+  "gifAssetPath": "exercises/gifs/100.gif",
+  "src_image": "images/1456-wdRZISl.jpg",
+  "src_gif": "videos/1456-wdRZISl.gif"
+ },
+ {
+  "our_id": 101,
+  "our_name": "Pull Up (Bodyweight)",
+  "ds_id": "0651",
+  "instructions": "1. Hang from a pull-up bar with a neutral grip (palms facing each other) and your arms fully extended.\n2. Engage your core and squeeze your shoulder blades together.\n3. Pull your body up towards the bar by bending your elbows and driving your elbows down towards your hips.\n4. Continue pulling until your chin is above the bar.\n5. Pause for a moment at the top, then slowly lower your body back down to the starting position with control.\n6. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/101.jpg",
+  "gifAssetPath": "exercises/gifs/101.gif",
+  "src_image": "images/0651-0V2YQjW.jpg",
+  "src_gif": "videos/0651-0V2YQjW.gif"
+ },
+ {
+  "our_id": 102,
+  "our_name": "Chin Up",
+  "ds_id": "1326",
+  "instructions": "1. Hang from a pull-up bar with your palms facing towards you and your hands shoulder-width apart.\n2. Engage your core and pull your body up towards the bar, leading with your chest.\n3. Continue pulling until your chin is above the bar.\n4. Pause for a moment at the top, then slowly lower your body back down to the starting position.\n5. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/102.jpg",
+  "gifAssetPath": "exercises/gifs/102.gif",
+  "src_image": "images/1326-T2mxWqc.jpg",
+  "src_gif": "videos/1326-T2mxWqc.gif"
+ },
+ {
+  "our_id": 103,
+  "our_name": "Romanian Deadlift (Barbell)",
+  "ds_id": "0085",
+  "instructions": "1. Stand with your feet shoulder-width apart and your toes pointing forward.\n2. Hold the barbell with an overhand grip, hands slightly wider than shoulder-width apart.\n3. Bend at the hips, keeping your back straight and your knees slightly bent.\n4. Lower the barbell towards the ground, keeping it close to your body.\n5. Feel the stretch in your hamstrings as you lower the barbell.\n6. Once you feel a stretch in your hamstrings, push your hips forward and stand up straight.\n7. Squeeze your glutes at the top of the movement.\n8. Lower the barbell back down to the starting position and repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/103.jpg",
+  "gifAssetPath": "exercises/gifs/103.gif",
+  "src_image": "images/0085-wQ2c4XD.jpg",
+  "src_gif": "videos/0085-wQ2c4XD.gif"
+ },
+ {
+  "our_id": 104,
+  "our_name": "Leg Press",
+  "ds_id": "1463",
+  "instructions": "1. Adjust the seat of the sled machine so that your knees are at a 90-degree angle when your feet are on the footplate.\n2. Sit on the sled machine with your back flat against the backrest and your feet shoulder-width apart on the footplate.\n3. Grip the handles on the sides of the seat for stability.\n4. Push against the footplate to extend your legs, straightening them completely.\n5. Pause for a moment at the top, then slowly bend your knees to lower the footplate back to the starting position.\n6. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/104.jpg",
+  "gifAssetPath": "exercises/gifs/104.gif",
+  "src_image": "images/1463-2Qh2J1e.jpg",
+  "src_gif": "videos/1463-2Qh2J1e.gif"
+ },
+ {
+  "our_id": 105,
+  "our_name": "Bulgarian Split Squat (Dumbbell)",
+  "ds_id": "0410",
+  "instructions": "1. Stand with your feet shoulder-width apart, holding a dumbbell in each hand.\n2. Take a step forward with one foot and position your feet so that your front foot is flat on the ground and your back foot is elevated on a bench or step.\n3. Lower your body by bending your front knee and hip, keeping your back knee slightly bent and your back heel off the ground.\n4. Continue lowering until your front thigh is parallel to the ground, then push through your front heel to return to the starting position.\n5. Repeat for the desired number of repetitions, then switch legs and repeat.",
+  "imageAssetPath": "exercises/images/105.jpg",
+  "gifAssetPath": "exercises/gifs/105.gif",
+  "src_image": "images/0410-qx4fgX7.jpg",
+  "src_gif": "videos/0410-qx4fgX7.gif"
+ },
+ {
+  "our_id": 106,
+  "our_name": "Lat Pulldown (Wide Grip)",
+  "ds_id": "2330",
+  "instructions": "1. Sit on the lat pulldown machine with your knees positioned under the pads.\n2. Grasp the cable bar with an overhand grip, slightly wider than shoulder-width apart.\n3. Lean back slightly and keep your chest up, maintaining a slight arch in your lower back.\n4. Pull the bar down towards your upper chest, squeezing your shoulder blades together.\n5. Pause for a moment at the bottom of the movement, then slowly release the bar back to the starting position.\n6. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/106.jpg",
+  "gifAssetPath": "exercises/gifs/106.gif",
+  "src_image": "images/2330-LEprlgG.jpg",
+  "src_gif": "videos/2330-LEprlgG.gif"
+ },
+ {
+  "our_id": 107,
+  "our_name": "Dumbbell Row",
+  "ds_id": "0293",
+  "instructions": "1. Stand with your feet shoulder-width apart, knees slightly bent, and hold a dumbbell in each hand with your palms facing your body.\n2. Bend forward at the hips, keeping your back straight and your core engaged.\n3. Let your arms hang straight down towards the floor, with your elbows slightly bent.\n4. Pull the dumbbells up towards your chest, squeezing your shoulder blades together.\n5. Pause for a moment at the top, then slowly lower the dumbbells back down to the starting position.\n6. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/107.jpg",
+  "gifAssetPath": "exercises/gifs/107.gif",
+  "src_image": "images/0293-BJ0Hz5L.jpg",
+  "src_gif": "videos/0293-BJ0Hz5L.gif"
+ },
+ {
+  "our_id": 109,
+  "our_name": "Lateral Raise (Dumbbell)",
+  "ds_id": "0334",
+  "instructions": "1. Stand with your feet shoulder-width apart and hold a dumbbell in each hand, palms facing your body.\n2. Keep your back straight and engage your core.\n3. Raise your arms out to the sides until they are parallel to the floor, keeping a slight bend in your elbows.\n4. Pause for a moment at the top, then slowly lower your arms back down to the starting position.\n5. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/109.jpg",
+  "gifAssetPath": "exercises/gifs/109.gif",
+  "src_image": "images/0334-DsgkuIt.jpg",
+  "src_gif": "videos/0334-DsgkuIt.gif"
+ },
+ {
+  "our_id": 110,
+  "our_name": "Leg Extension (Machine)",
+  "ds_id": "0585",
+  "instructions": "1. Adjust the seat height and backrest of the machine to fit your body.\n2. Sit on the machine with your back against the backrest and your feet on the footpad.\n3. Grasp the handles or sidebars for stability.\n4. Extend your legs forward by straightening your knees, lifting the weight.\n5. Pause for a moment at the top, then slowly lower the weight back to the starting position.\n6. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/110.jpg",
+  "gifAssetPath": "exercises/gifs/110.gif",
+  "src_image": "images/0585-my33uHU.jpg",
+  "src_gif": "videos/0585-my33uHU.gif"
+ },
+ {
+  "our_id": 112,
+  "our_name": "Skullcrusher (EZ Bar)",
+  "ds_id": "1748",
+  "instructions": "1. Lie flat on a bench with your feet flat on the ground and your head at the end of the bench.\n2. Hold the ez barbell with a close grip, palms facing up, and extend your arms straight up over your chest.\n3. Keeping your upper arms stationary, slowly lower the barbell behind your head by bending your elbows.\n4. Pause for a moment, then extend your arms back up to the starting position.\n5. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/112.jpg",
+  "gifAssetPath": "exercises/gifs/112.gif",
+  "src_image": "images/1748-6CKUx7o.jpg",
+  "src_gif": "videos/1748-6CKUx7o.gif"
+ },
+ {
+  "our_id": 113,
+  "our_name": "Hammer Curl (Dumbbell)",
+  "ds_id": "0313",
+  "instructions": "1. Stand up straight with a dumbbell in each hand, palms facing your torso.\n2. Keep your elbows close to your torso and rotate the palms of your hands until they are facing forward.\n3. This will be your starting position.\n4. Now, keeping the upper arms stationary, exhale and curl the weights while contracting your biceps.\n5. Continue to raise the weights until your biceps are fully contracted and the dumbbells are at shoulder level.\n6. Hold the contracted position for a brief pause as you squeeze your biceps.\n7. Then, inhale and slowly begin to lower the dumbbells back to the starting position.\n8. Repeat for the recommended amount of repetitions.",
+  "imageAssetPath": "exercises/images/113.jpg",
+  "gifAssetPath": "exercises/gifs/113.gif",
+  "src_image": "images/0313-slDvUAU.jpg",
+  "src_gif": "videos/0313-slDvUAU.gif"
+ },
+ {
+  "our_id": 114,
+  "our_name": "Front Squat (Barbell)",
+  "ds_id": "0042",
+  "instructions": "1. Start by standing with your feet shoulder-width apart, toes slightly turned out.\n2. Hold the barbell in front of your shoulders, resting it on your collarbone and shoulders.\n3. Engage your core and keep your chest up as you lower your body down into a squat position, pushing your hips back and bending your knees.\n4. Lower until your thighs are parallel to the ground, or as low as you can comfortably go.\n5. Pause for a moment at the bottom, then push through your heels to return to the starting position.\n6. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/114.jpg",
+  "gifAssetPath": "exercises/gifs/114.gif",
+  "src_image": "images/0042-zG0zs85.jpg",
+  "src_gif": "videos/0042-zG0zs85.gif"
+ },
+ {
+  "our_id": 115,
+  "our_name": "Walking Lunges",
+  "ds_id": "1460",
+  "instructions": "1. Stand with your feet shoulder-width apart.\n2. Take a step forward with your right leg, lowering your body into a lunge position.\n3. Keep your torso upright and your front knee aligned with your ankle.\n4. Push off with your right foot and bring your left foot forward, stepping into a lunge position with your left leg.\n5. Continue alternating legs and walking forward, maintaining a controlled and steady pace.\n6. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/115.jpg",
+  "gifAssetPath": "exercises/gifs/115.gif",
+  "src_image": "images/1460-IZVHb27.jpg",
+  "src_gif": "videos/1460-IZVHb27.gif"
+ },
+ {
+  "our_id": 116,
+  "our_name": "Incline Dumbbell Fly",
+  "ds_id": "0319",
+  "instructions": "1. Set an incline bench to a 45-degree angle.\n2. Sit on the bench with a dumbbell in each hand, palms facing each other.\n3. Lie back on the bench and press the dumbbells up to the starting position, directly above your chest.\n4. Lower the dumbbells out to the sides in a wide arc until you feel a stretch in your chest.\n5. Pause for a moment, then squeeze your chest muscles to bring the dumbbells back up to the starting position.\n6. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/116.jpg",
+  "gifAssetPath": "exercises/gifs/116.gif",
+  "src_image": "images/0319-ESOd5Pl.jpg",
+  "src_gif": "videos/0319-ESOd5Pl.gif"
+ },
+ {
+  "our_id": 117,
+  "our_name": "Pec Deck / Machine Fly",
+  "ds_id": "0596",
+  "instructions": "1. Adjust the seat height and position yourself on the machine with your back against the pad.\n2. Grasp the handles with a pronated grip and keep your elbows slightly bent.\n3. Exhale and push the handles forward, bringing them together in front of your chest.\n4. Pause for a moment, squeezing your chest muscles.\n5. Inhale and slowly return to the starting position, allowing your chest muscles to stretch.\n6. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/117.jpg",
+  "gifAssetPath": "exercises/gifs/117.gif",
+  "src_image": "images/0596-v3xmPAR.jpg",
+  "src_gif": "videos/0596-v3xmPAR.gif"
+ },
+ {
+  "our_id": 118,
+  "our_name": "Dumbbell Shoulder Press (Seated)",
+  "ds_id": "0405",
+  "instructions": "1. Sit on a bench with a dumbbell in each hand, resting on your thighs.\n2. Raise the dumbbells to shoulder height, palms facing forward.\n3. Press the dumbbells upward until your arms are fully extended overhead.\n4. Pause for a moment at the top, then slowly lower the dumbbells back to shoulder height.\n5. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/118.jpg",
+  "gifAssetPath": "exercises/gifs/118.gif",
+  "src_image": "images/0405-znQUdHY.jpg",
+  "src_gif": "videos/0405-znQUdHY.gif"
+ },
+ {
+  "our_id": 119,
+  "our_name": "Reverse Fly (Dumbbell)",
+  "ds_id": "0383",
+  "instructions": "1. Stand with your feet shoulder-width apart and hold a dumbbell in each hand.\n2. Bend your knees slightly and hinge forward at the hips, keeping your back straight.\n3. Extend your arms straight down in front of you, palms facing each other.\n4. Keeping a slight bend in your elbows, raise your arms out to the sides until they are parallel to the ground.\n5. Pause for a moment at the top, then slowly lower your arms back down to the starting position.\n6. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/119.jpg",
+  "gifAssetPath": "exercises/gifs/119.gif",
+  "src_image": "images/0383-EAs3xL9.jpg",
+  "src_gif": "videos/0383-EAs3xL9.gif"
+ },
+ {
+  "our_id": 120,
+  "our_name": "Hanging Leg Raise",
+  "ds_id": "0472",
+  "instructions": "1. Hang from a pull-up bar with your arms fully extended and your palms facing away from you.\n2. Engage your core and lift your legs up in front of you, keeping them straight.\n3. Continue lifting until your legs are parallel to the ground or as high as you can comfortably go.\n4. Pause for a moment at the top, then slowly lower your legs back down to the starting position.\n5. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/120.jpg",
+  "gifAssetPath": "exercises/gifs/120.gif",
+  "src_image": "images/0472-I3tsCnC.jpg",
+  "src_gif": "videos/0472-I3tsCnC.gif"
+ },
+ {
+  "our_id": 123,
+  "our_name": "Sumo Deadlift",
+  "ds_id": "0117",
+  "instructions": "1. Stand with your feet wider than shoulder-width apart, toes pointing outwards.\n2. Place a barbell on the ground in front of you, centered between your feet.\n3. Bend your knees and lower your hips, keeping your back straight and chest up, to grip the barbell with an overhand grip.\n4. Engage your core and drive through your heels to lift the barbell off the ground, extending your hips and knees simultaneously.\n5. As you lift, keep your chest up and back straight, and push your hips forward to fully engage your glutes.\n6. Pause for a moment at the top, then slowly lower the barbell back down to the starting position, maintaining control throughout the movement.\n7. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/123.jpg",
+  "gifAssetPath": "exercises/gifs/123.gif",
+  "src_image": "images/0117-KgI0tqW.jpg",
+  "src_gif": "videos/0117-KgI0tqW.gif"
+ },
+ {
+  "our_id": 124,
+  "our_name": "Barbell Shrug",
+  "ds_id": "0095",
+  "instructions": "1. Stand with your feet shoulder-width apart and hold a barbell in front of you with an overhand grip.\n2. Keep your arms straight and your back straight throughout the exercise.\n3. Lift your shoulders up towards your ears as high as possible, squeezing your traps at the top.\n4. Hold for a moment, then slowly lower your shoulders back down to the starting position.\n5. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/124.jpg",
+  "gifAssetPath": "exercises/gifs/124.gif",
+  "src_image": "images/0095-dG7tG5y.jpg",
+  "src_gif": "videos/0095-dG7tG5y.gif"
+ },
+ {
+  "our_id": 125,
+  "our_name": "Farmer's Walk",
+  "ds_id": "2133",
+  "instructions": "1. Stand up straight with a dumbbell in each hand, palms facing your sides.\n2. Keep your back straight and your shoulders back.\n3. Take small, controlled steps forward, maintaining an upright posture.\n4. Continue walking for the desired distance or time.\n5. To finish, stop walking and carefully lower the dumbbells to your sides.",
+  "imageAssetPath": "exercises/images/125.jpg",
+  "gifAssetPath": "exercises/gifs/125.gif",
+  "src_image": "images/2133-qPEzJjA.jpg",
+  "src_gif": "videos/2133-qPEzJjA.gif"
+ },
+ {
+  "our_id": 126,
+  "our_name": "Glute Bridge (Barbell)",
+  "ds_id": "1409",
+  "instructions": "1. Start by lying flat on your back on the ground with your knees bent and feet flat on the floor.\n2. Place a barbell across your hips, holding it securely with both hands.\n3. Engage your glutes and core muscles, then lift your hips off the ground until your body forms a straight line from your knees to your shoulders.\n4. Pause for a moment at the top, squeezing your glutes.\n5. Slowly lower your hips back down to the starting position.\n6. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/126.jpg",
+  "gifAssetPath": "exercises/gifs/126.gif",
+  "src_image": "images/1409-qKBpF7I.jpg",
+  "src_gif": "videos/1409-qKBpF7I.gif"
+ },
+ {
+  "our_id": 127,
+  "our_name": "Goblet Squat",
+  "ds_id": "0534",
+  "instructions": "1. Stand with your feet shoulder-width apart, holding a kettlebell close to your chest with both hands.\n2. Keeping your chest up and core engaged, lower your body down into a squat position by bending at the knees and hips.\n3. Continue lowering until your thighs are parallel to the ground, or as low as you can comfortably go.\n4. Pause for a moment at the bottom, then push through your heels to return to the starting position.\n5. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/127.jpg",
+  "gifAssetPath": "exercises/gifs/127.gif",
+  "src_image": "images/0534-ZA8b5hc.jpg",
+  "src_gif": "videos/0534-ZA8b5hc.gif"
+ },
+ {
+  "our_id": 128,
+  "our_name": "Barbell Row (Pendlay)",
+  "ds_id": "3017",
+  "instructions": "1. Stand with your feet shoulder-width apart and your knees slightly bent.\n2. Bend forward at the hips, keeping your back straight and your chest up.\n3. Grasp the barbell with an overhand grip, slightly wider than shoulder-width apart.\n4. Pull the barbell towards your upper abdomen, squeezing your shoulder blades together.\n5. Lower the barbell back down to the starting position.\n6. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/128.jpg",
+  "gifAssetPath": "exercises/gifs/128.gif",
+  "src_image": "images/3017-r0z6xzQ.jpg",
+  "src_gif": "videos/3017-r0z6xzQ.gif"
+ },
+ {
+  "our_id": 129,
+  "our_name": "Cable Crossover",
+  "ds_id": "1270",
+  "instructions": "1. Attach the handles to the cables at chest height.\n2. Stand in the center of the cable machine with one foot slightly in front of the other.\n3. Grasp the handles with your palms facing down and your arms extended out to the sides.\n4. Keep a slight bend in your elbows and engage your core.\n5. Pull the cables together in front of your chest, crossing them over each other.\n6. Squeeze your chest muscles at the peak of the movement.\n7. Slowly release the cables back to the starting position.\n8. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/129.jpg",
+  "gifAssetPath": "exercises/gifs/129.gif",
+  "src_image": "images/1270-j7XMAyn.jpg",
+  "src_gif": "videos/1270-j7XMAyn.gif"
+ },
+ {
+  "our_id": 130,
+  "our_name": "Preacher Curl (EZ Bar)",
+  "ds_id": "1627",
+  "instructions": "1. Sit on a preacher curl bench and place your upper arms on the pad, gripping the ez barbell with an underhand grip.\n2. Rest your triceps on the pad and fully extend your arms, keeping your back straight.\n3. Slowly curl the barbell towards your shoulders, contracting your biceps.\n4. Pause for a moment at the top, squeezing your biceps.\n5. Lower the barbell back to the starting position, fully extending your arms.\n6. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/130.jpg",
+  "gifAssetPath": "exercises/gifs/130.gif",
+  "src_image": "images/1627-hacCyUv.jpg",
+  "src_gif": "videos/1627-hacCyUv.gif"
+ },
+ {
+  "our_id": 131,
+  "our_name": "Push Up",
+  "ds_id": "0662",
+  "instructions": "1. Start in a high plank position with your hands slightly wider than shoulder-width apart and your feet together.\n2. Engage your core and lower your body towards the ground by bending your elbows, keeping your body in a straight line.\n3. Pause for a moment when your chest is just above the ground, then push yourself back up to the starting position by straightening your arms.\n4. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/131.jpg",
+  "gifAssetPath": "exercises/gifs/131.gif",
+  "src_image": "images/0662-I4hDWkc.jpg",
+  "src_gif": "videos/0662-I4hDWkc.gif"
+ },
+ {
+  "our_id": 133,
+  "our_name": "Incline Press (Machine)",
+  "ds_id": "1299",
+  "instructions": "1. Adjust the seat and backrest of the leverage machine to a comfortable position.\n2. Sit on the machine with your back against the backrest and your feet flat on the floor.\n3. Grasp the handles with an overhand grip and position your hands slightly wider than shoulder-width apart.\n4. Push the handles forward and away from your body until your arms are fully extended.\n5. Pause for a moment, then slowly bend your elbows and lower the handles back towards your chest.\n6. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/133.jpg",
+  "gifAssetPath": "exercises/gifs/133.gif",
+  "src_image": "images/1299-jHAnWmT.jpg",
+  "src_gif": "videos/1299-jHAnWmT.gif"
+ },
+ {
+  "our_id": 134,
+  "our_name": "Hip Adduction",
+  "ds_id": "0598",
+  "instructions": "1. Adjust the seat height and position yourself on the machine with your back against the backrest.\n2. Place your feet on the footrests and grasp the handles for stability.\n3. Engage your adductor muscles and slowly bring your legs together, squeezing your inner thighs.\n4. Pause for a moment at the peak contraction, then slowly return to the starting position.\n5. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/134.jpg",
+  "gifAssetPath": "exercises/gifs/134.gif",
+  "src_image": "images/0598-oHsrypV.jpg",
+  "src_gif": "videos/0598-oHsrypV.gif"
+ },
+ {
+  "our_id": 135,
+  "our_name": "Hip Abduction",
+  "ds_id": "0597",
+  "instructions": "1. Adjust the seat height so that your knees are at a 90-degree angle.\n2. Sit on the machine with your back against the backrest and your feet on the footrests.\n3. Place your hands on the side handles for stability.\n4. Engage your abductors and slowly push your legs apart, away from the midline of your body.\n5. Pause for a moment at the end of the movement, then slowly bring your legs back together to the starting position.\n6. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/135.jpg",
+  "gifAssetPath": "exercises/gifs/135.gif",
+  "src_image": "images/0597-CHpahtl.jpg",
+  "src_gif": "videos/0597-CHpahtl.gif"
+ },
+ {
+  "our_id": 136,
+  "our_name": "Romanian Deadlift (Dumbbell)",
+  "ds_id": "1459",
+  "instructions": "1. Stand with your feet shoulder-width apart, holding a dumbbell in each hand with an overhand grip.\n2. Keeping your back straight and your core engaged, hinge at the hips and lower the dumbbells towards the ground, allowing your knees to bend slightly.\n3. Lower the dumbbells until you feel a stretch in your hamstrings, then push through your heels and engage your glutes to return to the starting position.\n4. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/136.jpg",
+  "gifAssetPath": "exercises/gifs/136.gif",
+  "src_image": "images/1459-rR0LJzx.jpg",
+  "src_gif": "videos/1459-rR0LJzx.gif"
+ },
+ {
+  "our_id": 137,
+  "our_name": "Side Plank",
+  "ds_id": "3544",
+  "instructions": "1. Start by lying on your side with your legs extended and stacked on top of each other.\n2. Place your forearm on the ground directly below your shoulder, with your elbow bent at a 90-degree angle.\n3. Engage your core and lift your hips off the ground, creating a straight line from your head to your feet.\n4. Hold this position for the desired amount of time.\n5. Lower your hips back down to the ground and repeat on the other side.",
+  "imageAssetPath": "exercises/images/137.jpg",
+  "gifAssetPath": "exercises/gifs/137.gif",
+  "src_image": "images/3544-5VXmnV5.jpg",
+  "src_gif": "videos/3544-5VXmnV5.gif"
+ },
+ {
+  "our_id": 139,
+  "our_name": "Chest Press (Machine Wide)",
+  "ds_id": "0577",
+  "instructions": "1. Adjust the seat height and position yourself on the machine with your back flat against the pad.\n2. Grasp the handles with an overhand grip and position your elbows at a 90-degree angle.\n3. Push the handles forward until your arms are fully extended, exhaling during the movement.\n4. Pause briefly at the end of the movement, then slowly return to the starting position, inhaling as you do so.\n5. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/139.jpg",
+  "gifAssetPath": "exercises/gifs/139.gif",
+  "src_image": "images/0577-T0yTjgW.jpg",
+  "src_gif": "videos/0577-T0yTjgW.gif"
+ },
+ {
+  "our_id": 140,
+  "our_name": "Chest Press (Machine)",
+  "ds_id": "0577",
+  "instructions": "1. Adjust the seat height and position yourself on the machine with your back flat against the pad.\n2. Grasp the handles with an overhand grip and position your elbows at a 90-degree angle.\n3. Push the handles forward until your arms are fully extended, exhaling during the movement.\n4. Pause briefly at the end of the movement, then slowly return to the starting position, inhaling as you do so.\n5. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/140.jpg",
+  "gifAssetPath": "exercises/gifs/140.gif",
+  "src_image": "images/0577-T0yTjgW.jpg",
+  "src_gif": "videos/0577-T0yTjgW.gif"
+ },
+ {
+  "our_id": 141,
+  "our_name": "Row (Machine)",
+  "ds_id": "1350",
+  "instructions": "1. Adjust the seat height and footrests to a comfortable position.\n2. Sit on the machine with your chest against the pad and your feet on the footrests.\n3. Grasp the handles with an overhand grip, shoulder-width apart.\n4. Keep your back straight and your core engaged.\n5. Pull the handles towards your body, squeezing your shoulder blades together.\n6. Pause for a moment at the peak of the movement.\n7. Slowly release the handles and return to the starting position.\n8. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/141.jpg",
+  "gifAssetPath": "exercises/gifs/141.gif",
+  "src_image": "images/1350-7I6LNUG.jpg",
+  "src_gif": "videos/1350-7I6LNUG.gif"
+ },
+ {
+  "our_id": 142,
+  "our_name": "Prone Leg Curl",
+  "ds_id": "0586",
+  "instructions": "1. Adjust the machine to fit your body and select the desired weight.\n2. Lie face down on the machine with your legs straight and your heels against the padded lever.\n3. Grasp the handles or the sides of the machine for stability.\n4. Keeping your upper body stationary, exhale and curl your legs up as far as possible without lifting your hips off the pad.\n5. Hold the contracted position for a brief pause as you squeeze your hamstrings.\n6. Inhale and slowly lower the lever back to the starting position.\n7. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/142.jpg",
+  "gifAssetPath": "exercises/gifs/142.gif",
+  "src_image": "images/0586-17lJ1kr.jpg",
+  "src_gif": "videos/0586-17lJ1kr.gif"
+ },
+ {
+  "our_id": 143,
+  "our_name": "Cable Lateral Raise",
+  "ds_id": "0178",
+  "instructions": "1. Stand with your feet shoulder-width apart and grasp the cable handles with an overhand grip.\n2. Keep your arms straight and your core engaged.\n3. Raise your arms out to the sides until they are parallel to the floor.\n4. Pause for a moment at the top, then slowly lower your arms back down to the starting position.\n5. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/143.jpg",
+  "gifAssetPath": "exercises/gifs/143.gif",
+  "src_image": "images/0178-goJ6ezq.jpg",
+  "src_gif": "videos/0178-goJ6ezq.gif"
+ },
+ {
+  "our_id": 144,
+  "our_name": "Incline Barbell Press",
+  "ds_id": "0047",
+  "instructions": "1. Set up an incline bench at a 45-degree angle.\n2. Lie down on the bench with your feet flat on the ground.\n3. Grasp the barbell with an overhand grip, slightly wider than shoulder-width apart.\n4. Unrack the barbell and lower it slowly towards your chest, keeping your elbows at a 45-degree angle.\n5. Pause for a moment at the bottom, then push the barbell back up to the starting position.\n6. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/144.jpg",
+  "gifAssetPath": "exercises/gifs/144.gif",
+  "src_image": "images/0047-3TZduzM.jpg",
+  "src_gif": "videos/0047-3TZduzM.gif"
+ },
+ {
+  "our_id": 146,
+  "our_name": "Hack Squat",
+  "ds_id": "0743",
+  "instructions": "1. Adjust the sled machine to a comfortable position for your height.\n2. Stand with your feet shoulder-width apart on the platform, toes slightly pointed outwards.\n3. Hold onto the handles or bars for stability.\n4. Lower your body by bending your knees and hips, keeping your back straight and chest up.\n5. Continue lowering until your thighs are parallel to the ground or slightly below.\n6. Pause for a moment, then push through your heels to raise your body back up to the starting position.\n7. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/146.jpg",
+  "gifAssetPath": "exercises/gifs/146.gif",
+  "src_image": "images/0743-Qa55kX1.jpg",
+  "src_gif": "videos/0743-Qa55kX1.gif"
+ },
+ {
+  "our_id": 148,
+  "our_name": "Cable Straight Back Kicks",
+  "ds_id": "0860",
+  "instructions": "1. Stand facing a cable machine with your feet shoulder-width apart.\n2. Hold the cable handle with your right hand and step back to create tension in the cable.\n3. Bend your knees slightly and hinge forward at the hips, keeping your back straight.\n4. Keep your upper arm close to your body and your elbow bent at a 90-degree angle.\n5. Extend your forearm backward, straightening your arm fully.\n6. Pause for a moment, then slowly return to the starting position.\n7. Repeat for the desired number of repetitions, then switch sides.",
+  "imageAssetPath": "exercises/images/148.jpg",
+  "gifAssetPath": "exercises/gifs/148.gif",
+  "src_image": "images/0860-HEJ6DIX.jpg",
+  "src_gif": "videos/0860-HEJ6DIX.gif"
+ },
+ {
+  "our_id": 149,
+  "our_name": "Low Row (Machine)",
+  "ds_id": "1350",
+  "instructions": "1. Adjust the seat height and footrests to a comfortable position.\n2. Sit on the machine with your chest against the pad and your feet on the footrests.\n3. Grasp the handles with an overhand grip, shoulder-width apart.\n4. Keep your back straight and your core engaged.\n5. Pull the handles towards your body, squeezing your shoulder blades together.\n6. Pause for a moment at the peak of the movement.\n7. Slowly release the handles and return to the starting position.\n8. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/149.jpg",
+  "gifAssetPath": "exercises/gifs/149.gif",
+  "src_image": "images/1350-7I6LNUG.jpg",
+  "src_gif": "videos/1350-7I6LNUG.gif"
+ },
+ {
+  "our_id": 150,
+  "our_name": "Front Raise (Dumbbell)",
+  "ds_id": "0310",
+  "instructions": "1. Stand with your feet shoulder-width apart, holding a dumbbell in each hand with your palms facing your thighs.\n2. Keeping your arms straight, exhale and lift the dumbbells in front of you until they are at shoulder level.\n3. Pause for a moment at the top, then inhale and slowly lower the dumbbells back down to the starting position.\n4. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/150.jpg",
+  "gifAssetPath": "exercises/gifs/150.gif",
+  "src_image": "images/0310-3eGE2JC.jpg",
+  "src_gif": "videos/0310-3eGE2JC.gif"
+ },
+ {
+  "our_id": 151,
+  "our_name": "Front Raise (Cable)",
+  "ds_id": "0162",
+  "instructions": "1. Stand with your feet shoulder-width apart and grasp the cable handle with an overhand grip.\n2. Keep your back straight and your core engaged.\n3. Raise the cable handle in front of you, keeping your arms straight and your palms facing down.\n4. Continue lifting until your arms are parallel to the floor.\n5. Pause for a moment at the top, then slowly lower the cable handle back to the starting position.\n6. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/151.jpg",
+  "gifAssetPath": "exercises/gifs/151.gif",
+  "src_image": "images/0162-u2X71Np.jpg",
+  "src_gif": "videos/0162-u2X71Np.gif"
+ },
+ {
+  "our_id": 152,
+  "our_name": "Upright Row (Barbell)",
+  "ds_id": "0120",
+  "instructions": "1. Stand with your feet shoulder-width apart and hold a barbell with an overhand grip, hands slightly wider than shoulder-width apart.\n2. Let the barbell hang in front of your thighs, arms fully extended.\n3. Keeping your back straight and core engaged, exhale and lift the barbell straight up towards your chin, leading with your elbows.\n4. Pause for a moment at the top, then inhale and slowly lower the barbell back down to the starting position.\n5. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/152.jpg",
+  "gifAssetPath": "exercises/gifs/152.gif",
+  "src_image": "images/0120-UDlhcO8.jpg",
+  "src_gif": "videos/0120-UDlhcO8.gif"
+ },
+ {
+  "our_id": 153,
+  "our_name": "Back Extension (Machine)",
+  "ds_id": "0573",
+  "instructions": "1. Adjust the machine to fit your body size and range of motion.\n2. Sit on the machine with your back against the pad and your feet secured.\n3. Place your hands on the handles or grip bars.\n4. Engage your core and slowly lean forward, allowing your back to round slightly.\n5. Pause for a moment at the bottom position, feeling a stretch in your lower back.\n6. Using your back muscles, slowly raise your torso back to the starting position.\n7. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/153.jpg",
+  "gifAssetPath": "exercises/gifs/153.gif",
+  "src_image": "images/0573-rUXfn3R.jpg",
+  "src_gif": "videos/0573-rUXfn3R.gif"
+ },
+ {
+  "our_id": 154,
+  "our_name": "Hyperextension (45\u00b0)",
+  "ds_id": "0489",
+  "instructions": "1. Adjust the hyperextension bench so that your upper thighs are resting on the pad and your feet are secured.\n2. Cross your arms over your chest or place your hands behind your head.\n3. Lower your upper body towards the ground while keeping your back straight.\n4. Pause for a moment at the bottom, then raise your upper body back up until it is in line with your legs.\n5. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/154.jpg",
+  "gifAssetPath": "exercises/gifs/154.gif",
+  "src_image": "images/0489-zhMwOwE.jpg",
+  "src_gif": "videos/0489-zhMwOwE.gif"
+ },
+ {
+  "our_id": 155,
+  "our_name": "Good Morning (Barbell)",
+  "ds_id": "0044",
+  "instructions": "1. Start by standing with your feet shoulder-width apart and the barbell resting on your upper back.\n2. Keeping your back straight and your core engaged, hinge forward at the hips, pushing your buttocks back as if you were trying to touch the wall behind you with your glutes.\n3. Lower your torso until it is parallel to the ground, feeling a stretch in your hamstrings.\n4. Pause for a moment, then return to the starting position by squeezing your glutes and pushing your hips forward.\n5. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/155.jpg",
+  "gifAssetPath": "exercises/gifs/155.gif",
+  "src_image": "images/0044-XlZ4lAC.jpg",
+  "src_gif": "videos/0044-XlZ4lAC.gif"
+ },
+ {
+  "our_id": 156,
+  "our_name": "Ab Wheel Rollout",
+  "ds_id": "0857",
+  "instructions": "1. Kneel on the floor and place the wheel roller in front of you.\n2. Place your hands on the handles of the wheel roller and extend your arms straight out in front of you.\n3. Engage your core muscles and slowly roll the wheel forward, keeping your back straight and your abs tight.\n4. Continue rolling forward until your body is fully extended and your arms are overhead.\n5. Pause for a moment, then slowly roll the wheel back towards your knees, maintaining control and keeping your abs engaged.\n6. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/156.jpg",
+  "gifAssetPath": "exercises/gifs/156.gif",
+  "src_image": "images/0857-NAgVB3t.jpg",
+  "src_gif": "videos/0857-NAgVB3t.gif"
+ },
+ {
+  "our_id": 157,
+  "our_name": "Kettlebell Swing",
+  "ds_id": "0549",
+  "instructions": "1. Stand with your feet shoulder-width apart, toes pointed slightly outward.\n2. Hold the kettlebell with both hands in front of your body, arms extended.\n3. Bend your knees slightly and hinge at the hips, pushing your butt back.\n4. Swing the kettlebell back between your legs, keeping your arms straight and maintaining a flat back.\n5. Drive your hips forward and swing the kettlebell up to shoulder height, using the momentum generated by your hips.\n6. Allow the kettlebell to swing back down between your legs and repeat the movement for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/157.jpg",
+  "gifAssetPath": "exercises/gifs/157.gif",
+  "src_image": "images/0549-UHJlbu3.jpg",
+  "src_gif": "videos/0549-UHJlbu3.gif"
+ },
+ {
+  "our_id": 158,
+  "our_name": "Close-Grip Bench Press",
+  "ds_id": "0030",
+  "instructions": "1. Lie flat on a bench with your feet flat on the ground and your back pressed against the bench.\n2. Grasp the barbell with a close grip, slightly narrower than shoulder-width apart.\n3. Unrack the barbell and lower it slowly towards your chest, keeping your elbows close to your body.\n4. Pause for a moment when the barbell touches your chest.\n5. Push the barbell back up to the starting position, fully extending your arms.\n6. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/158.jpg",
+  "gifAssetPath": "exercises/gifs/158.gif",
+  "src_image": "images/0030-J6Dx1Mu.jpg",
+  "src_gif": "videos/0030-J6Dx1Mu.gif"
+ },
+ {
+  "our_id": 159,
+  "our_name": "Seated Calf Raise (Machine)",
+  "ds_id": "0594",
+  "instructions": "1. Adjust the seat height so that your knees are slightly bent and your feet are flat on the footplate.\n2. Place your toes on the footplate with your heels hanging off the edge.\n3. Grasp the handles or the sides of the seat for stability.\n4. Push through the balls of your feet to raise your heels as high as possible.\n5. Pause for a moment at the top, then slowly lower your heels back down to the starting position.\n6. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/159.jpg",
+  "gifAssetPath": "exercises/gifs/159.gif",
+  "src_image": "images/0594-bOOdeyc.jpg",
+  "src_gif": "videos/0594-bOOdeyc.gif"
+ },
+ {
+  "our_id": 161,
+  "our_name": "Step-Up (Dumbbell)",
+  "ds_id": "0431",
+  "instructions": "1. Stand in front of a bench or step with a dumbbell in each hand, palms facing your body.\n2. Place your right foot on the bench or step, ensuring your entire foot is in contact with the surface.\n3. Push through your right heel and lift your body up onto the bench or step, straightening your right leg.\n4. Bring your left foot up onto the bench or step, standing fully upright.\n5. Step back down with your left foot, followed by your right foot, returning to the starting position.\n6. Repeat for the desired number of repetitions, then switch legs.",
+  "imageAssetPath": "exercises/images/161.jpg",
+  "gifAssetPath": "exercises/gifs/161.gif",
+  "src_image": "images/0431-aXtJhlg.jpg",
+  "src_gif": "videos/0431-aXtJhlg.gif"
+ },
+ {
+  "our_id": 162,
+  "our_name": "Arnold Press (Dumbbell)",
+  "ds_id": "2137",
+  "instructions": "1. Sit on a bench with back support and hold a dumbbell in each hand at shoulder level, palms facing your body and elbows bent.\n2. Press the dumbbells upward until your arms are fully extended and your palms are facing forward.\n3. Rotate your wrists as you lift, so that your palms are facing forward at the top of the movement.\n4. Pause for a moment at the top, then slowly lower the dumbbells back to the starting position.\n5. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/162.jpg",
+  "gifAssetPath": "exercises/gifs/162.gif",
+  "src_image": "images/2137-Xy4jlWA.jpg",
+  "src_gif": "videos/2137-Xy4jlWA.gif"
+ },
+ {
+  "our_id": 163,
+  "our_name": "Trap Bar Deadlift",
+  "ds_id": "0811",
+  "instructions": "1. Stand with your feet shoulder-width apart and the trap bar on the ground in front of you.\n2. Bend at the hips and knees to lower yourself down and grip the handles of the trap bar with an overhand grip.\n3. Keep your back straight and chest up as you begin to lift the trap bar off the ground by extending your hips and knees.\n4. As you lift, focus on driving through your heels and squeezing your glutes at the top of the movement.\n5. Lower the trap bar back down to the ground by bending at the hips and knees, keeping your back straight throughout the movement.\n6. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/163.jpg",
+  "gifAssetPath": "exercises/gifs/163.gif",
+  "src_image": "images/0811-jQGwmxN.jpg",
+  "src_gif": "videos/0811-jQGwmxN.gif"
+ },
+ {
+  "our_id": 164,
+  "our_name": "Single Leg RDL (Dumbbell)",
+  "ds_id": "1757",
+  "instructions": "1. Stand with your feet hip-width apart, holding a dumbbell in your right hand.\n2. Shift your weight onto your left leg and lift your right foot slightly off the ground.\n3. Keeping your back straight, hinge forward at the hips and lower the dumbbell towards the ground.\n4. At the same time, extend your right leg straight behind you, maintaining a slight bend in your left knee.\n5. Lower the dumbbell until your torso and right leg are parallel to the ground.\n6. Pause for a moment, then engage your glutes and hamstrings to return to the starting position.\n7. Repeat for the desired number of repetitions, then switch sides.",
+  "imageAssetPath": "exercises/images/164.jpg",
+  "gifAssetPath": "exercises/gifs/164.gif",
+  "src_image": "images/1757-gKozT8X.jpg",
+  "src_gif": "videos/1757-gKozT8X.gif"
+ },
+ {
+  "our_id": 165,
+  "our_name": "Cable Crunch",
+  "ds_id": "0212",
+  "instructions": "1. Sit on a cable machine with your feet flat on the ground and your knees bent.\n2. Hold the cable handle with both hands and position it behind your head.\n3. Engage your abs and slowly curl your upper body forward, bringing your chest towards your knees.\n4. Pause for a moment at the top, then slowly return to the starting position.\n5. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/165.jpg",
+  "gifAssetPath": "exercises/gifs/165.gif",
+  "src_image": "images/0212-8xUv4J7.jpg",
+  "src_gif": "videos/0212-8xUv4J7.gif"
+ },
+ {
+  "our_id": 166,
+  "our_name": "Russian Twist",
+  "ds_id": "0687",
+  "instructions": "1. Sit on the ground with your knees bent and feet flat on the floor.\n2. Lean back slightly while keeping your back straight and your core engaged.\n3. Hold your hands together in front of your chest or hold a weight if desired.\n4. Lift your feet off the ground, balancing on your sit bones.\n5. Twist your torso to the right, bringing your hands or weight towards the right side of your body.\n6. Pause for a moment, then twist your torso to the left, bringing your hands or weight towards the left side of your body.\n7. Continue alternating sides for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/166.jpg",
+  "gifAssetPath": "exercises/gifs/166.gif",
+  "src_image": "images/0687-XVDdcoj.jpg",
+  "src_gif": "videos/0687-XVDdcoj.gif"
+ },
+ {
+  "our_id": 167,
+  "our_name": "Glute Bridge (Bodyweight)",
+  "ds_id": "3013",
+  "instructions": "1. Lie flat on your back with your knees bent and feet flat on the ground.\n2. Place your arms by your sides, palms facing down.\n3. Engage your glutes and core, then lift your hips off the ground until your body forms a straight line from your knees to your shoulders.\n4. Pause for a moment at the top, squeezing your glutes.\n5. Slowly lower your hips back down to the starting position.\n6. Repeat for the desired number of repetitions.",
+  "imageAssetPath": "exercises/images/167.jpg",
+  "gifAssetPath": "exercises/gifs/167.gif",
+  "src_image": "images/3013-u0cNiij.jpg",
+  "src_gif": "videos/3013-u0cNiij.gif"
+ }
+]

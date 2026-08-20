@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Bottom navigation. Four destinations, which is the most that fits on a phone without
+  labels truncating.
+
+  Named after what each one does, not when you'd use it: "Workout" is where you start or resume
+  a session, "Plan" is where plans and rotations are authored. The earlier "Today"/"Train" pair
+  described neither.
+
+  Start workout is deliberately NOT a nav item: it stays the ink hero card on Workout. It is
+  the app's best element and duplicating it as a raised centre button would weaken both.
+
+  Settings is not here either — it remains the gear in the Workout header, because it is a
+  rare-visit screen and would waste a fifth of the bar.
+-->
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Start / resume, readiness, what's up next, what was last. -->
+    <item
+        android:id="@+id/nav_workout"
+        android:icon="@drawable/ic_nav_workout"
+        android:title="@string/nav_workout" />
+
+    <!-- Workout plans and plan rotations. -->
+    <item
+        android:id="@+id/nav_plan"
+        android:icon="@drawable/ic_nav_plan"
+        android:title="@string/nav_plan" />
+
+    <!-- The six-tab analytics hub, which now also absorbs the old History screen. -->
+    <item
+        android:id="@+id/nav_progress"
+        android:icon="@drawable/ic_nav_progress"
+        android:title="@string/nav_progress" />
+
+    <!-- Exercise catalogue: create, edit, favourites. Distinct from Progress > Exercises,
+         which is analytics for the same objects. -->
+    <item
+        android:id="@+id/nav_library"
+        android:icon="@drawable/ic_nav_library"
+        android:title="@string/nav_library" />
+
+</menu>

@@ -9,8 +9,8 @@ object DefaultStretchesHelper {
 
     val ALL_STRETCHES: List<StretchItem> = listOf(
         // CHEST
-        StretchItem("Doorway Chest Stretch",          listOf(TargetMuscle.CHEST_UPPER, TargetMuscle.CHEST_MIDDLE, TargetMuscle.DELT_FRONT), 30, R.drawable.stretch_doorway_chest,          Laterality.BILATERAL),
-        StretchItem("Low Doorway Stretch",            listOf(TargetMuscle.CHEST_LOWER, TargetMuscle.CHEST_MIDDLE),                           30, R.drawable.stretch_low_doorway,            Laterality.BILATERAL),
+        StretchItem("Doorway Chest Stretch",          listOf(TargetMuscle.CHEST_UPPER, TargetMuscle.CHEST_MIDDLE, TargetMuscle.DELT_FRONT), 30, R.drawable.stretch_doorway_chest,          Laterality.UNILATERAL),
+        StretchItem("Low Doorway Stretch",            listOf(TargetMuscle.CHEST_LOWER, TargetMuscle.CHEST_MIDDLE),                           30, R.drawable.stretch_low_doorway,            Laterality.UNILATERAL),
 
         // BACK
         StretchItem("Child's Pose",                   listOf(TargetMuscle.LATS, TargetMuscle.LOWER_BACK),                                   40, R.drawable.stretch_childs_pose,            Laterality.BILATERAL),

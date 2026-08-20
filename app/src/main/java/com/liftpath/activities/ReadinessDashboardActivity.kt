@@ -21,6 +21,9 @@ import com.liftpath.helpers.FatigueTimeline
 import com.liftpath.helpers.ReadinessSettingsManager
 import com.liftpath.helpers.HealthConnectHelper
 import com.liftpath.helpers.ExternalActivity
+import com.liftpath.helpers.ExternalLoadProvider
+import com.liftpath.helpers.TriPathConnection
+import com.liftpath.helpers.TriPathSyncHelper
 import com.liftpath.models.TrainingSession
 import com.liftpath.models.TrainingData
 import kotlinx.coroutines.Dispatchers
@@ -45,6 +48,7 @@ import com.google.gson.GsonBuilder
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
+import com.liftpath.helpers.lpColor
 
 class ReadinessDashboardActivity : AppCompatActivity() {
 
@@ -81,19 +85,23 @@ class ReadinessDashboardActivity : AppCompatActivity() {
         setupClickListeners()
         setupHealthConnectToggle()
         loadReadinessData()
-        
-        // Auto-sync Health Connect in the background
+        updateTriPathCard()
+
+        // Auto-sync external sources in the background
         autoSyncHealthConnect()
+        autoSyncTriPath()
     }
 
     override fun onResume() {
         super.onResume()
         // Reload data when returning (e.g., from calibration settings)
         loadReadinessData()
+        updateTriPathCard()
         startCountdownUpdates()
-        
-        // Auto-sync Health Connect in the background
+
+        // Auto-sync external sources in the background
         autoSyncHealthConnect()
+        autoSyncTriPath()
     }
 
     override fun onPause() {
@@ -148,27 +156,16 @@ class ReadinessDashboardActivity : AppCompatActivity() {
     private fun setupCalendarView() {
         var trainingData = jsonHelper.readTrainingData()
         val settings = settingsManager.getSettings()
-        val config = ReadinessConfig.fromSettings(settings)
+        val config = ExternalLoadProvider.readinessConfig(applicationContext, settings)
 
         // Use mock data if no real data exists
         if (trainingData.trainings.isEmpty()) {
             trainingData = ReadinessHelper.createMockTrainingData()
         }
 
-        // Load external activities from stored JSON (if enabled)
+        // Load external activities from stored JSON (Health Connect and/or TriPath, deduplicated)
         lifecycleScope.launch(Dispatchers.IO) {
-            val useHealthConnect = healthConnectPrefs.getBoolean(HEALTH_CONNECT_ENABLED_KEY, false)
-            val externalActivities = if (useHealthConnect) {
-                try {
-                    // Use stored activities from JSON instead of fetching from Health Connect
-                    // This way we use the persisted data with deduplication and overlap filtering
-                    HealthConnectHelper.getStoredActivities(applicationContext)
-                } catch (e: Exception) {
-                    emptyList()
-                }
-            } else {
-                emptyList()
-            }
+            val externalActivities = ExternalLoadProvider.getExternalActivities(applicationContext)
 
             // Calculate continuous fatigue timeline with external activities
             val timeline = ReadinessHelper.calculateContinuousFatigueTimeline(
@@ -182,7 +179,7 @@ class ReadinessDashboardActivity : AppCompatActivity() {
                 updateCalendarWithTimeline(timeline)
                 // Update activity readiness tiles with timeline that includes Health Connect data
                 val settings = settingsManager.getSettings()
-                val config = ReadinessConfig.fromSettings(settings)
+                val config = ExternalLoadProvider.readinessConfig(applicationContext, settings)
                 val currentFatigue = ReadinessHelper.getCurrentFatigueFromTimeline(timeline, config)
                 updateActivityReadiness(currentFatigue, config)
             }
@@ -263,7 +260,7 @@ class ReadinessDashboardActivity : AppCompatActivity() {
         val dayText = TextView(this).apply {
             text = dayAbbr
             textSize = 12f
-            setTextColor(ContextCompat.getColor(this@ReadinessDashboardActivity, if (isToday) R.color.fitness_primary else R.color.fitness_text_secondary))
+            setTextColor(lpColor(if (isToday) R.attr.lpAccent else R.attr.lpInkSecondary))
             gravity = android.view.Gravity.CENTER
         }
         cellLayout.addView(dayText)
@@ -273,7 +270,7 @@ class ReadinessDashboardActivity : AppCompatActivity() {
             text = dayNumber.toString()
             textSize = 14f
             setTypeface(null, android.graphics.Typeface.BOLD)
-            setTextColor(ContextCompat.getColor(this@ReadinessDashboardActivity, if (isToday) R.color.fitness_text_primary else R.color.fitness_text_secondary))
+            setTextColor(lpColor(if (isToday) R.attr.lpInk else R.attr.lpInkSecondary))
             gravity = android.view.Gravity.CENTER
         }
         cellLayout.addView(dayNumText)
@@ -282,7 +279,7 @@ class ReadinessDashboardActivity : AppCompatActivity() {
         val fatigueText = TextView(this).apply {
             text = String.format("%.0f", fatigue)
             textSize = 12f
-            setTextColor(ContextCompat.getColor(this@ReadinessDashboardActivity, R.color.fitness_text_secondary))
+            setTextColor(this@ReadinessDashboardActivity.lpColor(R.attr.lpInkSecondary))
             gravity = android.view.Gravity.CENTER
         }
         cellLayout.addView(fatigueText)
@@ -306,9 +303,7 @@ class ReadinessDashboardActivity : AppCompatActivity() {
         val normalized = (fatigue / 80f).coerceIn(0f, 1f)
         
         // Detect dark mode
-        val isDarkMode = (resources.configuration.uiMode and 
-            android.content.res.Configuration.UI_MODE_NIGHT_MASK) == 
-            android.content.res.Configuration.UI_MODE_NIGHT_YES
+        val isDarkMode = com.liftpath.helpers.AppearanceManager.isNightActive(this)
         
         // Use HSV color space for better control
         // Hue: 0 (red) to 120 (green)
@@ -341,7 +336,7 @@ class ReadinessDashboardActivity : AppCompatActivity() {
     private fun setupFatigueChart() {
         val timeline = fatigueTimeline ?: return
         val settings = settingsManager.getSettings()
-        val config = ReadinessConfig.fromSettings(settings)
+        val config = ExternalLoadProvider.readinessConfig(applicationContext, settings)
 
         // Get activity timestamps (workouts and external activities)
         val activityTimestamps = mutableSetOf<Long>()
@@ -371,17 +366,13 @@ class ReadinessDashboardActivity : AppCompatActivity() {
             }
         }
         
-        // Get external activity timestamps (if Health Connect is enabled)
-        val useHealthConnect = healthConnectPrefs.getBoolean(HEALTH_CONNECT_ENABLED_KEY, false)
-        if (useHealthConnect) {
-            try {
-                val externalActivities = HealthConnectHelper.getStoredActivities(applicationContext)
-                externalActivities.forEach { activity ->
-                    activityTimestamps.add(activity.endTime)
-                }
-            } catch (e: Exception) {
-                // Skip if unable to load external activities
+        // Get external activity timestamps (Health Connect and/or TriPath)
+        try {
+            ExternalLoadProvider.getExternalActivities(applicationContext).forEach { activity ->
+                activityTimestamps.add(activity.endTime)
             }
+        } catch (e: Exception) {
+            // Skip if unable to load external activities
         }
         
         // Use ALL graph points to show calculated decay values
@@ -420,7 +411,7 @@ class ReadinessDashboardActivity : AppCompatActivity() {
 
         binding.chartFatigue.visibility = View.VISIBLE
 
-        val primaryColor = ContextCompat.getColor(this, R.color.fitness_primary)
+        val primaryColor = this.lpColor(R.attr.lpAccent)
         val lineData = LineData()
         
         // Past data: solid line
@@ -504,7 +495,7 @@ class ReadinessDashboardActivity : AppCompatActivity() {
         val xAxis = binding.chartFatigue.xAxis
         xAxis.position = XAxis.XAxisPosition.BOTTOM
         xAxis.textSize = 12f
-        xAxis.textColor = Color.parseColor("#616161")
+        xAxis.textColor = this.lpColor(R.attr.lpInkSecondary)
         xAxis.yOffset = 8f
         xAxis.setLabelCount(minOf((pastEntries + futureEntries).size, 12), true)
         xAxis.valueFormatter = object : ValueFormatter() {
@@ -519,11 +510,11 @@ class ReadinessDashboardActivity : AppCompatActivity() {
         }
         xAxis.labelRotationAngle = -45f
         xAxis.setDrawGridLines(true)
-        xAxis.gridColor = Color.parseColor("#E0E0E0")
+        xAxis.gridColor = this.lpColor(R.attr.lpChartGrid)
         xAxis.gridLineWidth = 1.5f
         xAxis.enableGridDashedLine(12f, 8f, 0f)
         xAxis.setDrawAxisLine(true)
-        xAxis.axisLineColor = Color.parseColor("#9E9E9E")
+        xAxis.axisLineColor = this.lpColor(R.attr.lpInkSecondary)
         xAxis.axisLineWidth = 1.5f
 
         // Configure Y-axis - match progression chart styling
@@ -532,17 +523,17 @@ class ReadinessDashboardActivity : AppCompatActivity() {
         leftAxis.axisMinimum = 0f
         leftAxis.axisMaximum = (maxFatigue * 1.15f).coerceAtLeast(10f) // Add 15% padding like progression charts
         leftAxis.textSize = 12f
-        leftAxis.textColor = Color.parseColor("#616161")
+        leftAxis.textColor = this.lpColor(R.attr.lpInkSecondary)
         leftAxis.setDrawGridLines(true)
-        leftAxis.gridColor = Color.parseColor("#E0E0E0")
+        leftAxis.gridColor = this.lpColor(R.attr.lpChartGrid)
         leftAxis.gridLineWidth = 1.5f
         leftAxis.enableGridDashedLine(12f, 8f, 0f)
         leftAxis.setDrawZeroLine(true)
-        leftAxis.zeroLineColor = Color.parseColor("#9E9E9E")
+        leftAxis.zeroLineColor = this.lpColor(R.attr.lpInkSecondary)
         leftAxis.zeroLineWidth = 2f
         leftAxis.setLabelCount(6, true)
         leftAxis.setDrawAxisLine(true)
-        leftAxis.axisLineColor = Color.parseColor("#9E9E9E")
+        leftAxis.axisLineColor = this.lpColor(R.attr.lpInkSecondary)
         leftAxis.axisLineWidth = 1.5f
         leftAxis.setDrawLabels(true)
         leftAxis.spaceTop = 5f
@@ -592,7 +583,7 @@ class ReadinessDashboardActivity : AppCompatActivity() {
             trainingData = ReadinessHelper.createMockTrainingData()
         }
         val settings = settingsManager.getSettings()
-        val config = ReadinessConfig.fromSettings(settings)
+        val config = ExternalLoadProvider.readinessConfig(applicationContext, settings)
         
         val workoutsByDate = trainingData.trainings.groupBy { it.date }
         val rawFatigueByDate = workoutsByDate.mapValues { (_, workouts) ->
@@ -633,7 +624,7 @@ class ReadinessDashboardActivity : AppCompatActivity() {
             val dateText = TextView(this).apply {
                 text = dateDisplay
                 textSize = 12f
-                setTextColor(ContextCompat.getColor(this@ReadinessDashboardActivity, R.color.fitness_text_primary))
+                setTextColor(this@ReadinessDashboardActivity.lpColor(R.attr.lpInk))
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             }
             rowLayout.addView(dateText)
@@ -642,7 +633,7 @@ class ReadinessDashboardActivity : AppCompatActivity() {
             val rawText = TextView(this).apply {
                 text = if (rawFatigue > 0) String.format("Raw: %.0f", rawFatigue) else "--"
                 textSize = 12f
-                setTextColor(ContextCompat.getColor(this@ReadinessDashboardActivity, R.color.fitness_text_secondary))
+                setTextColor(this@ReadinessDashboardActivity.lpColor(R.attr.lpInkSecondary))
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             }
             rowLayout.addView(rawText)
@@ -651,7 +642,7 @@ class ReadinessDashboardActivity : AppCompatActivity() {
             val endText = TextView(this).apply {
                 text = String.format("End: %.1f", endOfDayFatigue)
                 textSize = 12f
-                setTextColor(ContextCompat.getColor(this@ReadinessDashboardActivity, R.color.fitness_accent))
+                setTextColor(this@ReadinessDashboardActivity.lpColor(R.attr.lpAccent))
                 setTypeface(null, android.graphics.Typeface.BOLD)
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             }
@@ -674,7 +665,7 @@ class ReadinessDashboardActivity : AppCompatActivity() {
 
         // Calculate fatigue scores using settings
         val settings = settingsManager.getSettings()
-        val config = ReadinessConfig.fromSettings(settings)
+        val config = ExternalLoadProvider.readinessConfig(applicationContext, settings)
         val rawFatigueScores = ReadinessHelper.calculateFatigueScores(
             lastWorkout,
             trainingData,
@@ -817,32 +808,29 @@ class ReadinessDashboardActivity : AppCompatActivity() {
         countdownText: android.widget.TextView,
         readiness: ActivityReadiness
     ) {
-        // Update status text and color
-        val (statusLabel, statusColor, cardBackgroundColor) = when (readiness.status) {
-            ActivityStatus.GREEN -> {
-                Triple("Ready", R.color.fitness_highlight_border, R.color.fitness_highlight_background)
-            }
-            ActivityStatus.YELLOW -> {
-                Triple("Caution", R.color.fitness_warning_border, R.color.fitness_warning_background)
-            }
-            ActivityStatus.RED -> {
-                Triple("Blocked", R.color.fitness_error_border, R.color.fitness_error_background)
-            }
+        // Status colour is now an @AttrRes pair rather than @ColorRes, so it follows the
+        // selected palette. The card background is a neutral raised panel in all three
+        // states, with the status carried by the label colour: a coloured panel plus a
+        // coloured label doubles the signal and reads louder than it needs to.
+        val (statusLabel, statusAttr) = when (readiness.status) {
+            ActivityStatus.GREEN -> "Ready" to R.attr.lpPositive
+            ActivityStatus.YELLOW -> "Caution" to R.attr.lpAccent
+            ActivityStatus.RED -> "Blocked" to R.attr.lpNegative
         }
 
         statusText.text = statusLabel
-        statusText.setTextColor(ContextCompat.getColor(this, statusColor))
-        card.setCardBackgroundColor(ContextCompat.getColor(this, cardBackgroundColor))
+        statusText.setTextColor(lpColor(statusAttr))
+        card.setCardBackgroundColor(lpColor(R.attr.lpSurfaceAlt))
 
         // Update message - use primary text color for better contrast on colored backgrounds
         messageText.text = readiness.message
-        messageText.setTextColor(ContextCompat.getColor(this, R.color.fitness_text_primary))
+        messageText.setTextColor(this.lpColor(R.attr.lpInk))
 
         // Update countdown if recovery time is set - use primary text color for better contrast
         if (readiness.timeUntilFresh != null) {
             updateCountdown(countdownText, readiness.timeUntilFresh)
             countdownText.visibility = View.VISIBLE
-            countdownText.setTextColor(ContextCompat.getColor(this, R.color.fitness_text_primary))
+            countdownText.setTextColor(this.lpColor(R.attr.lpInk))
         } else {
             countdownText.visibility = View.GONE
         }
@@ -889,21 +877,11 @@ class ReadinessDashboardActivity : AppCompatActivity() {
             while (true) {
                 val trainingData = jsonHelper.readTrainingData()
                 val settings = settingsManager.getSettings()
-                val config = ReadinessConfig.fromSettings(settings)
+                val config = ExternalLoadProvider.readinessConfig(applicationContext, settings)
                 
-                // Load external activities from stored JSON (if enabled)
-                val useHealthConnect = healthConnectPrefs.getBoolean(HEALTH_CONNECT_ENABLED_KEY, false)
-                val externalActivities = if (useHealthConnect) {
-                    withContext(Dispatchers.IO) {
-                        try {
-                            // Use stored activities from JSON
-                            HealthConnectHelper.getStoredActivities(applicationContext)
-                        } catch (e: Exception) {
-                            emptyList()
-                        }
-                    }
-                } else {
-                    emptyList()
+                // Load external activities from stored JSON (Health Connect and/or TriPath)
+                val externalActivities = withContext(Dispatchers.IO) {
+                    ExternalLoadProvider.getExternalActivities(applicationContext)
                 }
                 
                 val timeline = ReadinessHelper.calculateContinuousFatigueTimeline(
@@ -969,7 +947,7 @@ class ReadinessDashboardActivity : AppCompatActivity() {
 
         try {
             val settings = settingsManager.getSettings()
-            val config = ReadinessConfig.fromSettings(settings)
+            val config = ExternalLoadProvider.readinessConfig(applicationContext, settings)
 
             // Create data structure for export
             val exportData = FatigueExportData(
@@ -1098,6 +1076,66 @@ class ReadinessDashboardActivity : AppCompatActivity() {
                 onFailure = { error ->
                     // Sync failed silently (already logged in helper)
                 }
+            )
+        }
+    }
+
+    /**
+     * Pulls TriPath's cardio load and recovery data, then redraws. Silent: TriPath being absent,
+     * disabled or unreachable is the normal case, not an error worth a toast.
+     */
+    private fun autoSyncTriPath() {
+        if (!TriPathConnection.isEnabled(this)) return
+
+        lifecycleScope.launch {
+            TriPathSyncHelper.autoSync(applicationContext).onSuccess {
+                loadReadinessData()
+                updateTriPathCard()
+            }
+        }
+    }
+
+    /**
+     * Shows what TriPath contributed: form, last night's recovery, and the multiplier those
+     * produced. Hidden entirely when the integration is off, so the screen is unchanged for
+     * anyone without TriPath.
+     */
+    private fun updateTriPathCard() {
+        val card = binding.cardTripath
+        if (!TriPathConnection.isActive(this)) {
+            card.visibility = View.GONE
+            return
+        }
+
+        lifecycleScope.launch {
+            val modifier = withContext(Dispatchers.IO) {
+                ExternalLoadProvider.triPathModifier(applicationContext)
+            }
+            val day = modifier.latest
+            if (day == null) {
+                card.visibility = View.GONE
+                return@launch
+            }
+
+            card.visibility = View.VISIBLE
+            binding.textTripathForm.text = String.format(
+                Locale.getDefault(),
+                "Form %+.0f · Fitness %.0f · Fatigue %.0f",
+                day.tsb, day.ctl, day.atl
+            )
+
+            val recovery = buildList {
+                day.sleepScore?.let { add("Sleep $it") }
+                    ?: day.sleepMinutes?.let { add("Sleep ${it / 60}h ${it % 60}m") }
+                day.hrvRmssd?.let { add(String.format(Locale.getDefault(), "HRV %.0f", it)) }
+                day.soreness?.let { add("Soreness $it/10") }
+            }.joinToString(" · ").ifEmpty { "No recovery data logged" }
+            binding.textTripathRecovery.text = recovery
+
+            binding.textTripathEffect.text = String.format(
+                Locale.getDefault(),
+                "Recovery ×%.2f · Thresholds ×%.2f",
+                modifier.recoveryFactor, modifier.thresholdScale
             )
         }
     }

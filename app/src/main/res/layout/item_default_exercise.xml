@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginBottom="12dp"
-    app:cardBackgroundColor="@color/fitness_card_background"
+    app:cardBackgroundColor="?attr/lpSurface"
     app:cardCornerRadius="16dp"
     app:cardElevation="2dp">
 
@@ -28,7 +28,7 @@
             android:layout_marginStart="12dp"
             android:layout_weight="1"
             android:text="Exercise Name"
-            android:textColor="@color/fitness_text_primary"
+            android:textColor="?attr/lpInk"
             android:textSize="16sp" />
     </LinearLayout>
 </androidx.cardview.widget.CardView>

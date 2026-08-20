@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  PALETTE: Cloud & Beacon
+
+  Cool cloud-white neutrals with the app icon's signal blue as the accent — the one
+  palette deliberately tied to the launcher mark. Chart time uses a separate teal-blue
+  (#3D7A94) rather than reusing the accent hue, so a chart never reads as "two accents".
+-->
+<resources>
+
+    <color name="cloud_canvas">#F4F7FB</color>
+    <color name="cloud_canvas_sunken">#EAF0F7</color>
+    <color name="cloud_surface">#FFFFFF</color>
+    <color name="cloud_surface_alt">#F1F5FA</color>
+
+    <color name="cloud_hairline">#DCE6F0</color>
+    <color name="cloud_hairline_strong">#C7D6E6</color>
+
+    <color name="cloud_ink">#131A24</color>
+    <color name="cloud_ink_secondary">#5C6B7C</color>
+    <color name="cloud_ink_tertiary">#8A97A6</color>
+    <color name="cloud_ink_inverse">#F4F7FB</color>
+    <color name="cloud_ink_inverse_secondary">#A9B7C6</color>
+
+    <color name="cloud_accent">#2563EB</color>
+    <color name="cloud_accent_pressed">#1E4FC0</color>
+    <color name="cloud_accent_wash">#E6EDFB</color>
+
+    <color name="cloud_positive">#3F6B4F</color>
+    <color name="cloud_negative">#A33A2B</color>
+    <color name="cloud_neutral">#8590A0</color>
+
+    <color name="cloud_intent_strength">#A33A2B</color>
+    <color name="cloud_intent_build">#2563EB</color>
+    <color name="cloud_intent_flush">#3F6B4F</color>
+    <color name="cloud_intent_warmup">#8590A0</color>
+
+    <color name="cloud_chart_volume">#3F6B4F</color>
+    <color name="cloud_chart_rpe">#2563EB</color>
+    <color name="cloud_chart_time">#3D7A94</color>
+    <color name="cloud_chart_fatigue">#A33A2B</color>
+    <color name="cloud_chart_grid">#E2EAF3</color>
+
+    <color name="cloud_ripple">#14131A24</color>
+    <color name="cloud_ripple_inverse">#22F4F7FB</color>
+
+</resources>

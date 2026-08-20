@@ -1,38 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  One logged set, inflated directly into item_grouped_exercise's sets_container. No card,
+  no click target — it is pure data, so it takes the same flat-row treatment as the
+  logged-sets text block on the active-workout card, just one row per set instead of one
+  TextView with newlines (a per-row note needs its own marquee-capable view).
+-->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
-    android:paddingStart="16dp"
-    android:paddingEnd="16dp"
-    android:paddingTop="6dp"
-    android:paddingBottom="6dp"
-    android:minHeight="32dp">
+    android:paddingVertical="@dimen/lp_space_1"
+    android:minHeight="28dp">
 
     <TextView
         android:id="@+id/text_set_details"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Set 1: 100kg × 10 reps"
-        android:textColor="@color/fitness_text_primary"
-        android:textSize="14sp"
-        android:gravity="center_vertical|start" />
+        android:gravity="center_vertical|start"
+        android:textAppearance="@style/TextAppearance.LP.Metric.S"
+        android:textColor="?attr/lpInk"
+        tools:text="Set 1: 100kg × 10 reps" />
 
     <TextView
         android:id="@+id/text_set_note"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:layout_marginStart="8dp"
-        android:textColor="@color/fitness_text_primary"
-        android:textSize="14sp"
-        android:gravity="center_vertical|start"
+        android:layout_marginStart="@dimen/lp_space_2"
         android:ellipsize="marquee"
-        android:marqueeRepeatLimit="marquee_forever"
-        android:singleLine="true"
-        android:scrollHorizontally="true"
         android:focusable="true"
         android:focusableInTouchMode="true"
+        android:gravity="center_vertical|start"
+        android:marqueeRepeatLimit="marquee_forever"
+        android:scrollHorizontally="true"
+        android:singleLine="true"
+        android:textAppearance="@style/TextAppearance.LP.Label"
+        android:textColor="?attr/lpInkSecondary"
         android:visibility="gone" />
 
 </LinearLayout>

@@ -77,7 +77,8 @@ object ProgressAnalysisHelper {
         return bestByExercise.keys
             .filter { exerciseId ->
                 val typeKey = { suffix: String -> lastPrDateByType["${exerciseId}_$suffix"] ?: 0L }
-                typeKey("WEIGHT") > 0L || typeKey("VOLUME") > 0L || typeKey("1RM") > 0L
+                typeKey("WEIGHT") > 0L || typeKey("VOLUME") > 0L || typeKey("1RM") > 0L ||
+                    typeKey("TIME_HOLD") > 0L
             }
             .map { exerciseId ->
                 val b = bestByExercise[exerciseId]!!
@@ -92,9 +93,11 @@ object ProgressAnalysisHelper {
                     best1RM = if ((lastPrDateByType["${exerciseId}_1RM"] ?: 0L) > 0L) b.max1RM else null,
                     bestWeight = if ((lastPrDateByType["${exerciseId}_WEIGHT"] ?: 0L) > 0L) b.maxWeight else null,
                     bestVolume = if ((lastPrDateByType["${exerciseId}_VOLUME"] ?: 0L) > 0L) b.maxVolume else null,
+                    bestHoldSeconds = if ((lastPrDateByType["${exerciseId}_TIME_HOLD"] ?: 0L) > 0L) b.maxHoldSeconds else null,
                     lastWeightPrDate = lastPrDateByType["${exerciseId}_WEIGHT"] ?: 0L,
                     lastVolumePrDate = lastPrDateByType["${exerciseId}_VOLUME"] ?: 0L,
-                    last1RMPrDate = lastPrDateByType["${exerciseId}_1RM"] ?: 0L
+                    last1RMPrDate = lastPrDateByType["${exerciseId}_1RM"] ?: 0L,
+                    lastHoldPrDate = lastPrDateByType["${exerciseId}_TIME_HOLD"] ?: 0L
                 )
             }
     }
@@ -126,17 +129,21 @@ object ProgressAnalysisHelper {
             val sessionBests = mutableMapOf<Int, SessionExerciseBests>()
             val sessionVolumeAccum = mutableMapOf<Int, Float>()
 
-            session.exercises.filterNot { it.isWarmup }.forEach { entry ->
+            session.exercises.filterNot { it.isWarmup || it.isSpecialSlotEntry() }.forEach { entry ->
                 val exerciseId = entry.exerciseId
                 bestByExercise.getOrPut(exerciseId) { ExerciseBests() }
                 val sessionBest = sessionBests.getOrPut(exerciseId) { SessionExerciseBests() }
 
                 // Timed holds use their own metric (longest hold) and are excluded from
                 // weight-based weight/1RM/volume PRs (those formulas are rep-based).
+                // Ranked by (seconds, load): at equal duration a heavier hold is the better set,
+                // which is the only progression axis a weighted plank has.
                 if (entry.isTimedEntry()) {
-                    val secs = entry.durationSeconds ?: 0
-                    if (secs > (sessionBest.bestHoldSeconds ?: 0)) {
+                    val secs = SetMetrics.holdSeconds(entry)
+                    val best = sessionBest.bestHoldSeconds ?: 0
+                    if (secs > best || (secs == best && entry.kg > (sessionBest.bestHoldLoadKg ?: 0f))) {
                         sessionBest.bestHoldSeconds = secs
+                        sessionBest.bestHoldLoadKg = entry.kg
                     }
                     return@forEach
                 }
@@ -154,7 +161,7 @@ object ProgressAnalysisHelper {
 
                 // Accumulate volume per exercise for this session
                 sessionVolumeAccum[exerciseId] =
-                    (sessionVolumeAccum[exerciseId] ?: 0f) + entry.kg * entry.reps
+                    (sessionVolumeAccum[exerciseId] ?: 0f) + SetMetrics.volumeKg(entry)
             }
 
             // --- Volume PRs: one per exercise per session ---
@@ -241,13 +248,19 @@ object ProgressAnalysisHelper {
                     }
                 }
 
-                // Longest hold (timed exercises)
+                // Longest hold (timed exercises), ranked by (seconds, load)
                 if (sessionBest.bestHoldSeconds != null) {
                     val prev = current.maxHoldSeconds
+                    val secs = sessionBest.bestHoldSeconds!!
+                    val load = sessionBest.bestHoldLoadKg ?: 0f
+                    val beatsPrev = prev != null &&
+                        (secs > prev || (secs == prev && load > (current.maxHoldLoadKg ?: 0f)))
                     if (prev == null) {
-                        current.maxHoldSeconds = sessionBest.bestHoldSeconds  // Baseline
-                    } else if (sessionBest.bestHoldSeconds!! > prev) {
-                        current.maxHoldSeconds = sessionBest.bestHoldSeconds
+                        current.maxHoldSeconds = secs  // Baseline
+                        current.maxHoldLoadKg = load
+                    } else if (beatsPrev) {
+                        current.maxHoldSeconds = secs
+                        current.maxHoldLoadKg = load
                         val intent = session.exercises
                             .firstOrNull { it.exerciseId == exerciseId }
                             ?.getEffectiveIntent(session.defaultWorkoutType) ?: SetIntent.BUILD
@@ -301,9 +314,11 @@ object ProgressAnalysisHelper {
         }
 
         val totalVolume = weeklySessions.sumOf { session ->
-            session.exercises.filterNot { it.isWarmup }
-                .sumOf { (it.kg * it.reps).toDouble() }
+            SetMetrics.totalVolumeKg(session.exercises.filterNot { it.isWarmup }).toDouble()
         }.toFloat()
+        val totalHoldSeconds = weeklySessions.sumOf { session ->
+            SetMetrics.totalHoldSeconds(session.exercises.filterNot { it.isWarmup })
+        }
 
         // Canonical PR count: events whose session date falls in this week
         val (allPrs, _) = processSessionsForPRs(sessions)
@@ -327,6 +342,7 @@ object ProgressAnalysisHelper {
 
         return WeeklySummary(
             totalVolume = totalVolume,
+            totalHoldSeconds = totalHoldSeconds,
             sessionCount = weeklySessions.size,
             prCount = prCount,
             dominantIntent = dominantIntent
@@ -412,9 +428,11 @@ object ProgressAnalysisHelper {
         }
 
         val totalVolume = windowSessions.sumOf { session ->
-            session.exercises.filterNot { it.isWarmup }
-                .sumOf { (it.kg * it.reps).toDouble() }
+            SetMetrics.totalVolumeKg(session.exercises.filterNot { it.isWarmup }).toDouble()
         }.toFloat()
+        val totalHoldSeconds = windowSessions.sumOf { session ->
+            SetMetrics.totalHoldSeconds(session.exercises.filterNot { it.isWarmup })
+        }
 
         val (allPrs, _) = processSessionsForPRs(sessions)
         val prCount = allPrs.count { pr ->
@@ -437,6 +455,7 @@ object ProgressAnalysisHelper {
 
         return WeeklySummary(
             totalVolume = totalVolume,
+            totalHoldSeconds = totalHoldSeconds,
             sessionCount = windowSessions.size,
             prCount = prCount,
             dominantIntent = dominantIntent
@@ -497,6 +516,7 @@ object ProgressAnalysisHelper {
             var totalSets: Int = 0,
             var totalReps: Int = 0,
             var totalVolume: Float = 0f,
+            var totalHoldSeconds: Int = 0,
             val sessionIds: MutableSet<String> = mutableSetOf()
         )
 
@@ -509,8 +529,9 @@ object ProgressAnalysisHelper {
                     ?: return@forEach
                 val a = accum.getOrPut(familyId) { Accum() }
                 a.totalSets++
-                a.totalReps += entry.reps
-                a.totalVolume += entry.kg * entry.reps
+                a.totalReps += SetMetrics.repsForStats(entry)
+                a.totalVolume += SetMetrics.volumeKg(entry)
+                a.totalHoldSeconds += SetMetrics.holdSeconds(entry)
                 a.sessionIds.add(session.id)
             }
         }
@@ -523,6 +544,7 @@ object ProgressAnalysisHelper {
                     totalSets = a.totalSets,
                     totalReps = a.totalReps,
                     totalVolume = a.totalVolume,
+                    totalHoldSeconds = a.totalHoldSeconds,
                     sessionCount = a.sessionIds.size
                 )
             }
@@ -551,16 +573,22 @@ object ProgressAnalysisHelper {
         val best1RM: Float?,
         val bestWeight: Float?,
         val bestVolume: Float?,
+        /** Longest single hold in seconds; null unless this exercise has a timed-hold PR. */
+        val bestHoldSeconds: Int? = null,
         val lastWeightPrDate: Long,   // ms timestamp; 0 = no weight PR ever
         val lastVolumePrDate: Long,   // ms timestamp; 0 = no volume PR ever
-        val last1RMPrDate: Long       // ms timestamp; 0 = no 1RM PR ever
+        val last1RMPrDate: Long,      // ms timestamp; 0 = no 1RM PR ever
+        val lastHoldPrDate: Long = 0L // ms timestamp; 0 = no hold PR ever
     ) {
         /** Most recent PR date across all types. Used for card recency coloring and sorting. */
-        val lastPrDate: Long get() = maxOf(lastWeightPrDate, lastVolumePrDate, last1RMPrDate)
+        val lastPrDate: Long
+            get() = maxOf(lastWeightPrDate, lastVolumePrDate, last1RMPrDate, lastHoldPrDate)
     }
 
     data class WeeklySummary(
         val totalVolume: Float,
+        /** Total time under tension from timed holds, which carry no rep-based volume. */
+        val totalHoldSeconds: Int = 0,
         val sessionCount: Int,
         val prCount: Int,
         val dominantIntent: SetIntent
@@ -572,6 +600,8 @@ object ProgressAnalysisHelper {
         val totalSets: Int,
         val totalReps: Int,
         val totalVolume: Float,
+        /** Total time under tension from timed holds, which carry no rep-based volume. */
+        val totalHoldSeconds: Int = 0,
         val sessionCount: Int
     )
 
@@ -591,7 +621,9 @@ object ProgressAnalysisHelper {
     private data class SessionExerciseBests(
         var bestWeight: Float? = null,
         var best1RM: Float? = null,
-        var bestHoldSeconds: Int? = null
+        var bestHoldSeconds: Int? = null,
+        /** Load carried during [bestHoldSeconds]; tie-breaks equal-duration holds. */
+        var bestHoldLoadKg: Float? = null
     )
 
     private data class ExerciseBests(
@@ -599,6 +631,8 @@ object ProgressAnalysisHelper {
         var max1RM: Float? = null,
         var maxVolume: Float? = null,
         var maxHoldSeconds: Int? = null,
+        /** Load carried during [maxHoldSeconds]; tie-breaks equal-duration holds. */
+        var maxHoldLoadKg: Float? = null,
         val sessionVolumes: MutableSet<String> = mutableSetOf()
     )
 
@@ -657,7 +691,7 @@ object ProgressAnalysisHelper {
                         }
 
                         if (intent == SetIntent.BUILD) {
-                            val volume = entry.kg * entry.reps
+                            val volume = SetMetrics.volumeKg(entry)
                             if (isFirst) data.firstVolume = (data.firstVolume ?: 0f) + volume
                             else data.secondVolume = (data.secondVolume ?: 0f) + volume
                         }
@@ -687,6 +721,47 @@ object ProgressAnalysisHelper {
                 else -> null
             }
         }
+    }
+
+    /**
+     * Per-muscle effort over the last [daysBack] days, as total volume (working sets only)
+     * normalized 0f–1f against the hardest-worked muscle in the window — so the body figure
+     * always has at least one muscle at full intensity when there has been any training, rather
+     * than an absolute scale that would fade out for someone who trains lighter.
+     *
+     * Unlike [getMuscleTrends] this is a single window, not two halves compared — "how much",
+     * not "more or less than before".
+     */
+    fun getRecentMuscleEffort(
+        sessions: List<TrainingSession>,
+        exerciseLibrary: List<ExerciseLibraryItem>,
+        daysBack: Int = 14
+    ): Map<com.liftpath.models.TargetMuscle, Float> {
+        val cutoffDate = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -daysBack) }.time
+
+        val recentSessions = sessions.filter { session ->
+            try {
+                val date = dateFormat.parse(session.date)
+                date != null && date.time >= cutoffDate.time
+            } catch (e: Exception) {
+                false
+            }
+        }
+
+        val volumeByMuscle = mutableMapOf<com.liftpath.models.TargetMuscle, Float>()
+        recentSessions.forEach { session ->
+            session.exercises.filterNot { it.isWarmup }.forEach { entry ->
+                val exercise = exerciseLibrary.find { it.id == entry.exerciseId } ?: return@forEach
+                val volume = SetMetrics.volumeKg(entry)
+                (exercise.primaryTargets + exercise.secondaryTargets).forEach { muscle ->
+                    volumeByMuscle[muscle] = (volumeByMuscle[muscle] ?: 0f) + volume
+                }
+            }
+        }
+
+        val maxVolume = volumeByMuscle.values.maxOrNull() ?: return emptyMap()
+        if (maxVolume <= 0f) return emptyMap()
+        return volumeByMuscle.mapValues { (_, volume) -> volume / maxVolume }
     }
 
     private data class MusclePeriodData(

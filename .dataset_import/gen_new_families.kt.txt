@@ -1,0 +1,2 @@
+        ExerciseFamily("forearm_wrist",    "Forearm / Wrist",           MovementPattern.OTHER,                        BodyRegion.UPPER, listOf(TargetMuscle.FOREARMS)),
+        ExerciseFamily("cardio_machine",    "Cardio Machine",            MovementPattern.OTHER,                        BodyRegion.FULL,  emptyList()),

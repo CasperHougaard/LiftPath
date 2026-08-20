@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:background="@color/fitness_card_background">
+    android:background="?attr/lpSurface">
 
     <View
         android:layout_width="40dp"
@@ -11,7 +11,7 @@
         android:layout_gravity="center_horizontal"
         android:layout_marginTop="12dp"
         android:layout_marginBottom="8dp"
-        android:background="@color/fitness_text_secondary"
+        android:background="?attr/lpInkSecondary"
         android:alpha="0.4" />
 
     <TextView
@@ -20,10 +20,8 @@
         android:paddingStart="16dp"
         android:paddingEnd="16dp"
         android:paddingBottom="12dp"
-        android:text="Change Exercise"
-        android:textColor="@color/fitness_text_primary"
-        android:textSize="18sp"
-        android:textStyle="bold" />
+        android:text="@string/title_change_exercise"
+        android:textAppearance="@style/TextAppearance.LP.Title" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recycler_change_exercise"

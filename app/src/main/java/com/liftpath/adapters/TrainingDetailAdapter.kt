@@ -1,18 +1,19 @@
 package com.liftpath.adapters
 
-import android.graphics.Color
+import android.content.Context
 import android.graphics.Typeface
 import android.text.Spannable
-import android.text.SpannableString
 import android.text.SpannableStringBuilder
 import android.text.style.ForegroundColorSpan
 import android.text.style.StyleSpan
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
+import com.liftpath.R
 import com.liftpath.databinding.ItemSetDetailBinding
 import com.liftpath.databinding.ItemGroupedExerciseBinding
-import com.liftpath.helpers.RestTimerHelper
+import com.liftpath.helpers.SetFormatter
+import com.liftpath.helpers.lpColor
 import com.liftpath.models.ExerciseEntry
 import com.liftpath.models.GroupedExercise
 import com.liftpath.models.SetIntent
@@ -40,7 +41,9 @@ class TrainingDetailAdapter(
             .groupingBy { it.getEffectiveIntent(sessionDefaultType) }
             .eachCount()
             .maxByOrNull { it.value }?.key ?: com.liftpath.models.SetIntent.BUILD
-        holder.binding.textExerciseType.text = "Intent: ${dominantIntent.displayName}"
+        holder.binding.textExerciseType.text = holder.itemView.context.getString(
+            R.string.format_exercise_intent_label, dominantIntent.displayName
+        )
         holder.binding.buttonEditActivity.setOnClickListener {
             onEditActivityClicked(groupedExercise)
         }
@@ -54,7 +57,7 @@ class TrainingDetailAdapter(
 
         for (set in groupedExercise.sets) {
             val setBinding = ItemSetDetailBinding.inflate(LayoutInflater.from(holder.itemView.context))
-            setBinding.textSetDetails.text = formatSetDetails(set)
+            setBinding.textSetDetails.text = formatSetDetails(holder.itemView.context, set)
             
             // Set note separately if it exists
             set.note?.let { note ->
@@ -72,59 +75,34 @@ class TrainingDetailAdapter(
         }
     }
 
-    private fun formatSetDetails(set: ExerciseEntry): CharSequence {
+    private fun formatSetDetails(context: Context, set: ExerciseEntry): CharSequence {
         val suffix = when {
             set.isWarmup -> " (W)"
             set.rpe != null -> " (${"%.1f".format(set.rpe)})"
             else -> ""
         }
 
-        val b = SpannableStringBuilder()
-        b.append("Set ${set.setNumber}: ")
-
-        if (set.isTimedEntry()) {
-            // Timed hold: show duration (m:ss), with weight appended only when present.
-            b.append(RestTimerHelper.formatDuration(set.durationSeconds ?: 0))
-            if (set.kg > 0f) {
-                val kgStr = if (set.kg % 1 == 0f) set.kg.toInt().toString() else "%.1f".format(set.kg)
-                b.append(" + ${kgStr}kg")
-            }
-        } else if (set.isBodyweightEntry()) {
-            // Body weight muted (1 decimal); signed added/assisted weight in green +/red − so the
-            // progression (the added part) is readable even when body weight differs between workouts.
-            val bw = set.bodyweightKg ?: 0f
-            val added = set.addedKg ?: 0f
-            val bwStart = b.length
-            b.append("%.1f".format(bw))
-            b.setSpan(ForegroundColorSpan(Color.parseColor("#6B7280")), bwStart, b.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-            if (added != 0f) {
-                val sign = if (added > 0f) "+" else "−"
-                val mag = if (added < 0f) -added else added
-                val magStr = if (mag % 1 == 0f) mag.toInt().toString() else "%.1f".format(mag)
-                val aStart = b.length
-                b.append(" $sign$magStr")
-                val aColor = if (added > 0f) Color.parseColor("#10B981") else Color.parseColor("#EF4444")
-                b.setSpan(ForegroundColorSpan(aColor), aStart, b.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-                b.setSpan(StyleSpan(Typeface.BOLD), aStart, b.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-            }
-            b.append("kg × ${set.reps} reps")
-        } else {
-            b.append("${set.kg}kg × ${set.reps} reps")
-        }
+        // Load/metric rendering (all four weighted|bodyweight × reps|time combinations) lives in
+        // SetFormatter; this adapter only owns the RPE/warmup suffix coloring below.
+        val b = SpannableStringBuilder(
+            SetFormatter.setLine(context, set, prefix = "Set ${set.setNumber}: ", repsUnit = true)
+        )
 
         val baseEnd = b.length
         b.append(suffix)
 
-        // Color-code (W) / (RPE) suffix: warmup stays default, RPE by difficulty
+        // Color-code (W) / (RPE) suffix: warmup stays default, RPE by difficulty. Only three
+        // semantic tiers exist in the token set (lpPositive/lpNeutral/lpNegative), so the old
+        // four stock-Material hues (green/orange/red/purple) collapse into three here — hard
+        // and max-effort both read as lpNegative, which is the correct signal either way.
         if (suffix.isNotEmpty() && set.rpe != null) {
             val rpe = set.rpe
-            val color = when {
-                rpe < 7.0f -> Color.parseColor("#4CAF50")  // Green - easy
-                rpe < 8.5f -> Color.parseColor("#FF9800")  // Orange - moderate
-                rpe < 9.5f -> Color.parseColor("#F44336")  // Red - hard
-                else -> Color.parseColor("#9C27B0")        // Purple - max effort
+            val colorAttr = when {
+                rpe < 7.0f -> R.attr.lpPositive   // Easy
+                rpe < 8.5f -> R.attr.lpNeutral    // Moderate
+                else -> R.attr.lpNegative         // Hard / max effort
             }
-            b.setSpan(ForegroundColorSpan(color), baseEnd, b.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            b.setSpan(ForegroundColorSpan(context.lpColor(colorAttr)), baseEnd, b.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
             b.setSpan(StyleSpan(Typeface.BOLD), baseEnd, b.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
         }
 

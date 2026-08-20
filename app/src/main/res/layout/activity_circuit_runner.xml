@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The circuit runner: one screen you can read at arm's length while moving between stations.
+
+  The clock counts UP and has no target — a circuit's round is however long it takes. The station
+  list is therefore the main content, not the timer: what you need mid-round is "what's next and
+  how many reps", with elapsed time as context.
+
+  Below the list, one primary action (start / done) and, once a round is banked, the pair that
+  keeps rounds open-ended: another round, or finish. Neither is ever hidden — the round count is
+  always the athlete's call.
+-->
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?attr/lpCanvas"
+    tools:context=".activities.CircuitRunnerActivity">
+
+    <ImageView
+        android:id="@+id/image_bg_animation"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:contentDescription="@null"
+        android:scaleType="centerCrop"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@drawable/lp_bg_ambient_flow"
+        app:tint="?attr/lpAccent" />
+
+    <!-- HEADER -->
+    <LinearLayout
+        android:id="@+id/layout_header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="@dimen/lp_gutter"
+        android:paddingTop="@dimen/lp_gutter"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <com.google.android.material.card.MaterialCardView
+            style="@style/Widget.LP.Card.Control"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:clickable="false"
+            android:focusable="false">
+
+            <ImageButton
+                android:id="@+id/button_back"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="?attr/selectableItemBackground"
+                android:contentDescription="@string/progress_back_content_description"
+                android:padding="@dimen/lp_space_3"
+                android:src="@drawable/ic_arrow_back_24"
+                app:tint="?attr/lpInk" />
+        </com.google.android.material.card.MaterialCardView>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/lp_space_4"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/text_circuit_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textAppearance="@style/TextAppearance.LP.Title"
+                tools:text="Lower Lactate" />
+
+            <TextView
+                android:id="@+id/text_round_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textAppearance="@style/TextAppearance.LP.Caption"
+                android:textColor="?attr/lpAccent"
+                tools:text="ROUND 2 OF 3" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- CLOCK -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/card_clock"
+        style="@style/Widget.LP.Card"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="@dimen/lp_gutter"
+        android:layout_marginTop="@dimen/lp_space_4"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/layout_header">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="@dimen/lp_card_padding">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/text_clock_caption"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/circuit_clock_ready"
+                    android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+                <TextView
+                    android:id="@+id/text_clock"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/circuit_clock_zero"
+                    android:textAppearance="@style/TextAppearance.LP.Metric.XL"
+                    tools:text="04:12" />
+            </LinearLayout>
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/button_pause"
+                style="@style/Widget.LP.Card.Control"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <ImageView
+                    android:id="@+id/image_pause_icon"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:contentDescription="@string/stretch_pause_content_description"
+                    android:padding="@dimen/lp_space_3"
+                    android:src="@drawable/ic_pause"
+                    app:tint="?attr/lpInk" />
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- STATIONS -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recycler_view_stations"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:clipToPadding="false"
+        android:paddingHorizontal="@dimen/lp_gutter_dense"
+        android:paddingTop="@dimen/lp_space_3"
+        app:layout_constraintBottom_toTopOf="@id/layout_actions"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/card_clock" />
+
+    <!-- ACTIONS — PINNED -->
+    <LinearLayout
+        android:id="@+id/layout_actions"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingHorizontal="@dimen/lp_gutter"
+        android:paddingTop="@dimen/lp_space_3"
+        android:paddingBottom="@dimen/lp_gutter"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <!-- Rest strip: only while the between-rounds countdown is running. -->
+        <LinearLayout
+            android:id="@+id/layout_rest"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/lp_card_gap_dense"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="@dimen/lp_space_2"
+                android:text="@string/circuit_rest_label"
+                android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+            <TextView
+                android:id="@+id/text_rest_countdown"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textAppearance="@style/TextAppearance.LP.Metric.M"
+                android:textColor="?attr/lpAccent"
+                tools:text="1:24" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/button_rest_plus"
+                style="@style/Widget.LP.Button.Text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/circuit_rest_add" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/button_rest_skip"
+                style="@style/Widget.LP.Button.Text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/circuit_rest_skip" />
+        </LinearLayout>
+
+        <!-- Log-this-round shortcut, for a round that was deferred with "Later". -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/button_log_round"
+            style="@style/Widget.LP.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/lp_card_gap_dense"
+            android:text="@string/circuit_log_last_round"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/button_primary"
+            style="@style/Widget.LP.Button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="60dp"
+            android:text="@string/circuit_start_round" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/button_finish"
+            style="@style/Widget.LP.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/lp_card_gap_dense"
+            android:minHeight="52dp"
+            android:text="@string/circuit_finish" />
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

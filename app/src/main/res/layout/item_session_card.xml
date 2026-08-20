@@ -1,22 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+<!--
+  One training session on the Sessions tab. AIRY spacing, hairline card, no shadow.
+  The day badge stays lpInk rather than lpAccent — it repeats down the whole list, so an
+  accent-filled/accent-text date would spend the signature colour on something purely
+  structural. The PR count keeps lpAccent since it is a meaningful highlight, not a badge.
+-->
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    style="@style/Widget.LP.Card.Interactive"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginTop="8dp"
-    android:clickable="true"
-    android:focusable="true"
-    android:foreground="?attr/selectableItemBackground"
-    app:cardBackgroundColor="@color/fitness_card_background"
-    app:cardCornerRadius="16dp"
-    app:cardElevation="3dp">
+    android:layout_marginTop="@dimen/lp_card_gap">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="16dp">
+        android:padding="@dimen/lp_card_padding">
 
         <!-- Date Column -->
         <LinearLayout
@@ -30,27 +31,25 @@
                 android:id="@+id/text_day"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="@color/fitness_primary"
-                android:textSize="24sp"
-                android:textStyle="bold"
+                android:textAppearance="@style/TextAppearance.LP.Title"
                 tools:text="15" />
 
             <TextView
                 android:id="@+id/text_month"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="@color/fitness_text_secondary"
-                android:textSize="12sp"
+                android:textAppearance="@style/TextAppearance.LP.Caption"
+                android:textColor="?attr/lpInkSecondary"
                 tools:text="Jan" />
         </LinearLayout>
 
         <!-- Divider -->
         <View
-            android:layout_width="1dp"
+            android:layout_width="@dimen/lp_hairline_width"
             android:layout_height="match_parent"
-            android:layout_marginStart="12dp"
-            android:layout_marginEnd="12dp"
-            android:background="@color/fitness_divider" />
+            android:layout_marginStart="@dimen/lp_space_3"
+            android:layout_marginEnd="@dimen/lp_space_3"
+            android:background="?attr/lpHairline" />
 
         <!-- Details Column -->
         <LinearLayout
@@ -65,21 +64,18 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:background="@drawable/badge_rounded_background"
-                android:paddingStart="8dp"
-                android:paddingTop="2dp"
-                android:paddingEnd="8dp"
-                android:paddingBottom="2dp"
-                android:textColor="@color/white"
-                android:textSize="10sp"
-                android:textStyle="bold"
-                tools:backgroundTint="@color/intent_strength"
+                android:paddingHorizontal="@dimen/lp_space_2"
+                android:paddingVertical="@dimen/lp_space_1"
+                android:textAppearance="@style/TextAppearance.LP.Caption"
+                android:textColor="?attr/lpInkInverse"
+                tools:backgroundTint="?attr/lpIntentStrength"
                 tools:text="STRENGTH" />
 
             <!-- Stats Row -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/lp_space_2"
                 android:orientation="horizontal">
 
                 <LinearLayout
@@ -92,17 +88,14 @@
                         android:id="@+id/text_volume"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textColor="@color/fitness_text_primary"
-                        android:textSize="16sp"
-                        android:textStyle="bold"
+                        android:textAppearance="@style/TextAppearance.LP.Metric.M"
                         tools:text="3,250kg" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/volume"
-                        android:textColor="@color/fitness_text_secondary"
-                        android:textSize="11sp" />
+                        android:textAppearance="@style/TextAppearance.LP.Caption" />
                 </LinearLayout>
 
                 <LinearLayout
@@ -115,17 +108,14 @@
                         android:id="@+id/text_exercises"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textColor="@color/fitness_text_primary"
-                        android:textSize="16sp"
-                        android:textStyle="bold"
+                        android:textAppearance="@style/TextAppearance.LP.Metric.M"
                         tools:text="5" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/exercises_label"
-                        android:textColor="@color/fitness_text_secondary"
-                        android:textSize="11sp" />
+                        android:textAppearance="@style/TextAppearance.LP.Caption" />
                 </LinearLayout>
 
                 <LinearLayout
@@ -138,20 +128,41 @@
                         android:id="@+id/text_prs"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textColor="@color/fitness_accent"
-                        android:textSize="16sp"
-                        android:textStyle="bold"
+                        android:textAppearance="@style/TextAppearance.LP.Metric.M"
+                        android:textColor="?attr/lpAccent"
                         tools:text="2" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/prs_label"
-                        android:textColor="@color/fitness_text_secondary"
-                        android:textSize="11sp" />
+                        android:textAppearance="@style/TextAppearance.LP.Caption" />
                 </LinearLayout>
             </LinearLayout>
+
+            <!-- Sets / Avg RPE / Duration summary line -->
+            <TextView
+                android:id="@+id/text_session_summary"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/lp_space_2"
+                android:textAppearance="@style/TextAppearance.LP.Caption"
+                android:textColor="?attr/lpInkSecondary"
+                tools:text="12 sets • Avg RPE 7.5 • 1h 02m" />
         </LinearLayout>
+
+        <!-- Report icon button -->
+        <ImageButton
+            android:id="@+id/button_view_report"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_gravity="center"
+            android:layout_marginStart="@dimen/lp_space_2"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/content_desc_view_report"
+            android:padding="4dp"
+            android:src="@drawable/ic_graph"
+            app:tint="?attr/lpInkSecondary" />
 
         <!-- Selection Checkbox (for compare mode) -->
         <CheckBox
@@ -161,4 +172,4 @@
             android:layout_gravity="center"
             android:visibility="gone" />
     </LinearLayout>
-</androidx.cardview.widget.CardView>
+</com.google.android.material.card.MaterialCardView>

@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Flat, qualifier-free copies of each palette's canvas/ink/accent, for the "Light
+  palette" / "Dark palette" pickers in Settings.
+
+  Those two pickers must show a palette's true light colours AND its true dark colours
+  at the same time, regardless of which mode is currently forced — something @color/
+  names that vary by values-night cannot do, since only one value is resolvable per
+  configuration. This is the same sanctioned direct-@color/ exception CLAUDE.md already
+  carves out for the swatch dots themselves; these are just light/dark-locked copies of
+  values already authored in lp_palette_<name>.xml and its values-night twin.
+
+  Adding a ninth palette means one row here, alongside its lp_palette_*.xml pair.
+-->
+<resources>
+
+    <!-- Paper & Bronze -->
+    <color name="paper_preview_light_canvas">#FAF9F7</color>
+    <color name="paper_preview_light_ink">#191813</color>
+    <color name="paper_preview_light_accent">#A6753C</color>
+    <color name="paper_preview_dark_canvas">#12110F</color>
+    <color name="paper_preview_dark_ink">#F5F2EC</color>
+    <color name="paper_preview_dark_accent">#D2A164</color>
+
+    <!-- Chalk & Oxblood -->
+    <color name="chalk_preview_light_canvas">#F7F7F5</color>
+    <color name="chalk_preview_light_ink">#15161A</color>
+    <color name="chalk_preview_light_accent">#8C2F27</color>
+    <color name="chalk_preview_dark_canvas">#101114</color>
+    <color name="chalk_preview_dark_ink">#F2F3F5</color>
+    <color name="chalk_preview_dark_accent">#D96A5E</color>
+
+    <!-- Bone & Moss -->
+    <color name="bone_preview_light_canvas">#F8F7F3</color>
+    <color name="bone_preview_light_ink">#1A1C18</color>
+    <color name="bone_preview_light_accent">#3F6B4F</color>
+    <color name="bone_preview_dark_canvas">#101210</color>
+    <color name="bone_preview_dark_ink">#F2F4EF</color>
+    <color name="bone_preview_dark_accent">#79B08C</color>
+
+    <!-- Steel & Signal -->
+    <color name="steel_preview_light_canvas">#F5F6F7</color>
+    <color name="steel_preview_light_ink">#17191C</color>
+    <color name="steel_preview_light_accent">#E8502A</color>
+    <color name="steel_preview_dark_canvas">#0E1013</color>
+    <color name="steel_preview_dark_ink">#F1F3F5</color>
+    <color name="steel_preview_dark_accent">#FF7A52</color>
+
+    <!-- Cloud & Beacon -->
+    <color name="cloud_preview_light_canvas">#F4F7FB</color>
+    <color name="cloud_preview_light_ink">#131A24</color>
+    <color name="cloud_preview_light_accent">#2563EB</color>
+    <color name="cloud_preview_dark_canvas">#0D1420</color>
+    <color name="cloud_preview_dark_ink">#EEF3FA</color>
+    <color name="cloud_preview_dark_accent">#6C9BFF</color>
+
+    <!-- Ash & Plum -->
+    <color name="ash_preview_light_canvas">#F6F5F4</color>
+    <color name="ash_preview_light_ink">#1C1A1B</color>
+    <color name="ash_preview_light_accent">#7B4B8C</color>
+    <color name="ash_preview_dark_canvas">#141213</color>
+    <color name="ash_preview_dark_ink">#F4F1F2</color>
+    <color name="ash_preview_dark_accent">#B084C0</color>
+
+    <!-- Sand & Teal -->
+    <color name="sand_preview_light_canvas">#FAF6EE</color>
+    <color name="sand_preview_light_ink">#1D1A14</color>
+    <color name="sand_preview_light_accent">#1F7A73</color>
+    <color name="sand_preview_dark_canvas">#14120D</color>
+    <color name="sand_preview_dark_ink">#F5F1E8</color>
+    <color name="sand_preview_dark_accent">#4FBFB4</color>
+
+    <!-- Fog & Rose -->
+    <color name="fog_preview_light_canvas">#F7F5F6</color>
+    <color name="fog_preview_light_ink">#1C1A1D</color>
+    <color name="fog_preview_light_accent">#B0567C</color>
+    <color name="fog_preview_dark_canvas">#141215</color>
+    <color name="fog_preview_dark_ink">#F5F2F3</color>
+    <color name="fog_preview_dark_accent">#E58BAE</color>
+
+</resources>

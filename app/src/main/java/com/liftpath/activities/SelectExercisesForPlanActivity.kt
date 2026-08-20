@@ -126,7 +126,7 @@ class SelectExercisesForPlanActivity : AppCompatActivity() {
         }
 
         if (withoutFamily.isNotEmpty()) {
-            result.add(SelectListItem.SectionHeader("Other"))
+            result.add(SelectListItem.SectionHeader(getString(R.string.label_other_exercises)))
             withoutFamily.sortedBy { it.name.lowercase() }.forEach { result.add(SelectListItem.ExerciseItem(it)) }
         }
 
@@ -187,7 +187,7 @@ class SelectExercisesForPlanActivity : AppCompatActivity() {
     }
 
     private fun updateSelectedCount() {
-        binding.textSelectedCount.text = "$selectedCount selected"
+        binding.textSelectedCount.text = getString(R.string.label_selected_count, selectedCount)
         binding.buttonDone.isEnabled = selectedCount > 0
     }
 }

@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/fitness_background"
+    android:background="?attr/lpCanvas"
     android:fitsSystemWindows="true"
     tools:context=".activities.ReadinessDashboardActivity">
 
@@ -18,7 +18,8 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/avd_background_flow" />
+        app:srcCompat="@drawable/lp_bg_ambient_flow"
+        app:tint="?attr/lpAccent" />
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
@@ -33,7 +34,7 @@
             android:clipChildren="false"
             android:clipToPadding="false"
             android:orientation="vertical"
-            android:padding="24dp">
+            android:padding="@dimen/lp_space_6">
 
             <!-- HEADER -->
             <LinearLayout
@@ -43,113 +44,99 @@
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
-                <androidx.cardview.widget.CardView
+                <com.google.android.material.card.MaterialCardView
                     android:id="@+id/button_back"
+                    style="@style/Widget.LP.Card.Control"
                     android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:foreground="?attr/selectableItemBackground"
-                    app:cardBackgroundColor="@color/fitness_card_background"
-                    app:cardCornerRadius="24dp"
-                    app:cardElevation="0dp">
+                    android:layout_height="48dp">
 
                     <ImageButton
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:background="@android:color/transparent"
-                        android:contentDescription="Back"
-                        android:padding="12dp"
+                        android:clickable="false"
+                        android:contentDescription="@string/progress_back_content_description"
+                        android:focusable="false"
+                        android:padding="@dimen/lp_space_3"
                         android:src="@drawable/ic_arrow_back_24"
-                        app:tint="@color/fitness_text_primary" />
-                </androidx.cardview.widget.CardView>
+                        app:tint="?attr/lpInk" />
+                </com.google.android.material.card.MaterialCardView>
 
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="16dp"
+                    android:layout_marginStart="@dimen/lp_space_4"
                     android:layout_weight="1"
                     android:orientation="vertical">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Readiness Dashboard"
-                        android:textColor="@color/fitness_text_primary"
-                        android:textSize="26sp"
-                        android:textStyle="bold" />
+                        android:text="@string/readiness_dashboard_title"
+                        android:textAppearance="@style/TextAppearance.LP.Title" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="Recovery status for your next activities"
-                        android:textColor="@color/fitness_text_secondary"
-                        android:textSize="14sp" />
+                        android:layout_marginTop="@dimen/lp_space_1"
+                        android:text="@string/readiness_dashboard_subtitle"
+                        android:textAppearance="@style/TextAppearance.LP.Body" />
                 </LinearLayout>
 
-                <androidx.cardview.widget.CardView
+                <com.google.android.material.card.MaterialCardView
                     android:id="@+id/button_settings"
+                    style="@style/Widget.LP.Card.Control"
                     android:layout_width="48dp"
                     android:layout_height="48dp"
-                    android:layout_marginStart="8dp"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:foreground="?attr/selectableItemBackground"
-                    app:cardBackgroundColor="@color/fitness_card_background"
-                    app:cardCornerRadius="24dp"
-                    app:cardElevation="0dp">
+                    android:layout_marginStart="@dimen/lp_card_gap">
 
                     <ImageView
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:background="@android:color/transparent"
-                        android:contentDescription="Calibration Settings"
-                        android:padding="12dp"
-                        android:src="@drawable/ic_settings"
                         android:clickable="false"
+                        android:contentDescription="@string/cd_calibration_settings"
                         android:focusable="false"
-                        app:tint="@color/fitness_text_primary" />
-                </androidx.cardview.widget.CardView>
+                        android:padding="@dimen/lp_space_3"
+                        android:src="@drawable/ic_settings"
+                        app:tint="?attr/lpInk" />
+                </com.google.android.material.card.MaterialCardView>
             </LinearLayout>
 
             <!-- LAST WORKOUT SUMMARY CARD -->
-            <androidx.cardview.widget.CardView
+            <com.google.android.material.card.MaterialCardView
                 android:id="@+id/card_last_workout"
+                style="@style/Widget.LP.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                app:cardBackgroundColor="@color/fitness_card_background"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="2dp">
+                android:layout_marginTop="@dimen/lp_space_6"
+                android:clickable="false"
+                android:focusable="false">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="20dp">
+                    android:padding="@dimen/lp_card_padding">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Last Workout Summary"
-                        android:textColor="@color/fitness_text_primary"
-                        android:textSize="18sp"
-                        android:textStyle="bold" />
+                        android:text="@string/readiness_last_workout_summary_title"
+                        android:textAppearance="@style/TextAppearance.LP.Heading" />
 
                     <TextView
                         android:id="@+id/text_workout_date"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="Date: --"
-                        android:textColor="@color/fitness_text_secondary"
-                        android:textSize="14sp" />
+                        android:layout_marginTop="@dimen/lp_space_2"
+                        android:text="@string/readiness_workout_date_placeholder"
+                        android:textAppearance="@style/TextAppearance.LP.Body" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
+                        android:layout_marginTop="@dimen/lp_space_4"
                         android:orientation="horizontal">
 
                         <LinearLayout
@@ -159,21 +146,16 @@
                             android:orientation="vertical">
 
                             <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Lower Fatigue"
-                                android:textColor="@color/fitness_text_secondary"
-                                android:textSize="12sp" />
+                                style="@style/Widget.LP.Eyebrow"
+                                android:text="@string/readiness_lower_fatigue_label" />
 
                             <TextView
                                 android:id="@+id/text_lower_fatigue"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="4dp"
-                                android:text="--"
-                                android:textColor="@color/fitness_text_primary"
-                                android:textSize="20sp"
-                                android:textStyle="bold" />
+                                android:layout_marginTop="@dimen/lp_space_1"
+                                android:text="@string/placeholder_dash"
+                                android:textAppearance="@style/TextAppearance.LP.Metric.M" />
                         </LinearLayout>
 
                         <LinearLayout
@@ -183,21 +165,16 @@
                             android:orientation="vertical">
 
                             <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Upper Fatigue"
-                                android:textColor="@color/fitness_text_secondary"
-                                android:textSize="12sp" />
+                                style="@style/Widget.LP.Eyebrow"
+                                android:text="@string/readiness_upper_fatigue_label" />
 
                             <TextView
                                 android:id="@+id/text_upper_fatigue"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="4dp"
-                                android:text="--"
-                                android:textColor="@color/fitness_text_primary"
-                                android:textSize="20sp"
-                                android:textStyle="bold" />
+                                android:layout_marginTop="@dimen/lp_space_1"
+                                android:text="@string/placeholder_dash"
+                                android:textAppearance="@style/TextAppearance.LP.Metric.M" />
                         </LinearLayout>
 
                         <LinearLayout
@@ -207,31 +184,26 @@
                             android:orientation="vertical">
 
                             <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Systemic Fatigue"
-                                android:textColor="@color/fitness_text_secondary"
-                                android:textSize="12sp" />
+                                style="@style/Widget.LP.Eyebrow"
+                                android:text="@string/readiness_systemic_fatigue_label" />
 
                             <TextView
                                 android:id="@+id/text_systemic_fatigue"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="4dp"
-                                android:text="--"
-                                android:textColor="@color/fitness_text_primary"
-                                android:textSize="20sp"
-                                android:textStyle="bold" />
+                                android:layout_marginTop="@dimen/lp_space_1"
+                                android:text="@string/placeholder_dash"
+                                android:textAppearance="@style/TextAppearance.LP.Metric.M" />
                         </LinearLayout>
                     </LinearLayout>
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
 
             <!-- READINESS MATRIX GRID -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
+                android:layout_marginTop="@dimen/lp_space_6"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
@@ -239,10 +211,8 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Activity Readiness"
-                    android:textColor="@color/fitness_text_primary"
-                    android:textSize="20sp"
-                    android:textStyle="bold" />
+                    android:text="@string/readiness_activity_readiness_title"
+                    android:textAppearance="@style/TextAppearance.LP.Heading" />
 
                 <LinearLayout
                     android:layout_width="wrap_content"
@@ -253,22 +223,23 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginEnd="8dp"
-                        android:text="Use Health Connect"
-                        android:textColor="@color/fitness_text_secondary"
-                        android:textSize="12sp" />
+                        android:layout_marginEnd="@dimen/lp_space_2"
+                        android:text="@string/readiness_use_health_connect_label"
+                        android:textAppearance="@style/TextAppearance.LP.Label"
+                        android:textColor="?attr/lpInkSecondary" />
 
-                    <androidx.appcompat.widget.SwitchCompat
+                    <com.google.android.material.materialswitch.MaterialSwitch
                         android:id="@+id/switch_use_health_connect"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" />
+                        android:layout_height="wrap_content"
+                        app:showText="false" />
                 </LinearLayout>
             </LinearLayout>
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="@dimen/lp_space_4"
                 android:orientation="vertical">
 
                 <!-- Row 1: Run/Cycle and Swim -->
@@ -278,269 +249,242 @@
                     android:orientation="horizontal">
 
                     <!-- Run / Cycle Card -->
-                    <androidx.cardview.widget.CardView
+                    <com.google.android.material.card.MaterialCardView
                         android:id="@+id/card_run_cycle"
+                        style="@style/Widget.LP.Card"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginEnd="8dp"
+                        android:layout_marginEnd="@dimen/lp_card_gap"
                         android:layout_weight="1"
-                        app:cardBackgroundColor="@color/fitness_card_background"
-                        app:cardCornerRadius="20dp"
-                        app:cardElevation="2dp">
+                        android:clickable="false"
+                        android:focusable="false">
 
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:orientation="vertical"
-                            android:padding="16dp">
+                            android:padding="@dimen/lp_card_padding">
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="🏃 Run / Cycle"
-                                android:textColor="@color/fitness_text_primary"
-                                android:textSize="18sp"
-                                android:textStyle="bold" />
+                                android:text="@string/readiness_run_cycle_title"
+                                android:textAppearance="@style/TextAppearance.LP.Heading" />
 
                             <TextView
                                 android:id="@+id/text_run_cycle_status"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="8dp"
-                                android:text="--"
-                                android:textColor="@color/fitness_text_primary"
-                                android:textSize="16sp"
-                                android:textStyle="bold" />
+                                android:layout_marginTop="@dimen/lp_space_2"
+                                android:text="@string/placeholder_dash"
+                                android:textAppearance="@style/TextAppearance.LP.Heading" />
 
                             <TextView
                                 android:id="@+id/text_run_cycle_message"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="4dp"
-                                android:text="--"
-                                android:textColor="@color/fitness_text_secondary"
-                                android:textSize="12sp" />
+                                android:layout_marginTop="@dimen/lp_space_1"
+                                android:text="@string/placeholder_dash"
+                                android:textAppearance="@style/TextAppearance.LP.Label" />
 
                             <TextView
                                 android:id="@+id/text_run_cycle_countdown"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="8dp"
-                                android:text=""
-                                android:textColor="@color/fitness_text_secondary"
-                                android:textSize="12sp"
+                                android:layout_marginTop="@dimen/lp_space_2"
+                                android:textAppearance="@style/TextAppearance.LP.Label"
                                 android:visibility="gone" />
                         </LinearLayout>
-                    </androidx.cardview.widget.CardView>
+                    </com.google.android.material.card.MaterialCardView>
 
                     <!-- Swim Card -->
-                    <androidx.cardview.widget.CardView
+                    <com.google.android.material.card.MaterialCardView
                         android:id="@+id/card_swim"
+                        style="@style/Widget.LP.Card"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp"
+                        android:layout_marginStart="@dimen/lp_card_gap"
                         android:layout_weight="1"
-                        app:cardBackgroundColor="@color/fitness_card_background"
-                        app:cardCornerRadius="20dp"
-                        app:cardElevation="2dp">
+                        android:clickable="false"
+                        android:focusable="false">
 
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:orientation="vertical"
-                            android:padding="16dp">
+                            android:padding="@dimen/lp_card_padding">
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="🏊 Swim"
-                                android:textColor="@color/fitness_text_primary"
-                                android:textSize="18sp"
-                                android:textStyle="bold" />
+                                android:text="@string/readiness_swim_title"
+                                android:textAppearance="@style/TextAppearance.LP.Heading" />
 
                             <TextView
                                 android:id="@+id/text_swim_status"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="8dp"
-                                android:text="--"
-                                android:textColor="@color/fitness_text_primary"
-                                android:textSize="16sp"
-                                android:textStyle="bold" />
+                                android:layout_marginTop="@dimen/lp_space_2"
+                                android:text="@string/placeholder_dash"
+                                android:textAppearance="@style/TextAppearance.LP.Heading" />
 
                             <TextView
                                 android:id="@+id/text_swim_message"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="4dp"
-                                android:text="--"
-                                android:textColor="@color/fitness_text_secondary"
-                                android:textSize="12sp" />
+                                android:layout_marginTop="@dimen/lp_space_1"
+                                android:text="@string/placeholder_dash"
+                                android:textAppearance="@style/TextAppearance.LP.Label" />
 
                             <TextView
                                 android:id="@+id/text_swim_countdown"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="8dp"
-                                android:text=""
-                                android:textColor="@color/fitness_text_secondary"
-                                android:textSize="12sp"
+                                android:layout_marginTop="@dimen/lp_space_2"
+                                android:textAppearance="@style/TextAppearance.LP.Label"
                                 android:visibility="gone" />
                         </LinearLayout>
-                    </androidx.cardview.widget.CardView>
+                    </com.google.android.material.card.MaterialCardView>
                 </LinearLayout>
 
                 <!-- Row 2: Lower Body Lift and Upper Body Lift -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
+                    android:layout_marginTop="@dimen/lp_space_3"
                     android:orientation="horizontal">
 
                     <!-- Lower Body Lift Card -->
-                    <androidx.cardview.widget.CardView
+                    <com.google.android.material.card.MaterialCardView
                         android:id="@+id/card_lower_lift"
+                        style="@style/Widget.LP.Card"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginEnd="8dp"
+                        android:layout_marginEnd="@dimen/lp_card_gap"
                         android:layout_weight="1"
-                        app:cardBackgroundColor="@color/fitness_card_background"
-                        app:cardCornerRadius="20dp"
-                        app:cardElevation="2dp">
+                        android:clickable="false"
+                        android:focusable="false">
 
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:orientation="vertical"
-                            android:padding="16dp">
+                            android:padding="@dimen/lp_card_padding">
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="🏋️‍♂️ Lower Body Lift"
-                                android:textColor="@color/fitness_text_primary"
-                                android:textSize="18sp"
-                                android:textStyle="bold" />
+                                android:text="@string/readiness_lower_lift_title"
+                                android:textAppearance="@style/TextAppearance.LP.Heading" />
 
                             <TextView
                                 android:id="@+id/text_lower_lift_status"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="8dp"
-                                android:text="--"
-                                android:textColor="@color/fitness_text_primary"
-                                android:textSize="16sp"
-                                android:textStyle="bold" />
+                                android:layout_marginTop="@dimen/lp_space_2"
+                                android:text="@string/placeholder_dash"
+                                android:textAppearance="@style/TextAppearance.LP.Heading" />
 
                             <TextView
                                 android:id="@+id/text_lower_lift_message"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="4dp"
-                                android:text="--"
-                                android:textColor="@color/fitness_text_secondary"
-                                android:textSize="12sp" />
+                                android:layout_marginTop="@dimen/lp_space_1"
+                                android:text="@string/placeholder_dash"
+                                android:textAppearance="@style/TextAppearance.LP.Label" />
 
                             <TextView
                                 android:id="@+id/text_lower_lift_countdown"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="8dp"
-                                android:text=""
-                                android:textColor="@color/fitness_text_secondary"
-                                android:textSize="12sp"
+                                android:layout_marginTop="@dimen/lp_space_2"
+                                android:textAppearance="@style/TextAppearance.LP.Label"
                                 android:visibility="gone" />
                         </LinearLayout>
-                    </androidx.cardview.widget.CardView>
+                    </com.google.android.material.card.MaterialCardView>
 
                     <!-- Upper Body Lift Card -->
-                    <androidx.cardview.widget.CardView
+                    <com.google.android.material.card.MaterialCardView
                         android:id="@+id/card_upper_lift"
+                        style="@style/Widget.LP.Card"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp"
+                        android:layout_marginStart="@dimen/lp_card_gap"
                         android:layout_weight="1"
-                        app:cardBackgroundColor="@color/fitness_card_background"
-                        app:cardCornerRadius="20dp"
-                        app:cardElevation="2dp">
+                        android:clickable="false"
+                        android:focusable="false">
 
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:orientation="vertical"
-                            android:padding="16dp">
+                            android:padding="@dimen/lp_card_padding">
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="💪 Upper Body Lift"
-                                android:textColor="@color/fitness_text_primary"
-                                android:textSize="18sp"
-                                android:textStyle="bold" />
+                                android:text="@string/readiness_upper_lift_title"
+                                android:textAppearance="@style/TextAppearance.LP.Heading" />
 
                             <TextView
                                 android:id="@+id/text_upper_lift_status"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="8dp"
-                                android:text="--"
-                                android:textColor="@color/fitness_text_primary"
-                                android:textSize="16sp"
-                                android:textStyle="bold" />
+                                android:layout_marginTop="@dimen/lp_space_2"
+                                android:text="@string/placeholder_dash"
+                                android:textAppearance="@style/TextAppearance.LP.Heading" />
 
                             <TextView
                                 android:id="@+id/text_upper_lift_message"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="4dp"
-                                android:text="--"
-                                android:textColor="@color/fitness_text_secondary"
-                                android:textSize="12sp" />
+                                android:layout_marginTop="@dimen/lp_space_1"
+                                android:text="@string/placeholder_dash"
+                                android:textAppearance="@style/TextAppearance.LP.Label" />
 
                             <TextView
                                 android:id="@+id/text_upper_lift_countdown"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="8dp"
-                                android:text=""
-                                android:textColor="@color/fitness_text_secondary"
-                                android:textSize="12sp"
+                                android:layout_marginTop="@dimen/lp_space_2"
+                                android:textAppearance="@style/TextAppearance.LP.Label"
                                 android:visibility="gone" />
                         </LinearLayout>
-                    </androidx.cardview.widget.CardView>
+                    </com.google.android.material.card.MaterialCardView>
                 </LinearLayout>
             </LinearLayout>
 
             <!-- 7-DAY CALENDAR VIEW -->
-            <androidx.cardview.widget.CardView
+            <com.google.android.material.card.MaterialCardView
                 android:id="@+id/card_calendar"
+                style="@style/Widget.LP.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                app:cardBackgroundColor="@color/fitness_card_background"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="2dp">
+                android:layout_marginTop="@dimen/lp_space_6"
+                android:clickable="false"
+                android:focusable="false">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp"
+                    android:padding="@dimen/lp_card_padding"
                     android:animateLayoutChanges="true">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="7-Day Fatigue Calendar"
-                        android:textColor="@color/fitness_text_primary"
-                        android:textSize="18sp"
-                        android:textStyle="bold" />
+                        android:text="@string/readiness_calendar_title"
+                        android:textAppearance="@style/TextAppearance.LP.Heading" />
 
                     <LinearLayout
                         android:id="@+id/layout_calendar_days"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
+                        android:layout_marginTop="@dimen/lp_space_3"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
                         android:orientation="horizontal"
                         android:gravity="center_vertical">
                     </LinearLayout>
@@ -549,23 +493,23 @@
                         android:id="@+id/layout_chart_expanded"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
+                        android:layout_marginTop="@dimen/lp_space_4"
                         android:orientation="vertical"
                         android:visibility="gone">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Current Fatigue (with decay)"
-                            android:textColor="@color/fitness_text_secondary"
-                            android:textSize="14sp" />
+                            android:text="@string/readiness_current_fatigue_decay_label"
+                            android:textAppearance="@style/TextAppearance.LP.Label"
+                            android:textColor="?attr/lpInkSecondary" />
 
                         <!-- Fatigue Values List -->
                         <LinearLayout
                             android:id="@+id/layout_fatigue_list"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
+                            android:layout_marginTop="@dimen/lp_space_2"
                             android:orientation="vertical" />
 
                         <com.github.mikephil.charting.charts.LineChart
@@ -573,69 +517,107 @@
                             android:layout_width="match_parent"
                             android:layout_height="200dp"
                             android:minHeight="200dp"
-                            android:layout_marginTop="8dp" />
+                            android:layout_marginTop="@dimen/lp_space_2" />
 
-                        <androidx.cardview.widget.CardView
+                        <com.google.android.material.card.MaterialCardView
                             android:id="@+id/button_export_fatigue_data"
+                            style="@style/Widget.LP.Card.Dense"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="16dp"
-                            android:clickable="true"
-                            android:focusable="true"
-                            android:foreground="?attr/selectableItemBackground"
-                            app:cardBackgroundColor="@color/fitness_card_background"
-                            app:cardCornerRadius="12dp"
-                            app:cardElevation="2dp">
+                            android:layout_marginTop="@dimen/lp_space_4">
 
                             <LinearLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:gravity="center"
                                 android:orientation="horizontal"
-                                android:padding="12dp">
+                                android:padding="@dimen/lp_space_3">
 
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:text="📊 Export Fatigue Data to JSON"
-                                    android:textColor="@color/fitness_text_primary"
-                                    android:textSize="14sp"
-                                    android:textStyle="bold" />
+                                    android:text="@string/readiness_export_fatigue_data"
+                                    android:textAppearance="@style/TextAppearance.LP.Heading" />
                             </LinearLayout>
-                        </androidx.cardview.widget.CardView>
+                        </com.google.android.material.card.MaterialCardView>
                     </LinearLayout>
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
 
-            <!-- Health Connect Sync Button -->
-            <androidx.cardview.widget.CardView
-                android:id="@+id/button_health_connect"
+            <!--
+                TriPath contribution. Gone unless the integration is connected — see
+                TriPathConnection.isActive.
+            -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_tripath"
+                style="@style/Widget.LP.Card.Dense"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:clickable="true"
-                android:focusable="true"
-                android:foreground="?attr/selectableItemBackground"
-                app:cardBackgroundColor="@color/fitness_card_background"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="2dp">
+                android:layout_marginTop="@dimen/lp_space_4"
+                android:visibility="gone">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/lp_space_3">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/tripath_card_title"
+                        android:textAppearance="@style/TextAppearance.LP.Label"
+                        android:textColor="?attr/lpInkSecondary" />
+
+                    <TextView
+                        android:id="@+id/text_tripath_form"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/lp_space_1"
+                        android:text="@string/placeholder_dash"
+                        android:textAppearance="@style/TextAppearance.LP.Heading" />
+
+                    <TextView
+                        android:id="@+id/text_tripath_recovery"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/lp_space_1"
+                        android:text="@string/placeholder_dash"
+                        android:textAppearance="@style/TextAppearance.LP.Body" />
+
+                    <TextView
+                        android:id="@+id/text_tripath_effect"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/lp_space_1"
+                        android:text="@string/placeholder_dash"
+                        android:textAppearance="@style/TextAppearance.LP.Label"
+                        android:textColor="?attr/lpInkSecondary" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Health Connect Sync Button -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/button_health_connect"
+                style="@style/Widget.LP.Card.Dense"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/lp_space_4">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center"
                     android:orientation="horizontal"
-                    android:padding="12dp">
+                    android:padding="@dimen/lp_space_3">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="🔗 Sync Health Connect Activities"
-                        android:textColor="@color/fitness_text_primary"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
+                        android:text="@string/readiness_sync_health_connect"
+                        android:textAppearance="@style/TextAppearance.LP.Heading" />
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
 
             <!-- Empty State Message -->
             <TextView
@@ -643,13 +625,11 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
-                android:layout_marginTop="48dp"
-                android:text="No workouts found. Complete a workout to see readiness status."
-                android:textColor="@color/fitness_text_secondary"
-                android:textSize="14sp"
+                android:layout_marginTop="@dimen/lp_space_10"
+                android:text="@string/readiness_empty_state"
+                android:textAppearance="@style/TextAppearance.LP.Body"
                 android:visibility="gone" />
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 </androidx.constraintlayout.widget.ConstraintLayout>
-

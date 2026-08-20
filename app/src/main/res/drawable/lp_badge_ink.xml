@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Sequence-number badge (plan-exercise order, rotation A/B/C order). Ink rather than
+  accent: a plan can hold ten exercises, and ten solid accent circles on one screen would
+  blow the same restraint budget Today's header comment calls out — accent is spent on the
+  one or two things that are interactive or need attention, not on a repeating structural
+  marker.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <solid android:color="?attr/lpInk" />
+</shape>

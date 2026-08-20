@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Hairline ring behind a swatch dot. Without it the near-white canvas swatch of each
+  palette is invisible against a white card, which would make three of the four previews
+  look like two dots.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <solid android:color="@android:color/transparent" />
+    <stroke
+        android:width="1dp"
+        android:color="?attr/lpHairlineStrong" />
+</shape>

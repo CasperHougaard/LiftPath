@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  PALETTE: Chalk & Oxblood
+
+  Cool chalk neutrals with a deep iron-red accent — the most literal lifting-gym
+  reference of the four. The neutrals shift to a blue-black hue family (#15161A),
+  which is what stops this reading as Paper-with-a-red-accent.
+
+  Note the intent colours: oxblood IS the strength intent here, so build moves to an
+  ochre well clear of the accent. Keeping four intents separable inside each palette
+  matters more than matching the accent.
+-->
+<resources>
+
+    <color name="chalk_canvas">#F7F7F5</color>
+    <color name="chalk_canvas_sunken">#EFEFEC</color>
+    <color name="chalk_surface">#FFFFFF</color>
+    <color name="chalk_surface_alt">#F5F5F2</color>
+
+    <color name="chalk_hairline">#E4E4E0</color>
+    <color name="chalk_hairline_strong">#D2D2CC</color>
+
+    <color name="chalk_ink">#15161A</color>
+    <color name="chalk_ink_secondary">#63666E</color>
+    <color name="chalk_ink_tertiary">#93969E</color>
+    <color name="chalk_ink_inverse">#F7F7F5</color>
+    <color name="chalk_ink_inverse_secondary">#A8AAB0</color>
+
+    <color name="chalk_accent">#8C2F27</color>
+    <color name="chalk_accent_pressed">#74251F</color>
+    <color name="chalk_accent_wash">#F6E8E6</color>
+
+    <color name="chalk_positive">#3F6B4F</color>
+    <color name="chalk_negative">#A33A2B</color>
+    <color name="chalk_neutral">#85888E</color>
+
+    <color name="chalk_intent_strength">#8C2F27</color>
+    <color name="chalk_intent_build">#9A7328</color>
+    <color name="chalk_intent_flush">#3F6B4F</color>
+    <color name="chalk_intent_warmup">#85888E</color>
+
+    <color name="chalk_chart_volume">#3F6B4F</color>
+    <color name="chalk_chart_rpe">#9A7328</color>
+    <color name="chalk_chart_time">#3F5E80</color>
+    <color name="chalk_chart_fatigue">#8C2F27</color>
+    <color name="chalk_chart_grid">#E8E8E4</color>
+
+    <color name="chalk_ripple">#1415161A</color>
+    <color name="chalk_ripple_inverse">#22F7F7F5</color>
+
+</resources>

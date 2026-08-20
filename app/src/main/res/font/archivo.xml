@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Archivo — LiftPath's UI + display face (SIL Open Font License 1.1).
+  A grotesque with tight default tracking; carries headings and all chrome text.
+  Reference the family (not the individual files) so android:textFontWeight can
+  pick 500/600 without the platform synthesising a fake bold.
+-->
+<font-family xmlns:app="http://schemas.android.com/apk/res-auto">
+    <font
+        app:font="@font/archivo_regular"
+        app:fontStyle="normal"
+        app:fontWeight="400" />
+    <font
+        app:font="@font/archivo_medium"
+        app:fontStyle="normal"
+        app:fontWeight="500" />
+    <font
+        app:font="@font/archivo_semibold"
+        app:fontStyle="normal"
+        app:fontWeight="600" />
+    <font
+        app:font="@font/archivo_bold"
+        app:fontStyle="normal"
+        app:fontWeight="700" />
+</font-family>

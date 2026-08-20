@@ -6,26 +6,29 @@ import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.View
-import android.webkit.WebChromeClient
-import android.webkit.WebView
-import android.webkit.WebViewClient
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.liftpath.R
 import com.liftpath.adapters.ExerciseTrendAdapter
 import com.liftpath.databinding.ActivityWorkoutReportBinding
 import com.liftpath.helpers.DurationHelper
 import com.liftpath.helpers.JsonHelper
+import com.liftpath.helpers.MuscleMapColorResolver
+import com.liftpath.helpers.MuscleMapRenderer
+import com.liftpath.helpers.RestTimerHelper
 import com.liftpath.helpers.WorkoutComparisonHelper
 import com.liftpath.models.TargetMuscle
 import com.liftpath.models.TrainingSession
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class WorkoutReportActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityWorkoutReportBinding
     private lateinit var jsonHelper: JsonHelper
     private lateinit var trainingSession: TrainingSession
-    private var isWebViewReady = false
 
     companion object {
         const val EXTRA_TRAINING_SESSION = "extra_training_session"
@@ -101,6 +104,16 @@ class WorkoutReportActivity : AppCompatActivity() {
             binding.textExercisesCount.text = summary.exerciseCount.toString()
             binding.textPrsCount.text = summary.prCount.toString()
 
+            // Timed holds contribute no volume or reps, so their work is reported on its own tile —
+            // only for sessions that actually contain one.
+            if (summary.holdSetCount > 0) {
+                binding.cardTotalHoldTime.visibility = View.VISIBLE
+                binding.textTotalHoldTime.text =
+                    RestTimerHelper.formatHoldTotal(summary.totalHoldSeconds)
+            } else {
+                binding.cardTotalHoldTime.visibility = View.GONE
+            }
+
             val durationText = summary.durationSeconds?.let { 
                 DurationHelper.formatDuration(it) 
             } ?: "--"
@@ -124,88 +137,40 @@ class WorkoutReportActivity : AppCompatActivity() {
                 exerciseLibrary
             )
 
-            // Setup muscle map WebView
-            setupMuscleMapWebView(muscleProgress)
+            // Render the illustrated muscle map
+            updateMuscleMap(muscleProgress)
 
         } catch (e: Exception) {
             Log.e(TAG, "Error loading report data", e)
         }
     }
 
-    private fun setupMuscleMapWebView(muscleProgress: Map<TargetMuscle, Float?>) {
-        binding.webviewMuscleMap.setBackgroundColor(android.graphics.Color.TRANSPARENT)
-        binding.webviewMuscleMap.settings.apply {
-            javaScriptEnabled = true
-            useWideViewPort = true
-            loadWithOverviewMode = true
-            allowFileAccess = true
-            allowContentAccess = true
-            allowFileAccessFromFileURLs = true
-            allowUniversalAccessFromFileURLs = true
-            domStorageEnabled = true
-        }
-
-        binding.webviewMuscleMap.webChromeClient = object : WebChromeClient() {
-            override fun onConsoleMessage(consoleMessage: android.webkit.ConsoleMessage?): Boolean {
-                consoleMessage?.let {
-                    Log.d(TAG, "${it.message()} -- From line ${it.lineNumber()}")
-                }
-                return true
-            }
-        }
-
-        binding.webviewMuscleMap.webViewClient = object : WebViewClient() {
-            override fun onPageFinished(view: WebView?, url: String?) {
-                super.onPageFinished(view, url)
-                isWebViewReady = true
-                binding.progressMuscleMap.visibility = View.GONE
-                updateMuscleMap(muscleProgress)
-            }
-        }
-
-        // Try both HTML files - use progress version, fallback to original if needed
-        binding.webviewMuscleMap.loadUrl("file:///android_asset/muscle_map.html")
-    }
-
+    // Preserves the pre-existing approximation: muscles that improved are shown as "primary"
+    // (dark), everything else as "secondary" (light) — this is a binary approximation of the
+    // true progress gradient, matching the behavior already in place before this migration.
     private fun updateMuscleMap(muscleProgress: Map<TargetMuscle, Float?>) {
-        if (!isWebViewReady) return
         if (muscleProgress.isEmpty()) return
 
         val improvedMuscles = muscleProgress
             .filter { (_, progress) -> progress != null && progress > 0 }
-            .keys.toList()
+            .keys
         val otherMuscles = muscleProgress
             .filter { (_, progress) -> progress == null || progress <= 0 }
-            .keys.toList()
+            .keys
 
-        val primaryArray = improvedMuscles.joinToString(
-            prefix = "[", postfix = "]", separator = ", "
-        ) { "'${it.name}'" }
-        val secondaryArray = otherMuscles.joinToString(
-            prefix = "[", postfix = "]", separator = ", "
-        ) { "'${it.name}'" }
-
-        // Call JavaScript setHighlights function (from muscle_map.html)
-        val jsCode = """
-            (function() {
-                try {
-                    if (typeof setHighlights === 'function') {
-                        setHighlights($primaryArray, $secondaryArray);
-                        return 'setHighlights called';
-                    } else if (typeof window.setHighlights === 'function') {
-                        window.setHighlights($primaryArray, $secondaryArray);
-                        return 'window.setHighlights called';
-                    } else {
-                        console.error('setHighlights function not found!');
-                        return 'ERROR: setHighlights not found';
-                    }
-                } catch (e) {
-                    console.error('Error calling setHighlights:', e);
-                    return 'ERROR: ' + e.message;
-                }
-            })();
-        """.trimIndent()
-
-        binding.webviewMuscleMap.evaluateJavascript(jsCode) { /* no-op */ }
+        lifecycleScope.launch {
+            val muscleRoles = MuscleMapColorResolver.resolveHighlightColors(improvedMuscles, otherMuscles)
+            val maskRoles = MuscleMapColorResolver.flattenToMaskCategories(
+                muscleRoles, rank = MuscleMapColorResolver::highlightRank
+            )
+            val maskColors = maskRoles.map { (maskResId, role) ->
+                maskResId to MuscleMapColorResolver.colorFor(this@WorkoutReportActivity, role)
+            }
+            val bitmap = withContext(Dispatchers.Default) {
+                MuscleMapRenderer.render(this@WorkoutReportActivity, maskColors)
+            }
+            binding.imageMuscleMap.setImageBitmap(bitmap)
+            binding.progressMuscleMap.visibility = View.GONE
+        }
     }
 }

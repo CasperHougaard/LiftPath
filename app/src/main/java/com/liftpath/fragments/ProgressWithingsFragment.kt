@@ -21,7 +21,10 @@ import com.github.mikephil.charting.data.LineDataSet
 import com.github.mikephil.charting.formatter.ValueFormatter
 import com.liftpath.adapters.WithingsScanAdapter
 import com.liftpath.databinding.FragmentProgressWithingsBinding
+import com.liftpath.helpers.JsonHelper
+import com.liftpath.helpers.StrengthVsWeightHelper
 import com.liftpath.helpers.WithingsStorageHelper
+import com.liftpath.helpers.lpColor
 import com.liftpath.models.WithingsScanEntry
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -65,6 +68,7 @@ class ProgressWithingsFragment : Fragment() {
         val entries = storage.entries  // sorted newest-first by sync helper
 
         setupSummaryCards(entries)
+        setupStrengthVsWeightCard(entries)
         setupChart(binding.chartWeight, entries, "Weight (kg)") { it.weightKg }
         setupChart(binding.chartBodyFat, entries, "Body Fat (%)") { it.bodyFatPct }
         setupChart(binding.chartLeanMass, entries, "Lean Mass (kg)") { it.leanBodyMassKg }
@@ -114,6 +118,46 @@ class ProgressWithingsFragment : Fragment() {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    //  Strength vs weight indicator
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private fun setupStrengthVsWeightCard(scans: List<WithingsScanEntry>) {
+        val trainings = JsonHelper(requireContext()).readTrainingData().trainings
+        val result = StrengthVsWeightHelper.compute(trainings, scans)
+        if (result == null) {
+            binding.cardStrengthVsWeight.visibility = View.GONE
+            return
+        }
+        binding.cardStrengthVsWeight.visibility = View.VISIBLE
+
+        binding.textStrengthChange.apply {
+            text = formatSignedPct(result.strengthChangePct)
+            // Rising strength is the good outcome; falling strength is the warning.
+            setTextColor(changeColor(result.strengthChangePct))
+        }
+        binding.textWeightChange.apply {
+            text = formatSignedPct(result.weightChangePct)
+            // Weight direction isn't inherently good or bad — the verdict interprets it.
+            setTextColor(requireContext().lpColor(R.attr.lpNeutral))
+        }
+        binding.textStrengthWeightWindow.text =
+            if (result.windowDays > 0) getString(R.string.withings_window_days, result.windowDays) else ""
+        binding.textStrengthWeightVerdict.text = result.verdict
+    }
+
+    private fun formatSignedPct(pct: Float): String {
+        val sign = if (pct > 0) "+" else ""
+        return "$sign${String.format(Locale.US, "%.1f", pct)}%"
+    }
+
+    /** Positive when strength is up, negative when down, neutral when essentially flat (±1.5%). */
+    private fun changeColor(pct: Float): Int = when {
+        pct > 1.5f -> requireContext().lpColor(R.attr.lpPositive)
+        pct < -1.5f -> requireContext().lpColor(R.attr.lpNegative)
+        else -> requireContext().lpColor(R.attr.lpNeutral)
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     //  Charts
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -123,35 +167,39 @@ class ProgressWithingsFragment : Fragment() {
         label: String,
         selector: (WithingsScanEntry) -> Double?
     ) {
-        // Oldest-first for chart X axis
-        val chronological = entries.reversed()
-        val chartEntries = mutableListOf<Entry>()
-        val xLabels = mutableListOf<String>()
-        val labelFormat = SimpleDateFormat("MMM d", Locale.getDefault())
-
-        chronological.forEachIndexed { index, scan ->
-            val value = selector(scan) ?: return@forEachIndexed
-            chartEntries.add(Entry(index.toFloat(), value.toFloat()))
-            xLabels.add(labelFormat.format(Date(scan.dateMs)))
+        // Oldest-first for chart X axis. Keep only scans that have a value for this metric,
+        // each paired with its real timestamp.
+        val valued = entries.reversed().mapNotNull { scan ->
+            selector(scan)?.let { scan.dateMs to it }
         }
 
-        if (chartEntries.isEmpty()) {
+        if (valued.isEmpty()) {
             chart.visibility = View.GONE
             return
         }
         chart.visibility = View.VISIBLE
 
+        // Position each point by how many days after the first scan it was taken, so a longer
+        // gap between measurements shows as proportionally more horizontal space (a week off
+        // reads as a week-wide gap, not the same step as consecutive days).
+        val firstMs = valued.first().first
+        val labelFormat = SimpleDateFormat("MMM d", Locale.getDefault())
+        val chartEntries = valued.map { (dateMs, value) ->
+            Entry(daysSince(firstMs, dateMs), value.toFloat())
+        }
+
+        val ctx = chart.context
         val dataSet = LineDataSet(chartEntries, label).apply {
-            color = Color.parseColor("#2563EB")
-            valueTextColor = Color.parseColor("#111827")
+            color = ctx.lpColor(R.attr.lpAccent)
+            valueTextColor = ctx.lpColor(R.attr.lpInk)
             lineWidth = 2.5f
             circleRadius = 4f
-            setCircleColor(Color.parseColor("#2563EB"))
+            setCircleColor(ctx.lpColor(R.attr.lpAccent))
             setDrawCircleHole(false)
             setDrawValues(false)
             mode = LineDataSet.Mode.CUBIC_BEZIER
             setDrawFilled(true)
-            fillColor = Color.parseColor("#2563EB")
+            fillColor = ctx.lpColor(R.attr.lpAccent)
             fillAlpha = 30
         }
 
@@ -165,21 +213,22 @@ class ProgressWithingsFragment : Fragment() {
 
             xAxis.apply {
                 position = XAxis.XAxisPosition.BOTTOM
-                granularity = 1f
+                granularity = 1f  // at most one label per day
                 setDrawGridLines(false)
-                textColor = Color.parseColor("#6B7280")
+                textColor = ctx.lpColor(R.attr.lpInkSecondary)
                 textSize = 10f
                 valueFormatter = object : ValueFormatter() {
+                    // value is days-since-firstMs; render it back as a calendar date.
                     override fun getFormattedValue(value: Float): String =
-                        xLabels.getOrElse(value.toInt()) { "" }
+                        labelFormat.format(Date(dayOffsetToMs(firstMs, value)))
                 }
                 labelRotationAngle = -30f
             }
 
             axisLeft.apply {
-                textColor = Color.parseColor("#6B7280")
+                textColor = ctx.lpColor(R.attr.lpInkSecondary)
                 setDrawGridLines(true)
-                gridColor = Color.parseColor("#F3F4F6")
+                gridColor = ctx.lpColor(R.attr.lpChartGrid)
             }
             axisRight.isEnabled = false
 
@@ -189,43 +238,55 @@ class ProgressWithingsFragment : Fragment() {
     }
 
     private fun setupBodyCompositionChart(chart: BarChart, entries: List<WithingsScanEntry>) {
-        val chronological = entries.reversed()
-        val barEntries = mutableListOf<BarEntry>()
-        val xLabels = mutableListOf<String>()
         val labelFormat = SimpleDateFormat("MMM d", Locale.getDefault())
 
-        chronological.forEachIndexed { index, scan ->
-            val weight = scan.weightKg ?: return@forEachIndexed
-            val fatPct = scan.bodyFatPct ?: return@forEachIndexed
+        // Oldest-first, keeping only scans with the fields needed for a composition breakdown,
+        // each paired with its real timestamp.
+        val valued = entries.reversed().mapNotNull { scan ->
+            val weight = scan.weightKg ?: return@mapNotNull null
+            val fatPct = scan.bodyFatPct ?: return@mapNotNull null
             val fatKg = (weight * fatPct / 100.0).toFloat()
             val lean = scan.leanBodyMassKg?.toFloat() ?: (weight - fatKg).toFloat()
             val bone = (scan.boneMassKg ?: 0.0).toFloat()
             val water = (scan.bodyWaterMassKg ?: 0.0).toFloat()
             val muscle = maxOf(0f, lean - bone - water)
             // stack order bottom→top: muscle, water, bone, fat
-            barEntries.add(BarEntry(index.toFloat(), floatArrayOf(muscle, water, bone, fatKg)))
-            xLabels.add(labelFormat.format(Date(scan.dateMs)))
+            scan.dateMs to floatArrayOf(muscle, water, bone, fatKg)
         }
 
-        if (barEntries.isEmpty()) {
+        if (valued.isEmpty()) {
             chart.visibility = View.GONE
             return
         }
         chart.visibility = View.VISIBLE
 
+        // Same real-date X axis as the line charts: bars sit at their true day-offset so gaps
+        // between scans are visible. Bar width is derived from the smallest gap between two
+        // scans so bars never overlap, then clamped to stay legible over long, sparse ranges.
+        val firstMs = valued.first().first
+        val barEntries = valued.map { (dateMs, stack) ->
+            BarEntry(daysSince(firstMs, dateMs), stack)
+        }
+        val minGapDays = barEntries.map { it.x }.zipWithNext { a, b -> b - a }
+            .filter { it > 0f }.minOrNull() ?: 1f
+        val barWidthDays = (minGapDays * 0.7f).coerceIn(0.5f, 10f)
+
+        val ctx = chart.context
         val dataSet = BarDataSet(barEntries, "").apply {
+            // Same four roles as the legend row in fragment_progress_withings.xml, in the
+            // same stack order (muscle, water, bone, fat) so the swatches match the bars.
             setColors(
-                Color.parseColor("#10B981"), // muscle – green
-                Color.parseColor("#3B82F6"), // water  – blue
-                Color.parseColor("#F59E0B"), // bone   – amber
-                Color.parseColor("#EF4444")  // fat    – red
+                ctx.lpColor(R.attr.lpChartVolume),  // muscle
+                ctx.lpColor(R.attr.lpChartTime),    // water
+                ctx.lpColor(R.attr.lpChartRpe),     // bone
+                ctx.lpColor(R.attr.lpChartFatigue)  // fat
             )
             setDrawValues(false)
             stackLabels = arrayOf("Muscle", "Water", "Bone", "Fat")
         }
 
         chart.apply {
-            data = BarData(dataSet).apply { barWidth = 0.6f }
+            data = BarData(dataSet).apply { barWidth = barWidthDays }
             description.isEnabled = false
             legend.isEnabled = false
             setTouchEnabled(true)
@@ -235,21 +296,22 @@ class ProgressWithingsFragment : Fragment() {
 
             xAxis.apply {
                 position = XAxis.XAxisPosition.BOTTOM
-                granularity = 1f
+                granularity = 1f  // at most one label per day
                 setDrawGridLines(false)
-                textColor = Color.parseColor("#6B7280")
+                textColor = ctx.lpColor(R.attr.lpInkSecondary)
                 textSize = 10f
                 labelRotationAngle = -30f
                 valueFormatter = object : ValueFormatter() {
+                    // value is days-since-firstMs; render it back as a calendar date.
                     override fun getFormattedValue(value: Float): String =
-                        xLabels.getOrElse(value.toInt()) { "" }
+                        labelFormat.format(Date(dayOffsetToMs(firstMs, value)))
                 }
             }
 
             axisLeft.apply {
-                textColor = Color.parseColor("#6B7280")
+                textColor = ctx.lpColor(R.attr.lpInkSecondary)
                 setDrawGridLines(true)
-                gridColor = Color.parseColor("#F3F4F6")
+                gridColor = ctx.lpColor(R.attr.lpChartGrid)
                 valueFormatter = object : ValueFormatter() {
                     override fun getFormattedValue(value: Float) = "${value.toInt()} kg"
                 }
@@ -289,5 +351,17 @@ class ProgressWithingsFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    companion object {
+        private const val MS_PER_DAY = 86_400_000.0
+
+        /** Days between [firstMs] and [dateMs], as a fractional chart X coordinate. */
+        private fun daysSince(firstMs: Long, dateMs: Long): Float =
+            ((dateMs - firstMs) / MS_PER_DAY).toFloat()
+
+        /** Inverse of [daysSince]: turn a day-offset axis value back into epoch millis. */
+        private fun dayOffsetToMs(firstMs: Long, dayOffset: Float): Long =
+            firstMs + (dayOffset * MS_PER_DAY).toLong()
     }
 }

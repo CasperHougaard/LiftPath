@@ -23,17 +23,27 @@ data class ReadinessConfig(
     companion object {
         /**
          * Creates ReadinessConfig from ReadinessSettingsManager settings.
+         *
+         * [triPath] folds in what TriPath knows that LiftPath cannot see from its own logs: how
+         * well the body actually recovered last night, and how much accumulated cardio fatigue is
+         * sitting underneath. It defaults to [TriPathFatigueMapper.NEUTRAL], which multiplies by
+         * 1.0 throughout — so with TriPath disconnected this is the original calculation.
          */
-        fun fromSettings(settings: ReadinessSettingsManager.ReadinessSettings): ReadinessConfig {
+        @JvmOverloads
+        fun fromSettings(
+            settings: ReadinessSettingsManager.ReadinessSettings,
+            triPath: TriPathFatigueMapper.Modifier = TriPathFatigueMapper.NEUTRAL
+        ): ReadinessConfig {
             val highThreshold = settings.getHighThreshold()
+            val scale = triPath.thresholdScale
             return ReadinessConfig(
-                recoverySpeedMultiplier = settings.recoverySpeedMultiplier,
+                recoverySpeedMultiplier = settings.recoverySpeedMultiplier * triPath.recoveryFactor,
                 defaultRPE = settings.defaultRPE,
                 allowRunningOnTiredLegs = !settings.strictRunBlocking,
                 thresholds = Thresholds(
-                    high = highThreshold,
-                    moderate = 30f, // Moderate stays at 30
-                    cnsMax = 80f // CNS max stays at 80
+                    high = highThreshold * scale,
+                    moderate = 30f * scale,
+                    cnsMax = 80f * scale
                 ),
                 ignoreWeekends = settings.ignoreFatigueOnWeekends
             )
@@ -241,13 +251,19 @@ object ReadinessHelper {
      * First 48 hours: Exponential decay with 48-hour half-life
      * After 48 hours: Linear decay at 1.5% per day (0.0625% per hour)
      * This matches biological recovery patterns: rapid initial recovery, then slower linear decay.
+     *
+     * Recovery speed is applied by stretching elapsed time rather than by altering the half-life:
+     * a multiplier of 1.2 means twelve real hours count as fourteen and change. Without this the
+     * multiplier only ever moved the "time until fresh" text and never the curve the whole screen
+     * is drawn from — and there would be nowhere for TriPath's sleep/HRV signal to land.
      */
     fun getDecayedScore(originalScore: Float, durationMs: Long, config: ReadinessConfig): Float {
         if (originalScore <= 0f) return 0f
-        
-        // Convert duration to hours
-        val hoursElapsed = durationMs.toFloat() / (3600f * 1000f)
-        
+
+        // Convert duration to hours, scaled by how fast this athlete is recovering right now
+        val speed = config.recoverySpeedMultiplier.coerceAtLeast(0.1f)
+        val hoursElapsed = (durationMs.toFloat() / (3600f * 1000f)) * speed
+
         val decayedScore = if (hoursElapsed <= 48f) {
             // First 48 hours: Exponential decay with 48-hour half-life
             // Formula: decayedScore = originalScore * (0.5 ^ (hoursElapsed / 48.0))

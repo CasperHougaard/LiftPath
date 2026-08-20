@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:background="@color/fitness_card_background"
+    android:background="?attr/lpSurface"
     android:minHeight="400dp">
 
     <!-- Header -->
@@ -24,18 +24,15 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Muscle Overview"
-            android:textSize="20sp"
-            android:textStyle="bold"
-            android:textColor="@color/fitness_text_primary" />
+            android:text="@string/title_muscle_overview"
+            android:textAppearance="@style/TextAppearance.LP.Title" />
 
         <TextView
             android:id="@+id/text_muscle_summary"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="0/24"
-            android:textSize="14sp"
-            android:textColor="@color/fitness_text_secondary"
+            android:text="@string/label_muscle_summary_default"
+            android:textAppearance="@style/TextAppearance.LP.Metric.S"
             android:layout_marginEnd="8dp"
             tools:text="12/24 muscles activated" />
 
@@ -45,8 +42,8 @@
             android:layout_height="40dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_close_24"
-            app:tint="@color/fitness_text_secondary"
-            android:contentDescription="Close" />
+            app:tint="?attr/lpInkSecondary"
+            android:contentDescription="@string/cd_close_dialog" />
     </LinearLayout>
 
     <!-- Empty State -->
@@ -62,9 +59,8 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Add exercises to see muscle activation"
-            android:textSize="16sp"
-            android:textColor="@color/fitness_text_secondary"
+            android:text="@string/body_muscle_overview_empty"
+            android:textAppearance="@style/TextAppearance.LP.Body"
             android:gravity="center" />
     </LinearLayout>
 
@@ -75,12 +71,14 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:minHeight="400dp"
-        android:background="@color/fitness_background">
+        android:background="?attr/lpCanvas">
 
-        <WebView
-            android:id="@+id/webview_muscle_map"
+        <ImageView
+            android:id="@+id/image_muscle_map"
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            android:layout_height="match_parent"
+            android:scaleType="fitCenter"
+            android:contentDescription="@string/cd_muscle_map" />
 
         <ProgressBar
             android:id="@+id/progress_loading"
@@ -88,7 +86,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:visibility="visible"
-            android:indeterminateTint="@color/fitness_primary" />
+            android:indeterminateTint="?attr/lpAccent" />
     </FrameLayout>
 
 </LinearLayout>

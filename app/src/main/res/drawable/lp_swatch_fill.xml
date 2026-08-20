@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Filled swatch dot for the theme picker. Set as an ImageView's src and coloured with
+  app:tint, so the ring in lp_swatch_ring (the ImageView's background) stays untinted —
+  android:backgroundTint would otherwise recolour the ring along with the fill.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <solid android:color="#FFFFFF" />
+</shape>

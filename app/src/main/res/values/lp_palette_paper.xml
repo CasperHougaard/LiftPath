@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  PALETTE: Paper & Bronze  (default)
+
+  Warm paper, warm near-black ink, one bronze accent. The neutrals are deliberately
+  warm — #FAF9F7 rather than a blue-tinted #F3F4F6 — which is most of the difference
+  between "paper" and "spreadsheet".
+
+  Bound to the lp* attrs by Theme.LiftPath.Paper. Never reference paper_* directly
+  from a layout; use ?attr/lpCanvas and friends.
+
+  The night values in values-night/ are what make this palette work in dark mode, so
+  the theme itself needs no night variant.
+-->
+<resources>
+
+    <color name="paper_canvas">#FAF9F7</color>
+    <color name="paper_canvas_sunken">#F2F0EB</color>
+    <color name="paper_surface">#FFFFFF</color>
+    <color name="paper_surface_alt">#F7F5F1</color>
+
+    <color name="paper_hairline">#E6E2D9</color>
+    <color name="paper_hairline_strong">#D6D1C6</color>
+
+    <color name="paper_ink">#191813</color>
+    <color name="paper_ink_secondary">#6B665C</color>
+    <color name="paper_ink_tertiary">#9A948A</color>
+    <color name="paper_ink_inverse">#FAF9F7</color>
+    <color name="paper_ink_inverse_secondary">#B0AAA0</color>
+
+    <color name="paper_accent">#A6753C</color>
+    <color name="paper_accent_pressed">#8C5F2E</color>
+    <color name="paper_accent_wash">#F5EDE1</color>
+
+    <color name="paper_positive">#3F6B4F</color>
+    <color name="paper_negative">#A33A2B</color>
+    <color name="paper_neutral">#8C8880</color>
+
+    <!-- Bronze doubles as the BUILD intent here; strength takes clay. -->
+    <color name="paper_intent_strength">#A33A2B</color>
+    <color name="paper_intent_build">#A6753C</color>
+    <color name="paper_intent_flush">#4F7A5C</color>
+    <color name="paper_intent_warmup">#8C8880</color>
+
+    <color name="paper_chart_volume">#4F7A5C</color>
+    <color name="paper_chart_rpe">#A6753C</color>
+    <color name="paper_chart_time">#4A6B82</color>
+    <color name="paper_chart_fatigue">#A33A2B</color>
+    <color name="paper_chart_grid">#EAE6DD</color>
+
+    <color name="paper_ripple">#14191813</color>
+    <color name="paper_ripple_inverse">#22FAF9F7</color>
+
+</resources>

@@ -1,67 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Non-token colours only.
+
+  The old `fitness_*` / `intent_*` / `pr_*` / `superset_*` / `chip_*` palette that used to
+  live here has been removed. It was the stock Tailwind set (#2563EB, #F59E0B, #F3F4F6),
+  and every one of its ~1,700 usages now points at an `lp*` design-token attribute
+  instead — see lp_attrs.xml for the roles and lp_palette_*.xml for the values.
+
+  Deleted rather than kept as aliases on purpose: a static colour resource cannot follow
+  the user's selected palette, so leaving the old names in place would just be an easy way
+  to accidentally pin a view to one theme. If something needs a colour, it wants a role in
+  lp_attrs.xml.
+
+  What legitimately remains:
+    · black / white / transparent — true absolutes, e.g. scrim and icon masks
+    · purple_* / teal_* — leftovers from the project template, kept only because the
+      Material template theme references them; not used by any LiftPath screen
+-->
 <resources>
+
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="transparent">#00000000</color>
+
+    <!-- Project-template leftovers. Not part of the design system. -->
     <color name="purple_200">#FFBB86FC</color>
     <color name="purple_500">#FF6200EE</color>
     <color name="purple_700">#FF3700B3</color>
     <color name="teal_200">#FF03DAC5</color>
     <color name="teal_700">#FF018786</color>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
-    
-    <!-- Modern Palette - Day -->
-    <color name="fitness_primary">#2563EB</color> <!-- Royal Blue -->
-    <color name="fitness_primary_dark">#1E40AF</color>
-    <color name="fitness_accent">#F59E0B</color> <!-- Amber -->
-    <color name="fitness_background">#F3F4F6</color> <!-- Cool Gray 100 -->
-    <color name="fitness_card_background">#FFFFFF</color>
-    <color name="fitness_text_primary">#111827</color> <!-- Cool Gray 900 -->
-    <color name="fitness_text_secondary">#6B7280</color> <!-- Cool Gray 500 -->
-    
-    <color name="fitness_info_banner_background">#E0E7FF</color>
-    <color name="fitness_info_banner_border">#6366F1</color>
-    <color name="fitness_warning_background">#FEF3C7</color>
-    <color name="fitness_warning_border">#F59E0B</color>
-    <color name="fitness_highlight_background">#D1FAE5</color>
-    <color name="fitness_highlight_border">#10B981</color>
-    <color name="fitness_error_background">#FEE2E2</color>
-    <color name="fitness_error_border">#EF4444</color>
-    <color name="fitness_error">#EF4444</color>
-    <color name="fitness_badge_blue">#3B82F6</color>
-    <color name="fitness_light_blue">#60A5FA</color> <!-- Light blue for light workouts (legacy) -->
-    <color name="fitness_dark_blue">#1E40AF</color> <!-- Dark blue for heavy workouts (legacy) -->
-    
-    <!-- Intent Colors -->
-    <color name="intent_strength">#DC2626</color>  <!-- Red-600 -->
-    <color name="intent_build">#F59E0B</color>     <!-- Amber-500 -->
-    <color name="intent_flush">#10B981</color>     <!-- Emerald-500 -->
-    <color name="intent_warmup">#6B7280</color>    <!-- Gray-500 -->
 
-    <!-- PR recency (fresh / improved / older) -->
-    <color name="pr_fresh">#10B981</color>   <!-- Green - last PR ≤ 7 days -->
-    <color name="pr_improved">#F59E0B</color> <!-- Amber - last PR 8–30 days -->
-    <color name="pr_older">#6B7280</color>   <!-- Muted - last PR > 30 days -->
-    
-    <!-- Mesh Animation Color (visible in both light and dark) -->
-    <color name="mesh_color">#50000000</color> <!-- Semi-transparent black - works on light bg -->
-    
-    <!-- Chart Grid Lines -->
-    <color name="fitness_chart_grid">#E0E0E0</color> <!-- Light gray for light mode -->
-    
-    <!-- Active workout exercise card: not started (no logged sets yet) -->
-    <color name="active_exercise_outline_idle">#9CA3AF</color> <!-- Gray-400 -->
-
-    <!-- Superset borders -->
-    <color name="superset_active_border">#2563EB</color>
-    <color name="superset_waiting_border">#EAB308</color>
-    <color name="superset_complete_green">#10B981</color>
-
-    <!-- Suggestion Color (for progression suggestions in active workout) -->
-    <color name="fitness_suggestion">#0EA5E9</color>  <!-- Sky-500 -->
-    
-    <!-- Chip Colors -->
-    <color name="chip_filter_background">#FFFFFF</color>
-    <color name="chip_choice_background">#FFFFFF</color>
-    
-    <!-- Divider -->
-    <color name="fitness_divider">#E5E7EB</color>  <!-- Gray-200 -->
 </resources>

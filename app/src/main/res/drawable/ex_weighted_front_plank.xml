@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Weighted Front Plank (plate on back) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="160dp"
+    android:height="160dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+    <path
+        android:pathData="M20,182 L180,182"
+        android:strokeColor="?attr/lpInkSecondary"
+        android:strokeWidth="4"
+        android:strokeAlpha="0.7"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M128,112 L45,112 M128,112 L128,150 L112,178 M45,112 L38,178"
+        android:strokeColor="?attr/lpInk"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M76,98 L100,98 L100,110 L76,110 Z"
+        android:fillColor="?attr/lpAccent" />
+    <path
+        android:pathData="M123,96 a13,13 0 1,0 26,0 a13,13 0 1,0 -26,0"
+        android:fillColor="?attr/lpInk" />
+</vector>

@@ -1,76 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  The last row of the active-workout list: add another exercise, or add a warm-up/cool-down block.
+
+  Previously two unequal squares — an 80dp accent tile labelled "Add" and a 60dp outlined one
+  with no label at all, which meant the only way to discover the second action was to tap it.
+  Both are now labelled outlined buttons at the same weight, aligned to the same dense gutter as
+  the exercise cards above so the list ends rather than trailing off.
+
+  Outlined, not filled: these sit permanently at the bottom of the list, and a filled pair would
+  pull the eye down past the exercise you're actually working on.
+-->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:baselineAligned="false"
     android:orientation="horizontal"
-    android:padding="16dp"
-    android:gravity="center"
-    android:baselineAligned="false">
+    android:paddingHorizontal="@dimen/lp_gutter_dense"
+    android:paddingTop="@dimen/lp_space_2"
+    android:paddingBottom="@dimen/lp_space_4">
 
-    <!-- Regular Plus Button - "Add" -->
-    <androidx.cardview.widget.CardView
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/button_add_exercise_regular"
-        android:layout_width="80dp"
-        android:layout_height="80dp"
-        android:layout_marginEnd="8dp"
-        android:clickable="true"
-        android:focusable="true"
-        android:foreground="?attr/selectableItemBackground"
-        app:cardBackgroundColor="@color/fitness_primary"
-        app:cardCornerRadius="16dp"
-        app:cardElevation="4dp">
+        style="@style/Widget.LP.Button.Outlined"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="@dimen/lp_card_gap_dense"
+        android:layout_weight="1"
+        android:minHeight="48dp"
+        android:text="@string/btn_add_exercise"
+        app:icon="@drawable/ic_plus"
+        app:iconGravity="textStart"
+        app:iconSize="15dp" />
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:padding="12dp">
-
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@drawable/ic_plus"
-                app:tint="@color/white" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="Add"
-                android:textColor="@color/white"
-                android:textSize="12sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-    </androidx.cardview.widget.CardView>
-
-    <!-- Bonus Plus Button - 3/4 size -->
-    <androidx.cardview.widget.CardView
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/button_add_exercise_bonus"
-        android:layout_width="60dp"
-        android:layout_height="60dp"
-        android:clickable="true"
-        android:focusable="true"
-        android:foreground="?attr/selectableItemBackground"
-        app:cardBackgroundColor="@color/fitness_card_background"
-        app:cardCornerRadius="12dp"
-        app:cardElevation="4dp"
-        app:strokeColor="@color/fitness_primary"
-        app:strokeWidth="2dp">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:padding="12dp">
-
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@drawable/ic_plus"
-                app:tint="@color/fitness_primary" />
-        </LinearLayout>
-    </androidx.cardview.widget.CardView>
+        style="@style/Widget.LP.Button.Outlined"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:minHeight="48dp"
+        android:text="@string/btn_add_warmup_cooldown" />
 </LinearLayout>

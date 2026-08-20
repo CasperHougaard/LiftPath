@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Progress tab: header + six-page analytics hub (Overview / Muscles / Exercises / PRs /
+  Body scan / Sessions — the last absorbs the old standalone History screen).
+
+  The TabLayout carries no colour or type attrs of its own: `tabStyle` in
+  Theme.LiftPath.Base already points every TabLayout in the app at Widget.LP.TabLayout, so
+  this one only overrides what six labels genuinely need — scrollable mode and start
+  gravity, since Widget.LP.TabLayout's fixed/fill default is sized for four.
+
+  card_back stays in the tree collapsed to GONE rather than removed, matching Train and
+  Library — a tab has nowhere to go back to, but deleting the view would mean re-deriving
+  every constraint anchored to it.
+-->
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?attr/lpCanvas"
+    tools:context="com.liftpath.fragments.ProgressHubFragment">
+
+    <!-- HEADER -->
+    <LinearLayout
+        android:id="@+id/header_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="@dimen/lp_gutter"
+        android:paddingTop="@dimen/lp_gutter"
+        android:paddingBottom="@dimen/lp_space_4"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <!-- Given an id so the fragment can collapse the whole control: hiding only the
+             inner ImageButton would leave this card as an empty circle. -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_back"
+            style="@style/Widget.LP.Card.Control"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:clickable="false"
+            android:focusable="false">
+
+            <ImageButton
+                android:id="@+id/button_back"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="?attr/selectableItemBackground"
+                android:contentDescription="@string/progress_back_content_description"
+                android:padding="@dimen/lp_space_3"
+                android:src="@drawable/ic_arrow_back_24"
+                app:tint="?attr/lpInk" />
+        </com.google.android.material.card.MaterialCardView>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/lp_space_4"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/text_progress_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/progress_header_title"
+                android:textAppearance="@style/TextAppearance.LP.Title" />
+
+            <TextView
+                android:id="@+id/text_progress_subtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/progress_header_subtitle"
+                android:textAppearance="@style/TextAppearance.LP.Body" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/tab_layout_main"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="@dimen/lp_space_2"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/header_container"
+        app:tabGravity="start"
+        app:tabMode="scrollable" />
+
+    <View
+        style="@style/Widget.LP.Divider"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tab_layout_main" />
+
+    <androidx.viewpager2.widget.ViewPager2
+        android:id="@+id/view_pager_progress"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@android:color/transparent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tab_layout_main" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

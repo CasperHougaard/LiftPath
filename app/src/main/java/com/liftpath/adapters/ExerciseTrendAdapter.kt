@@ -8,9 +8,11 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.card.MaterialCardView
 import com.liftpath.R
 import com.liftpath.databinding.ItemExerciseTrendBinding
+import com.liftpath.helpers.RestTimerHelper
 import com.liftpath.models.ExerciseTrendData
 import com.liftpath.models.SetIntent
 import java.util.Locale
+import com.liftpath.helpers.lpColor
 
 class ExerciseTrendAdapter(
     private val trends: List<ExerciseTrendData>
@@ -35,10 +37,10 @@ class ExerciseTrendAdapter(
         // Intent badge
         holder.binding.textIntentBadge.text = trend.intent.displayName.uppercase()
         val badgeColor = when (trend.intent) {
-            SetIntent.STRENGTH -> ContextCompat.getColor(context, R.color.intent_strength)
-            SetIntent.BUILD -> ContextCompat.getColor(context, R.color.intent_build)
-            SetIntent.FLUSH -> ContextCompat.getColor(context, R.color.intent_flush)
-            else -> ContextCompat.getColor(context, R.color.fitness_primary)
+            SetIntent.STRENGTH -> context.lpColor(R.attr.lpIntentStrength)
+            SetIntent.BUILD -> context.lpColor(R.attr.lpIntentBuild)
+            SetIntent.FLUSH -> context.lpColor(R.attr.lpIntentFlush)
+            else -> context.lpColor(R.attr.lpAccent)
         }
         holder.binding.textIntentBadge.backgroundTintList =
             android.content.res.ColorStateList.valueOf(badgeColor)
@@ -47,47 +49,81 @@ class ExerciseTrendAdapter(
         holder.binding.imagePrBadge.visibility =
             if (trend.hasNewAllTimePR) View.VISIBLE else View.GONE
 
-        // Card border recency from most recent all-time PR (weight, volume, 1RM)
-        val mostRecentPrDate = maxOf(trend.prWeightDate, trend.prVolumeDate, trend.pr1RMDate)
+        // Card border recency from most recent all-time PR (weight, volume, 1RM, hold)
+        val mostRecentPrDate =
+            maxOf(trend.prWeightDate, trend.prVolumeDate, trend.pr1RMDate, trend.prHoldDate)
         val daysSinceLastPr = if (mostRecentPrDate <= 0) Int.MAX_VALUE
         else ((System.currentTimeMillis() - mostRecentPrDate) / (24 * 60 * 60 * 1000)).toInt()
         val recencyColor = when {
-            daysSinceLastPr <= 7 -> ContextCompat.getColor(context, R.color.pr_fresh)
-            daysSinceLastPr <= 30 -> ContextCompat.getColor(context, R.color.pr_improved)
-            else -> ContextCompat.getColor(context, R.color.pr_older)
+            daysSinceLastPr <= 7 -> context.lpColor(R.attr.lpPositive)
+            daysSinceLastPr <= 30 -> context.lpColor(R.attr.lpAccent)
+            else -> context.lpColor(R.attr.lpInkTertiary)
         }
         val cardView = holder.binding.root as MaterialCardView
         val strokeWidthPx = (2 * context.resources.displayMetrics.density).toInt()
         cardView.strokeWidth = strokeWidthPx
         cardView.strokeColor = recencyColor
 
-        // --- Volume comparison ---
-        val volumeFormatted = String.format(Locale.US, "%,dkg", trend.currentVolume.toInt())
-        holder.binding.textVolumeCurrent.text = volumeFormatted
+        // --- Headline metric: hold time for timed exercises, volume for everything else ---
+        // A timed hold has no rep-based volume, so reporting "0kg" here would read as no work done.
+        holder.binding.textVolumeLabel.setText(
+            if (trend.isTimedExercise) R.string.total_hold_time_label else R.string.volume_label
+        )
+        if (trend.isTimedExercise) {
+            val best = trend.currentBestHoldSeconds ?: 0
+            holder.binding.textVolumeCurrent.text = context.getString(
+                R.string.hold_best_and_total,
+                RestTimerHelper.formatDuration(best),
+                RestTimerHelper.formatHoldTotal(trend.currentTotalHoldSeconds)
+            )
 
-        if (trend.previousVolume != null) {
-            val prevVolumeFormatted =
-                String.format(Locale.US, "%,dkg", trend.previousVolume.toInt())
-            holder.binding.textVolumeComparison.text = "vs $prevVolumeFormatted"
-            holder.binding.textVolumeComparison.visibility = View.VISIBLE
+            val prevBest = trend.previousBestHoldSeconds
+            if (prevBest != null && prevBest > 0) {
+                holder.binding.textVolumeComparison.text =
+                    "vs ${RestTimerHelper.formatDuration(prevBest)}"
+                holder.binding.textVolumeComparison.visibility = View.VISIBLE
 
-            val volumeChange =
-                ((trend.currentVolume - trend.previousVolume) / trend.previousVolume) * 100f
-            holder.binding.textVolumeChange.text =
-                String.format(Locale.US, "%+.1f%%", volumeChange)
-            holder.binding.textVolumeChange.visibility = View.VISIBLE
-            holder.binding.textVolumeChange.setTextColor(getChangeColor(context, volumeChange))
+                val holdChange = ((best - prevBest).toFloat() / prevBest) * 100f
+                holder.binding.textVolumeChange.text =
+                    String.format(Locale.US, "%+.1f%%", holdChange)
+                holder.binding.textVolumeChange.visibility = View.VISIBLE
+                holder.binding.textVolumeChange.setTextColor(getChangeColor(context, holdChange))
 
-            holder.binding.textFirstTimeNote.visibility = View.GONE
+                holder.binding.textFirstTimeNote.visibility = View.GONE
+            } else {
+                holder.binding.textVolumeComparison.visibility = View.GONE
+                holder.binding.textVolumeChange.visibility = View.GONE
+                holder.binding.textFirstTimeNote.visibility =
+                    if (trend.intentSessionCount == 0) View.VISIBLE else View.GONE
+            }
         } else {
-            holder.binding.textVolumeComparison.visibility = View.GONE
-            holder.binding.textVolumeChange.visibility = View.GONE
-            // Show baseline note when no prior same-intent session exists
-            holder.binding.textFirstTimeNote.visibility =
-                if (trend.intentSessionCount == 0) View.VISIBLE else View.GONE
+            val volumeFormatted = String.format(Locale.US, "%,dkg", trend.currentVolume.toInt())
+            holder.binding.textVolumeCurrent.text = volumeFormatted
+
+            if (trend.previousVolume != null) {
+                val prevVolumeFormatted =
+                    String.format(Locale.US, "%,dkg", trend.previousVolume.toInt())
+                holder.binding.textVolumeComparison.text = "vs $prevVolumeFormatted"
+                holder.binding.textVolumeComparison.visibility = View.VISIBLE
+
+                val volumeChange =
+                    ((trend.currentVolume - trend.previousVolume) / trend.previousVolume) * 100f
+                holder.binding.textVolumeChange.text =
+                    String.format(Locale.US, "%+.1f%%", volumeChange)
+                holder.binding.textVolumeChange.visibility = View.VISIBLE
+                holder.binding.textVolumeChange.setTextColor(getChangeColor(context, volumeChange))
+
+                holder.binding.textFirstTimeNote.visibility = View.GONE
+            } else {
+                holder.binding.textVolumeComparison.visibility = View.GONE
+                holder.binding.textVolumeChange.visibility = View.GONE
+                // Show baseline note when no prior same-intent session exists
+                holder.binding.textFirstTimeNote.visibility =
+                    if (trend.intentSessionCount == 0) View.VISIBLE else View.GONE
+            }
         }
 
-        // --- 1RM comparison ---
+        // --- 1RM comparison (rep-based only) ---
         if (trend.currentEstimated1RM != null) {
             holder.binding.layout1rm.visibility = View.VISIBLE
             holder.binding.text1rmCurrent.text =
@@ -112,8 +148,24 @@ class ExerciseTrendAdapter(
             holder.binding.layout1rm.visibility = View.GONE
         }
 
-        // --- Top set comparison ---
-        if (trend.currentTopSet != null) {
+        // --- Top set comparison, or load-seconds for a weighted hold ---
+        holder.binding.textTopSetLabel.setText(
+            if (trend.isTimedExercise) R.string.load_time_label else R.string.top_set_label
+        )
+        if (trend.isTimedExercise) {
+            // A weighted plank progresses by load as well as duration; kg·s captures both.
+            val loadSeconds = trend.currentLoadSeconds
+            if (loadSeconds != null && loadSeconds > 0f) {
+                holder.binding.layoutTopSet.visibility = View.VISIBLE
+                holder.binding.textTopSetCurrent.text = context.getString(
+                    R.string.hold_load_seconds,
+                    String.format(Locale.US, "%,d", loadSeconds.toInt())
+                )
+                holder.binding.textTopSetComparison.visibility = View.GONE
+            } else {
+                holder.binding.layoutTopSet.visibility = View.GONE
+            }
+        } else if (trend.currentTopSet != null) {
             holder.binding.layoutTopSet.visibility = View.VISIBLE
             val (kg, reps) = trend.currentTopSet
             holder.binding.textTopSetCurrent.text =
@@ -132,7 +184,8 @@ class ExerciseTrendAdapter(
         }
 
         // --- All-time Records section (canonical PRs only, no reps) ---
-        val hasPRs = trend.prWeight != null || trend.prVolume != null || trend.pr1RM != null
+        val hasPRs = trend.prWeight != null || trend.prVolume != null || trend.pr1RM != null ||
+            trend.prHoldSeconds != null
 
         if (hasPRs) {
             holder.binding.dividerPrs.visibility = View.VISIBLE
@@ -172,8 +225,18 @@ class ExerciseTrendAdapter(
                 holder.binding.layoutPr1rm.visibility = View.GONE
             }
 
-            // Reps PR section is excluded from the canonical PR system — always hidden
-            holder.binding.layoutPrReps.visibility = View.GONE
+            // Reps PRs are excluded from the canonical PR system; this slot now carries the
+            // longest-hold record for timed exercises (see item_exercise_trend.xml).
+            if (trend.prHoldSeconds != null) {
+                holder.binding.layoutPrReps.visibility = View.VISIBLE
+                holder.binding.textPrReps.text =
+                    RestTimerHelper.formatDuration(trend.prHoldSeconds)
+                holder.binding.textPrReps.setTextColor(
+                    getPrRecencyColor(context, getDaysSince(trend.prHoldDate))
+                )
+            } else {
+                holder.binding.layoutPrReps.visibility = View.GONE
+            }
         } else {
             holder.binding.dividerPrs.visibility = View.GONE
             holder.binding.textPrsTitle.visibility = View.GONE
@@ -185,17 +248,17 @@ class ExerciseTrendAdapter(
 
     private fun getChangeColor(context: android.content.Context, changePercent: Float): Int {
         return when {
-            changePercent > 1f -> ContextCompat.getColor(context, R.color.fitness_highlight_border)
-            changePercent < -1f -> ContextCompat.getColor(context, R.color.fitness_error_border)
-            else -> ContextCompat.getColor(context, R.color.fitness_text_secondary)
+            changePercent > 1f -> context.lpColor(R.attr.lpPositive)
+            changePercent < -1f -> context.lpColor(R.attr.lpNegative)
+            else -> context.lpColor(R.attr.lpInkSecondary)
         }
     }
 
     private fun getPrRecencyColor(context: android.content.Context, daysSince: Int): Int {
         return when {
-            daysSince <= 7 -> ContextCompat.getColor(context, R.color.pr_fresh)
-            daysSince <= 30 -> ContextCompat.getColor(context, R.color.pr_improved)
-            else -> ContextCompat.getColor(context, R.color.pr_older)
+            daysSince <= 7 -> context.lpColor(R.attr.lpPositive)
+            daysSince <= 30 -> context.lpColor(R.attr.lpAccent)
+            else -> context.lpColor(R.attr.lpInkTertiary)
         }
     }
 

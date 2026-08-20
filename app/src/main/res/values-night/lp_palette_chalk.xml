@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  PALETTE: Chalk & Oxblood — DARK
+
+  Cool near-black. Oxblood at #8C2F27 is far too dark to read on this canvas, so the
+  accent lifts to a desaturated terracotta (#D96A5E) that keeps the iron association
+  without disappearing.
+-->
+<resources>
+
+    <color name="chalk_canvas">#101114</color>
+    <color name="chalk_canvas_sunken">#0A0B0D</color>
+    <color name="chalk_surface">#191B1F</color>
+    <color name="chalk_surface_alt">#212429</color>
+
+    <color name="chalk_hairline">#2B2E34</color>
+    <color name="chalk_hairline_strong">#3E4249</color>
+
+    <color name="chalk_ink">#F2F3F5</color>
+    <color name="chalk_ink_secondary">#9BA0A8</color>
+    <color name="chalk_ink_tertiary">#6B7078</color>
+    <color name="chalk_ink_inverse">#101114</color>
+    <color name="chalk_ink_inverse_secondary">#4E525A</color>
+
+    <color name="chalk_accent">#D96A5E</color>
+    <color name="chalk_accent_pressed">#BF564B</color>
+    <color name="chalk_accent_wash">#2A1A18</color>
+
+    <color name="chalk_positive">#7FB08F</color>
+    <color name="chalk_negative">#D98374</color>
+    <color name="chalk_neutral">#85888E</color>
+
+    <color name="chalk_intent_strength">#D96A5E</color>
+    <color name="chalk_intent_build">#D4A857</color>
+    <color name="chalk_intent_flush">#7FB08F</color>
+    <color name="chalk_intent_warmup">#85888E</color>
+
+    <color name="chalk_chart_volume">#7FB08F</color>
+    <color name="chalk_chart_rpe">#D4A857</color>
+    <color name="chalk_chart_time">#7FA0C4</color>
+    <color name="chalk_chart_fatigue">#D96A5E</color>
+    <color name="chalk_chart_grid">#24272C</color>
+
+    <color name="chalk_ripple">#1AF2F3F5</color>
+    <color name="chalk_ripple_inverse">#22101114</color>
+
+</resources>

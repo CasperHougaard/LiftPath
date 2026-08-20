@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  PALETTE: Bone & Moss — DARK
+
+  Warm green-black canvas. Deep moss (#3F6B4F) has almost no contrast against it, so
+  the accent lifts to a sage (#79B08C) — which also keeps accent and lpPositive
+  aligned the way the light palette does.
+-->
+<resources>
+
+    <color name="bone_canvas">#101210</color>
+    <color name="bone_canvas_sunken">#0A0C0A</color>
+    <color name="bone_surface">#1A1D19</color>
+    <color name="bone_surface_alt">#222620</color>
+
+    <color name="bone_hairline">#2D312B</color>
+    <color name="bone_hairline_strong">#414639</color>
+
+    <color name="bone_ink">#F2F4EF</color>
+    <color name="bone_ink_secondary">#9CA396</color>
+    <color name="bone_ink_tertiary">#6C7268</color>
+    <color name="bone_ink_inverse">#101210</color>
+    <color name="bone_ink_inverse_secondary">#4F544B</color>
+
+    <color name="bone_accent">#79B08C</color>
+    <color name="bone_accent_pressed">#639775</color>
+    <color name="bone_accent_wash">#17251C</color>
+
+    <color name="bone_positive">#79B08C</color>
+    <color name="bone_negative">#D98374</color>
+    <color name="bone_neutral">#8A8D82</color>
+
+    <color name="bone_intent_strength">#D98374</color>
+    <color name="bone_intent_build">#D2A164</color>
+    <color name="bone_intent_flush">#79B08C</color>
+    <color name="bone_intent_warmup">#8A8D82</color>
+
+    <color name="bone_chart_volume">#79B08C</color>
+    <color name="bone_chart_rpe">#D2A164</color>
+    <color name="bone_chart_time">#8AAAC4</color>
+    <color name="bone_chart_fatigue">#D98374</color>
+    <color name="bone_chart_grid">#232720</color>
+
+    <color name="bone_ripple">#1AF2F4EF</color>
+    <color name="bone_ripple_inverse">#22101210</color>
+
+</resources>

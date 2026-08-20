@@ -1,0 +1,84 @@
+1|Deadlift (Barbell)|BARBELL|0032|barbell deadlift|barbell|0.5
+2|Back Squat (Barbell)|BARBELL|0102|barbell squat (on knees)|barbell|0.333
+4|Biceps Curl (Dumbbell)|DUMBBELL|0294|dumbbell biceps curl|dumbbell|0.667
+5|Triceps Pushdown (Cable)|CABLE|0241|cable triceps pushdown (v-bar)|cable|0.667
+7|Bench Press (Barbell)|BARBELL|0025|barbell bench press|barbell|0.667
+8|Split Squat (Barbell)|BARBELL|0098|barbell side split squat|barbell|0.5
+9|Calf Raise (Machine)|MACHINE|1383|hack calf raise|sled machine|0.667
+10|Decline Bench Press (Barbell)|BARBELL|0033|barbell decline bench press|barbell|0.75
+11|Incline Dumbbell Press|DUMBBELL|3545|dumbbell incline alternate press|dumbbell|0.75
+12|Seated Cable Row|CABLE|0861|cable seated row|cable|1.0
+13|Triceps Extension (Single Arm)|CABLE|0149|cable alternate triceps extension|cable|0.5
+14|Machine Shoulder Press|MACHINE|0603|lever shoulder press|leverage machine|0.5
+15|Dips (Bodyweight)|BODYWEIGHT|3287|elbow dips|body weight|0.5
+16|Abdominal Crunch (Machine)|MACHINE|1452|lever seated crunch|leverage machine|0.333
+17|Bench Press (Paused)|BARBELL|0025|barbell bench press|barbell|0.667
+18|Seated Leg Curl (Machine)|MACHINE|0599|lever seated leg curl|leverage machine|0.667
+100|Overhead Press (Barbell)|BARBELL|0091|barbell seated overhead press|barbell|0.667
+101|Pull Up (Bodyweight)|BODYWEIGHT|0651|pull up (neutral grip)|body weight|1.0
+102|Chin Up|BODYWEIGHT|1326|chin-up|body weight|1.0
+103|Romanian Deadlift (Barbell)|BARBELL|0085|barbell romanian deadlift|barbell|0.667
+104|Leg Press|MACHINE|2287|lever alternate leg press|leverage machine|0.5
+105|Bulgarian Split Squat (Dumbbell)|DUMBBELL|0410|dumbbell single leg split squat|dumbbell|0.4
+106|Lat Pulldown (Wide Grip)|CABLE|0818|twin handle parallel grip lat pulldown|cable|0.4
+107|Dumbbell Row|DUMBBELL|0327|dumbbell incline row|dumbbell|0.667
+108|Face Pull (Cable)|CABLE|0196|cable pull through (with rope)|cable|0.25
+109|Lateral Raise (Dumbbell)|DUMBBELL|0334|dumbbell lateral raise|dumbbell|0.667
+110|Leg Extension (Machine)|MACHINE|0585|lever leg extension|leverage machine|0.667
+111|Hip Thrust (Barbell)|BARBELL|0023|barbell alternate biceps curl|barbell|0.0
+112|Skullcrusher (EZ Bar)|EZ_BAR|1747|ez bar french press on exercise ball|ez barbell|0.0
+113|Hammer Curl (Dumbbell)|DUMBBELL|0313|dumbbell hammer curl|dumbbell|0.667
+114|Front Squat (Barbell)|BARBELL|0042|barbell front squat|barbell|0.667
+115|Walking Lunges|BODYWEIGHT|1460|walking lunge|body weight|0.333
+116|Incline Dumbbell Fly|DUMBBELL|0319|dumbbell incline fly|dumbbell|1.0
+117|Pec Deck / Machine Fly|MACHINE|0596|lever seated fly|leverage machine|0.2
+118|Dumbbell Shoulder Press (Seated)|DUMBBELL|0405|dumbbell seated shoulder press|dumbbell|1.0
+119|Reverse Fly (Dumbbell)|DUMBBELL|0383|dumbbell reverse fly|dumbbell|0.667
+120|Hanging Leg Raise|BODYWEIGHT|0472|hanging leg raise|body weight|1.0
+121|Plank|BODYWEIGHT|0464|front plank with twist|body weight|0.333
+122|Cable Woodchopper|CABLE|1630|cable close grip curl|cable|0.333
+123|Sumo Deadlift|BARBELL|0117|barbell sumo deadlift|barbell|0.667
+124|Barbell Shrug|BARBELL|0095|barbell shrug|barbell|1.0
+125|Farmer's Walk|OTHER|2133|farmers walk|dumbbell|1.0
+126|Glute Bridge (Barbell)|BARBELL|1409|barbell glute bridge|barbell|0.667
+127|Goblet Squat|KETTLEBELL|0534|kettlebell goblet squat|kettlebell|0.667
+128|Barbell Row (Pendlay)|BARBELL|0049|barbell incline row|barbell|0.667
+129|Cable Crossover|CABLE|1320|cable rope crossover seated row|cable|0.5
+130|Preacher Curl (EZ Bar)|EZ_BAR|1627|ez barbell close grip preacher curl|ez barbell|0.5
+131|Push Up|BODYWEIGHT|0259|close-grip push-up|body weight|1.0
+132|Rotary Torso (Machine)|MACHINE|2315|lever rotary calf|leverage machine|0.25
+133|Incline Press (Machine)|MACHINE|1299|lever incline chest press|leverage machine|0.5
+134|Hip Adduction|MACHINE|0598|lever seated hip adduction|leverage machine|0.667
+135|Hip Abduction|MACHINE|0597|lever seated hip abduction|leverage machine|0.667
+136|Romanian Deadlift (Dumbbell)|DUMBBELL|1459|dumbbell romanian deadlift|dumbbell|0.667
+137|Side Plank|BODYWEIGHT|3544|bodyweight incline side plank|body weight|0.5
+138|Eccentric Heel Drop|BODYWEIGHT|0006|alternate heel touchers|body weight|0.2
+139|Chest Press (Machine Wide)|MACHINE|0577|lever chest press|leverage machine|0.667
+140|Chest Press (Machine)|MACHINE|0577|lever chest press|leverage machine|0.667
+141|Row (Machine)|MACHINE|1350|lever seated row|leverage machine|0.5
+142|Prone Leg Curl|MACHINE|0599|lever seated leg curl|leverage machine|0.5
+143|Cable Lateral Raise|CABLE|0178|cable lateral raise|cable|1.0
+144|Incline Barbell Press|BARBELL|0047|barbell incline bench press|barbell|0.75
+145|Glute (Machine)|MACHINE|0009|assisted chest dip (kneeling)|leverage machine|0.0
+146|Hack Squat|MACHINE|0743|sled hack squat|sled machine|0.667
+147|Cable Straight Leg Raises|CABLE|0238|cable straight arm pulldown|cable|0.4
+148|Cable Straight Back Kicks|CABLE|0239|cable straight back seated row|cable|0.6
+149|Low Row (Machine)|MACHINE|1350|lever seated row|leverage machine|0.333
+150|Front Raise (Dumbbell)|DUMBBELL|0310|dumbbell front raise|dumbbell|0.667
+151|Front Raise (Cable)|CABLE|0162|cable front raise|cable|0.667
+152|Upright Row (Barbell)|BARBELL|0120|barbell upright row|barbell|0.667
+153|Back Extension (Machine)|MACHINE|0573|lever back extension|leverage machine|0.667
+154|Hyperextension (45°)|BODYWEIGHT|0489|hyperextension|body weight|1.0
+155|Good Morning (Barbell)|BARBELL|0044|barbell good morning|barbell|0.667
+156|Ab Wheel Rollout|OTHER|0796|standing wheel rollerout|wheel roller|0.25
+157|Kettlebell Swing|KETTLEBELL|0549|kettlebell swing|kettlebell|1.0
+158|Close-Grip Bench Press|BARBELL|0025|barbell bench press|barbell|0.667
+159|Seated Calf Raise (Machine)|MACHINE|1383|hack calf raise|sled machine|0.667
+160|Nordic Curl|BODYWEIGHT|3016|curl-up|body weight|0.333
+161|Step-Up (Dumbbell)|DUMBBELL|0431|dumbbell step-up|dumbbell|0.667
+162|Arnold Press (Dumbbell)|DUMBBELL|2137|dumbbell arnold press|dumbbell|0.667
+163|Trap Bar Deadlift|OTHER|0811|trap bar deadlift|trap bar|1.0
+164|Single Leg RDL (Dumbbell)|DUMBBELL|1757|dumbbell single leg deadlift|dumbbell|0.25
+165|Cable Crunch|CABLE|0212|cable seated crunch|cable|1.0
+166|Russian Twist|BODYWEIGHT|0687|russian twist|body weight|1.0
+167|Glute Bridge (Bodyweight)|BODYWEIGHT|3561|glute bridge march|body weight|0.667

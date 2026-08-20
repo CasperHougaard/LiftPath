@@ -1,28 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+<!--
+  One exercise within a past session, listing the sets logged for it. The card itself is
+  static; Edit reopens EditActivityActivity for this exercise's sets, Add Set reopens
+  LogSetActivity to append one more — the same two actions available mid-workout, so
+  amending a logged session uses the same vocabulary as logging it.
+-->
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    style="@style/Widget.LP.Card.Dense"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="12dp"
-    app:cardBackgroundColor="@color/fitness_card_background"
-    app:cardCornerRadius="16dp"
-    app:cardElevation="2dp">
+    android:layout_marginBottom="@dimen/lp_card_gap_dense"
+    android:clickable="false"
+    android:focusable="false">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="@dimen/lp_card_padding_dense">
 
         <!-- Title -->
         <TextView
             android:id="@+id/text_exercise_name"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Exercise Name"
-            android:textColor="@color/fitness_text_primary"
-            android:textSize="18sp"
-            android:textStyle="bold" />
+            android:textAppearance="@style/TextAppearance.LP.Heading"
+            tools:text="Bench Press" />
 
         <!-- Type -->
         <TextView
@@ -30,96 +35,49 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
-            android:text="Type: Heavy"
-            android:textColor="@color/fitness_text_secondary"
-            android:textSize="12sp" />
+            android:textAppearance="@style/TextAppearance.LP.Label"
+            android:textColor="?attr/lpInkTertiary"
+            tools:text="Intent: Build" />
 
         <!-- Action Buttons Row -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
+            android:layout_marginTop="@dimen/lp_space_3"
             android:baselineAligned="false"
-            android:clipChildren="false"
-            android:clipToPadding="false"
             android:orientation="horizontal">
 
             <!-- Edit Button -->
-            <androidx.cardview.widget.CardView
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/button_edit_activity"
+                style="@style/Widget.LP.Button.Outlined"
                 android:layout_width="0dp"
-                android:layout_height="40dp"
-                android:layout_marginEnd="6dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="@dimen/lp_card_gap_dense"
                 android:layout_weight="1"
-                android:clickable="true"
-                android:focusable="true"
-                android:foreground="?attr/selectableItemBackground"
-                app:cardBackgroundColor="@color/fitness_card_background"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="0dp"
-                app:strokeColor="@color/fitness_text_secondary"
-                app:strokeWidth="1dp">
+                android:minHeight="40dp"
+                android:text="@string/button_edit" />
 
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:gravity="center"
-                    android:text="Edit"
-                    android:textColor="@color/fitness_text_primary"
-                    android:textSize="13sp"
-                    android:textStyle="bold" />
-            </androidx.cardview.widget.CardView>
-
-            <!-- Change Type Button -->
-            <androidx.cardview.widget.CardView
+            <!-- Change Type Button (retired: intent is now shown per-set/exercise, hidden at bind time) -->
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/button_change_type"
+                style="@style/Widget.LP.Button.Outlined"
                 android:layout_width="0dp"
-                android:layout_height="40dp"
-                android:layout_marginStart="6dp"
-                android:layout_marginEnd="6dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="@dimen/lp_card_gap_dense"
                 android:layout_weight="1"
-                android:clickable="true"
-                android:focusable="true"
-                android:foreground="?attr/selectableItemBackground"
-                app:cardBackgroundColor="@color/fitness_card_background"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="0dp"
-                app:strokeColor="@color/fitness_text_secondary"
-                app:strokeWidth="1dp">
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:gravity="center"
-                    android:text="Change Type"
-                    android:textColor="@color/fitness_text_primary"
-                    android:textSize="13sp"
-                    android:textStyle="bold" />
-            </androidx.cardview.widget.CardView>
+                android:minHeight="40dp"
+                android:text="@string/button_change_type" />
 
             <!-- Add Set Button -->
-            <androidx.cardview.widget.CardView
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/button_add_set"
+                style="@style/Widget.LP.Button"
                 android:layout_width="0dp"
-                android:layout_height="40dp"
-                android:layout_marginStart="6dp"
+                android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:clickable="true"
-                android:focusable="true"
-                android:foreground="?attr/selectableItemBackground"
-                app:cardBackgroundColor="@color/fitness_primary"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="0dp">
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:gravity="center"
-                    android:text="Add Set"
-                    android:textColor="@color/white"
-                    android:textSize="13sp"
-                    android:textStyle="bold" />
-            </androidx.cardview.widget.CardView>
+                android:minHeight="40dp"
+                android:text="@string/btn_add_set" />
         </LinearLayout>
 
         <!-- Sets Container -->
@@ -127,7 +85,7 @@
             android:id="@+id/sets_container"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
+            android:layout_marginTop="@dimen/lp_space_3"
             android:orientation="vertical" />
     </LinearLayout>
-</androidx.cardview.widget.CardView>
+</com.google.android.material.card.MaterialCardView>

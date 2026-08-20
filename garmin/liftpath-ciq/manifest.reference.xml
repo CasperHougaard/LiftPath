@@ -1,0 +1,56 @@
+<?xml version="1.0"?>
+<!--
+  REFERENCE ONLY — do not copy this file over a generated manifest.xml.
+
+  Let the VS Code "Monkey C: New Project" wizard write the real manifest.xml, then make the
+  three edits marked EDIT below. The reason is `<iq:products>`: the product-id strings are
+  SDK-version-specific, and the wizard's product picker
+  (Ctrl+Shift+P -> "Monkey C: Edit Products") is the only source of truth for which Fenix 8
+  variants your installed SDK knows about. A hand-typed id fails at build time with a
+  message that does not point at the manifest.
+-->
+<iq:manifest xmlns:iq="http://www.garmin.com/xml/connectiq" version="3">
+    <iq:application
+        entry="LiftPathApp"
+        id="672412e7d04c4f2fb161521358b4010f"
+        launcherIcon="@Drawables.LauncherIcon"
+        minApiLevel="3.1.0"
+        name="@Strings.AppName"
+        type="watch-app">
+
+        <!--
+          EDIT 1 — the `id` above.
+
+          Generated for this project: 672412e7-d04c-4f2f-b161-521358b4010f
+          In the manifest it is written WITHOUT dashes (as above); on the Android side it is
+          the APP_ID constant in GarminBridge.kt, also without dashes. The two must match
+          exactly or messages are silently dropped — no error on either end.
+        -->
+
+        <!--
+          EDIT 2 — products. Replace the wizard's list with your Fenix 8 variant(s) via the
+          product picker. Leaving extra products in costs nothing at build time but each one
+          is a separate memory budget the compiler checks against.
+        -->
+        <iq:products>
+            <!-- Set by the product picker. Pick the Fenix 8 entries matching your size. -->
+        </iq:products>
+
+        <!--
+          EDIT 3 — permissions. `Communications` is the only one the spike needs; it covers
+          both Communications.transmit and registerForPhoneAppMessages.
+
+          The real app will additionally want:
+            Fit          — for ActivityRecording, so the watch logs a strength FIT session
+            Sensor       — for live heart rate during the session
+          Add them when you get there, not now; each one is a line in the install prompt.
+        -->
+        <iq:permissions>
+            <iq:uses-permission id="Communications" />
+        </iq:permissions>
+
+        <iq:languages>
+            <iq:language>eng</iq:language>
+        </iq:languages>
+    </iq:application>
+</iq:manifest>

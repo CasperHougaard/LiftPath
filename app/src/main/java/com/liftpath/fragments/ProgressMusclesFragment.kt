@@ -1,6 +1,5 @@
 package com.liftpath.fragments
 
-import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -19,11 +18,13 @@ import com.github.mikephil.charting.formatter.ValueFormatter
 import com.liftpath.R
 import com.liftpath.databinding.FragmentProgressMusclesBinding
 import com.liftpath.helpers.JsonHelper
+import com.liftpath.helpers.SetMetrics
 import com.liftpath.models.ExerciseLibraryItem
 import com.liftpath.models.TargetMuscle
 import com.liftpath.models.TrainingSession
 import java.text.SimpleDateFormat
 import java.util.*
+import com.liftpath.helpers.lpColor
 
 class ProgressMusclesFragment : Fragment() {
 
@@ -49,13 +50,26 @@ class ProgressMusclesFragment : Fragment() {
         "Core" to listOf(TargetMuscle.ABS, TargetMuscle.OBLIQUES)
     )
 
-    private val muscleGroupColors = mapOf(
-        "Chest" to Color.parseColor("#DC2626"),
-        "Back" to Color.parseColor("#2563EB"),
-        "Shoulders" to Color.parseColor("#F59E0B"),
-        "Arms" to Color.parseColor("#9333EA"),
-        "Legs" to Color.parseColor("#10B981"),
-        "Core" to Color.parseColor("#14B8A6")
+    /**
+     * One distinct hue per body-region category for the grouped bar chart. Resolved lazily
+     * (not a top-level constant map) because the actual ARGB values come from the active
+     * palette's tokens, not from fixed hex.
+     *
+     * Every palette aliases several roles to the same literal colour (lpChartVolume ==
+     * lpPositive == lpIntentFlush; lpChartFatigue == lpNegative == lpIntentStrength;
+     * lpChartRpe == lpIntentBuild; lpNeutral == lpIntentWarmup — see lp_palette_*.xml), so
+     * there are only six truly distinct hue families in any palette: green, red, amber,
+     * blue, grey, and the palette's own accent. This picks exactly one attr per family;
+     * picking two aliases of the same family (an earlier version of this code did) makes
+     * two of the six bars in the "All" view visually indistinguishable.
+     */
+    private fun muscleGroupColors(context: android.content.Context): Map<String, Int> = mapOf(
+        "Chest" to context.lpColor(R.attr.lpChartVolume),   // green family
+        "Back" to context.lpColor(R.attr.lpChartTime),      // blue family
+        "Shoulders" to context.lpColor(R.attr.lpChartRpe),  // amber family
+        "Arms" to context.lpColor(R.attr.lpNegative),       // red family
+        "Legs" to context.lpColor(R.attr.lpNeutral),        // grey family
+        "Core" to context.lpColor(R.attr.lpAccent)          // palette accent
     )
 
     override fun onCreateView(
@@ -131,9 +145,9 @@ class ProgressMusclesFragment : Fragment() {
 
         val targetMuscles = muscleGroupMap[selectedMuscleGroup] ?: return
 
-        val volumeType = if (useWeightedVolume) "Weighted " else ""
-        binding.textMuscleTitle.text = "$volumeType$selectedMuscleGroup Volume"
-        binding.textMuscleSubtitle.text = "Weekly volume over last $currentTimeRangeMonths months"
+        val volumeType = if (useWeightedVolume) getString(R.string.progress_weighted_prefix) else ""
+        binding.textMuscleTitle.text = getString(R.string.progress_muscle_volume_title, volumeType, selectedMuscleGroup)
+        binding.textMuscleSubtitle.text = getString(R.string.progress_weekly_volume_subtitle, currentTimeRangeMonths)
 
         // Filter sessions by time range
         val cutoffDate = Calendar.getInstance().apply {
@@ -232,12 +246,16 @@ class ProgressMusclesFragment : Fragment() {
                         } ?: false
                     }
                     .sumOf { entry ->
-                        if (useWeighted && entry.rpe != null) {
+                        // Timed holds carry no reps; RPE-weighting them would multiply by RIR
+                        // alone and invent volume out of nothing.
+                        if (entry.isTimedEntry()) {
+                            0.0
+                        } else if (useWeighted && entry.rpe != null) {
                             val rir = 10f - entry.rpe
                             val effectiveReps = entry.reps + rir
                             (entry.kg * effectiveReps).toDouble()
                         } else {
-                            (entry.kg * entry.reps).toDouble()
+                            SetMetrics.volumeKg(entry).toDouble()
                         }
                     }
                     .toFloat()
@@ -264,8 +282,9 @@ class ProgressMusclesFragment : Fragment() {
             BarEntry(index.toFloat(), weeklyVolumes[week] ?: 0f)
         }
 
+        val ctx = requireContext()
         val dataSet = BarDataSet(entries, "Volume (kg)").apply {
-            color = Color.parseColor("#2563EB")
+            color = ctx.lpColor(R.attr.lpAccent)
             setDrawValues(false)
         }
 
@@ -277,13 +296,14 @@ class ProgressMusclesFragment : Fragment() {
             clear()
             data = barData
             description.isEnabled = false
-            setBackgroundColor(Color.WHITE)
+            setBackgroundColor(ctx.lpColor(R.attr.lpSurface))
             setDrawGridBackground(false)
             legend.isEnabled = false
 
             xAxis.apply {
                 position = XAxis.XAxisPosition.BOTTOM
                 setDrawGridLines(false)
+                textColor = ctx.lpColor(R.attr.lpInkTertiary)
                 labelRotationAngle = -45f
                 granularity = 1f
                 valueFormatter = object : ValueFormatter() {
@@ -297,7 +317,8 @@ class ProgressMusclesFragment : Fragment() {
 
             axisLeft.apply {
                 setDrawGridLines(true)
-                gridColor = Color.parseColor("#E0E0E0")
+                gridColor = ctx.lpColor(R.attr.lpChartGrid)
+                textColor = ctx.lpColor(R.attr.lpInkTertiary)
                 axisMinimum = 0f
             }
 
@@ -319,13 +340,15 @@ class ProgressMusclesFragment : Fragment() {
             return
         }
 
+        val ctx = requireContext()
+        val groupColors = muscleGroupColors(ctx)
         val muscleGroups = listOf("Chest", "Back", "Shoulders", "Arms", "Legs", "Core")
         val barDataSets = muscleGroups.map { groupName ->
             val volumes = weeklyVolumesByGroup[groupName] ?: emptyMap()
             val entries = allWeeks.mapIndexed { index, week ->
                 BarEntry(index.toFloat(), volumes[week] ?: 0f)
             }
-            val color = muscleGroupColors[groupName] ?: Color.parseColor("#2563EB")
+            val color = groupColors[groupName] ?: ctx.lpColor(R.attr.lpAccent)
             BarDataSet(entries, groupName).apply {
                 this.color = color
                 setDrawValues(false)
@@ -343,7 +366,7 @@ class ProgressMusclesFragment : Fragment() {
             clear()
             data = barData
             description.isEnabled = false
-            setBackgroundColor(Color.WHITE)
+            setBackgroundColor(ctx.lpColor(R.attr.lpSurface))
             setDrawGridBackground(false)
             legend.isEnabled = true
             legend.verticalAlignment = Legend.LegendVerticalAlignment.BOTTOM
@@ -351,10 +374,12 @@ class ProgressMusclesFragment : Fragment() {
             legend.orientation = Legend.LegendOrientation.HORIZONTAL
             legend.setDrawInside(false)
             legend.textSize = 11f
+            legend.textColor = ctx.lpColor(R.attr.lpInkSecondary)
 
             xAxis.apply {
                 position = XAxis.XAxisPosition.BOTTOM
                 setDrawGridLines(false)
+                textColor = ctx.lpColor(R.attr.lpInkTertiary)
                 labelRotationAngle = -45f
                 granularity = 1f
                 valueFormatter = object : ValueFormatter() {
@@ -368,7 +393,8 @@ class ProgressMusclesFragment : Fragment() {
 
             axisLeft.apply {
                 setDrawGridLines(true)
-                gridColor = Color.parseColor("#E0E0E0")
+                gridColor = ctx.lpColor(R.attr.lpChartGrid)
+                textColor = ctx.lpColor(R.attr.lpInkTertiary)
                 axisMinimum = 0f
             }
 
@@ -396,10 +422,11 @@ class ProgressMusclesFragment : Fragment() {
             val secondHalf = volumes.drop(volumes.size / 2).average()
             val trend = if (firstHalf > 0) ((secondHalf - firstHalf) / firstHalf) * 100 else 0.0
             binding.textTrend.text = String.format(Locale.US, "%+.0f%%", trend)
+            val ctx = requireContext()
             binding.textTrend.setTextColor(when {
-                trend > 5 -> Color.parseColor("#10B981")
-                trend < -5 -> Color.parseColor("#EF4444")
-                else -> Color.parseColor("#6B7280")
+                trend > 5 -> ctx.lpColor(R.attr.lpPositive)
+                trend < -5 -> ctx.lpColor(R.attr.lpNegative)
+                else -> ctx.lpColor(R.attr.lpInkTertiary)
             })
         } else {
             binding.textTrend.text = "--"
@@ -426,12 +453,14 @@ class ProgressMusclesFragment : Fragment() {
                                 exercise.secondaryTargets.any { it in targetMuscles }
                         
                         if (targetsMuscle) {
-                            val volume = if (useWeighted && entry.rpe != null) {
+                            val volume = if (entry.isTimedEntry()) {
+                                0f
+                            } else if (useWeighted && entry.rpe != null) {
                                 val rir = 10f - entry.rpe
                                 val effectiveReps = entry.reps + rir
                                 entry.kg * effectiveReps
                             } else {
-                                entry.kg * entry.reps
+                                SetMetrics.volumeKg(entry)
                             }
                             val current = exerciseVolumes[entry.exerciseId]
                             exerciseVolumes[entry.exerciseId] = Pair(

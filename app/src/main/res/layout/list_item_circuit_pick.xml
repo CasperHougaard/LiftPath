@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One saved circuit in the picker sheet. The whole row is the tap target. -->
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/card_circuit_pick"
+    style="@style/Widget.LP.Card.Interactive"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="@dimen/lp_card_gap_dense">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="@dimen/lp_card_padding">
+
+        <TextView
+            android:id="@+id/text_pick_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textAppearance="@style/TextAppearance.LP.Heading"
+            tools:text="Lower Lactate" />
+
+        <TextView
+            android:id="@+id/text_pick_summary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="@style/TextAppearance.LP.Caption"
+            tools:text="~3 rounds · 90s rest" />
+
+        <TextView
+            android:id="@+id/text_pick_stations"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/lp_space_1"
+            android:textAppearance="@style/TextAppearance.LP.Body"
+            android:textColor="?attr/lpInkSecondary"
+            tools:text="Hip Thrust · Split Squat · Wall Sit · +2" />
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  PALETTE: Cloud & Beacon — DARK
+
+  Deep blue-black canvas. The icon's #2563EB is too dark to read here, so it lifts to
+  #6C9BFF, the same treatment the other three original palettes give their accents.
+-->
+<resources>
+
+    <color name="cloud_canvas">#0D1420</color>
+    <color name="cloud_canvas_sunken">#080D16</color>
+    <color name="cloud_surface">#161F2E</color>
+    <color name="cloud_surface_alt">#1D2838</color>
+
+    <color name="cloud_hairline">#263447</color>
+    <color name="cloud_hairline_strong">#38495F</color>
+
+    <color name="cloud_ink">#EEF3FA</color>
+    <color name="cloud_ink_secondary">#93A2B6</color>
+    <color name="cloud_ink_tertiary">#647486</color>
+    <color name="cloud_ink_inverse">#0D1420</color>
+    <color name="cloud_ink_inverse_secondary">#4B586A</color>
+
+    <color name="cloud_accent">#6C9BFF</color>
+    <color name="cloud_accent_pressed">#4C7EE0</color>
+    <color name="cloud_accent_wash">#17233A</color>
+
+    <color name="cloud_positive">#7FB08F</color>
+    <color name="cloud_negative">#D98374</color>
+    <color name="cloud_neutral">#8590A0</color>
+
+    <color name="cloud_intent_strength">#D98374</color>
+    <color name="cloud_intent_build">#6C9BFF</color>
+    <color name="cloud_intent_flush">#7FB08F</color>
+    <color name="cloud_intent_warmup">#8590A0</color>
+
+    <color name="cloud_chart_volume">#7FB08F</color>
+    <color name="cloud_chart_rpe">#6C9BFF</color>
+    <color name="cloud_chart_time">#6FB0C9</color>
+    <color name="cloud_chart_fatigue">#D98374</color>
+    <color name="cloud_chart_grid">#212C3D</color>
+
+    <color name="cloud_ripple">#1AEEF3FA</color>
+    <color name="cloud_ripple_inverse">#220D1420</color>
+
+</resources>

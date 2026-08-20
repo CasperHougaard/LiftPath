@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Standing Hip Abduction (Band) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="160dp"
+    android:height="160dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+    <path
+        android:pathData="M20,182 L180,182"
+        android:strokeColor="?attr/lpInkSecondary"
+        android:strokeWidth="4"
+        android:strokeAlpha="0.7"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M100,70 L100,130 M100,130 L100,182"
+        android:strokeColor="?attr/lpInk"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M100,130 L142,148 L152,142"
+        android:strokeColor="?attr/lpInk"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M76,102 L124,102"
+        android:strokeColor="?attr/lpInk"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M95,175 Q115,166 100,158 Q85,150 148,141"
+        android:strokeColor="?attr/lpAccent"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M87,56 a13,13 0 1,0 26,0 a13,13 0 1,0 -26,0"
+        android:fillColor="?attr/lpInk" />
+</vector>

@@ -27,6 +27,7 @@ class PlanExerciseAdapter(
     companion object {
         private const val VIEW_TYPE_EXERCISE = 0
         private const val VIEW_TYPE_SPECIAL  = 1
+        private const val VIEW_TYPE_CIRCUIT  = 2
     }
 
     /** Positions that are currently expanded (exercise slots only). */
@@ -38,9 +39,16 @@ class PlanExerciseAdapter(
     /** Map from familyId to display name (populated externally). */
     var familyNames: Map<String, String> = emptyMap()
 
+    /** Map from circuitId to display name (populated externally). */
+    var circuitNames: Map<String, String> = emptyMap()
+
+    /** Map from circuitId to a station-name summary, e.g. "Hip Thrust · Split Squat" (populated externally). */
+    var circuitStationSummaries: Map<String, String> = emptyMap()
+
     // ── ViewHolder: regular exercise ────────────────────────────────────────
 
     inner class ExerciseViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val headerRow: View = view.findViewById(R.id.layout_header_row)
         val number: TextView = view.findViewById(R.id.text_exercise_number)
         val name: TextView = view.findViewById(R.id.text_exercise_name)
         val targetsSummary: TextView = view.findViewById(R.id.text_targets_summary)
@@ -79,19 +87,40 @@ class PlanExerciseAdapter(
         var notesWatcher: TextWatcher? = null
     }
 
+    // ── ViewHolder: circuit ─────────────────────────────────────────────────
+
+    inner class CircuitSlotViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val label: TextView = view.findViewById(R.id.text_slot_label)
+        val subtitle: TextView = view.findViewById(R.id.text_slot_subtitle)
+        val btnMoveUp: ImageButton = view.findViewById(R.id.button_move_up)
+        val btnMoveDown: ImageButton = view.findViewById(R.id.button_move_down)
+        val btnRemove: ImageButton = view.findViewById(R.id.button_remove_slot)
+        val editRounds: EditText = view.findViewById(R.id.edit_circuit_rounds)
+        val editRest: EditText = view.findViewById(R.id.edit_circuit_rest)
+        val editNotes: EditText = view.findViewById(R.id.edit_circuit_notes)
+        var roundsWatcher: TextWatcher? = null
+        var restWatcher: TextWatcher? = null
+        var notesWatcher: TextWatcher? = null
+    }
+
     // ── Adapter overrides ────────────────────────────────────────────────────
 
-    override fun getItemViewType(position: Int): Int =
-        if (configs[position].isSpecialElement) VIEW_TYPE_SPECIAL else VIEW_TYPE_EXERCISE
+    override fun getItemViewType(position: Int): Int = when {
+        configs[position].isCircuit -> VIEW_TYPE_CIRCUIT
+        configs[position].isSpecialElement -> VIEW_TYPE_SPECIAL
+        else -> VIEW_TYPE_EXERCISE
+    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         val inflater = LayoutInflater.from(parent.context)
-        return if (viewType == VIEW_TYPE_SPECIAL) {
-            SpecialSlotViewHolder(
+        return when (viewType) {
+            VIEW_TYPE_SPECIAL -> SpecialSlotViewHolder(
                 inflater.inflate(R.layout.list_item_plan_special_slot, parent, false)
             )
-        } else {
-            ExerciseViewHolder(
+            VIEW_TYPE_CIRCUIT -> CircuitSlotViewHolder(
+                inflater.inflate(R.layout.list_item_plan_circuit, parent, false)
+            )
+            else -> ExerciseViewHolder(
                 inflater.inflate(R.layout.list_item_plan_exercise, parent, false)
             )
         }
@@ -101,7 +130,55 @@ class PlanExerciseAdapter(
         val config = configs[position]
         when (holder) {
             is SpecialSlotViewHolder -> bindSpecial(holder, position, config)
+            is CircuitSlotViewHolder -> bindCircuit(holder, position, config)
             is ExerciseViewHolder    -> bindExercise(holder, position, config)
+        }
+    }
+
+    private fun bindCircuit(holder: CircuitSlotViewHolder, position: Int, config: PlanExerciseSlot) {
+        holder.label.text = config.circuitId?.let { circuitNames[it] }
+            ?: holder.itemView.context.getString(R.string.tile_circuit)
+        holder.subtitle.text = config.circuitId?.let { circuitStationSummaries[it] } ?: ""
+
+        holder.btnMoveUp.visibility = if (position == 0) View.INVISIBLE else View.VISIBLE
+        holder.btnMoveDown.visibility = if (position == itemCount - 1) View.INVISIBLE else View.VISIBLE
+
+        holder.editRounds.removeTextChangedListener(holder.roundsWatcher)
+        holder.editRest.removeTextChangedListener(holder.restWatcher)
+        holder.editNotes.removeTextChangedListener(holder.notesWatcher)
+
+        holder.editRounds.setText(config.setsTarget?.toString() ?: "")
+        holder.editRest.setText(config.restTimeSeconds?.toString() ?: "")
+        holder.editNotes.setText(config.notes ?: "")
+
+        holder.roundsWatcher = makeWatcher { text ->
+            val pos = holder.bindingAdapterPosition
+            if (pos >= 0) configs[pos] = configs[pos].copy(setsTarget = text.toIntOrNull())
+        }
+        holder.restWatcher = makeWatcher { text ->
+            val pos = holder.bindingAdapterPosition
+            if (pos >= 0) configs[pos] = configs[pos].copy(restTimeSeconds = text.toIntOrNull())
+        }
+        holder.notesWatcher = makeWatcher { text ->
+            val pos = holder.bindingAdapterPosition
+            if (pos >= 0) configs[pos] = configs[pos].copy(notes = text.ifEmpty { null })
+        }
+
+        holder.editRounds.addTextChangedListener(holder.roundsWatcher)
+        holder.editRest.addTextChangedListener(holder.restWatcher)
+        holder.editNotes.addTextChangedListener(holder.notesWatcher)
+
+        holder.btnRemove.setOnClickListener {
+            val pos = holder.bindingAdapterPosition
+            if (pos >= 0) onRemoveClicked(pos)
+        }
+        holder.btnMoveUp.setOnClickListener {
+            val pos = holder.bindingAdapterPosition
+            if (pos > 0) onMoveUp(pos)
+        }
+        holder.btnMoveDown.setOnClickListener {
+            val pos = holder.bindingAdapterPosition
+            if (pos >= 0 && pos < itemCount - 1) onMoveDown(pos)
         }
     }
 
@@ -238,7 +315,7 @@ class PlanExerciseAdapter(
             notifyItemChanged(pos)
         }
         holder.btnExpand.setOnClickListener(toggleExpand)
-        holder.itemView.setOnClickListener(toggleExpand)
+        holder.headerRow.setOnClickListener(toggleExpand)
 
         holder.btnRemove.setOnClickListener {
             val pos = holder.bindingAdapterPosition

@@ -1,0 +1,85 @@
+our_id,our_name,ds_id,ds_name,ds_equipment,ds_image,ds_gif,ds_target,ds_muscle_group
+1,Deadlift (Barbell),0032,barbell deadlift,barbell,images/0032-ila4NZS.jpg,videos/0032-ila4NZS.gif,glutes,hamstrings
+2,Back Squat (Barbell),0043,barbell full squat,barbell,images/0043-qXTaZnJ.jpg,videos/0043-qXTaZnJ.gif,glutes,quadriceps
+4,Biceps Curl (Dumbbell),0294,dumbbell biceps curl,dumbbell,images/0294-NbVPDMW.jpg,videos/0294-NbVPDMW.gif,biceps,forearms
+5,Triceps Pushdown (Cable),0241,cable triceps pushdown (v-bar),cable,images/0241-gAwDzB3.jpg,videos/0241-gAwDzB3.gif,triceps,forearms
+7,Bench Press (Barbell),0025,barbell bench press,barbell,images/0025-EIeI8Vf.jpg,videos/0025-EIeI8Vf.gif,pectorals,triceps
+8,Split Squat (Barbell),2810,barbell split squat v. 2,barbell,images/2810-HBYyX94.jpg,videos/2810-HBYyX94.gif,quads,glutes
+9,Calf Raise (Machine),1383,hack calf raise,sled machine,images/1383-2ORFMoR.jpg,videos/1383-2ORFMoR.gif,calves,hamstrings
+10,Decline Bench Press (Barbell),0033,barbell decline bench press,barbell,images/0033-GrO65fd.jpg,videos/0033-GrO65fd.gif,pectorals,triceps
+11,Incline Dumbbell Press,3545,dumbbell incline alternate press,dumbbell,images/3545-TVdivgY.jpg,videos/3545-TVdivgY.gif,pectorals,shoulders
+12,Seated Cable Row,0861,cable seated row,cable,images/0861-fUBheHs.jpg,videos/0861-fUBheHs.gif,upper back,biceps
+13,Triceps Extension (Single Arm),0149,cable alternate triceps extension,cable,images/0149-Gchi5Tr.jpg,videos/0149-Gchi5Tr.gif,triceps,shoulders
+14,Machine Shoulder Press,0603,lever shoulder press,leverage machine,images/0603-67n3r98.jpg,videos/0603-67n3r98.gif,delts,triceps
+15,Dips (Bodyweight),0251,chest dip,body weight,images/0251-9WTm7dq.jpg,videos/0251-9WTm7dq.gif,pectorals,triceps
+16,Abdominal Crunch (Machine),1452,lever seated crunch,leverage machine,images/1452-Wgaz7pm.jpg,videos/1452-Wgaz7pm.gif,abs,obliques
+17,Bench Press (Paused),0025,barbell bench press,barbell,images/0025-EIeI8Vf.jpg,videos/0025-EIeI8Vf.gif,pectorals,triceps
+18,Seated Leg Curl (Machine),0599,lever seated leg curl,leverage machine,images/0599-Zg3XY7P.jpg,videos/0599-Zg3XY7P.gif,hamstrings,calves
+100,Overhead Press (Barbell),1456,barbell standing close grip military press,barbell,images/1456-wdRZISl.jpg,videos/1456-wdRZISl.gif,delts,triceps
+101,Pull Up (Bodyweight),0651,pull up (neutral grip),body weight,images/0651-0V2YQjW.jpg,videos/0651-0V2YQjW.gif,lats,biceps
+102,Chin Up,1326,chin-up,body weight,images/1326-T2mxWqc.jpg,videos/1326-T2mxWqc.gif,lats,biceps
+103,Romanian Deadlift (Barbell),0085,barbell romanian deadlift,barbell,images/0085-wQ2c4XD.jpg,videos/0085-wQ2c4XD.gif,glutes,hamstrings
+104,Leg Press,1463,sled 45° leg press (side pov),sled machine,images/1463-2Qh2J1e.jpg,videos/1463-2Qh2J1e.gif,glutes,quadriceps
+105,Bulgarian Split Squat (Dumbbell),0410,dumbbell single leg split squat,dumbbell,images/0410-qx4fgX7.jpg,videos/0410-qx4fgX7.gif,quads,glutes
+106,Lat Pulldown (Wide Grip),2330,cable lat pulldown full range of motion,cable,images/2330-LEprlgG.jpg,videos/2330-LEprlgG.gif,lats,biceps
+107,Dumbbell Row,0293,dumbbell bent over row,dumbbell,images/0293-BJ0Hz5L.jpg,videos/0293-BJ0Hz5L.gif,upper back,biceps
+108,Face Pull (Cable),,,,,,,
+109,Lateral Raise (Dumbbell),0334,dumbbell lateral raise,dumbbell,images/0334-DsgkuIt.jpg,videos/0334-DsgkuIt.gif,delts,traps
+110,Leg Extension (Machine),0585,lever leg extension,leverage machine,images/0585-my33uHU.jpg,videos/0585-my33uHU.gif,quads,hamstrings
+111,Hip Thrust (Barbell),,,,,,,
+112,Skullcrusher (EZ Bar),1748,ez bar lying close grip triceps extension behind head,ez barbell,images/1748-6CKUx7o.jpg,videos/1748-6CKUx7o.gif,triceps,shoulders
+113,Hammer Curl (Dumbbell),0313,dumbbell hammer curl,dumbbell,images/0313-slDvUAU.jpg,videos/0313-slDvUAU.gif,biceps,forearms
+114,Front Squat (Barbell),0042,barbell front squat,barbell,images/0042-zG0zs85.jpg,videos/0042-zG0zs85.gif,glutes,quadriceps
+115,Walking Lunges,1460,walking lunge,body weight,images/1460-IZVHb27.jpg,videos/1460-IZVHb27.gif,glutes,quadriceps
+116,Incline Dumbbell Fly,0319,dumbbell incline fly,dumbbell,images/0319-ESOd5Pl.jpg,videos/0319-ESOd5Pl.gif,pectorals,shoulders
+117,Pec Deck / Machine Fly,0596,lever seated fly,leverage machine,images/0596-v3xmPAR.jpg,videos/0596-v3xmPAR.gif,pectorals,deltoids
+118,Dumbbell Shoulder Press (Seated),0405,dumbbell seated shoulder press,dumbbell,images/0405-znQUdHY.jpg,videos/0405-znQUdHY.gif,delts,triceps
+119,Reverse Fly (Dumbbell),0383,dumbbell reverse fly,dumbbell,images/0383-EAs3xL9.jpg,videos/0383-EAs3xL9.gif,delts,trapezius
+120,Hanging Leg Raise,0472,hanging leg raise,body weight,images/0472-I3tsCnC.jpg,videos/0472-I3tsCnC.gif,abs,hip flexors
+121,Plank,,,,,,,
+122,Cable Woodchopper,,,,,,,
+123,Sumo Deadlift,0117,barbell sumo deadlift,barbell,images/0117-KgI0tqW.jpg,videos/0117-KgI0tqW.gif,glutes,hamstrings
+124,Barbell Shrug,0095,barbell shrug,barbell,images/0095-dG7tG5y.jpg,videos/0095-dG7tG5y.gif,traps,shoulders
+125,Farmer's Walk,2133,farmers walk,dumbbell,images/2133-qPEzJjA.jpg,videos/2133-qPEzJjA.gif,quads,calves
+126,Glute Bridge (Barbell),1409,barbell glute bridge,barbell,images/1409-qKBpF7I.jpg,videos/1409-qKBpF7I.gif,glutes,hamstrings
+127,Goblet Squat,0534,kettlebell goblet squat,kettlebell,images/0534-ZA8b5hc.jpg,videos/0534-ZA8b5hc.gif,glutes,quadriceps
+128,Barbell Row (Pendlay),3017,barbell pendlay row,barbell,images/3017-r0z6xzQ.jpg,videos/3017-r0z6xzQ.gif,upper back,biceps
+129,Cable Crossover,1270,cable upper chest crossovers,cable,images/1270-j7XMAyn.jpg,videos/1270-j7XMAyn.gif,pectorals,deltoids
+130,Preacher Curl (EZ Bar),1627,ez barbell close grip preacher curl,ez barbell,images/1627-hacCyUv.jpg,videos/1627-hacCyUv.gif,biceps,forearms
+131,Push Up,0662,push-up,body weight,images/0662-I4hDWkc.jpg,videos/0662-I4hDWkc.gif,pectorals,triceps
+132,Rotary Torso (Machine),,,,,,,
+133,Incline Press (Machine),1299,lever incline chest press,leverage machine,images/1299-jHAnWmT.jpg,videos/1299-jHAnWmT.gif,pectorals,shoulders
+134,Hip Adduction,0598,lever seated hip adduction,leverage machine,images/0598-oHsrypV.jpg,videos/0598-oHsrypV.gif,adductors,hamstrings
+135,Hip Abduction,0597,lever seated hip abduction,leverage machine,images/0597-CHpahtl.jpg,videos/0597-CHpahtl.gif,abductors,glutes
+136,Romanian Deadlift (Dumbbell),1459,dumbbell romanian deadlift,dumbbell,images/1459-rR0LJzx.jpg,videos/1459-rR0LJzx.gif,glutes,hamstrings
+137,Side Plank,3544,bodyweight incline side plank,body weight,images/3544-5VXmnV5.jpg,videos/3544-5VXmnV5.gif,abs,obliques
+138,Eccentric Heel Drop,,,,,,,
+139,Chest Press (Machine Wide),0577,lever chest press,leverage machine,images/0577-T0yTjgW.jpg,videos/0577-T0yTjgW.gif,pectorals,triceps
+140,Chest Press (Machine),0577,lever chest press,leverage machine,images/0577-T0yTjgW.jpg,videos/0577-T0yTjgW.gif,pectorals,triceps
+141,Row (Machine),1350,lever seated row,leverage machine,images/1350-7I6LNUG.jpg,videos/1350-7I6LNUG.gif,upper back,biceps
+142,Prone Leg Curl,0586,lever lying leg curl,leverage machine,images/0586-17lJ1kr.jpg,videos/0586-17lJ1kr.gif,hamstrings,calves
+143,Cable Lateral Raise,0178,cable lateral raise,cable,images/0178-goJ6ezq.jpg,videos/0178-goJ6ezq.gif,delts,traps
+144,Incline Barbell Press,0047,barbell incline bench press,barbell,images/0047-3TZduzM.jpg,videos/0047-3TZduzM.gif,pectorals,shoulders
+145,Glute (Machine),,,,,,,
+146,Hack Squat,0743,sled hack squat,sled machine,images/0743-Qa55kX1.jpg,videos/0743-Qa55kX1.gif,glutes,quadriceps
+147,Cable Straight Leg Raises,,,,,,,
+148,Cable Straight Back Kicks,0860,cable kickback,cable,images/0860-HEJ6DIX.jpg,videos/0860-HEJ6DIX.gif,triceps,shoulders
+149,Low Row (Machine),1350,lever seated row,leverage machine,images/1350-7I6LNUG.jpg,videos/1350-7I6LNUG.gif,upper back,biceps
+150,Front Raise (Dumbbell),0310,dumbbell front raise,dumbbell,images/0310-3eGE2JC.jpg,videos/0310-3eGE2JC.gif,delts,biceps
+151,Front Raise (Cable),0162,cable front raise,cable,images/0162-u2X71Np.jpg,videos/0162-u2X71Np.gif,delts,triceps
+152,Upright Row (Barbell),0120,barbell upright row,barbell,images/0120-UDlhcO8.jpg,videos/0120-UDlhcO8.gif,delts,traps
+153,Back Extension (Machine),0573,lever back extension,leverage machine,images/0573-rUXfn3R.jpg,videos/0573-rUXfn3R.gif,spine,glutes
+154,Hyperextension (45°),0489,hyperextension,body weight,images/0489-zhMwOwE.jpg,videos/0489-zhMwOwE.gif,spine,glutes
+155,Good Morning (Barbell),0044,barbell good morning,barbell,images/0044-XlZ4lAC.jpg,videos/0044-XlZ4lAC.gif,hamstrings,lower back
+156,Ab Wheel Rollout,0857,wheel rollerout,wheel roller,images/0857-NAgVB3t.jpg,videos/0857-NAgVB3t.gif,abs,lower back
+157,Kettlebell Swing,0549,kettlebell swing,kettlebell,images/0549-UHJlbu3.jpg,videos/0549-UHJlbu3.gif,glutes,hamstrings
+158,Close-Grip Bench Press,0030,barbell close-grip bench press,barbell,images/0030-J6Dx1Mu.jpg,videos/0030-J6Dx1Mu.gif,triceps,chest
+159,Seated Calf Raise (Machine),0594,lever seated calf raise,leverage machine,images/0594-bOOdeyc.jpg,videos/0594-bOOdeyc.gif,calves,soleus
+160,Nordic Curl,,,,,,,
+161,Step-Up (Dumbbell),0431,dumbbell step-up,dumbbell,images/0431-aXtJhlg.jpg,videos/0431-aXtJhlg.gif,glutes,quadriceps
+162,Arnold Press (Dumbbell),2137,dumbbell arnold press,dumbbell,images/2137-Xy4jlWA.jpg,videos/2137-Xy4jlWA.gif,delts,triceps
+163,Trap Bar Deadlift,0811,trap bar deadlift,trap bar,images/0811-jQGwmxN.jpg,videos/0811-jQGwmxN.gif,glutes,hamstrings
+164,Single Leg RDL (Dumbbell),1757,dumbbell single leg deadlift,dumbbell,images/1757-gKozT8X.jpg,videos/1757-gKozT8X.gif,glutes,hamstrings
+165,Cable Crunch,0212,cable seated crunch,cable,images/0212-8xUv4J7.jpg,videos/0212-8xUv4J7.gif,abs,obliques
+166,Russian Twist,0687,russian twist,body weight,images/0687-XVDdcoj.jpg,videos/0687-XVDdcoj.gif,abs,obliques
+167,Glute Bridge (Bodyweight),3013,low glute bridge on floor,body weight,images/3013-u0cNiij.jpg,videos/3013-u0cNiij.gif,glutes,hamstrings

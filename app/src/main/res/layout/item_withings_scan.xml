@@ -1,18 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+<!--
+  One Withings scan on the Body Scan tab. The date stays lpInk rather than lpAccent — it
+  repeats down the whole list, so an accent-coloured date would spend the signature colour
+  on something purely structural (same call as the Sessions tab's day badge). Delete uses
+  the icon-only hairline destructive action from list_item_workout_plan.xml.
+-->
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    style="@style/Widget.LP.Card"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="8dp"
-    app:cardBackgroundColor="@color/fitness_card_background"
-    app:cardCornerRadius="12dp"
-    app:cardElevation="2dp">
+    android:layout_marginBottom="@dimen/lp_card_gap">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="12dp">
+        android:padding="@dimen/lp_card_padding">
 
         <!-- Date header + delete (edit mode) -->
         <LinearLayout
@@ -20,27 +24,29 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:layout_marginBottom="8dp">
+            android:layout_marginBottom="@dimen/lp_space_2">
 
             <TextView
                 android:id="@+id/text_scan_date"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:textColor="@color/fitness_primary"
-                android:textSize="14sp"
-                android:textStyle="bold" />
+                android:textAppearance="@style/TextAppearance.LP.Heading" />
 
-            <ImageButton
+            <com.google.android.material.card.MaterialCardView
                 android:id="@+id/button_delete_scan"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:src="@drawable/ic_delete"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:scaleType="centerInside"
-                android:contentDescription="@string/withings_scan_delete_desc"
+                style="@style/Widget.LP.Card.IconAction"
                 android:visibility="gone"
-                app:tint="@color/fitness_error" />
+                app:strokeColor="?attr/lpNegative">
+
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:contentDescription="@string/withings_scan_delete_desc"
+                    android:padding="@dimen/lp_icon_action_padding"
+                    android:src="@drawable/ic_delete"
+                    app:tint="?attr/lpNegative" />
+            </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
 
         <!-- Metrics grid: two columns -->
@@ -60,46 +66,44 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:layout_marginBottom="4dp">
+                    android:layout_marginBottom="@dimen/lp_space_1">
 
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Weight"
-                        android:textColor="@color/fitness_text_secondary"
-                        android:textSize="12sp" />
+                        android:text="@string/withings_stat_weight"
+                        android:textAppearance="@style/TextAppearance.LP.Label"
+                        android:textColor="?attr/lpInkSecondary" />
 
                     <TextView
                         android:id="@+id/text_weight"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textColor="@color/fitness_text_primary"
-                        android:textSize="12sp"
-                        android:textStyle="bold" />
+                        android:textAppearance="@style/TextAppearance.LP.Metric.S"
+                        android:textColor="?attr/lpInk" />
                 </LinearLayout>
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:layout_marginBottom="4dp">
+                    android:layout_marginBottom="@dimen/lp_space_1">
 
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Body Fat"
-                        android:textColor="@color/fitness_text_secondary"
-                        android:textSize="12sp" />
+                        android:text="@string/withings_stat_body_fat"
+                        android:textAppearance="@style/TextAppearance.LP.Label"
+                        android:textColor="?attr/lpInkSecondary" />
 
                     <TextView
                         android:id="@+id/text_body_fat"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textColor="@color/fitness_text_primary"
-                        android:textSize="12sp"
-                        android:textStyle="bold" />
+                        android:textAppearance="@style/TextAppearance.LP.Metric.S"
+                        android:textColor="?attr/lpInk" />
                 </LinearLayout>
 
                 <LinearLayout
@@ -111,27 +115,25 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Lean Mass"
-                        android:textColor="@color/fitness_text_secondary"
-                        android:textSize="12sp" />
+                        android:text="@string/withings_stat_lean_mass"
+                        android:textAppearance="@style/TextAppearance.LP.Label"
+                        android:textColor="?attr/lpInkSecondary" />
 
                     <TextView
                         android:id="@+id/text_lean_mass"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textColor="@color/fitness_text_primary"
-                        android:textSize="12sp"
-                        android:textStyle="bold" />
+                        android:textAppearance="@style/TextAppearance.LP.Metric.S"
+                        android:textColor="?attr/lpInk" />
                 </LinearLayout>
             </LinearLayout>
 
             <!-- Divider -->
             <View
-                android:layout_width="1dp"
+                android:layout_width="@dimen/lp_hairline_width"
                 android:layout_height="match_parent"
-                android:layout_marginHorizontal="12dp"
-                android:background="@color/fitness_text_secondary"
-                android:alpha="0.2" />
+                android:layout_marginHorizontal="@dimen/lp_space_3"
+                android:background="?attr/lpHairline" />
 
             <!-- Right column -->
             <LinearLayout
@@ -144,46 +146,44 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:layout_marginBottom="4dp">
+                    android:layout_marginBottom="@dimen/lp_space_1">
 
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Bone Mass"
-                        android:textColor="@color/fitness_text_secondary"
-                        android:textSize="12sp" />
+                        android:text="@string/withings_stat_bone_mass"
+                        android:textAppearance="@style/TextAppearance.LP.Label"
+                        android:textColor="?attr/lpInkSecondary" />
 
                     <TextView
                         android:id="@+id/text_bone_mass"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textColor="@color/fitness_text_primary"
-                        android:textSize="12sp"
-                        android:textStyle="bold" />
+                        android:textAppearance="@style/TextAppearance.LP.Metric.S"
+                        android:textColor="?attr/lpInk" />
                 </LinearLayout>
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:layout_marginBottom="4dp">
+                    android:layout_marginBottom="@dimen/lp_space_1">
 
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Body Water"
-                        android:textColor="@color/fitness_text_secondary"
-                        android:textSize="12sp" />
+                        android:text="@string/withings_stat_body_water"
+                        android:textAppearance="@style/TextAppearance.LP.Label"
+                        android:textColor="?attr/lpInkSecondary" />
 
                     <TextView
                         android:id="@+id/text_body_water"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textColor="@color/fitness_text_primary"
-                        android:textSize="12sp"
-                        android:textStyle="bold" />
+                        android:textAppearance="@style/TextAppearance.LP.Metric.S"
+                        android:textColor="?attr/lpInk" />
                 </LinearLayout>
 
                 <LinearLayout
@@ -195,19 +195,18 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="BMR"
-                        android:textColor="@color/fitness_text_secondary"
-                        android:textSize="12sp" />
+                        android:text="@string/withings_stat_bmr"
+                        android:textAppearance="@style/TextAppearance.LP.Label"
+                        android:textColor="?attr/lpInkSecondary" />
 
                     <TextView
                         android:id="@+id/text_bmr"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textColor="@color/fitness_text_primary"
-                        android:textSize="12sp"
-                        android:textStyle="bold" />
+                        android:textAppearance="@style/TextAppearance.LP.Metric.S"
+                        android:textColor="?attr/lpInk" />
                 </LinearLayout>
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>
-</androidx.cardview.widget.CardView>
+</com.google.android.material.card.MaterialCardView>

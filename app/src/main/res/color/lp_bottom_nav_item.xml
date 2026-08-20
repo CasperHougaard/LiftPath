@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Bottom-nav icon + label colour. Selected goes INK, not accent: the same restraint rule as
+  buttons and chips. The accent is spent on the hero glow and the active tab indicator, and
+  a nav bar that lights up in colour on every tap spends it four more times.
+-->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:color="?attr/lpInk" android:state_checked="true" />
+    <item android:color="?attr/lpInkTertiary" />
+</selector>

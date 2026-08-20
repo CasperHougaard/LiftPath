@@ -1,53 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Family group header inside the exercise picker's grouped mode. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:gravity="center_vertical"
-    android:paddingStart="16dp"
-    android:paddingEnd="16dp"
-    android:paddingTop="16dp"
-    android:paddingBottom="8dp"
-    android:background="?android:attr/selectableItemBackground"
+    android:background="?attr/selectableItemBackground"
     android:clickable="true"
-    android:focusable="true">
+    android:focusable="true"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingHorizontal="@dimen/lp_space_2"
+    android:paddingTop="@dimen/lp_space_4"
+    android:paddingBottom="@dimen/lp_space_2">
 
-    <!-- Left line -->
     <View
         android:layout_width="0dp"
-        android:layout_height="1dp"
+        android:layout_height="@dimen/lp_hairline_width"
         android:layout_weight="1"
-        android:background="@color/fitness_text_secondary"
-        android:alpha="0.5" />
+        android:background="?attr/lpHairline" />
 
-    <!-- Centered text -->
     <TextView
         android:id="@+id/text_section_header"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="12dp"
-        android:text="Section"
-        android:textColor="@color/fitness_text_primary"
-        android:textSize="14sp"
-        android:textStyle="bold" />
+        android:layout_marginHorizontal="@dimen/lp_space_3"
+        android:textAppearance="@style/TextAppearance.LP.Caption"
+        android:textColor="?attr/lpInk"
+        tools:text="Chest" />
 
-    <!-- Expand/Collapse icon -->
     <ImageView
         android:id="@+id/image_expand_icon"
-        android:layout_width="20dp"
-        android:layout_height="20dp"
-        android:layout_marginStart="8dp"
+        android:layout_width="18dp"
+        android:layout_height="18dp"
+        android:layout_marginEnd="@dimen/lp_space_3"
+        android:contentDescription="@string/cd_expand_collapse_section"
         android:src="@drawable/ic_arrow_drop_down_24"
-        android:contentDescription="Expand/Collapse"
-        app:tint="@color/fitness_text_secondary" />
+        app:tint="?attr/lpInkTertiary" />
 
-    <!-- Right line -->
     <View
         android:layout_width="0dp"
-        android:layout_height="1dp"
+        android:layout_height="@dimen/lp_hairline_width"
         android:layout_weight="1"
-        android:background="@color/fitness_text_secondary"
-        android:alpha="0.5" />
+        android:background="?attr/lpHairline" />
 </LinearLayout>
-

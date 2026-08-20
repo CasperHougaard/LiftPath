@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  One row of a palette Spinner (either the closed selection or a popup list item): a
+  compact swatch trio (canvas / ink / accent) plus the palette name.
+
+  Used by ThemeSpinnerAdapter in SettingsActivity for both the "Light palette" and "Dark
+  palette" pickers — the adapter tints the swatches from LiftPathTheme.previewLight or
+  .previewDark depending on which picker it backs, so the two dropdowns always show a
+  palette's true light look and true dark look regardless of the mode currently active.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:minHeight="@dimen/lp_row_min_height"
+    android:orientation="horizontal"
+    android:paddingHorizontal="@dimen/lp_space_3"
+    android:paddingVertical="@dimen/lp_space_2">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <ImageView
+            android:id="@+id/swatch_canvas"
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:background="@drawable/lp_swatch_ring"
+            android:contentDescription="@null"
+            android:importantForAccessibility="no"
+            android:src="@drawable/lp_swatch_fill"
+            tools:tint="@color/paper_preview_light_canvas" />
+
+        <ImageView
+            android:id="@+id/swatch_ink"
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:layout_marginStart="4dp"
+            android:background="@drawable/lp_swatch_ring"
+            android:contentDescription="@null"
+            android:importantForAccessibility="no"
+            android:src="@drawable/lp_swatch_fill"
+            tools:tint="@color/paper_preview_light_ink" />
+
+        <ImageView
+            android:id="@+id/swatch_accent"
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:layout_marginStart="4dp"
+            android:background="@drawable/lp_swatch_ring"
+            android:contentDescription="@null"
+            android:importantForAccessibility="no"
+            android:src="@drawable/lp_swatch_fill"
+            tools:tint="@color/paper_preview_light_accent" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/text_theme_label"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/lp_space_3"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textAppearance="@style/TextAppearance.LP.Label"
+        android:textColor="?attr/lpInk"
+        tools:text="Paper &amp; Bronze" />
+
+</LinearLayout>

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  PALETTE: Ash & Plum — DARK
+
+  Neutral near-black. Plum lifts from #7B4B8C to #B084C0 to stay legible.
+-->
+<resources>
+
+    <color name="ash_canvas">#141213</color>
+    <color name="ash_canvas_sunken">#0D0C0C</color>
+    <color name="ash_surface">#1E1C1D</color>
+    <color name="ash_surface_alt">#262324</color>
+
+    <color name="ash_hairline">#322E30</color>
+    <color name="ash_hairline_strong">#464143</color>
+
+    <color name="ash_ink">#F4F1F2</color>
+    <color name="ash_ink_secondary">#A39D9F</color>
+    <color name="ash_ink_tertiary">#726D6F</color>
+    <color name="ash_ink_inverse">#141213</color>
+    <color name="ash_ink_inverse_secondary">#555052</color>
+
+    <color name="ash_accent">#B084C0</color>
+    <color name="ash_accent_pressed">#9A6BAA</color>
+    <color name="ash_accent_wash">#271F2A</color>
+
+    <color name="ash_positive">#7FB08F</color>
+    <color name="ash_negative">#D98374</color>
+    <color name="ash_neutral">#8D888B</color>
+
+    <color name="ash_intent_strength">#D98374</color>
+    <color name="ash_intent_build">#B084C0</color>
+    <color name="ash_intent_flush">#7FB08F</color>
+    <color name="ash_intent_warmup">#8D888B</color>
+
+    <color name="ash_chart_volume">#7FB08F</color>
+    <color name="ash_chart_rpe">#B084C0</color>
+    <color name="ash_chart_time">#8AAAC4</color>
+    <color name="ash_chart_fatigue">#D98374</color>
+    <color name="ash_chart_grid">#262223</color>
+
+    <color name="ash_ripple">#1AF4F1F2</color>
+    <color name="ash_ripple_inverse">#22141213</color>
+
+</resources>

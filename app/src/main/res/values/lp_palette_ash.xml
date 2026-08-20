@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  PALETTE: Ash & Plum
+
+  A true neutral grey — warmer than Chalk's blue-black, cooler than Paper's warm paper —
+  with a plum accent. Reads understated rather than technical or warm.
+-->
+<resources>
+
+    <color name="ash_canvas">#F6F5F4</color>
+    <color name="ash_canvas_sunken">#EDEBEA</color>
+    <color name="ash_surface">#FFFFFF</color>
+    <color name="ash_surface_alt">#F3F1F0</color>
+
+    <color name="ash_hairline">#E2DFDD</color>
+    <color name="ash_hairline_strong">#CFCBC8</color>
+
+    <color name="ash_ink">#1C1A1B</color>
+    <color name="ash_ink_secondary">#6B6669</color>
+    <color name="ash_ink_tertiary">#9B9598</color>
+    <color name="ash_ink_inverse">#F6F5F4</color>
+    <color name="ash_ink_inverse_secondary">#AFA9AC</color>
+
+    <color name="ash_accent">#7B4B8C</color>
+    <color name="ash_accent_pressed">#653A73</color>
+    <color name="ash_accent_wash">#F0E6F1</color>
+
+    <color name="ash_positive">#3F6B4F</color>
+    <color name="ash_negative">#A33A2B</color>
+    <color name="ash_neutral">#8D888B</color>
+
+    <color name="ash_intent_strength">#A33A2B</color>
+    <color name="ash_intent_build">#7B4B8C</color>
+    <color name="ash_intent_flush">#3F6B4F</color>
+    <color name="ash_intent_warmup">#8D888B</color>
+
+    <color name="ash_chart_volume">#3F6B4F</color>
+    <color name="ash_chart_rpe">#7B4B8C</color>
+    <color name="ash_chart_time">#4A6B82</color>
+    <color name="ash_chart_fatigue">#A33A2B</color>
+    <color name="ash_chart_grid">#E9E6E5</color>
+
+    <color name="ash_ripple">#141C1A1B</color>
+    <color name="ash_ripple_inverse">#22F6F5F4</color>
+
+</resources>

@@ -17,16 +17,16 @@ import com.liftpath.models.Tier
 
 object DefaultExercisesHelper {
 
-    const val CATALOG_VERSION = 4
+    const val CATALOG_VERSION = 6
 
     /**
      * Default-catalog exercise IDs that target TIME rather than reps (isometric holds). Used by the
      * one-time backfill migration so existing installs (whose persisted library predates the
      * targetMetric field) auto-flag these as timed. Only applied when the item's metric is still null.
      */
-    val DEFAULT_TIMED_EXERCISE_IDS: Set<Int> = setOf(121, 137)
+    val DEFAULT_TIMED_EXERCISE_IDS: Set<Int> = setOf(121, 137, 285)
 
-    // --- Exercise Family Catalog (40 families, 84 exercises) ---
+    // --- Exercise Family Catalog (40 families, 88 exercises) ---
 
     val DEFAULT_FAMILIES: List<ExerciseFamily> = listOf(
         ExerciseFamily("chest_press",       "Chest Press",               MovementPattern.PUSH_HORIZONTAL,              BodyRegion.UPPER, listOf(TargetMuscle.CHEST_MIDDLE, TargetMuscle.DELT_FRONT, TargetMuscle.TRICEPS_LATERAL)),
@@ -172,7 +172,21 @@ object DefaultExercisesHelper {
         164 to "rdl",
         165 to "ab_crunch",
         166 to "rotary_torso",
-        167 to "hip_thrust"
+        167 to "hip_thrust",
+        182 to "biceps_curl",
+        201 to "chest_fly",
+        206 to "lat_pulldown",
+        285 to "plank",
+        300 to "squat",
+        301 to "hip_thrust",
+        302 to "hip_abduction",
+        303 to "hip_abduction",
+        304 to "hip_abduction",
+        305 to "squat",
+        306 to "split_squat",
+        307 to "glute_machine",
+        308 to "calf_raise",
+        309 to "plank"
     )
 
     private val DEFAULT_EXERCISE_FULL_META: Map<Int, DefaultExerciseMeta> = mapOf(
@@ -259,7 +273,21 @@ object DefaultExercisesHelper {
         164 to DefaultExerciseMeta("rdl",               Equipment.DUMBBELL,   null,                  Laterality.UNILATERAL, R.drawable.ex_single_leg_rdl_dumbbell),
         165 to DefaultExerciseMeta("ab_crunch",         Equipment.CABLE,      null,                  Laterality.BILATERAL, R.drawable.ex_cable_crunch),
         166 to DefaultExerciseMeta("rotary_torso",      Equipment.BODYWEIGHT, null,                  Laterality.BILATERAL, R.drawable.ex_russian_twist),
-        167 to DefaultExerciseMeta("hip_thrust",        Equipment.BODYWEIGHT, null,                  Laterality.BILATERAL, R.drawable.ex_glute_bridge_bodyweight)
+        167 to DefaultExerciseMeta("hip_thrust",        Equipment.BODYWEIGHT, null,                  Laterality.BILATERAL, R.drawable.ex_glute_bridge_bodyweight),
+        182 to DefaultExerciseMeta("biceps_curl",       Equipment.CABLE,      null,                  Laterality.BILATERAL, R.drawable.ex_cable_curl),
+        201 to DefaultExerciseMeta("chest_fly",         Equipment.CABLE,      null,                  Laterality.BILATERAL, R.drawable.ex_cable_low_fly),
+        206 to DefaultExerciseMeta("lat_pulldown",      Equipment.CABLE,      null,                  Laterality.BILATERAL, R.drawable.ex_cable_pulldown),
+        285 to DefaultExerciseMeta("plank",             Equipment.OTHER,      null,                  Laterality.BILATERAL, R.drawable.ex_weighted_front_plank),
+        300 to DefaultExerciseMeta("squat",             Equipment.BODYWEIGHT, null,                  Laterality.BILATERAL, R.drawable.ex_wall_sit),
+        301 to DefaultExerciseMeta("hip_thrust",        Equipment.BODYWEIGHT, null,                  Laterality.UNILATERAL, R.drawable.ex_single_leg_glute_bridge),
+        302 to DefaultExerciseMeta("hip_abduction",     Equipment.BODYWEIGHT, null,                  Laterality.UNILATERAL, R.drawable.ex_side_lying_leg_raise),
+        303 to DefaultExerciseMeta("hip_abduction",     Equipment.BANDS,      null,                  Laterality.UNILATERAL, R.drawable.ex_standing_hip_abduction_band),
+        304 to DefaultExerciseMeta("hip_abduction",     Equipment.BANDS,      null,                  Laterality.BILATERAL, R.drawable.ex_lateral_band_walk),
+        305 to DefaultExerciseMeta("squat",             Equipment.BODYWEIGHT, null,                  Laterality.BILATERAL, R.drawable.ex_bodyweight_squat),
+        306 to DefaultExerciseMeta("split_squat",       Equipment.BODYWEIGHT, null,                  Laterality.UNILATERAL, R.drawable.ex_reverse_lunge_bodyweight),
+        307 to DefaultExerciseMeta("glute_machine",     Equipment.BANDS,      null,                  Laterality.UNILATERAL, R.drawable.ex_glute_kickback_band),
+        308 to DefaultExerciseMeta("calf_raise",        Equipment.BODYWEIGHT, null,                  Laterality.BILATERAL, R.drawable.ex_calf_raise_bodyweight),
+        309 to DefaultExerciseMeta("plank",             Equipment.BODYWEIGHT, null,                  Laterality.BILATERAL, R.drawable.ex_hollow_hold)
     )
 
     fun getPopularDefaults(): List<ExerciseLibraryItem> {
@@ -1161,6 +1189,156 @@ object DefaultExercisesHelper {
                 note = "Drive through heels. Squeeze glutes at top. Progress to single leg.",
                 manualMechanics = Mechanics.ISOLATION,
                 exerciseType = ExerciseType.BODYWEIGHT
+            ),
+            ExerciseLibraryItem(
+                id = 182,
+                name = "Cable Curl",
+                region = BodyRegion.UPPER,
+                pattern = MovementPattern.ISOLATION_ELBOW_FLEXION,
+                tier = Tier.TIER_3,
+                primaryTargets = listOf(TargetMuscle.BICEPS),
+                secondaryTargets = listOf(TargetMuscle.FOREARMS),
+                note = "Control the eccentric. No swinging."
+            ),
+            ExerciseLibraryItem(
+                id = 201,
+                name = "Cable Low Fly",
+                region = BodyRegion.UPPER,
+                pattern = MovementPattern.ISOLATION_SHOULDER_FLEXION,
+                tier = Tier.TIER_3,
+                primaryTargets = listOf(TargetMuscle.CHEST_MIDDLE),
+                secondaryTargets = listOf(TargetMuscle.TRICEPS_LATERAL),
+                note = "Slight bend in the elbows. Stretch at the bottom, squeeze at the top."
+            ),
+            ExerciseLibraryItem(
+                id = 206,
+                name = "Cable Pulldown",
+                region = BodyRegion.UPPER,
+                pattern = MovementPattern.PULL_VERTICAL,
+                tier = Tier.TIER_2,
+                primaryTargets = listOf(TargetMuscle.LATS),
+                secondaryTargets = listOf(TargetMuscle.BICEPS, TargetMuscle.FOREARMS),
+                note = "Pull to the upper chest. Squeeze the lats at the bottom."
+            ),
+            ExerciseLibraryItem(
+                id = 285,
+                name = "Weighted Front Plank",
+                region = BodyRegion.CORE,
+                pattern = MovementPattern.CORE_STABILITY,
+                tier = Tier.TIER_3,
+                primaryTargets = listOf(TargetMuscle.ABS),
+                secondaryTargets = emptyList(),
+                note = "Neutral spine. Squeeze the glutes and brace the core.",
+                targetMetric = ExerciseTargetMetric.TIME
+            ),
+            ExerciseLibraryItem(
+                id = 300,
+                name = "Wall Sit",
+                region = BodyRegion.LOWER,
+                pattern = MovementPattern.SQUAT,
+                tier = Tier.TIER_3,
+                primaryTargets = listOf(TargetMuscle.QUADS),
+                secondaryTargets = listOf(TargetMuscle.GLUTES),
+                note = "Back flat against the wall, thighs parallel to the floor.",
+                exerciseType = ExerciseType.BODYWEIGHT,
+                targetMetric = ExerciseTargetMetric.TIME
+            ),
+            ExerciseLibraryItem(
+                id = 301,
+                name = "Single-Leg Glute Bridge",
+                region = BodyRegion.LOWER,
+                pattern = MovementPattern.HINGE,
+                tier = Tier.TIER_3,
+                primaryTargets = listOf(TargetMuscle.GLUTES),
+                secondaryTargets = listOf(TargetMuscle.HAMSTRINGS),
+                note = "Drive through the planted heel. Keep hips level.",
+                exerciseType = ExerciseType.BODYWEIGHT
+            ),
+            ExerciseLibraryItem(
+                id = 302,
+                name = "Side-Lying Leg Raise",
+                region = BodyRegion.LOWER,
+                pattern = MovementPattern.OTHER,
+                tier = Tier.TIER_3,
+                primaryTargets = listOf(TargetMuscle.ABDUCTORS),
+                secondaryTargets = listOf(TargetMuscle.GLUTES),
+                note = "Lead with the heel. Don't let the hips roll back.",
+                exerciseType = ExerciseType.BODYWEIGHT
+            ),
+            ExerciseLibraryItem(
+                id = 303,
+                name = "Standing Hip Abduction (Band)",
+                region = BodyRegion.LOWER,
+                pattern = MovementPattern.OTHER,
+                tier = Tier.TIER_3,
+                primaryTargets = listOf(TargetMuscle.ABDUCTORS),
+                secondaryTargets = listOf(TargetMuscle.GLUTES),
+                note = "Band above the knees. Kick out to the side, control the return."
+            ),
+            ExerciseLibraryItem(
+                id = 304,
+                name = "Lateral Band Walk",
+                region = BodyRegion.LOWER,
+                pattern = MovementPattern.OTHER,
+                tier = Tier.TIER_3,
+                primaryTargets = listOf(TargetMuscle.ABDUCTORS),
+                secondaryTargets = listOf(TargetMuscle.GLUTES),
+                note = "Band around the ankles. Stay low, keep the band taut."
+            ),
+            ExerciseLibraryItem(
+                id = 305,
+                name = "Bodyweight Squat",
+                region = BodyRegion.LOWER,
+                pattern = MovementPattern.SQUAT,
+                tier = Tier.TIER_3,
+                primaryTargets = listOf(TargetMuscle.QUADS),
+                secondaryTargets = listOf(TargetMuscle.GLUTES),
+                note = "Depth to parallel or below. Chest up.",
+                exerciseType = ExerciseType.BODYWEIGHT
+            ),
+            ExerciseLibraryItem(
+                id = 306,
+                name = "Reverse Lunge (Bodyweight)",
+                region = BodyRegion.LOWER,
+                pattern = MovementPattern.LUNGE,
+                tier = Tier.TIER_3,
+                primaryTargets = listOf(TargetMuscle.QUADS),
+                secondaryTargets = listOf(TargetMuscle.GLUTES),
+                note = "Step back, front knee tracks over the ankle.",
+                exerciseType = ExerciseType.BODYWEIGHT
+            ),
+            ExerciseLibraryItem(
+                id = 307,
+                name = "Glute Kickback (Band)",
+                region = BodyRegion.LOWER,
+                pattern = MovementPattern.OTHER,
+                tier = Tier.TIER_3,
+                primaryTargets = listOf(TargetMuscle.GLUTES),
+                secondaryTargets = listOf(TargetMuscle.HAMSTRINGS),
+                note = "Band around the ankles. Kick straight back, squeeze at the top."
+            ),
+            ExerciseLibraryItem(
+                id = 308,
+                name = "Calf Raise (Bodyweight)",
+                region = BodyRegion.LOWER,
+                pattern = MovementPattern.ISOLATION_PLANTAR_FLEXION,
+                tier = Tier.TIER_3,
+                primaryTargets = listOf(TargetMuscle.CALVES),
+                secondaryTargets = emptyList(),
+                note = "Full range: deep stretch to peak contraction.",
+                exerciseType = ExerciseType.BODYWEIGHT
+            ),
+            ExerciseLibraryItem(
+                id = 309,
+                name = "Hollow Hold",
+                region = BodyRegion.CORE,
+                pattern = MovementPattern.CORE_STABILITY,
+                tier = Tier.TIER_3,
+                primaryTargets = listOf(TargetMuscle.ABS),
+                secondaryTargets = listOf(TargetMuscle.OBLIQUES),
+                note = "Lower back pressed into the floor, arms and legs extended.",
+                exerciseType = ExerciseType.BODYWEIGHT,
+                targetMetric = ExerciseTargetMetric.TIME
             ),
         )
     }

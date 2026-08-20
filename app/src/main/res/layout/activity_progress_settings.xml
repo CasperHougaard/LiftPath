@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/fitness_background"
+    android:background="?attr/lpCanvas"
     android:fitsSystemWindows="true"
     tools:context=".activities.ProgressSettingsActivity">
 
@@ -18,7 +18,8 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/avd_background_flow" />
+        app:srcCompat="@drawable/lp_bg_ambient_flow"
+        app:tint="?attr/lpAccent" />
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
@@ -50,7 +51,7 @@
                     android:clickable="true"
                     android:focusable="true"
                     android:foreground="?attr/selectableItemBackground"
-                    app:cardBackgroundColor="@color/fitness_card_background"
+                    app:cardBackgroundColor="?attr/lpSurface"
                     app:cardCornerRadius="24dp"
                     app:cardElevation="0dp">
 
@@ -61,7 +62,7 @@
                         android:contentDescription="@string/progress_back_content_description"
                         android:padding="12dp"
                         android:src="@drawable/ic_arrow_back_24"
-                        app:tint="@color/fitness_text_primary" />
+                        app:tint="?attr/lpInk" />
                 </androidx.cardview.widget.CardView>
 
                 <LinearLayout
@@ -75,7 +76,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="1RM Progression Settings"
-                        android:textColor="@color/fitness_text_primary"
+                        android:textColor="?attr/lpInk"
                         android:textSize="26sp"
                         android:textStyle="bold" />
 
@@ -84,7 +85,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
                         android:text="Configure 1RM estimation and projection preferences"
-                        android:textColor="@color/fitness_text_secondary"
+                        android:textColor="?attr/lpInkSecondary"
                         android:textSize="14sp" />
                 </LinearLayout>
             </LinearLayout>
@@ -94,7 +95,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="24dp"
-                app:cardBackgroundColor="@color/fitness_card_background"
+                app:cardBackgroundColor="?attr/lpSurface"
                 app:cardCornerRadius="20dp"
                 app:cardElevation="4dp">
 
@@ -108,7 +109,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="1RM Estimation Settings"
-                        android:textColor="@color/fitness_text_primary"
+                        android:textColor="?attr/lpInk"
                         android:textSize="18sp"
                         android:textStyle="bold" />
 
@@ -118,7 +119,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="16dp"
                         android:text="Default Projection Period (months)"
-                        android:textColor="@color/fitness_text_primary"
+                        android:textColor="?attr/lpInk"
                         android:textSize="14sp"
                         android:textStyle="bold" />
 
@@ -127,7 +128,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
                         android:text="How far into the future to project your 1RM. Recommended: 2-3 months for realistic estimates."
-                        android:textColor="@color/fitness_text_secondary"
+                        android:textColor="?attr/lpInkSecondary"
                         android:textSize="12sp" />
 
                     <EditText
@@ -139,7 +140,7 @@
                         android:hint="3"
                         android:inputType="number"
                         android:padding="12dp"
-                        android:textColor="@color/fitness_text_primary"
+                        android:textColor="?attr/lpInk"
                         android:textSize="16sp" />
 
                     <!-- Minimum Data Points -->
@@ -148,7 +149,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="16dp"
                         android:text="Minimum Data Points (sessions)"
-                        android:textColor="@color/fitness_text_primary"
+                        android:textColor="?attr/lpInk"
                         android:textSize="14sp"
                         android:textStyle="bold" />
 
@@ -157,7 +158,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
                         android:text="Minimum number of training sessions required for a qualified estimation. More sessions = more reliable projections."
-                        android:textColor="@color/fitness_text_secondary"
+                        android:textColor="?attr/lpInkSecondary"
                         android:textSize="12sp" />
 
                     <EditText
@@ -169,7 +170,7 @@
                         android:hint="4"
                         android:inputType="number"
                         android:padding="12dp"
-                        android:textColor="@color/fitness_text_primary"
+                        android:textColor="?attr/lpInk"
                         android:textSize="16sp" />
 
                     <!-- Recent Data Window -->
@@ -178,7 +179,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="16dp"
                         android:text="Recent Data Window (days)"
-                        android:textColor="@color/fitness_text_primary"
+                        android:textColor="?attr/lpInk"
                         android:textSize="14sp"
                         android:textStyle="bold" />
 
@@ -187,7 +188,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
                         android:text="Maximum days since last session for data to be considered 'recent'. Older data may not reflect current progress."
-                        android:textColor="@color/fitness_text_secondary"
+                        android:textColor="?attr/lpInkSecondary"
                         android:textSize="12sp" />
 
                     <EditText
@@ -199,7 +200,7 @@
                         android:hint="30"
                         android:inputType="number"
                         android:padding="12dp"
-                        android:textColor="@color/fitness_text_primary"
+                        android:textColor="?attr/lpInk"
                         android:textSize="16sp" />
 
                     <!-- Show Warnings -->
@@ -220,7 +221,7 @@
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
                                 android:text="Show Data Quality Warnings"
-                                android:textColor="@color/fitness_text_primary"
+                                android:textColor="?attr/lpInk"
                                 android:textSize="14sp"
                                 android:textStyle="bold" />
 
@@ -235,7 +236,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
                             android:text="Display warnings when data quality is insufficient for reliable estimation (e.g., too few sessions, old data)."
-                            android:textColor="@color/fitness_text_secondary"
+                            android:textColor="?attr/lpInkSecondary"
                             android:textSize="12sp" />
                     </LinearLayout>
                 </LinearLayout>
@@ -257,7 +258,7 @@
                     android:clickable="true"
                     android:focusable="true"
                     android:foreground="?attr/selectableItemBackground"
-                    app:cardBackgroundColor="@color/fitness_card_background"
+                    app:cardBackgroundColor="?attr/lpSurface"
                     app:cardCornerRadius="16dp"
                     app:cardElevation="2dp">
 
@@ -266,7 +267,7 @@
                         android:layout_height="match_parent"
                         android:gravity="center"
                         android:text="Reset to Defaults"
-                        android:textColor="@color/fitness_text_primary"
+                        android:textColor="?attr/lpInk"
                         android:textSize="16sp"
                         android:textStyle="bold" />
                 </androidx.cardview.widget.CardView>
@@ -280,7 +281,7 @@
                     android:clickable="true"
                     android:focusable="true"
                     android:foreground="?attr/selectableItemBackground"
-                    app:cardBackgroundColor="@color/fitness_primary"
+                    app:cardBackgroundColor="?attr/lpAccent"
                     app:cardCornerRadius="16dp"
                     app:cardElevation="2dp">
 

@@ -15,6 +15,19 @@ object RestTimerHelper {
         return String.format(Locale.US, "%d:%02d", safe / 60, safe % 60)
     }
 
+    /**
+     * Formats an aggregate hold time (total time under tension) for stat tiles: `m:ss` below an
+     * hour, `Xh MMm` above it. [DurationHelper.formatDuration] is `HH:mm:ss` and too heavy here.
+     */
+    fun formatHoldTotal(seconds: Int): String {
+        val safe = max(0, seconds)
+        return if (safe < 3600) {
+            formatDuration(safe)
+        } else {
+            String.format(Locale.US, "%dh %02dm", safe / 3600, (safe % 3600) / 60)
+        }
+    }
+
     fun restSecondsAfterLoggedSet(
         settings: ProgressionHelper.ProgressionSettings,
         setIntent: SetIntent,

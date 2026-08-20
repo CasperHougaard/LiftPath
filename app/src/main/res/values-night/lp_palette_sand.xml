@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  PALETTE: Sand & Teal — DARK
+
+  Warm near-black. Teal lifts from #1F7A73 to #4FBFB4 to stay legible.
+-->
+<resources>
+
+    <color name="sand_canvas">#14120D</color>
+    <color name="sand_canvas_sunken">#0D0B08</color>
+    <color name="sand_surface">#1E1B15</color>
+    <color name="sand_surface_alt">#26221A</color>
+
+    <color name="sand_hairline">#332E23</color>
+    <color name="sand_hairline_strong">#494232</color>
+
+    <color name="sand_ink">#F5F1E8</color>
+    <color name="sand_ink_secondary">#A6A08E</color>
+    <color name="sand_ink_tertiary">#756F60</color>
+    <color name="sand_ink_inverse">#14120D</color>
+    <color name="sand_ink_inverse_secondary">#585244</color>
+
+    <color name="sand_accent">#4FBFB4</color>
+    <color name="sand_accent_pressed">#3AA69B</color>
+    <color name="sand_accent_wash">#16302C</color>
+
+    <color name="sand_positive">#7FB08F</color>
+    <color name="sand_negative">#D98374</color>
+    <color name="sand_neutral">#948C79</color>
+
+    <color name="sand_intent_strength">#D98374</color>
+    <color name="sand_intent_build">#4FBFB4</color>
+    <color name="sand_intent_flush">#7FB08F</color>
+    <color name="sand_intent_warmup">#948C79</color>
+
+    <color name="sand_chart_volume">#7FB08F</color>
+    <color name="sand_chart_rpe">#4FBFB4</color>
+    <color name="sand_chart_time">#8AAAC4</color>
+    <color name="sand_chart_fatigue">#D98374</color>
+    <color name="sand_chart_grid">#292419</color>
+
+    <color name="sand_ripple">#1AF5F1E8</color>
+    <color name="sand_ripple_inverse">#2214120D</color>
+
+</resources>

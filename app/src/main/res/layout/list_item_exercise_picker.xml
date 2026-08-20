@@ -28,16 +28,15 @@
             android:id="@+id/text_exercise_picker_name"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textColor="@color/fitness_text_primary"
-            android:textSize="16sp" />
+            android:textAppearance="@style/TextAppearance.LP.Heading" />
 
         <TextView
             android:id="@+id/text_exercise_picker_subtitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
-            android:textColor="@color/fitness_text_secondary"
-            android:textSize="13sp"
+            android:textAppearance="@style/TextAppearance.LP.Label"
+            android:textColor="?attr/lpInkSecondary"
             android:visibility="gone" />
 
     </LinearLayout>

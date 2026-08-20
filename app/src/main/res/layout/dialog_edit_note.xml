@@ -15,8 +15,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="@string/hint_note_optional"
-        app:boxStrokeColor="@color/fitness_primary"
-        app:hintTextColor="@color/fitness_primary">
+        app:boxStrokeColor="?attr/lpAccent"
+        app:hintTextColor="?attr/lpAccent">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/edit_text_note"
@@ -26,7 +26,7 @@
             android:lines="4"
             android:maxLines="8"
             android:gravity="top|start"
-            android:textColor="@color/fitness_text_primary" />
+            android:textColor="?attr/lpInk" />
 
     </com.google.android.material.textfield.TextInputLayout>
 

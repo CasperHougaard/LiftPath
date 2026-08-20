@@ -1,7 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Dialog content background. Applied via android:background in
+  ThemeOverlay.Fitness.MaterialAlertDialog, on top of a transparent window so the
+  rounded corners have nothing square behind them.
+
+  Uses ?attr/lpSurface rather than a fixed colour so dialogs follow whichever palette
+  the user has selected.
+-->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
-    <solid android:color="@color/fitness_card_background" />
-    <corners android:radius="24dp" />
+    <solid android:color="?attr/lpSurface" />
+    <corners android:radius="@dimen/lp_radius_lg" />
 </shape>
-

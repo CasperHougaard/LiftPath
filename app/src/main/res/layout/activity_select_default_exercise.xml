@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/fitness_background"
+    android:background="?attr/lpCanvas"
     android:fitsSystemWindows="true"
     tools:context=".activities.SelectDefaultExerciseActivity">
 
@@ -19,7 +19,8 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/avd_background_flow" />
+        app:srcCompat="@drawable/lp_bg_ambient_flow"
+        app:tint="?attr/lpAccent" />
 
     <!-- Scrollable Content Container -->
     <androidx.core.widget.NestedScrollView
@@ -50,7 +51,7 @@
                 android:clickable="true"
                 android:focusable="true"
                 android:foreground="?attr/selectableItemBackground"
-                app:cardBackgroundColor="@color/fitness_card_background"
+                app:cardBackgroundColor="?attr/lpSurface"
                 app:cardCornerRadius="24dp"
                 app:cardElevation="0dp"
                 app:layout_constraintStart_toStartOf="parent"
@@ -63,7 +64,7 @@
                     android:contentDescription="@string/progress_back_content_description"
                     android:padding="12dp"
                     android:src="@drawable/ic_arrow_back_24"
-                    app:tint="@color/fitness_text_primary" />
+                    app:tint="?attr/lpInk" />
             </androidx.cardview.widget.CardView>
 
             <!-- Header Container - Next to Back Button -->
@@ -84,7 +85,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Add Default Exercises"
-                    android:textColor="@color/fitness_text_primary"
+                    android:textColor="?attr/lpInk"
                     android:textSize="28sp"
                     android:textStyle="bold" />
 
@@ -94,7 +95,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
                     android:text="Select exercises to add to your library"
-                    android:textColor="@color/fitness_text_secondary"
+                    android:textColor="?attr/lpInkSecondary"
                     android:textSize="16sp" />
             </LinearLayout>
 
@@ -105,7 +106,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
                 android:minHeight="200dp"
-                app:cardBackgroundColor="@color/fitness_card_background"
+                app:cardBackgroundColor="?attr/lpSurface"
                 app:cardCornerRadius="20dp"
                 app:cardElevation="4dp"
                 app:layout_constraintEnd_toEndOf="parent"
@@ -140,7 +141,7 @@
         android:focusable="true"
         android:foreground="?attr/selectableItemBackground"
         android:minHeight="60dp"
-        app:cardBackgroundColor="@color/fitness_primary"
+        app:cardBackgroundColor="?attr/lpAccent"
         app:cardCornerRadius="20dp"
         app:cardElevation="4dp"
         app:layout_constraintBottom_toBottomOf="parent">

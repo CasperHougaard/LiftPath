@@ -30,7 +30,7 @@
         android:src="@drawable/ic_checkmark"
         android:visibility="gone"
         android:contentDescription="In plan"
-        app:tint="@color/fitness_primary" />
+        app:tint="?attr/lpAccent" />
 
     <ImageView
         android:id="@+id/image_favorite_star"
@@ -40,7 +40,7 @@
         android:src="@drawable/ic_star"
         android:visibility="gone"
         android:contentDescription="Favorite"
-        app:tint="@color/fitness_primary" />
+        app:tint="?attr/lpAccent" />
 
     <LinearLayout
         android:layout_width="0dp"
@@ -55,16 +55,15 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Exercise Name"
-            android:textColor="@color/fitness_text_primary"
-            android:textSize="16sp" />
+            android:textAppearance="@style/TextAppearance.LP.Heading" />
 
         <TextView
             android:id="@+id/text_exercise_meta"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
-            android:textColor="@color/fitness_text_secondary"
-            android:textSize="12sp"
+            android:textAppearance="@style/TextAppearance.LP.Label"
+            android:textColor="?attr/lpInkSecondary"
             android:visibility="gone" />
     </LinearLayout>
 </LinearLayout>

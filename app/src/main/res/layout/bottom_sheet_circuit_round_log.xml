@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Logs one round of a running circuit: a station row per exercise (list_item_circuit_round_log),
+  then "Save round" or "Later" if the numbers aren't at hand mid-session.
+-->
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?attr/lpCanvas">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fitsSystemWindows="false"
+        android:orientation="vertical"
+        android:padding="@dimen/lp_gutter">
+
+        <TextView
+            android:id="@+id/text_round_log_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/lp_space_3"
+            android:textAppearance="@style/TextAppearance.LP.Title"
+            tools:text="Round 2" />
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:maxHeight="360dp">
+
+            <LinearLayout
+                android:id="@+id/layout_log_stations"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+        </ScrollView>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/button_save_round"
+            style="@style/Widget.LP.Button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/lp_space_3"
+            android:text="@string/button_save_round" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/button_round_later"
+            style="@style/Widget.LP.Button.Text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/button_round_later" />
+    </LinearLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

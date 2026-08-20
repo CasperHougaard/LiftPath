@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  LiftPath shape + spacing scale.
+
+  Radii: the old layouts shipped SEVEN (8/10/12/14/16/20/24dp), frequently two
+  different ones on nested surfaces of the same card. Three is enough, and the
+  rule for picking is size-based, not taste-based — a 48dp control with a 20dp
+  radius looks like a pill by accident.
+
+  Spacing is a 4dp grid. The gutter is 20dp rather than 24dp because the hairline
+  card treatment reads tighter than shadowed cards did.
+-->
+<resources>
+
+    <!-- ============ RADII ============ -->
+    <!-- Controls under ~56dp: chips, inputs, small tiles, icon buttons. -->
+    <dimen name="lp_radius_sm">12dp</dimen>
+    <!-- The default. Every card. -->
+    <dimen name="lp_radius_md">20dp</dimen>
+    <!-- Full-bleed surfaces: bottom sheets, dialogs, the hero. -->
+    <dimen name="lp_radius_lg">28dp</dimen>
+
+    <!-- ============ HAIRLINE ============ -->
+    <dimen name="lp_hairline_width">1dp</dimen>
+
+    <!-- ============ SPACING (4dp grid) ============ -->
+    <dimen name="lp_space_1">4dp</dimen>
+    <dimen name="lp_space_2">8dp</dimen>
+    <dimen name="lp_space_3">12dp</dimen>
+    <dimen name="lp_space_4">16dp</dimen>
+    <dimen name="lp_space_5">20dp</dimen>
+    <dimen name="lp_space_6">24dp</dimen>
+    <dimen name="lp_space_8">32dp</dimen>
+    <dimen name="lp_space_10">40dp</dimen>
+
+    <!-- ============ DENSITY: AIRY ============ -->
+    <!-- Overview surfaces you browse: Today, Progress, History, Library. -->
+    <dimen name="lp_gutter">20dp</dimen>
+    <dimen name="lp_card_padding">16dp</dimen>
+    <!-- Gap between sibling cards in a row/grid. -->
+    <dimen name="lp_card_gap">10dp</dimen>
+    <!-- Space above a new section heading. -->
+    <dimen name="lp_section_gap">32dp</dimen>
+
+    <!-- ============ DENSITY: DENSE ============ -->
+    <!--
+      Working surfaces, used mid-set with a barbell waiting: active workout, log set,
+      edit set, exercise pickers. The hybrid density decision — airy where you browse,
+      dense where you work — is the reason there are two scales rather than one.
+
+      Nothing consumes these yet. They exist so the working-surface migration waves have
+      a defined target instead of each screen inventing its own spacing.
+    -->
+    <dimen name="lp_gutter_dense">12dp</dimen>
+    <dimen name="lp_card_padding_dense">12dp</dimen>
+    <dimen name="lp_card_gap_dense">6dp</dimen>
+    <dimen name="lp_section_gap_dense">20dp</dimen>
+    <!-- Minimum tappable list-row height; comfortably above the 48dp a11y floor. -->
+    <dimen name="lp_row_min_height">56dp</dimen>
+    <!-- Square secondary action (Widget.LP.Card.IconAction) and the icon drawn inside it. -->
+    <dimen name="lp_icon_action_size">40dp</dimen>
+    <dimen name="lp_icon_action_padding">10dp</dimen>
+    <!--
+      −/+ steppers on the set-entry screens. 52dp rather than the 48dp a11y floor because
+      these are hit repeatedly, one-handed, with chalk on your fingers — the extra 4dp is
+      the difference between adjusting a weight and fighting the phone.
+    -->
+    <dimen name="lp_stepper_size">52dp</dimen>
+    <dimen name="lp_stepper_icon_padding">15dp</dimen>
+    <!--
+      One row of the circuit picker: name, summary and station line plus card padding. Used to
+      cap the sheet's list height, since RecyclerView ignores android:maxHeight.
+    -->
+    <dimen name="lp_circuit_picker_row_height">104dp</dimen>
+
+</resources>

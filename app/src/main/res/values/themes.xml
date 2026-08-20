@@ -1,110 +1,577 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  LiftPath themes.
+
+  Structure:
+
+    Theme.LiftPath.Base           everything palette-INDEPENDENT: type, shape, dialogs,
+                                  system bars. Binds no lp* tokens.
+    Theme.Fitness                 the manifest default = Base + just enough colour for the
+                                  system's starting window. Named Theme.Fitness so the
+                                  manifest and older references need no change.
+    ThemeOverlay.LiftPath.Paper   the palette bindings — 27 lp* tokens plus the Material
+                       .Chalk     colour roles. Applied at runtime by LiftPathApplication
+                       .Bone      in onActivityPreCreated, i.e. before any inflation.
+                       .Steel
+                       .Cloud
+                       .Ash
+                       .Sand
+                       .Fog
+
+  Why OVERLAYS rather than eight full themes: `Activity.setTheme` merges rather than
+  replaces, so applying a full app theme over an activity that declares its own
+  (RestTimerDialogActivity uses Theme.AppCompat.Dialog so it can float over the lock
+  screen) would override windowIsFloating/windowBackground and render it as an opaque
+  full-screen activity. An overlay carries only colour, so every activity gets the tokens
+  regardless of its base theme, and nothing needs exempting.
+
+  There are deliberately NO values-night variants here. Day/night is handled one level
+  down: colours come from values-night/lp_palette_*.xml, the two system-bar booleans from
+  values-night/lp_bools.xml. Eight overlays, not sixteen.
+
+  Which overlay actually applies is resolved by AppearanceManager.resolvedTheme(), not
+  fixed per palette any more: the user picks a palette for light mode and a (possibly
+  different) one for dark mode, and whichever is active right now supplies the overlay.
+  A palette's own values-night file is still what makes IT look right once chosen for
+  dark — this file only decides which palette, not light vs. dark within it.
+
+  Adding a ninth palette = one lp_palette_*.xml pair, one overlay here, one enum entry in
+  AppearanceManager. No layout should ever need touching.
+-->
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Theme.Fitness" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <!-- Primary brand color. -->
-        <item name="colorPrimary">@color/fitness_primary</item>
-        <item name="colorPrimaryVariant">@color/fitness_primary_dark</item>
-        <item name="colorOnPrimary">@color/white</item>
-        <!-- Secondary brand color. -->
-        <item name="colorSecondary">@color/fitness_accent</item>
-        <item name="colorSecondaryVariant">@color/fitness_accent</item>
-        <item name="colorOnSecondary">@color/white</item>
-        <!-- Background colors. -->
-        <item name="android:windowBackground">@color/fitness_background</item>
-        <item name="colorSurface">@color/fitness_card_background</item>
-        <!-- Text colors. -->
-        <item name="android:textColorPrimary">@color/fitness_text_primary</item>
-        <item name="android:textColorSecondary">@color/fitness_text_secondary</item>
-        <!-- Status bar color. -->
+
+    <!-- ==================================================================
+         BASE — palette-independent
+         ================================================================== -->
+    <style name="Theme.LiftPath.Base" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+
+        <!-- Type. Catches widgets that resolve their face from the theme rather than an
+             explicit textAppearance (dialogs, tabs, menus). -->
+        <item name="android:fontFamily">@font/archivo</item>
+        <item name="fontFamily">@font/archivo</item>
+
+        <!-- Shape -->
+        <item name="shapeAppearanceSmallComponent">@style/ShapeAppearance.LP.Small</item>
+        <item name="shapeAppearanceMediumComponent">@style/ShapeAppearance.LP.Medium</item>
+        <item name="shapeAppearanceLargeComponent">@style/ShapeAppearance.LP.Large</item>
+
+        <!-- Components. materialCardViewStyle is deliberately NOT set globally: several
+             screens still mix MaterialCardView with legacy CardView, and flattening only
+             the Material half would look broken rather than better. Layouts opt in with
+             style="@style/Widget.LP.Card" as each migration wave lands. -->
+        <item name="tabStyle">@style/Widget.LP.TabLayout</item>
+
+        <!-- Edge-to-edge system bars. Icon-contrast flags come from a night-aware bool so
+             this block stays palette- and mode-independent. -->
         <item name="android:statusBarColor">@android:color/transparent</item>
-        <item name="android:windowLightStatusBar">true</item>
-        
-        <!-- Navigation bar - transparent for edge-to-edge -->
         <item name="android:navigationBarColor">@android:color/transparent</item>
-        <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">true</item>
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
-        
-        <!-- MaterialAlertDialog Theme - Links to custom dialog overlay -->
+        <item name="android:windowLightStatusBar">@bool/lp_light_system_bars</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">@bool/lp_light_system_bars</item>
+
+        <!-- Dialogs -->
         <item name="materialAlertDialogTheme">@style/ThemeOverlay.Fitness.MaterialAlertDialog</item>
+        <item name="bottomSheetDialogTheme">@style/ThemeOverlay.Fitness.BottomSheetDialog</item>
     </style>
-    
-    <!-- MaterialAlertDialog Title Style - Bold as per design guidelines -->
+
+    <!--
+      Manifest default.
+
+      Carries only windowBackground and colorSurface, because the *system* resolves this
+      theme to draw the starting window before the process exists — that happens too early
+      for any overlay to have been applied, and an unresolvable windowBackground is a build
+      error. Everything else is left to the overlay, which lands in onActivityPreCreated
+      before inflation, so nothing ever actually renders with unbound tokens.
+
+      Consequence: a user on Steel sees a Paper-coloured starting window for one frame. All
+      four canvases are near-white in light mode and near-black in dark, so it is
+      imperceptible in practice.
+
+      The windowSplashScreen* items below are drawn by the OS before this process exists,
+      so — same reasoning — they cannot reflect the chosen palette either. They are a
+      neutral, self-contained badge (fixed dark background behind a flat white mark) that
+      reads fine regardless of which palette lands a moment later. The actual themed
+      reveal happens in MainActivity's splashScreen.setOnExitAnimationListener, once
+      AppearanceManager is readable.
+    -->
+    <style name="Theme.Fitness" parent="Theme.LiftPath.Base">
+        <item name="android:windowBackground">@color/paper_canvas</item>
+        <item name="colorSurface">@color/paper_surface</item>
+
+        <item name="android:windowSplashScreenBackground">@color/paper_canvas</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_app_logo</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">@color/paper_ink</item>
+    </style>
+
+    <!-- ==================================================================
+         PALETTE OVERLAYS
+         Each binds the lp* roles AND the Material colour roles. The Material half
+         matters: ~14 layouts use Widget.MaterialComponents.Button / .Chip.* /
+         .TextInputLayout.* explicitly, and those resolve their fills from
+         colorPrimary / colorSurface / colorOnSurface — so setting these is what themes
+         every Material component without touching a layout.
+         ================================================================== -->
+
+    <style name="ThemeOverlay.LiftPath.Paper" parent="">
+        <item name="lpCanvas">@color/paper_canvas</item>
+        <item name="lpCanvasSunken">@color/paper_canvas_sunken</item>
+        <item name="lpSurface">@color/paper_surface</item>
+        <item name="lpSurfaceAlt">@color/paper_surface_alt</item>
+        <item name="lpHairline">@color/paper_hairline</item>
+        <item name="lpHairlineStrong">@color/paper_hairline_strong</item>
+        <item name="lpInk">@color/paper_ink</item>
+        <item name="lpInkSecondary">@color/paper_ink_secondary</item>
+        <item name="lpInkTertiary">@color/paper_ink_tertiary</item>
+        <item name="lpInkInverse">@color/paper_ink_inverse</item>
+        <item name="lpInkInverseSecondary">@color/paper_ink_inverse_secondary</item>
+        <item name="lpAccent">@color/paper_accent</item>
+        <item name="lpAccentPressed">@color/paper_accent_pressed</item>
+        <item name="lpAccentWash">@color/paper_accent_wash</item>
+        <item name="lpPositive">@color/paper_positive</item>
+        <item name="lpNegative">@color/paper_negative</item>
+        <item name="lpNeutral">@color/paper_neutral</item>
+        <item name="lpIntentStrength">@color/paper_intent_strength</item>
+        <item name="lpIntentBuild">@color/paper_intent_build</item>
+        <item name="lpIntentFlush">@color/paper_intent_flush</item>
+        <item name="lpIntentWarmup">@color/paper_intent_warmup</item>
+        <item name="lpChartVolume">@color/paper_chart_volume</item>
+        <item name="lpChartRpe">@color/paper_chart_rpe</item>
+        <item name="lpChartTime">@color/paper_chart_time</item>
+        <item name="lpChartFatigue">@color/paper_chart_fatigue</item>
+        <item name="lpChartGrid">@color/paper_chart_grid</item>
+        <item name="lpRipple">@color/paper_ripple</item>
+        <item name="lpRippleInverse">@color/paper_ripple_inverse</item>
+
+        <item name="colorPrimary">@color/paper_accent</item>
+        <item name="colorPrimaryVariant">@color/paper_accent_pressed</item>
+        <item name="colorOnPrimary">@color/paper_ink_inverse</item>
+        <item name="colorSecondary">@color/paper_accent</item>
+        <item name="colorSecondaryVariant">@color/paper_accent_pressed</item>
+        <item name="colorOnSecondary">@color/paper_ink_inverse</item>
+        <item name="colorSurface">@color/paper_surface</item>
+        <item name="colorOnSurface">@color/paper_ink</item>
+        <item name="colorError">@color/paper_negative</item>
+        <item name="colorOnError">@color/paper_ink_inverse</item>
+        <item name="colorControlNormal">@color/paper_ink_secondary</item>
+        <item name="colorControlActivated">@color/paper_accent</item>
+        <item name="colorControlHighlight">@color/paper_ripple</item>
+        <item name="android:windowBackground">@color/paper_canvas</item>
+        <item name="android:textColorPrimary">@color/paper_ink</item>
+        <item name="android:textColorSecondary">@color/paper_ink_secondary</item>
+        <item name="android:textColorTertiary">@color/paper_ink_tertiary</item>
+        <item name="android:textColorHint">@color/paper_ink_tertiary</item>
+    </style>
+
+    <style name="ThemeOverlay.LiftPath.Chalk" parent="">
+        <item name="lpCanvas">@color/chalk_canvas</item>
+        <item name="lpCanvasSunken">@color/chalk_canvas_sunken</item>
+        <item name="lpSurface">@color/chalk_surface</item>
+        <item name="lpSurfaceAlt">@color/chalk_surface_alt</item>
+        <item name="lpHairline">@color/chalk_hairline</item>
+        <item name="lpHairlineStrong">@color/chalk_hairline_strong</item>
+        <item name="lpInk">@color/chalk_ink</item>
+        <item name="lpInkSecondary">@color/chalk_ink_secondary</item>
+        <item name="lpInkTertiary">@color/chalk_ink_tertiary</item>
+        <item name="lpInkInverse">@color/chalk_ink_inverse</item>
+        <item name="lpInkInverseSecondary">@color/chalk_ink_inverse_secondary</item>
+        <item name="lpAccent">@color/chalk_accent</item>
+        <item name="lpAccentPressed">@color/chalk_accent_pressed</item>
+        <item name="lpAccentWash">@color/chalk_accent_wash</item>
+        <item name="lpPositive">@color/chalk_positive</item>
+        <item name="lpNegative">@color/chalk_negative</item>
+        <item name="lpNeutral">@color/chalk_neutral</item>
+        <item name="lpIntentStrength">@color/chalk_intent_strength</item>
+        <item name="lpIntentBuild">@color/chalk_intent_build</item>
+        <item name="lpIntentFlush">@color/chalk_intent_flush</item>
+        <item name="lpIntentWarmup">@color/chalk_intent_warmup</item>
+        <item name="lpChartVolume">@color/chalk_chart_volume</item>
+        <item name="lpChartRpe">@color/chalk_chart_rpe</item>
+        <item name="lpChartTime">@color/chalk_chart_time</item>
+        <item name="lpChartFatigue">@color/chalk_chart_fatigue</item>
+        <item name="lpChartGrid">@color/chalk_chart_grid</item>
+        <item name="lpRipple">@color/chalk_ripple</item>
+        <item name="lpRippleInverse">@color/chalk_ripple_inverse</item>
+
+        <item name="colorPrimary">@color/chalk_accent</item>
+        <item name="colorPrimaryVariant">@color/chalk_accent_pressed</item>
+        <item name="colorOnPrimary">@color/chalk_ink_inverse</item>
+        <item name="colorSecondary">@color/chalk_accent</item>
+        <item name="colorSecondaryVariant">@color/chalk_accent_pressed</item>
+        <item name="colorOnSecondary">@color/chalk_ink_inverse</item>
+        <item name="colorSurface">@color/chalk_surface</item>
+        <item name="colorOnSurface">@color/chalk_ink</item>
+        <item name="colorError">@color/chalk_negative</item>
+        <item name="colorOnError">@color/chalk_ink_inverse</item>
+        <item name="colorControlNormal">@color/chalk_ink_secondary</item>
+        <item name="colorControlActivated">@color/chalk_accent</item>
+        <item name="colorControlHighlight">@color/chalk_ripple</item>
+        <item name="android:windowBackground">@color/chalk_canvas</item>
+        <item name="android:textColorPrimary">@color/chalk_ink</item>
+        <item name="android:textColorSecondary">@color/chalk_ink_secondary</item>
+        <item name="android:textColorTertiary">@color/chalk_ink_tertiary</item>
+        <item name="android:textColorHint">@color/chalk_ink_tertiary</item>
+    </style>
+
+    <style name="ThemeOverlay.LiftPath.Bone" parent="">
+        <item name="lpCanvas">@color/bone_canvas</item>
+        <item name="lpCanvasSunken">@color/bone_canvas_sunken</item>
+        <item name="lpSurface">@color/bone_surface</item>
+        <item name="lpSurfaceAlt">@color/bone_surface_alt</item>
+        <item name="lpHairline">@color/bone_hairline</item>
+        <item name="lpHairlineStrong">@color/bone_hairline_strong</item>
+        <item name="lpInk">@color/bone_ink</item>
+        <item name="lpInkSecondary">@color/bone_ink_secondary</item>
+        <item name="lpInkTertiary">@color/bone_ink_tertiary</item>
+        <item name="lpInkInverse">@color/bone_ink_inverse</item>
+        <item name="lpInkInverseSecondary">@color/bone_ink_inverse_secondary</item>
+        <item name="lpAccent">@color/bone_accent</item>
+        <item name="lpAccentPressed">@color/bone_accent_pressed</item>
+        <item name="lpAccentWash">@color/bone_accent_wash</item>
+        <item name="lpPositive">@color/bone_positive</item>
+        <item name="lpNegative">@color/bone_negative</item>
+        <item name="lpNeutral">@color/bone_neutral</item>
+        <item name="lpIntentStrength">@color/bone_intent_strength</item>
+        <item name="lpIntentBuild">@color/bone_intent_build</item>
+        <item name="lpIntentFlush">@color/bone_intent_flush</item>
+        <item name="lpIntentWarmup">@color/bone_intent_warmup</item>
+        <item name="lpChartVolume">@color/bone_chart_volume</item>
+        <item name="lpChartRpe">@color/bone_chart_rpe</item>
+        <item name="lpChartTime">@color/bone_chart_time</item>
+        <item name="lpChartFatigue">@color/bone_chart_fatigue</item>
+        <item name="lpChartGrid">@color/bone_chart_grid</item>
+        <item name="lpRipple">@color/bone_ripple</item>
+        <item name="lpRippleInverse">@color/bone_ripple_inverse</item>
+
+        <item name="colorPrimary">@color/bone_accent</item>
+        <item name="colorPrimaryVariant">@color/bone_accent_pressed</item>
+        <item name="colorOnPrimary">@color/bone_ink_inverse</item>
+        <item name="colorSecondary">@color/bone_accent</item>
+        <item name="colorSecondaryVariant">@color/bone_accent_pressed</item>
+        <item name="colorOnSecondary">@color/bone_ink_inverse</item>
+        <item name="colorSurface">@color/bone_surface</item>
+        <item name="colorOnSurface">@color/bone_ink</item>
+        <item name="colorError">@color/bone_negative</item>
+        <item name="colorOnError">@color/bone_ink_inverse</item>
+        <item name="colorControlNormal">@color/bone_ink_secondary</item>
+        <item name="colorControlActivated">@color/bone_accent</item>
+        <item name="colorControlHighlight">@color/bone_ripple</item>
+        <item name="android:windowBackground">@color/bone_canvas</item>
+        <item name="android:textColorPrimary">@color/bone_ink</item>
+        <item name="android:textColorSecondary">@color/bone_ink_secondary</item>
+        <item name="android:textColorTertiary">@color/bone_ink_tertiary</item>
+        <item name="android:textColorHint">@color/bone_ink_tertiary</item>
+    </style>
+
+    <style name="ThemeOverlay.LiftPath.Steel" parent="">
+        <item name="lpCanvas">@color/steel_canvas</item>
+        <item name="lpCanvasSunken">@color/steel_canvas_sunken</item>
+        <item name="lpSurface">@color/steel_surface</item>
+        <item name="lpSurfaceAlt">@color/steel_surface_alt</item>
+        <item name="lpHairline">@color/steel_hairline</item>
+        <item name="lpHairlineStrong">@color/steel_hairline_strong</item>
+        <item name="lpInk">@color/steel_ink</item>
+        <item name="lpInkSecondary">@color/steel_ink_secondary</item>
+        <item name="lpInkTertiary">@color/steel_ink_tertiary</item>
+        <item name="lpInkInverse">@color/steel_ink_inverse</item>
+        <item name="lpInkInverseSecondary">@color/steel_ink_inverse_secondary</item>
+        <item name="lpAccent">@color/steel_accent</item>
+        <item name="lpAccentPressed">@color/steel_accent_pressed</item>
+        <item name="lpAccentWash">@color/steel_accent_wash</item>
+        <item name="lpPositive">@color/steel_positive</item>
+        <item name="lpNegative">@color/steel_negative</item>
+        <item name="lpNeutral">@color/steel_neutral</item>
+        <item name="lpIntentStrength">@color/steel_intent_strength</item>
+        <item name="lpIntentBuild">@color/steel_intent_build</item>
+        <item name="lpIntentFlush">@color/steel_intent_flush</item>
+        <item name="lpIntentWarmup">@color/steel_intent_warmup</item>
+        <item name="lpChartVolume">@color/steel_chart_volume</item>
+        <item name="lpChartRpe">@color/steel_chart_rpe</item>
+        <item name="lpChartTime">@color/steel_chart_time</item>
+        <item name="lpChartFatigue">@color/steel_chart_fatigue</item>
+        <item name="lpChartGrid">@color/steel_chart_grid</item>
+        <item name="lpRipple">@color/steel_ripple</item>
+        <item name="lpRippleInverse">@color/steel_ripple_inverse</item>
+
+        <item name="colorPrimary">@color/steel_accent</item>
+        <item name="colorPrimaryVariant">@color/steel_accent_pressed</item>
+        <item name="colorOnPrimary">@color/steel_ink_inverse</item>
+        <item name="colorSecondary">@color/steel_accent</item>
+        <item name="colorSecondaryVariant">@color/steel_accent_pressed</item>
+        <item name="colorOnSecondary">@color/steel_ink_inverse</item>
+        <item name="colorSurface">@color/steel_surface</item>
+        <item name="colorOnSurface">@color/steel_ink</item>
+        <item name="colorError">@color/steel_negative</item>
+        <item name="colorOnError">@color/steel_ink_inverse</item>
+        <item name="colorControlNormal">@color/steel_ink_secondary</item>
+        <item name="colorControlActivated">@color/steel_accent</item>
+        <item name="colorControlHighlight">@color/steel_ripple</item>
+        <item name="android:windowBackground">@color/steel_canvas</item>
+        <item name="android:textColorPrimary">@color/steel_ink</item>
+        <item name="android:textColorSecondary">@color/steel_ink_secondary</item>
+        <item name="android:textColorTertiary">@color/steel_ink_tertiary</item>
+        <item name="android:textColorHint">@color/steel_ink_tertiary</item>
+    </style>
+
+    <style name="ThemeOverlay.LiftPath.Cloud" parent="">
+        <item name="lpCanvas">@color/cloud_canvas</item>
+        <item name="lpCanvasSunken">@color/cloud_canvas_sunken</item>
+        <item name="lpSurface">@color/cloud_surface</item>
+        <item name="lpSurfaceAlt">@color/cloud_surface_alt</item>
+        <item name="lpHairline">@color/cloud_hairline</item>
+        <item name="lpHairlineStrong">@color/cloud_hairline_strong</item>
+        <item name="lpInk">@color/cloud_ink</item>
+        <item name="lpInkSecondary">@color/cloud_ink_secondary</item>
+        <item name="lpInkTertiary">@color/cloud_ink_tertiary</item>
+        <item name="lpInkInverse">@color/cloud_ink_inverse</item>
+        <item name="lpInkInverseSecondary">@color/cloud_ink_inverse_secondary</item>
+        <item name="lpAccent">@color/cloud_accent</item>
+        <item name="lpAccentPressed">@color/cloud_accent_pressed</item>
+        <item name="lpAccentWash">@color/cloud_accent_wash</item>
+        <item name="lpPositive">@color/cloud_positive</item>
+        <item name="lpNegative">@color/cloud_negative</item>
+        <item name="lpNeutral">@color/cloud_neutral</item>
+        <item name="lpIntentStrength">@color/cloud_intent_strength</item>
+        <item name="lpIntentBuild">@color/cloud_intent_build</item>
+        <item name="lpIntentFlush">@color/cloud_intent_flush</item>
+        <item name="lpIntentWarmup">@color/cloud_intent_warmup</item>
+        <item name="lpChartVolume">@color/cloud_chart_volume</item>
+        <item name="lpChartRpe">@color/cloud_chart_rpe</item>
+        <item name="lpChartTime">@color/cloud_chart_time</item>
+        <item name="lpChartFatigue">@color/cloud_chart_fatigue</item>
+        <item name="lpChartGrid">@color/cloud_chart_grid</item>
+        <item name="lpRipple">@color/cloud_ripple</item>
+        <item name="lpRippleInverse">@color/cloud_ripple_inverse</item>
+
+        <item name="colorPrimary">@color/cloud_accent</item>
+        <item name="colorPrimaryVariant">@color/cloud_accent_pressed</item>
+        <item name="colorOnPrimary">@color/cloud_ink_inverse</item>
+        <item name="colorSecondary">@color/cloud_accent</item>
+        <item name="colorSecondaryVariant">@color/cloud_accent_pressed</item>
+        <item name="colorOnSecondary">@color/cloud_ink_inverse</item>
+        <item name="colorSurface">@color/cloud_surface</item>
+        <item name="colorOnSurface">@color/cloud_ink</item>
+        <item name="colorError">@color/cloud_negative</item>
+        <item name="colorOnError">@color/cloud_ink_inverse</item>
+        <item name="colorControlNormal">@color/cloud_ink_secondary</item>
+        <item name="colorControlActivated">@color/cloud_accent</item>
+        <item name="colorControlHighlight">@color/cloud_ripple</item>
+        <item name="android:windowBackground">@color/cloud_canvas</item>
+        <item name="android:textColorPrimary">@color/cloud_ink</item>
+        <item name="android:textColorSecondary">@color/cloud_ink_secondary</item>
+        <item name="android:textColorTertiary">@color/cloud_ink_tertiary</item>
+        <item name="android:textColorHint">@color/cloud_ink_tertiary</item>
+    </style>
+
+    <style name="ThemeOverlay.LiftPath.Ash" parent="">
+        <item name="lpCanvas">@color/ash_canvas</item>
+        <item name="lpCanvasSunken">@color/ash_canvas_sunken</item>
+        <item name="lpSurface">@color/ash_surface</item>
+        <item name="lpSurfaceAlt">@color/ash_surface_alt</item>
+        <item name="lpHairline">@color/ash_hairline</item>
+        <item name="lpHairlineStrong">@color/ash_hairline_strong</item>
+        <item name="lpInk">@color/ash_ink</item>
+        <item name="lpInkSecondary">@color/ash_ink_secondary</item>
+        <item name="lpInkTertiary">@color/ash_ink_tertiary</item>
+        <item name="lpInkInverse">@color/ash_ink_inverse</item>
+        <item name="lpInkInverseSecondary">@color/ash_ink_inverse_secondary</item>
+        <item name="lpAccent">@color/ash_accent</item>
+        <item name="lpAccentPressed">@color/ash_accent_pressed</item>
+        <item name="lpAccentWash">@color/ash_accent_wash</item>
+        <item name="lpPositive">@color/ash_positive</item>
+        <item name="lpNegative">@color/ash_negative</item>
+        <item name="lpNeutral">@color/ash_neutral</item>
+        <item name="lpIntentStrength">@color/ash_intent_strength</item>
+        <item name="lpIntentBuild">@color/ash_intent_build</item>
+        <item name="lpIntentFlush">@color/ash_intent_flush</item>
+        <item name="lpIntentWarmup">@color/ash_intent_warmup</item>
+        <item name="lpChartVolume">@color/ash_chart_volume</item>
+        <item name="lpChartRpe">@color/ash_chart_rpe</item>
+        <item name="lpChartTime">@color/ash_chart_time</item>
+        <item name="lpChartFatigue">@color/ash_chart_fatigue</item>
+        <item name="lpChartGrid">@color/ash_chart_grid</item>
+        <item name="lpRipple">@color/ash_ripple</item>
+        <item name="lpRippleInverse">@color/ash_ripple_inverse</item>
+
+        <item name="colorPrimary">@color/ash_accent</item>
+        <item name="colorPrimaryVariant">@color/ash_accent_pressed</item>
+        <item name="colorOnPrimary">@color/ash_ink_inverse</item>
+        <item name="colorSecondary">@color/ash_accent</item>
+        <item name="colorSecondaryVariant">@color/ash_accent_pressed</item>
+        <item name="colorOnSecondary">@color/ash_ink_inverse</item>
+        <item name="colorSurface">@color/ash_surface</item>
+        <item name="colorOnSurface">@color/ash_ink</item>
+        <item name="colorError">@color/ash_negative</item>
+        <item name="colorOnError">@color/ash_ink_inverse</item>
+        <item name="colorControlNormal">@color/ash_ink_secondary</item>
+        <item name="colorControlActivated">@color/ash_accent</item>
+        <item name="colorControlHighlight">@color/ash_ripple</item>
+        <item name="android:windowBackground">@color/ash_canvas</item>
+        <item name="android:textColorPrimary">@color/ash_ink</item>
+        <item name="android:textColorSecondary">@color/ash_ink_secondary</item>
+        <item name="android:textColorTertiary">@color/ash_ink_tertiary</item>
+        <item name="android:textColorHint">@color/ash_ink_tertiary</item>
+    </style>
+
+    <style name="ThemeOverlay.LiftPath.Sand" parent="">
+        <item name="lpCanvas">@color/sand_canvas</item>
+        <item name="lpCanvasSunken">@color/sand_canvas_sunken</item>
+        <item name="lpSurface">@color/sand_surface</item>
+        <item name="lpSurfaceAlt">@color/sand_surface_alt</item>
+        <item name="lpHairline">@color/sand_hairline</item>
+        <item name="lpHairlineStrong">@color/sand_hairline_strong</item>
+        <item name="lpInk">@color/sand_ink</item>
+        <item name="lpInkSecondary">@color/sand_ink_secondary</item>
+        <item name="lpInkTertiary">@color/sand_ink_tertiary</item>
+        <item name="lpInkInverse">@color/sand_ink_inverse</item>
+        <item name="lpInkInverseSecondary">@color/sand_ink_inverse_secondary</item>
+        <item name="lpAccent">@color/sand_accent</item>
+        <item name="lpAccentPressed">@color/sand_accent_pressed</item>
+        <item name="lpAccentWash">@color/sand_accent_wash</item>
+        <item name="lpPositive">@color/sand_positive</item>
+        <item name="lpNegative">@color/sand_negative</item>
+        <item name="lpNeutral">@color/sand_neutral</item>
+        <item name="lpIntentStrength">@color/sand_intent_strength</item>
+        <item name="lpIntentBuild">@color/sand_intent_build</item>
+        <item name="lpIntentFlush">@color/sand_intent_flush</item>
+        <item name="lpIntentWarmup">@color/sand_intent_warmup</item>
+        <item name="lpChartVolume">@color/sand_chart_volume</item>
+        <item name="lpChartRpe">@color/sand_chart_rpe</item>
+        <item name="lpChartTime">@color/sand_chart_time</item>
+        <item name="lpChartFatigue">@color/sand_chart_fatigue</item>
+        <item name="lpChartGrid">@color/sand_chart_grid</item>
+        <item name="lpRipple">@color/sand_ripple</item>
+        <item name="lpRippleInverse">@color/sand_ripple_inverse</item>
+
+        <item name="colorPrimary">@color/sand_accent</item>
+        <item name="colorPrimaryVariant">@color/sand_accent_pressed</item>
+        <item name="colorOnPrimary">@color/sand_ink_inverse</item>
+        <item name="colorSecondary">@color/sand_accent</item>
+        <item name="colorSecondaryVariant">@color/sand_accent_pressed</item>
+        <item name="colorOnSecondary">@color/sand_ink_inverse</item>
+        <item name="colorSurface">@color/sand_surface</item>
+        <item name="colorOnSurface">@color/sand_ink</item>
+        <item name="colorError">@color/sand_negative</item>
+        <item name="colorOnError">@color/sand_ink_inverse</item>
+        <item name="colorControlNormal">@color/sand_ink_secondary</item>
+        <item name="colorControlActivated">@color/sand_accent</item>
+        <item name="colorControlHighlight">@color/sand_ripple</item>
+        <item name="android:windowBackground">@color/sand_canvas</item>
+        <item name="android:textColorPrimary">@color/sand_ink</item>
+        <item name="android:textColorSecondary">@color/sand_ink_secondary</item>
+        <item name="android:textColorTertiary">@color/sand_ink_tertiary</item>
+        <item name="android:textColorHint">@color/sand_ink_tertiary</item>
+    </style>
+
+    <style name="ThemeOverlay.LiftPath.Fog" parent="">
+        <item name="lpCanvas">@color/fog_canvas</item>
+        <item name="lpCanvasSunken">@color/fog_canvas_sunken</item>
+        <item name="lpSurface">@color/fog_surface</item>
+        <item name="lpSurfaceAlt">@color/fog_surface_alt</item>
+        <item name="lpHairline">@color/fog_hairline</item>
+        <item name="lpHairlineStrong">@color/fog_hairline_strong</item>
+        <item name="lpInk">@color/fog_ink</item>
+        <item name="lpInkSecondary">@color/fog_ink_secondary</item>
+        <item name="lpInkTertiary">@color/fog_ink_tertiary</item>
+        <item name="lpInkInverse">@color/fog_ink_inverse</item>
+        <item name="lpInkInverseSecondary">@color/fog_ink_inverse_secondary</item>
+        <item name="lpAccent">@color/fog_accent</item>
+        <item name="lpAccentPressed">@color/fog_accent_pressed</item>
+        <item name="lpAccentWash">@color/fog_accent_wash</item>
+        <item name="lpPositive">@color/fog_positive</item>
+        <item name="lpNegative">@color/fog_negative</item>
+        <item name="lpNeutral">@color/fog_neutral</item>
+        <item name="lpIntentStrength">@color/fog_intent_strength</item>
+        <item name="lpIntentBuild">@color/fog_intent_build</item>
+        <item name="lpIntentFlush">@color/fog_intent_flush</item>
+        <item name="lpIntentWarmup">@color/fog_intent_warmup</item>
+        <item name="lpChartVolume">@color/fog_chart_volume</item>
+        <item name="lpChartRpe">@color/fog_chart_rpe</item>
+        <item name="lpChartTime">@color/fog_chart_time</item>
+        <item name="lpChartFatigue">@color/fog_chart_fatigue</item>
+        <item name="lpChartGrid">@color/fog_chart_grid</item>
+        <item name="lpRipple">@color/fog_ripple</item>
+        <item name="lpRippleInverse">@color/fog_ripple_inverse</item>
+
+        <item name="colorPrimary">@color/fog_accent</item>
+        <item name="colorPrimaryVariant">@color/fog_accent_pressed</item>
+        <item name="colorOnPrimary">@color/fog_ink_inverse</item>
+        <item name="colorSecondary">@color/fog_accent</item>
+        <item name="colorSecondaryVariant">@color/fog_accent_pressed</item>
+        <item name="colorOnSecondary">@color/fog_ink_inverse</item>
+        <item name="colorSurface">@color/fog_surface</item>
+        <item name="colorOnSurface">@color/fog_ink</item>
+        <item name="colorError">@color/fog_negative</item>
+        <item name="colorOnError">@color/fog_ink_inverse</item>
+        <item name="colorControlNormal">@color/fog_ink_secondary</item>
+        <item name="colorControlActivated">@color/fog_accent</item>
+        <item name="colorControlHighlight">@color/fog_ripple</item>
+        <item name="android:windowBackground">@color/fog_canvas</item>
+        <item name="android:textColorPrimary">@color/fog_ink</item>
+        <item name="android:textColorSecondary">@color/fog_ink_secondary</item>
+        <item name="android:textColorTertiary">@color/fog_ink_tertiary</item>
+        <item name="android:textColorHint">@color/fog_ink_tertiary</item>
+    </style>
+
+    <!-- ==================================================================
+         DIALOGS — attribute-driven so they follow the active palette
+         ================================================================== -->
+
     <style name="MaterialAlertDialog.Fitness.Title" parent="MaterialAlertDialog.MaterialComponents.Title.Text">
-        <item name="android:textColor">@color/fitness_text_primary</item>
-        <item name="android:textSize">20sp</item>
-        <item name="android:textStyle">bold</item>
+        <item name="android:textAppearance">@style/TextAppearance.LP.Heading</item>
+        <item name="android:textColor">?attr/lpInk</item>
     </style>
-    
-    <!-- MaterialAlertDialog Body Style -->
+
     <style name="MaterialAlertDialog.Fitness.Body" parent="MaterialAlertDialog.MaterialComponents.Body.Text">
-        <item name="android:textColor">@color/fitness_text_primary</item>
-        <item name="android:textSize">15sp</item>
+        <item name="android:textAppearance">@style/TextAppearance.LP.Body</item>
+        <item name="android:textColor">?attr/lpInkSecondary</item>
     </style>
-    
-    <!-- MaterialAlertDialog Button Style - Uses primary color -->
+
     <style name="MaterialAlertDialog.Fitness.Button" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
-        <item name="android:textColor">@color/fitness_primary</item>
-        <item name="android:textSize">15sp</item>
-        <item name="android:textStyle">bold</item>
+        <item name="android:textAppearance">@style/TextAppearance.LP.Label</item>
+        <item name="android:textColor">?attr/lpAccent</item>
     </style>
-    
-    <!-- Shape Appearance for Fitness Dialog with 24dp corner radius -->
+
     <style name="ShapeAppearance.Fitness.Dialog" parent="ShapeAppearance.MaterialComponents.MediumComponent">
-        <item name="cornerSize">@dimen/dialog_corner_radius</item>
+        <item name="cornerSize">@dimen/lp_radius_lg</item>
     </style>
-    
-    <!-- Theme Overlay for Fitness MaterialAlertDialog -->
+
     <style name="ThemeOverlay.Fitness.MaterialAlertDialog" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
-        <!-- Transparent window background to prevent square corners showing -->
+        <!-- Transparent window so the rounded content drawable has no square corners
+             showing behind it. See showWithTransparentWindow() in DialogHelper. -->
         <item name="android:windowBackground">@android:color/transparent</item>
-        
-        <!-- Background drawable with 24dp rounded corners - applied to content view -->
         <item name="android:background">@drawable/bg_dialog_rounded</item>
-        
-        <!-- Background color - uses card background -->
-        <item name="colorSurface">@color/fitness_card_background</item>
-        
-        <!-- Primary color for buttons -->
-        <item name="colorPrimary">@color/fitness_primary</item>
-        <item name="colorOnPrimary">@color/white</item>
-        
-        <!-- Surface and text colors -->
-        <item name="colorOnSurface">@color/fitness_text_primary</item>
-        <item name="android:textColorPrimary">@color/fitness_text_primary</item>
-        <item name="android:textColorSecondary">@color/fitness_text_secondary</item>
-        
-        <!-- Apply custom text styles -->
+
+        <item name="colorSurface">?attr/lpSurface</item>
+        <item name="colorOnSurface">?attr/lpInk</item>
+        <item name="colorPrimary">?attr/lpAccent</item>
+        <item name="colorOnPrimary">?attr/lpInkInverse</item>
+        <item name="android:textColorPrimary">?attr/lpInk</item>
+        <item name="android:textColorSecondary">?attr/lpInkSecondary</item>
+
+        <item name="shapeAppearanceMediumComponent">@style/ShapeAppearance.Fitness.Dialog</item>
         <item name="materialAlertDialogTitleTextStyle">@style/MaterialAlertDialog.Fitness.Title</item>
         <item name="materialAlertDialogBodyTextStyle">@style/MaterialAlertDialog.Fitness.Body</item>
         <item name="buttonBarButtonStyle">@style/MaterialAlertDialog.Fitness.Button</item>
     </style>
-    
-    <!-- Theme Overlay for Fitness BottomSheetDialog -->
+
     <style name="ThemeOverlay.Fitness.BottomSheetDialog" parent="ThemeOverlay.MaterialComponents.BottomSheetDialog">
-        <!-- Background color - uses card background -->
-        <item name="colorSurface">@color/fitness_card_background</item>
-        
-        <!-- Primary color -->
-        <item name="colorPrimary">@color/fitness_primary</item>
-        <item name="colorOnPrimary">@color/white</item>
-        
-        <!-- Surface and text colors -->
-        <item name="colorOnSurface">@color/fitness_text_primary</item>
-        <item name="android:textColorPrimary">@color/fitness_text_primary</item>
-        <item name="android:textColorSecondary">@color/fitness_text_secondary</item>
+        <item name="colorSurface">?attr/lpSurface</item>
+        <item name="colorOnSurface">?attr/lpInk</item>
+        <item name="colorPrimary">?attr/lpAccent</item>
+        <item name="colorOnPrimary">?attr/lpInkInverse</item>
+        <item name="android:textColorPrimary">?attr/lpInk</item>
+        <item name="android:textColorSecondary">?attr/lpInkSecondary</item>
+        <item name="shapeAppearanceLargeComponent">@style/ShapeAppearance.LP.Large</item>
     </style>
-    
-    <!-- Animation style for top sheet dialog (slides down from top) -->
+
+    <!-- Slides down from the top; used by the top-sheet variant. -->
     <style name="TopSheetDialogAnimation">
         <item name="android:windowEnterAnimation">@anim/slide_down_in</item>
         <item name="android:windowExitAnimation">@anim/slide_down_out</item>
     </style>
-    
-    <!-- Tab text appearance for Progress tabs -->
-    <style name="TabTextAppearance" parent="TextAppearance.MaterialComponents.Button">
-        <item name="android:textSize">14sp</item>
-        <item name="android:textStyle">bold</item>
-        <item name="textAllCaps">false</item>
-    </style>
+
+    <!-- Legacy name still referenced by unmigrated tab layouts. Repointed at the LP scale
+         so tabs are consistent even before those screens are migrated. -->
+    <style name="TabTextAppearance" parent="TextAppearance.LP.Tab" />
+
 </resources>

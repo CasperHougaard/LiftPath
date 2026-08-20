@@ -1,18 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-   Backup rules for LiftPath app
-   Ensures training data and user preferences are backed up to Google Drive
-   and restored when app is reinstalled from Play Store
-   
+   Backup rules for API <= 30 (never consulted at this app's minSdk 35 — mirrored anyway so
+   this file and data_extraction_rules.xml don't silently drift into contradiction if minSdk
+   ever drops).
+
+   Only files/cloud_backup/ (CloudSnapshotStore's curated snapshot) is backed up; raw
+   SharedPreferences are excluded since everything that matters is already in the snapshot.
+
    See https://developer.android.com/guide/topics/data/autobackup
 -->
 <full-backup-content>
-    <!-- Include all files in the app's files directory (where training_data.json is stored) -->
-    <include domain="file" path="."/>
-    
-    <!-- Include all SharedPreferences (user settings, preferences) -->
-    <include domain="sharedpref" path="."/>
-    
-    <!-- Include databases if any -->
-    <include domain="database" path="."/>
+    <include domain="file" path="cloud_backup/"/>
+    <exclude domain="sharedpref" path="."/>
 </full-backup-content>

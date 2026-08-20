@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Lateral Band Walk -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="160dp"
+    android:height="160dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+    <path
+        android:pathData="M20,182 L180,182"
+        android:strokeColor="?attr/lpInkSecondary"
+        android:strokeWidth="4"
+        android:strokeAlpha="0.7"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M100,80 L96,130 M96,130 L74,150 L68,182 M96,130 L124,150 L134,182"
+        android:strokeColor="?attr/lpInk"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M75,175 Q100,166 130,175"
+        android:strokeColor="?attr/lpAccent"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M87,66 a13,13 0 1,0 26,0 a13,13 0 1,0 -26,0"
+        android:fillColor="?attr/lpInk" />
+</vector>

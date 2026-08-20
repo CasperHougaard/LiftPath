@@ -3,7 +3,6 @@ package com.liftpath.activities
 import android.app.Activity
 import android.content.Intent
 import android.content.res.ColorStateList
-import android.graphics.Color
 import android.graphics.drawable.Animatable
 import android.os.Build
 import android.os.Bundle
@@ -13,6 +12,7 @@ import android.text.Editable
 import android.text.Html
 import android.text.InputType
 import android.text.TextWatcher
+import android.view.HapticFeedbackConstants
 import android.view.View
 import android.widget.EditText
 import android.widget.FrameLayout
@@ -32,6 +32,7 @@ import com.liftpath.helpers.showWithTransparentWindow
 import com.liftpath.models.ExerciseEntry
 import com.liftpath.models.SetIntent
 import java.util.Locale
+import com.liftpath.helpers.lpColor
 
 class LogSetActivity : AppCompatActivity() {
 
@@ -143,13 +144,13 @@ class LogSetActivity : AppCompatActivity() {
             showRpeHelpDialog()
         }
 
-        when {
-            isTimeBased -> setupTimeMode()
-            isBodyweight -> setupBodyweightMode()
-            else -> {
-                prefillLastSetFallback()
-                showWeightSuggestion()
-            }
+        // The two axes are independent: an exercise can be BODYWEIGHT + TIME (e.g. a plank), in
+        // which case both the body-weight snapshot UI and the timer are shown.
+        if (isTimeBased) setupTimeMode()
+        if (isBodyweight) setupBodyweightMode()
+        if (!isTimeBased && !isBodyweight) {
+            prefillLastSetFallback()
+            showWeightSuggestion()
         }
         if (!isTimeBased) prefillRepsFromPreviousSet()
 
@@ -164,19 +165,14 @@ class LogSetActivity : AppCompatActivity() {
         // Store original RPE hint
         originalRpeHint = binding.textInputLayoutRpe.hint
 
-        // Warmup chip (replaces checkbox)
+        // Warmup chip (replaces checkbox). Checked goes lpIntentWarmup rather than the ink fill
+        // Widget.LP.Chip.Choice would give it — a warmup set is the one thing on this screen with
+        // its own semantic colour, and it's worth spending it here so the state is unmistakable.
         binding.chipWarmup.setOnCheckedChangeListener { _, isChecked ->
             updateRpeFieldForWarmup(isChecked)
-            val bg = if (isChecked)
-                ColorStateList.valueOf(ContextCompat.getColor(this, R.color.intent_warmup))
-            else
-                ColorStateList.valueOf(Color.TRANSPARENT)
-            binding.chipWarmup.chipBackgroundColor = bg
-            binding.chipWarmup.setTextColor(
-                if (isChecked) ContextCompat.getColor(this, R.color.white)
-                else ContextCompat.getColor(this, R.color.fitness_text_secondary)
-            )
+            applyWarmupChipColors(isChecked)
         }
+        applyWarmupChipColors(binding.chipWarmup.isChecked)
 
         // Initialize RPE field state based on initial warmup chip state
         updateRpeFieldForWarmup(binding.chipWarmup.isChecked)
@@ -265,6 +261,22 @@ class LogSetActivity : AppCompatActivity() {
             .lastOrNull()
     }
 
+    /**
+     * The last logged *timed* set, so a timed exercise never prefills from a stale rep-based entry
+     * (which would carry durationSeconds == null and a meaningless reps count).
+     */
+    private fun getLastTimedSetFromHistory(): ExerciseEntry? {
+        val trainingData = jsonHelper.readTrainingData()
+        return trainingData.trainings
+            .flatMap { it.exercises }
+            .filter {
+                it.exerciseId == exerciseId &&
+                !it.isEffectivelyWarmup() &&
+                it.isTimedEntry()
+            }
+            .lastOrNull()
+    }
+
     private fun prefillRepsFromPreviousSet() {
         if (setNumber <= 1) return
         val reps = previousSetReps ?: return
@@ -273,23 +285,30 @@ class LogSetActivity : AppCompatActivity() {
 
     // --- Time-based (isometric hold) logging ---
 
+    /**
+     * Sets up the duration half of the screen. Owns only the metric (reps ⇄ timer); the load half
+     * is left to [setupBodyweightMode] when the exercise is also bodyweight, so a bodyweight hold
+     * still captures its body-weight snapshot.
+     */
     private fun setupTimeMode() {
         // Swap reps stepper for the timer block.
         binding.repsContainer.visibility = View.GONE
         binding.timeContainer.visibility = View.VISIBLE
-        // Weight stays available but is optional; bodyweight-snapshot UI is not used for timed holds.
-        binding.bodyweightContainer.visibility = View.GONE
-        binding.textInputLayoutExtra.visibility = View.GONE
-        binding.layoutWeightStepperRow.visibility = View.VISIBLE
-        binding.textInputLayoutKg.visibility = View.VISIBLE
-        binding.textInputLayoutKg.hint = getString(R.string.optional_kg_hint)
         binding.cardSuggestionHint.visibility = View.GONE
 
+        // A weighted hold keeps the optional external-load field; a bodyweight hold uses the
+        // body-weight snapshot UI instead (configured by setupBodyweightMode).
+        if (!isBodyweight) {
+            binding.layoutWeightStepperRow.visibility = View.VISIBLE
+            binding.textInputLayoutKg.visibility = View.VISIBLE
+            binding.textInputLayoutKg.hint = getString(R.string.optional_kg_hint)
+        }
+
         // Prefill: last logged hold for this exercise, else the plan target.
-        val last = getLastWorkingSetFromHistory()
+        val last = getLastTimedSetFromHistory()
         val targetSeconds = intent.getIntExtra(EXTRA_DURATION_TARGET, -1).takeIf { it > 0 }
         currentDurationSeconds = last?.durationSeconds ?: targetSeconds ?: 0
-        if (last != null && last.kg > 0f && binding.editTextKg.text.isNullOrBlank()) {
+        if (!isBodyweight && last != null && last.kg > 0f && binding.editTextKg.text.isNullOrBlank()) {
             binding.editTextKg.setText(formatNum(last.kg))
         }
         last?.rpe?.let {
@@ -352,6 +371,11 @@ class LogSetActivity : AppCompatActivity() {
     /** Body weight & total load are always shown to 1 decimal. */
     private fun format1(v: Float): String = String.format(Locale.US, "%.1f", v)
 
+    /**
+     * Sets up the load half of the screen: body-weight snapshot chip plus the signed Added/Assisted
+     * extra. Independent of the metric half, so it composes with [setupTimeMode] for a bodyweight
+     * hold.
+     */
     private fun setupBodyweightMode() {
         binding.layoutWeightStepperRow.visibility = View.GONE  // hides label + stepper together
         binding.textInputLayoutKg.visibility = View.GONE
@@ -367,11 +391,12 @@ class LogSetActivity : AppCompatActivity() {
             binding.chipAdded.isChecked = true
         }
 
-        // Prefill from the last logged set for this exercise.
-        val last = getLastWorkingSetFromHistory()
+        // Prefill from the last logged set for this exercise, matching the current metric so a
+        // bodyweight hold doesn't inherit a rep count and vice versa.
+        val last = if (isTimeBased) getLastTimedSetFromHistory() else getLastWorkingSetFromHistory()
         if (last != null) {
             if (loggedBodyweight == null) loggedBodyweight = last.bodyweightKg
-            if (binding.editTextReps.text.isNullOrBlank()) {
+            if (!isTimeBased && binding.editTextReps.text.isNullOrBlank()) {
                 binding.editTextReps.setText(last.reps.toString())
             }
             when (val added = last.addedKg) {
@@ -637,16 +662,14 @@ class LogSetActivity : AppCompatActivity() {
             durationSeconds = null
         }
 
-        // Resolve the load. Time: optional kg (blank => 0, bodyweight hold). Weighted: kg from the
-        // field. Bodyweight: effective = bodyweight + signed extra.
+        // Resolve the load, independently of the metric above.
+        //  - Bodyweight (reps or hold): effective = body-weight snapshot + signed extra.
+        //  - Weighted hold: optional external kg (blank => 0, an unloaded hold).
+        //  - Weighted reps: kg is required.
         val kg: Float
         val bodyweightKgValue: Float?
         val addedKgValue: Float?
-        if (isTimeBased) {
-            kg = binding.editTextKg.text.toString().toFloatOrNull() ?: 0f
-            bodyweightKgValue = null
-            addedKgValue = null
-        } else if (isBodyweight) {
+        if (isBodyweight) {
             val bw = loggedBodyweight
             if (bw == null) {
                 Toast.makeText(this, getString(R.string.bodyweight_need_value), Toast.LENGTH_SHORT).show()
@@ -662,6 +685,10 @@ class LogSetActivity : AppCompatActivity() {
             kg = effective
             bodyweightKgValue = roundedBw
             addedKgValue = added
+        } else if (isTimeBased) {
+            kg = binding.editTextKg.text.toString().toFloatOrNull() ?: 0f
+            bodyweightKgValue = null
+            addedKgValue = null
         } else {
             val parsedKg = binding.editTextKg.text.toString().toFloatOrNull()
             if (parsedKg == null) {
@@ -806,6 +833,22 @@ class LogSetActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Warmup chip fill + label.
+     *
+     * Set from code rather than a colour state list because the checked colour is
+     * `lpIntentWarmup`, not the ink that `Widget.LP.Chip.Choice` uses for every other chip in
+     * the app; the label flips to inverse ink to stay legible on it.
+     */
+    private fun applyWarmupChipColors(isChecked: Boolean) {
+        binding.chipWarmup.chipBackgroundColor = ColorStateList.valueOf(
+            if (isChecked) this.lpColor(R.attr.lpIntentWarmup) else this.lpColor(R.attr.lpSurface)
+        )
+        binding.chipWarmup.setTextColor(
+            if (isChecked) this.lpColor(R.attr.lpInkInverse) else this.lpColor(R.attr.lpInk)
+        )
+    }
+
     // ── Stepper helpers ────────────────────────────────────────────
 
     private fun setupSteppers() {
@@ -841,10 +884,18 @@ class LogSetActivity : AppCompatActivity() {
         }
     }
 
-    /** Sets text and moves cursor to end so subsequent manual edits feel natural. */
+    /**
+     * Sets text, moves the cursor to the end so a manual edit afterwards feels natural, and
+     * ticks the phone.
+     *
+     * The haptic is what makes a stepper feel like a physical control rather than a repaint —
+     * you can nudge a weight up four notches without looking at the field. CLOCK_TICK is the
+     * lightest constant available; CONFIRM would be too much six times in a row.
+     */
     private fun setStepperText(field: EditText, value: String) {
         field.setText(value)
         field.setSelection(field.text?.length ?: 0)
+        field.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
     }
 
     /** Avoids float edge-case: treats values within 0.001 of a whole number as integers. */
@@ -860,28 +911,28 @@ class LogSetActivity : AppCompatActivity() {
         binding.buttonToggleNote.setOnClickListener {
             isNoteExpanded = !isNoteExpanded
             binding.textInputLayoutNote.visibility = if (isNoteExpanded) View.VISIBLE else View.GONE
-            binding.buttonToggleNote.text = if (isNoteExpanded) "Hide note" else "Add note"
+            binding.buttonToggleNote.setText(if (isNoteExpanded) R.string.btn_hide_note else R.string.btn_add_note)
             if (isNoteExpanded) binding.editTextNote.requestFocus()  // user-initiated only
         }
         // Restore expanded state (e.g. prefilled note) without opening the keyboard
         if (!binding.editTextNote.text.isNullOrBlank()) {
             isNoteExpanded = true
             binding.textInputLayoutNote.visibility = View.VISIBLE
-            binding.buttonToggleNote.text = "Hide note"
+            binding.buttonToggleNote.setText(R.string.btn_hide_note)
         }
     }
 
     // ── Intent color ───────────────────────────────────────────────
 
     private fun getIntentColor(intent: SetIntent): Int {
-        val res = when (intent) {
-            SetIntent.STRENGTH -> R.color.intent_strength
-            SetIntent.BUILD    -> R.color.intent_build
-            SetIntent.FLUSH    -> R.color.intent_flush
-            SetIntent.WARMUP   -> R.color.intent_warmup
-            else               -> R.color.fitness_text_secondary
+        val attr = when (intent) {
+            SetIntent.STRENGTH -> R.attr.lpIntentStrength
+            SetIntent.BUILD    -> R.attr.lpIntentBuild
+            SetIntent.FLUSH    -> R.attr.lpIntentFlush
+            SetIntent.WARMUP   -> R.attr.lpIntentWarmup
+            else               -> R.attr.lpInkSecondary
         }
-        return ContextCompat.getColor(this, res)
+        return lpColor(attr)
     }
 
     private fun formatTypeLabel(type: String): String {
@@ -891,9 +942,9 @@ class LogSetActivity : AppCompatActivity() {
     }
 
     private fun updateRpeFieldForWarmup(isWarmup: Boolean) {
-        val greyColor = ContextCompat.getColor(this, R.color.fitness_text_secondary)
-        val normalTextColor = ContextCompat.getColor(this, R.color.fitness_text_primary)
-        val normalHintColor = ContextCompat.getColor(this, R.color.fitness_primary)
+        val greyColor = this.lpColor(R.attr.lpInkSecondary)
+        val normalTextColor = this.lpColor(R.attr.lpInk)
+        val normalHintColor = this.lpColor(R.attr.lpAccent)
 
         if (isWarmup) {
             binding.editTextRpe.setTextColor(greyColor)
@@ -909,7 +960,7 @@ class LogSetActivity : AppCompatActivity() {
             binding.editTextRpe.isEnabled = true
             binding.textInputLayoutRpe.hint = originalRpeHint
             binding.textRpeLabel.setTextColor(normalTextColor)
-            binding.textRpeHint.setTextColor(ContextCompat.getColor(this, R.color.fitness_text_secondary))
+            binding.textRpeHint.setTextColor(this.lpColor(R.attr.lpInkSecondary))
             binding.textInputLayoutRpe.hintTextColor = ColorStateList.valueOf(normalHintColor)
             binding.textInputLayoutRpe.boxStrokeColor = normalHintColor
         }

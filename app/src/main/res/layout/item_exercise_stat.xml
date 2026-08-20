@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginBottom="12dp"
-    app:cardBackgroundColor="@color/fitness_card_background"
+    app:cardBackgroundColor="?attr/lpSurface"
     app:cardCornerRadius="16dp"
     app:cardElevation="2dp">
 
@@ -19,7 +19,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="2025-01-15"
-            android:textColor="@color/fitness_text_secondary"
+            android:textColor="?attr/lpInkSecondary"
             android:textSize="12sp" />
 
         <TextView
@@ -28,7 +28,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:text="Set 1: 100kg × 5 reps"
-            android:textColor="@color/fitness_text_primary"
+            android:textColor="?attr/lpInk"
             android:textSize="16sp" />
     </LinearLayout>
 </androidx.cardview.widget.CardView>

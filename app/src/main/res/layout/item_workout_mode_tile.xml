@@ -1,30 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+<!--
+  One of the 3 top-level choices in the "start workout" sheet (Manual / Follow Plan /
+  Stretch). Icon, title, and subtitle are all set from Kotlin
+  (SelectWorkoutModeBottomSheet.setupTiles) — this file only supplies the shape.
+-->
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    style="@style/Widget.LP.Card.Interactive"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="12dp"
-    android:clickable="true"
-    android:focusable="true"
-    android:foreground="?attr/selectableItemBackground"
-    app:cardBackgroundColor="@color/fitness_card_background"
-    app:cardCornerRadius="20dp"
-    app:cardElevation="4dp">
+    android:layout_marginBottom="@dimen/lp_card_gap">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:padding="20dp"
-        android:gravity="center_vertical">
+        android:padding="@dimen/lp_card_padding">
 
         <ImageView
             android:id="@+id/icon_tile"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_marginEnd="16dp"
-            app:tint="@color/fitness_primary"
-            app:srcCompat="@drawable/ic_play" />
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginEnd="@dimen/lp_space_4"
+            android:contentDescription="@null"
+            app:srcCompat="@drawable/ic_play"
+            app:tint="?attr/lpAccent" />
 
         <LinearLayout
             android:layout_width="0dp"
@@ -37,25 +38,22 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Title"
-                android:textColor="@color/fitness_text_primary"
-                android:textSize="18sp"
-                android:textStyle="bold" />
+                android:textAppearance="@style/TextAppearance.LP.Heading" />
 
             <TextView
                 android:id="@+id/text_tile_subtitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
                 android:text="Subtitle"
-                android:textColor="@color/fitness_text_secondary"
-                android:textSize="14sp"
+                android:textAppearance="@style/TextAppearance.LP.Body"
                 android:visibility="gone" />
         </LinearLayout>
 
         <ImageView
-            android:layout_width="24dp"
-            android:layout_height="24dp"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:contentDescription="@null"
             android:src="@drawable/ic_arrow_forward_24"
-            app:tint="@color/fitness_text_secondary" />
+            app:tint="?attr/lpInkTertiary" />
     </LinearLayout>
-</androidx.cardview.widget.CardView>
+</com.google.android.material.card.MaterialCardView>

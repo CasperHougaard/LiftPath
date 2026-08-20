@@ -1,0 +1,20 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!--
+      In-app brand mark — the same "L" glyph as ic_launcher_foreground, drawn flat white
+      so it can be recoloured with app:tint at the point of use (same contract as
+      lp_hero_glow.xml / lp_bg_ambient_flow.xml). This is what lets one drawable serve all
+      eight palettes instead of eight near-identical variants.
+    -->
+    <group
+        android:translateX="54"
+        android:translateY="54">
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M-20,-24 H-8 V16 H12 V28 H-20 Z" />
+    </group>
+</vector>

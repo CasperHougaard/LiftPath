@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Nav icon: Library (exercise catalogue). See ic_nav_workout for the set's drawing rules. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M4,6.5A1.5,1.5 0,0 1,5.5 5H7v14H5.5A1.5,1.5 0,0 1,4 17.5v-11zM8.5,5H11v14H8.5V5zM12.5,5H15a1.5,1.5 0,0 1,1.5 1.5v11A1.5,1.5 0,0 1,15 19h-2.5V5z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M17.9,6.1l1.9,-0.5 2.7,10.1 -1.9,0.5z" />
+</vector>

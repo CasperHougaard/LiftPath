@@ -1,0 +1,84 @@
+1|Deadlift (Barbell)
+2|Back Squat (Barbell)
+4|Biceps Curl (Dumbbell)
+5|Triceps Pushdown (Cable)
+7|Bench Press (Barbell)
+8|Split Squat (Barbell)
+9|Calf Raise (Machine)
+10|Decline Bench Press (Barbell)
+11|Incline Dumbbell Press
+12|Seated Cable Row
+13|Triceps Extension (Single Arm)
+14|Machine Shoulder Press
+15|Dips (Bodyweight)
+16|Abdominal Crunch (Machine)
+17|Bench Press (Paused)
+18|Seated Leg Curl (Machine)
+100|Overhead Press (Barbell)
+101|Pull Up (Bodyweight)
+102|Chin Up
+103|Romanian Deadlift (Barbell)
+104|Leg Press
+105|Bulgarian Split Squat (Dumbbell)
+106|Lat Pulldown (Wide Grip)
+107|Dumbbell Row
+108|Face Pull (Cable)
+109|Lateral Raise (Dumbbell)
+110|Leg Extension (Machine)
+111|Hip Thrust (Barbell)
+112|Skullcrusher (EZ Bar)
+113|Hammer Curl (Dumbbell)
+114|Front Squat (Barbell)
+115|Walking Lunges
+116|Incline Dumbbell Fly
+117|Pec Deck / Machine Fly
+118|Dumbbell Shoulder Press (Seated)
+119|Reverse Fly (Dumbbell)
+120|Hanging Leg Raise
+121|Plank
+122|Cable Woodchopper
+123|Sumo Deadlift
+124|Barbell Shrug
+125|Farmer's Walk
+126|Glute Bridge (Barbell)
+127|Goblet Squat
+128|Barbell Row (Pendlay)
+129|Cable Crossover
+130|Preacher Curl (EZ Bar)
+131|Push Up
+132|Rotary Torso (Machine)
+133|Incline Press (Machine)
+134|Hip Adduction
+135|Hip Abduction
+136|Romanian Deadlift (Dumbbell)
+137|Side Plank
+138|Eccentric Heel Drop
+139|Chest Press (Machine Wide)
+140|Chest Press (Machine)
+141|Row (Machine)
+142|Prone Leg Curl
+143|Cable Lateral Raise
+144|Incline Barbell Press
+145|Glute (Machine)
+146|Hack Squat
+147|Cable Straight Leg Raises
+148|Cable Straight Back Kicks
+149|Low Row (Machine)
+150|Front Raise (Dumbbell)
+151|Front Raise (Cable)
+152|Upright Row (Barbell)
+153|Back Extension (Machine)
+154|Hyperextension (45°)
+155|Good Morning (Barbell)
+156|Ab Wheel Rollout
+157|Kettlebell Swing
+158|Close-Grip Bench Press
+159|Seated Calf Raise (Machine)
+160|Nordic Curl
+161|Step-Up (Dumbbell)
+162|Arnold Press (Dumbbell)
+163|Trap Bar Deadlift
+164|Single Leg RDL (Dumbbell)
+165|Cable Crunch
+166|Russian Twist
+167|Glute Bridge (Bodyweight)

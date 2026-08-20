@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  LiftPath type scale.
+
+  The old layouts used 19 distinct text sizes (9sp -> 96sp, including 13/15/17sp
+  one-offs). Nobody names that as a problem out loud, but it is why the app reads as
+  unsystematic. This is SIX sizes for prose/chrome plus FOUR metric sizes. If a new
+  design seems to need a seventh, it almost certainly wants an existing size at a
+  different weight or colour.
+
+  Two faces, strictly divided:
+    Archivo         — everything the user reads
+    JetBrains Mono  — every number that CHANGES (Metric.*)
+
+  Fixed numbers that never animate (a date, a count inside a sentence) stay in Archivo.
+  Mono signals that a value is live, not that it is a digit.
+
+  Colours are ?attr/ so the whole scale follows the selected palette. A style that hard
+  codes a colour here would pin every screen using it to one theme.
+
+  letterSpacing is in em. Large text needs negative tracking to stop looking loose;
+  small uppercase needs positive tracking to stay legible.
+-->
+<resources>
+
+    <!-- ================= PROSE + CHROME (Archivo) ================= -->
+
+    <!-- Screen titles. One per screen, ideally. -->
+    <style name="TextAppearance.LP.Display" parent="TextAppearance.MaterialComponents.Headline4">
+        <item name="android:fontFamily">@font/archivo</item>
+        <item name="fontFamily">@font/archivo</item>
+        <item name="android:textFontWeight">600</item>
+        <item name="android:textSize">32sp</item>
+        <item name="android:letterSpacing">-0.022</item>
+        <item name="android:textColor">?attr/lpInk</item>
+        <item name="android:textStyle">normal</item>
+    </style>
+
+    <!-- Section headings that need to carry weight. -->
+    <style name="TextAppearance.LP.Title" parent="TextAppearance.MaterialComponents.Headline6">
+        <item name="android:fontFamily">@font/archivo</item>
+        <item name="fontFamily">@font/archivo</item>
+        <item name="android:textFontWeight">600</item>
+        <item name="android:textSize">24sp</item>
+        <item name="android:letterSpacing">-0.016</item>
+        <item name="android:textColor">?attr/lpInk</item>
+        <item name="android:textStyle">normal</item>
+    </style>
+
+    <!-- Card titles, list-row primary text. -->
+    <style name="TextAppearance.LP.Heading" parent="TextAppearance.MaterialComponents.Subtitle1">
+        <item name="android:fontFamily">@font/archivo</item>
+        <item name="fontFamily">@font/archivo</item>
+        <item name="android:textFontWeight">600</item>
+        <item name="android:textSize">17sp</item>
+        <item name="android:letterSpacing">-0.01</item>
+        <item name="android:textColor">?attr/lpInk</item>
+        <item name="android:textStyle">normal</item>
+    </style>
+
+    <!-- Body copy, explanatory text. -->
+    <style name="TextAppearance.LP.Body" parent="TextAppearance.MaterialComponents.Body1">
+        <item name="android:fontFamily">@font/archivo</item>
+        <item name="fontFamily">@font/archivo</item>
+        <item name="android:textFontWeight">400</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:textColor">?attr/lpInkSecondary</item>
+        <item name="android:textStyle">normal</item>
+    </style>
+
+    <!-- Tile labels, tabs, list secondary. -->
+    <style name="TextAppearance.LP.Label" parent="TextAppearance.MaterialComponents.Body2">
+        <item name="android:fontFamily">@font/archivo</item>
+        <item name="fontFamily">@font/archivo</item>
+        <item name="android:textFontWeight">500</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:letterSpacing">0.004</item>
+        <item name="android:textColor">?attr/lpInk</item>
+        <item name="android:textStyle">normal</item>
+    </style>
+
+    <!-- The "eyebrow": a small uppercase label above a metric. Wide tracking is what
+         makes a stat tile read as considered rather than cramped. -->
+    <style name="TextAppearance.LP.Caption" parent="TextAppearance.MaterialComponents.Overline">
+        <item name="android:fontFamily">@font/archivo</item>
+        <item name="fontFamily">@font/archivo</item>
+        <item name="android:textFontWeight">500</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:letterSpacing">0.07</item>
+        <item name="android:textAllCaps">true</item>
+        <item name="android:textColor">?attr/lpInkTertiary</item>
+        <item name="android:textStyle">normal</item>
+    </style>
+
+    <!-- Buttons. Sentence case, not Material's default ALL CAPS. -->
+    <style name="TextAppearance.LP.Button" parent="TextAppearance.MaterialComponents.Button">
+        <item name="android:fontFamily">@font/archivo</item>
+        <item name="fontFamily">@font/archivo</item>
+        <item name="android:textFontWeight">600</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:letterSpacing">0.005</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="textAllCaps">false</item>
+        <item name="android:textStyle">normal</item>
+    </style>
+
+    <!-- Text field input + hint. -->
+    <style name="TextAppearance.LP.Input" parent="TextAppearance.MaterialComponents.Body1">
+        <item name="android:fontFamily">@font/archivo</item>
+        <item name="fontFamily">@font/archivo</item>
+        <item name="android:textFontWeight">400</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:textColor">?attr/lpInk</item>
+        <item name="android:textStyle">normal</item>
+    </style>
+
+    <!-- ================= METRICS (JetBrains Mono) ================= -->
+
+    <!--
+      Hero number: the rest timer, the one figure a screen exists to show.
+
+      72sp, not the 44sp the rest of this scale would suggest, because the only consumer is
+      RestTimerDialogActivity — which shows over the lock screen and gets read from a few feet
+      away with a bar on your back, not from phone-in-hand distance. "9:59" at 72sp mono is
+      ~173sp wide, so it still fits a 360dp phone with the 24dp dialog padding.
+    -->
+    <style name="TextAppearance.LP.Metric.XL" parent="android:TextAppearance">
+        <item name="android:fontFamily">@font/jetbrains_mono</item>
+        <item name="fontFamily">@font/jetbrains_mono</item>
+        <item name="android:textFontWeight">700</item>
+        <item name="android:textSize">72sp</item>
+        <item name="android:letterSpacing">-0.04</item>
+        <item name="android:textColor">?attr/lpInk</item>
+        <item name="android:textStyle">normal</item>
+    </style>
+
+    <!-- Stat-tile values: 1RM, weekly volume, body-scan readings. -->
+    <style name="TextAppearance.LP.Metric.L" parent="android:TextAppearance">
+        <item name="android:fontFamily">@font/jetbrains_mono</item>
+        <item name="fontFamily">@font/jetbrains_mono</item>
+        <item name="android:textFontWeight">700</item>
+        <item name="android:textSize">26sp</item>
+        <item name="android:letterSpacing">-0.02</item>
+        <item name="android:textColor">?attr/lpInk</item>
+        <item name="android:textStyle">normal</item>
+    </style>
+
+    <!-- Inline values sitting next to a larger metric. -->
+    <style name="TextAppearance.LP.Metric.M" parent="android:TextAppearance">
+        <item name="android:fontFamily">@font/jetbrains_mono</item>
+        <item name="fontFamily">@font/jetbrains_mono</item>
+        <item name="android:textFontWeight">500</item>
+        <item name="android:textSize">17sp</item>
+        <item name="android:letterSpacing">-0.01</item>
+        <item name="android:textColor">?attr/lpInk</item>
+        <item name="android:textStyle">normal</item>
+    </style>
+
+    <!-- Small deltas / units. Mono so +0.4 and -0.4 occupy the same width. -->
+    <style name="TextAppearance.LP.Metric.S" parent="android:TextAppearance">
+        <item name="android:fontFamily">@font/jetbrains_mono</item>
+        <item name="fontFamily">@font/jetbrains_mono</item>
+        <item name="android:textFontWeight">500</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:textColor">?attr/lpInkSecondary</item>
+        <item name="android:textStyle">normal</item>
+    </style>
+
+    <!-- Bottom-nav labels. Smaller than Label and never all-caps; at 11sp the four
+         destination names fit on a narrow phone without truncating. -->
+    <style name="TextAppearance.LP.NavLabel" parent="TextAppearance.LP.Label">
+        <item name="android:textSize">11sp</item>
+        <item name="android:letterSpacing">0.01</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="textAllCaps">false</item>
+    </style>
+
+    <!-- Tab labels. Sentence case, unlike Material's default. -->
+    <style name="TextAppearance.LP.Tab" parent="TextAppearance.LP.Label">
+        <item name="android:textAllCaps">false</item>
+        <item name="textAllCaps">false</item>
+    </style>
+
+</resources>

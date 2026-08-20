@@ -1,10 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Read-only-ish detail view for a past training session — "ish" because the exercise
+  cards below still let you edit a set, add one, or retag the activity, so amending a
+  logged session uses the same vocabulary as logging it. DENSE spacing throughout: this
+  is a session log, not a browsing surface.
+-->
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/fitness_background"
+    android:background="?attr/lpCanvas"
     tools:context=".activities.TrainingDetailActivity">
 
     <!-- Background Flow Animation -->
@@ -12,13 +18,14 @@
         android:id="@+id/image_bg_animation"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:contentDescription="@null"
         android:scaleType="centerCrop"
-        android:alpha="1.0"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/avd_background_flow" />
+        app:srcCompat="@drawable/lp_bg_ambient_flow"
+        app:tint="?attr/lpAccent" />
 
     <androidx.core.widget.NestedScrollView
         android:id="@+id/scroll_view"
@@ -34,87 +41,83 @@
             android:layout_height="wrap_content"
             android:clipChildren="false"
             android:clipToPadding="false"
-            android:padding="24dp">
+            android:padding="@dimen/lp_gutter_dense">
 
             <!-- HEADER WITH BACK BUTTON -->
-            <androidx.cardview.widget.CardView
-                android:id="@+id/button_back"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:clickable="true"
-                android:focusable="true"
-                android:foreground="?attr/selectableItemBackground"
-                app:cardBackgroundColor="@color/fitness_card_background"
-                app:cardCornerRadius="24dp"
-                app:cardElevation="0dp"
+            <LinearLayout
+                android:id="@+id/layout_header"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent">
 
-                <ImageButton
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:background="@android:color/transparent"
-                    android:contentDescription="@string/progress_back_content_description"
-                    android:padding="12dp"
-                    android:src="@drawable/ic_arrow_back_24"
-                    app:tint="@color/fitness_text_primary" />
-            </androidx.cardview.widget.CardView>
+                <com.google.android.material.card.MaterialCardView
+                    style="@style/Widget.LP.Card.Control"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:clickable="false"
+                    android:focusable="false">
 
-            <TextView
-                android:id="@+id/text_title"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:text="Training Details"
-                android:textColor="@color/fitness_text_primary"
-                android:textSize="28sp"
-                android:textStyle="bold"
-                app:layout_constraintBottom_toBottomOf="@id/button_back"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toEndOf="@id/button_back"
-                app:layout_constraintTop_toTopOf="@id/button_back" />
+                    <ImageButton
+                        android:id="@+id/button_back"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="?attr/selectableItemBackground"
+                        android:contentDescription="@string/progress_back_content_description"
+                        android:padding="@dimen/lp_space_3"
+                        android:src="@drawable/ic_arrow_back_24"
+                        app:tint="?attr/lpInk" />
+                </com.google.android.material.card.MaterialCardView>
 
-            <!-- SESSION INTENT BADGE -->
-            <androidx.cardview.widget.CardView
+                <TextView
+                    android:id="@+id/text_title"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/lp_space_3"
+                    android:layout_weight="1"
+                    android:text="@string/title_training_detail"
+                    android:textAppearance="@style/TextAppearance.LP.Title" />
+            </LinearLayout>
+
+            <!-- SESSION INTENT + DURATION -->
+            <com.google.android.material.card.MaterialCardView
                 android:id="@+id/card_session_intent"
+                style="@style/Widget.LP.Card.Dense"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                app:cardBackgroundColor="@color/fitness_card_background"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="4dp"
+                android:layout_marginTop="@dimen/lp_card_gap_dense"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/button_back">
+                app:layout_constraintTop_toBottomOf="@id/layout_header">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:padding="@dimen/lp_card_padding_dense">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Session Intent"
-                        android:textColor="@color/fitness_text_secondary"
-                        android:textSize="14sp" />
+                        android:text="@string/label_session_intent"
+                        android:textAppearance="@style/TextAppearance.LP.Caption" />
 
                     <TextView
                         android:id="@+id/text_dominant_intent"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="Build"
-                        android:textColor="@color/fitness_text_primary"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
+                        android:layout_marginTop="@dimen/lp_space_1"
+                        android:textAppearance="@style/TextAppearance.LP.Heading"
+                        tools:text="Build" />
 
                     <!-- WORKOUT DURATION -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
+                        android:layout_marginTop="@dimen/lp_space_3"
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
@@ -122,57 +125,43 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Workout Duration"
-                            android:textColor="@color/fitness_text_secondary"
-                            android:textSize="14sp" />
+                            android:text="@string/label_workout_duration"
+                            android:textAppearance="@style/TextAppearance.LP.Label"
+                            android:textColor="?attr/lpInkSecondary" />
 
                         <TextView
                             android:id="@+id/text_workout_duration"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginEnd="8dp"
-                            android:text="Not recorded"
-                            android:textColor="@color/fitness_text_primary"
-                            android:textSize="14sp"
-                            android:textStyle="bold" />
+                            android:layout_marginEnd="@dimen/lp_space_2"
+                            android:textAppearance="@style/TextAppearance.LP.Metric.M"
+                            tools:text="01:04:12" />
 
-                        <androidx.cardview.widget.CardView
+                        <com.google.android.material.button.MaterialButton
                             android:id="@+id/button_edit_duration"
+                            style="@style/Widget.LP.Button.Text"
                             android:layout_width="wrap_content"
-                            android:layout_height="36dp"
-                            android:clickable="true"
-                            android:focusable="true"
-                            android:foreground="?attr/selectableItemBackground"
-                            app:cardBackgroundColor="@color/fitness_primary"
-                            app:cardCornerRadius="8dp"
-                            app:cardElevation="2dp">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="match_parent"
-                                android:gravity="center"
-                                android:paddingStart="12dp"
-                                android:paddingEnd="12dp"
-                                android:text="Edit"
-                                android:textColor="@color/white"
-                                android:textSize="12sp"
-                                android:textStyle="bold" />
-                        </androidx.cardview.widget.CardView>
+                            android:layout_height="wrap_content"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:minWidth="0dp"
+                            android:minHeight="0dp"
+                            android:paddingHorizontal="@dimen/lp_space_2"
+                            android:paddingVertical="@dimen/lp_space_1"
+                            android:text="@string/button_edit" />
                     </LinearLayout>
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
 
             <!-- EXERCISES LIST CARD -->
-            <androidx.cardview.widget.CardView
+            <com.google.android.material.card.MaterialCardView
                 android:id="@+id/card_exercises_list"
+                style="@style/Widget.LP.Card.Dense"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
-                android:layout_marginTop="12dp"
-                android:layout_marginBottom="12dp"
-                app:cardBackgroundColor="@color/fitness_card_background"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="4dp"
-                app:layout_constraintBottom_toTopOf="@id/button_delete"
+                android:layout_marginTop="@dimen/lp_card_gap_dense"
+                android:layout_marginBottom="@dimen/lp_card_gap_dense"
+                app:layout_constraintBottom_toTopOf="@id/layout_footer_actions"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/card_session_intent">
@@ -183,121 +172,74 @@
                     android:orientation="vertical">
 
                     <!-- Add Exercise Button -->
-                    <androidx.cardview.widget.CardView
+                    <com.google.android.material.button.MaterialButton
                         android:id="@+id/button_add_exercise"
+                        style="@style/Widget.LP.Button"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_margin="12dp"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:foreground="?attr/selectableItemBackground"
-                        app:cardBackgroundColor="@color/fitness_primary"
-                        app:cardCornerRadius="12dp"
-                        app:cardElevation="2dp">
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:gravity="center"
-                            android:orientation="horizontal"
-                            android:padding="12dp">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="+ Add Exercise"
-                                android:textColor="@color/white"
-                                android:textSize="14sp"
-                                android:textStyle="bold" />
-                        </LinearLayout>
-                    </androidx.cardview.widget.CardView>
+                        android:layout_margin="@dimen/lp_card_padding_dense"
+                        android:text="@string/button_add_exercise"
+                        app:icon="@drawable/ic_plus"
+                        app:iconGravity="textStart" />
 
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/recycler_view_training_detail"
                         android:layout_width="match_parent"
                         android:layout_height="0dp"
                         android:layout_weight="1"
-                        android:padding="12dp"
+                        android:clipChildren="false"
                         android:clipToPadding="false"
-                        android:clipChildren="false" />
+                        android:padding="@dimen/lp_card_padding_dense" />
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
 
-            <!-- SAVE AS PLAN BUTTON -->
-            <androidx.cardview.widget.CardView
-                android:id="@+id/button_save_as_plan"
-                android:layout_width="wrap_content"
-                android:layout_height="60dp"
-                android:layout_marginEnd="12dp"
-                android:layout_marginBottom="24dp"
-                android:clickable="true"
-                android:focusable="true"
-                android:foreground="?attr/selectableItemBackground"
-                app:cardBackgroundColor="@color/fitness_primary"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="2dp"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toStartOf="@id/button_delete"
-                app:layout_constraintTop_toBottomOf="@id/card_exercises_list">
-
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:gravity="center"
-                    android:orientation="horizontal"
-                    android:paddingStart="20dp"
-                    android:paddingEnd="20dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Save as Plan"
-                        android:textColor="@color/white"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
-                </LinearLayout>
-            </androidx.cardview.widget.CardView>
-
-            <!-- DELETE BUTTON -->
-            <androidx.cardview.widget.CardView
-                android:id="@+id/button_delete"
-                android:layout_width="wrap_content"
-                android:layout_height="60dp"
-                android:layout_marginBottom="24dp"
-                android:clickable="true"
-                android:focusable="true"
-                android:foreground="?attr/selectableItemBackground"
-                app:cardBackgroundColor="@color/fitness_card_background"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="2dp"
+            <!-- FOOTER ACTIONS: VIEW REPORT, then SAVE AS PLAN + DELETE -->
+            <LinearLayout
+                android:id="@+id/layout_footer_actions"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/card_exercises_list">
 
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/button_view_report"
+                    style="@style/Widget.LP.Button.Outlined"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="@dimen/lp_card_gap_dense"
+                    android:text="@string/action_view_report"
+                    app:icon="@drawable/ic_graph"
+                    app:iconGravity="textStart" />
+
                 <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:gravity="center"
-                    android:orientation="horizontal"
-                    android:paddingStart="20dp"
-                    android:paddingEnd="20dp">
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:baselineAligned="false"
+                    android:orientation="horizontal">
 
-                    <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:src="@drawable/ic_delete"
-                        app:tint="@color/design_default_color_error" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/button_save_as_plan"
+                        style="@style/Widget.LP.Button.Outlined"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp"
-                        android:text="Delete"
-                        android:textColor="@color/design_default_color_error"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
+                        android:layout_marginEnd="@dimen/lp_card_gap_dense"
+                        android:layout_weight="1"
+                        android:text="@string/action_save_as_plan" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/button_delete"
+                        style="@style/Widget.LP.Button.Destructive"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/button_delete"
+                        app:icon="@drawable/ic_delete"
+                        app:iconGravity="textStart" />
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </LinearLayout>
 
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.core.widget.NestedScrollView>

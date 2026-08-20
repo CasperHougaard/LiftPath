@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  LiftPath design-token ATTRIBUTES.
+
+  Why attributes rather than plain colour resources: the four palettes are a user
+  preference, and a static @color/ cannot vary at runtime. A theme attribute can.
+  So layouts, styles and drawables reference ?attr/lpInk, each Theme.LiftPath.*
+  variant binds that attr to its own palette, and switching themes is a recreate().
+
+  Rules of use:
+    · Reference roles, never raw palette colours. `?attr/lpInk`, not `@color/paper_ink`.
+      The paper_*/chalk_*/bone_*/steel_* names in lp_palette_*.xml exist ONLY to be
+      bound by a theme — using one directly pins that view to one palette forever.
+    · If a new colour is needed, add a ROLE here and bind it in all four themes.
+      Adding a fifth palette should never require touching a layout.
+
+  Day/night is handled one level down, inside the palette files, so there are four
+  themes total rather than eight.
+-->
+<resources>
+
+    <!-- ============ SURFACES ============ -->
+    <!-- Page background. -->
+    <attr name="lpCanvas" format="color" />
+    <!-- Recessed areas: track grooves, empty states, inset wells. -->
+    <attr name="lpCanvasSunken" format="color" />
+    <!-- Cards. Sits ABOVE the canvas, so it is the brighter surface in light mode. -->
+    <attr name="lpSurface" format="color" />
+    <!-- Secondary panels nested inside a card. -->
+    <attr name="lpSurfaceAlt" format="color" />
+
+    <!-- ============ HAIRLINES ============ -->
+    <!-- Cards are defined by a 1dp hairline, not a shadow. -->
+    <attr name="lpHairline" format="color" />
+    <!-- Dividers that must actually separate rather than whisper. -->
+    <attr name="lpHairlineStrong" format="color" />
+
+    <!-- ============ INK (text + icons) ============ -->
+    <attr name="lpInk" format="color" />
+    <attr name="lpInkSecondary" format="color" />
+    <attr name="lpInkTertiary" format="color" />
+    <!-- For content sitting on an lpInk or lpAccent fill. -->
+    <attr name="lpInkInverse" format="color" />
+    <attr name="lpInkInverseSecondary" format="color" />
+
+    <!-- ============ SIGNATURE ACCENT ============ -->
+    <!-- Used sparingly — roughly three appearances per screen. Past that it stops
+         being a signature and becomes decoration. -->
+    <attr name="lpAccent" format="color" />
+    <attr name="lpAccentPressed" format="color" />
+    <!-- Tinted fill behind accented content. -->
+    <attr name="lpAccentWash" format="color" />
+
+    <!-- ============ STATE / SEMANTIC ============ -->
+    <attr name="lpPositive" format="color" />
+    <attr name="lpNegative" format="color" />
+    <attr name="lpNeutral" format="color" />
+
+    <!-- ============ TRAINING INTENT ============ -->
+    <!-- Must stay mutually distinguishable WITHIN a palette; in some palettes the
+         accent doubles as one of these, in others it is held back deliberately. -->
+    <attr name="lpIntentStrength" format="color" />
+    <attr name="lpIntentBuild" format="color" />
+    <attr name="lpIntentFlush" format="color" />
+    <attr name="lpIntentWarmup" format="color" />
+
+    <!-- ============ CHARTS ============ -->
+    <!-- Four series that must remain separable in every palette and in both modes. -->
+    <attr name="lpChartVolume" format="color" />
+    <attr name="lpChartRpe" format="color" />
+    <attr name="lpChartTime" format="color" />
+    <attr name="lpChartFatigue" format="color" />
+    <attr name="lpChartGrid" format="color" />
+
+    <!-- ============ INTERACTION ============ -->
+    <attr name="lpRipple" format="color" />
+    <attr name="lpRippleInverse" format="color" />
+
+</resources>

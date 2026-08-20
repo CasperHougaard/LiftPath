@@ -1,11 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Progress > Body scan tab page. AIRY spacing, hairline cards, no shadows. Chart series
+  colours are set at bind time in ProgressWithingsFragment via ctx.lpColor(...) so they follow
+  the active palette; the body-composition legend swatches below reference the same four
+  lpChart* attrs the bars themselves now use.
+-->
 <androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@android:color/transparent"
     android:clipToPadding="false"
-    android:padding="16dp">
+    android:padding="@dimen/lp_gutter">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -15,29 +21,25 @@
         <!-- ══════════════════════════════════════════════════════ -->
         <!--  SUMMARY STAT CARDS                                   -->
         <!-- ══════════════════════════════════════════════════════ -->
-        <androidx.cardview.widget.CardView
+        <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_summary"
+            style="@style/Widget.LP.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            app:cardBackgroundColor="@color/fitness_card_background"
-            app:cardCornerRadius="20dp"
-            app:cardElevation="4dp">
+            android:layout_marginBottom="@dimen/lp_card_gap">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="@dimen/lp_card_padding">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Latest Scan"
-                    android:textColor="@color/fitness_text_primary"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="12dp" />
+                    android:layout_marginBottom="@dimen/lp_space_3"
+                    android:text="@string/withings_latest_scan_title"
+                    android:textAppearance="@style/TextAppearance.LP.Heading" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -57,24 +59,20 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="—"
-                            android:textColor="@color/fitness_primary"
-                            android:textSize="22sp"
-                            android:textStyle="bold" />
+                            android:textAppearance="@style/TextAppearance.LP.Metric.L" />
 
                         <TextView
                             android:id="@+id/text_weight_delta"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text=""
-                            android:textSize="11sp"
-                            android:textColor="@color/fitness_text_secondary" />
+                            android:textAppearance="@style/TextAppearance.LP.Metric.S" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Weight"
-                            android:textColor="@color/fitness_text_secondary"
-                            android:textSize="12sp" />
+                            android:text="@string/withings_stat_weight"
+                            android:textAppearance="@style/TextAppearance.LP.Caption" />
                     </LinearLayout>
 
                     <!-- Body Fat stat -->
@@ -90,24 +88,20 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="—"
-                            android:textColor="@color/fitness_primary"
-                            android:textSize="22sp"
-                            android:textStyle="bold" />
+                            android:textAppearance="@style/TextAppearance.LP.Metric.L" />
 
                         <TextView
                             android:id="@+id/text_body_fat_delta"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text=""
-                            android:textSize="11sp"
-                            android:textColor="@color/fitness_text_secondary" />
+                            android:textAppearance="@style/TextAppearance.LP.Metric.S" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Body Fat"
-                            android:textColor="@color/fitness_text_secondary"
-                            android:textSize="12sp" />
+                            android:text="@string/withings_stat_body_fat"
+                            android:textAppearance="@style/TextAppearance.LP.Caption" />
                     </LinearLayout>
 
                     <!-- BMR stat -->
@@ -123,157 +117,238 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="—"
-                            android:textColor="@color/fitness_primary"
-                            android:textSize="22sp"
-                            android:textStyle="bold" />
+                            android:textAppearance="@style/TextAppearance.LP.Metric.L" />
 
                         <TextView
                             android:id="@+id/text_bmr_delta"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text=""
-                            android:textSize="11sp"
-                            android:textColor="@color/fitness_text_secondary" />
+                            android:textAppearance="@style/TextAppearance.LP.Metric.S" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="BMR"
-                            android:textColor="@color/fitness_text_secondary"
-                            android:textSize="12sp" />
+                            android:text="@string/withings_stat_bmr"
+                            android:textAppearance="@style/TextAppearance.LP.Caption" />
                     </LinearLayout>
                 </LinearLayout>
             </LinearLayout>
-        </androidx.cardview.widget.CardView>
+        </com.google.android.material.card.MaterialCardView>
 
         <!-- ══════════════════════════════════════════════════════ -->
-        <!--  WEIGHT TREND CHART                                   -->
+        <!--  STRENGTH vs WEIGHT INDICATOR                         -->
         <!-- ══════════════════════════════════════════════════════ -->
-        <androidx.cardview.widget.CardView
-            android:id="@+id/card_weight_chart"
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_strength_vs_weight"
+            style="@style/Widget.LP.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            app:cardBackgroundColor="@color/fitness_card_background"
-            app:cardCornerRadius="20dp"
-            app:cardElevation="4dp">
+            android:layout_marginBottom="@dimen/lp_card_gap"
+            android:visibility="gone">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="@dimen/lp_card_padding">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="@dimen/lp_space_3">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/withings_strength_vs_weight_title"
+                        android:textAppearance="@style/TextAppearance.LP.Heading" />
+
+                    <TextView
+                        android:id="@+id/text_strength_weight_window"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text=""
+                        android:textAppearance="@style/TextAppearance.LP.Label"
+                        android:textColor="?attr/lpInkSecondary" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <!-- Strength change -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:gravity="center">
+
+                        <TextView
+                            android:id="@+id/text_strength_change"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="—"
+                            android:textAppearance="@style/TextAppearance.LP.Metric.L" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/withings_strength_1rm_label"
+                            android:textAppearance="@style/TextAppearance.LP.Caption" />
+                    </LinearLayout>
+
+                    <!-- Weight change -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:gravity="center">
+
+                        <TextView
+                            android:id="@+id/text_weight_change"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="—"
+                            android:textAppearance="@style/TextAppearance.LP.Metric.L" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/withings_stat_weight"
+                            android:textAppearance="@style/TextAppearance.LP.Caption" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/text_strength_weight_verdict"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/lp_space_3"
+                    android:text=""
+                    android:textAppearance="@style/TextAppearance.LP.Body"
+                    android:lineSpacingMultiplier="1.1" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- ══════════════════════════════════════════════════════ -->
+        <!--  WEIGHT TREND CHART                                   -->
+        <!-- ══════════════════════════════════════════════════════ -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_weight_chart"
+            style="@style/Widget.LP.Card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/lp_card_gap">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="@dimen/lp_card_padding">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Weight Trend"
-                    android:textColor="@color/fitness_text_primary"
-                    android:textSize="15sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="8dp" />
+                    android:layout_marginBottom="@dimen/lp_space_2"
+                    android:text="@string/withings_weight_trend_title"
+                    android:textAppearance="@style/TextAppearance.LP.Heading" />
 
                 <com.github.mikephil.charting.charts.LineChart
                     android:id="@+id/chart_weight"
                     android:layout_width="match_parent"
                     android:layout_height="200dp" />
             </LinearLayout>
-        </androidx.cardview.widget.CardView>
+        </com.google.android.material.card.MaterialCardView>
 
         <!-- ══════════════════════════════════════════════════════ -->
         <!--  BODY FAT TREND CHART                                 -->
         <!-- ══════════════════════════════════════════════════════ -->
-        <androidx.cardview.widget.CardView
+        <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_body_fat_chart"
+            style="@style/Widget.LP.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            app:cardBackgroundColor="@color/fitness_card_background"
-            app:cardCornerRadius="20dp"
-            app:cardElevation="4dp">
+            android:layout_marginBottom="@dimen/lp_card_gap">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="@dimen/lp_card_padding">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Body Fat % Trend"
-                    android:textColor="@color/fitness_text_primary"
-                    android:textSize="15sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="8dp" />
+                    android:layout_marginBottom="@dimen/lp_space_2"
+                    android:text="@string/withings_body_fat_trend_title"
+                    android:textAppearance="@style/TextAppearance.LP.Heading" />
 
                 <com.github.mikephil.charting.charts.LineChart
                     android:id="@+id/chart_body_fat"
                     android:layout_width="match_parent"
                     android:layout_height="200dp" />
             </LinearLayout>
-        </androidx.cardview.widget.CardView>
+        </com.google.android.material.card.MaterialCardView>
 
         <!-- ══════════════════════════════════════════════════════ -->
         <!--  LEAN MASS TREND CHART                                -->
         <!-- ══════════════════════════════════════════════════════ -->
-        <androidx.cardview.widget.CardView
+        <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_lean_mass_chart"
+            style="@style/Widget.LP.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            app:cardBackgroundColor="@color/fitness_card_background"
-            app:cardCornerRadius="20dp"
-            app:cardElevation="4dp">
+            android:layout_marginBottom="@dimen/lp_card_gap">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="@dimen/lp_card_padding">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Lean Mass Trend"
-                    android:textColor="@color/fitness_text_primary"
-                    android:textSize="15sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="8dp" />
+                    android:layout_marginBottom="@dimen/lp_space_2"
+                    android:text="@string/withings_lean_mass_trend_title"
+                    android:textAppearance="@style/TextAppearance.LP.Heading" />
 
                 <com.github.mikephil.charting.charts.LineChart
                     android:id="@+id/chart_lean_mass"
                     android:layout_width="match_parent"
                     android:layout_height="200dp" />
             </LinearLayout>
-        </androidx.cardview.widget.CardView>
+        </com.google.android.material.card.MaterialCardView>
 
         <!-- ══════════════════════════════════════════════════════ -->
         <!--  BODY COMPOSITION STACKED BAR CHART                   -->
         <!-- ══════════════════════════════════════════════════════ -->
-        <androidx.cardview.widget.CardView
+        <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_body_composition_chart"
+            style="@style/Widget.LP.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            app:cardBackgroundColor="@color/fitness_card_background"
-            app:cardCornerRadius="20dp"
-            app:cardElevation="4dp">
+            android:layout_marginBottom="@dimen/lp_section_gap">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="@dimen/lp_card_padding">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Body Composition (kg)"
-                    android:textColor="@color/fitness_text_primary"
-                    android:textSize="15sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="8dp" />
+                    android:layout_marginBottom="@dimen/lp_space_2"
+                    android:text="@string/withings_body_composition_title"
+                    android:textAppearance="@style/TextAppearance.LP.Heading" />
 
                 <com.github.mikephil.charting.charts.BarChart
                     android:id="@+id/chart_body_composition"
@@ -286,61 +361,57 @@
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:gravity="center"
-                    android:layout_marginTop="8dp">
+                    android:layout_marginTop="@dimen/lp_space_2">
 
                     <View
                         android:layout_width="10dp"
                         android:layout_height="10dp"
-                        android:background="#10B981"
-                        android:layout_marginEnd="4dp" />
+                        android:background="?attr/lpChartVolume"
+                        android:layout_marginEnd="@dimen/lp_space_1" />
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Muscle"
-                        android:textColor="@color/fitness_text_secondary"
-                        android:textSize="11sp"
-                        android:layout_marginEnd="12dp" />
+                        android:text="@string/withings_legend_muscle"
+                        android:textAppearance="@style/TextAppearance.LP.Caption"
+                        android:layout_marginEnd="@dimen/lp_space_3" />
 
                     <View
                         android:layout_width="10dp"
                         android:layout_height="10dp"
-                        android:background="#3B82F6"
-                        android:layout_marginEnd="4dp" />
+                        android:background="?attr/lpChartTime"
+                        android:layout_marginEnd="@dimen/lp_space_1" />
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Water"
-                        android:textColor="@color/fitness_text_secondary"
-                        android:textSize="11sp"
-                        android:layout_marginEnd="12dp" />
+                        android:text="@string/withings_legend_water"
+                        android:textAppearance="@style/TextAppearance.LP.Caption"
+                        android:layout_marginEnd="@dimen/lp_space_3" />
 
                     <View
                         android:layout_width="10dp"
                         android:layout_height="10dp"
-                        android:background="#F59E0B"
-                        android:layout_marginEnd="4dp" />
+                        android:background="?attr/lpChartRpe"
+                        android:layout_marginEnd="@dimen/lp_space_1" />
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Bone"
-                        android:textColor="@color/fitness_text_secondary"
-                        android:textSize="11sp"
-                        android:layout_marginEnd="12dp" />
+                        android:text="@string/withings_legend_bone"
+                        android:textAppearance="@style/TextAppearance.LP.Caption"
+                        android:layout_marginEnd="@dimen/lp_space_3" />
 
                     <View
                         android:layout_width="10dp"
                         android:layout_height="10dp"
-                        android:background="#EF4444"
-                        android:layout_marginEnd="4dp" />
+                        android:background="?attr/lpChartFatigue"
+                        android:layout_marginEnd="@dimen/lp_space_1" />
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Fat"
-                        android:textColor="@color/fitness_text_secondary"
-                        android:textSize="11sp" />
+                        android:text="@string/withings_legend_fat"
+                        android:textAppearance="@style/TextAppearance.LP.Caption" />
                 </LinearLayout>
             </LinearLayout>
-        </androidx.cardview.widget.CardView>
+        </com.google.android.material.card.MaterialCardView>
 
         <!-- ══════════════════════════════════════════════════════ -->
         <!--  ALL SCANS LIST                                       -->
@@ -350,27 +421,21 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:layout_marginBottom="8dp">
+            android:layout_marginBottom="@dimen/lp_space_2">
 
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="All Scans"
-                android:textColor="@color/fitness_text_primary"
-                android:textSize="16sp"
-                android:textStyle="bold" />
+                android:text="@string/withings_all_scans_title"
+                android:textAppearance="@style/TextAppearance.LP.Heading" />
 
-            <TextView
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/button_edit_scans"
+                style="@style/Widget.LP.Button.Text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/withings_edit_scans"
-                android:textColor="@color/fitness_primary"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:padding="6dp"
-                android:background="?attr/selectableItemBackgroundBorderless" />
+                android:text="@string/withings_edit_scans" />
         </LinearLayout>
 
         <androidx.recyclerview.widget.RecyclerView
@@ -378,7 +443,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:nestedScrollingEnabled="false"
-            android:layout_marginBottom="24dp" />
+            android:layout_marginBottom="@dimen/lp_space_6" />
 
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>

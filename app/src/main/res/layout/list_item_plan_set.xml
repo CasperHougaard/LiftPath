@@ -1,22 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- One plan rotation. Sits directly in the RecyclerView, same convention as
+     list_item_workout_plan — no outer wrapper card. -->
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    style="@style/Widget.LP.Card"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="12dp"
-    android:layout_marginStart="4dp"
-    android:layout_marginEnd="4dp"
-    app:cardBackgroundColor="@color/fitness_card_background"
-    app:cardCornerRadius="16dp"
-    app:cardElevation="2dp">
+    android:layout_marginBottom="@dimen/lp_card_gap">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="@dimen/lp_card_padding">
 
-        <!-- Name + plan count -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -28,64 +26,77 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Rotation Name"
-                android:textColor="@color/fitness_text_primary"
-                android:textSize="17sp"
-                android:textStyle="bold" />
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textAppearance="@style/TextAppearance.LP.Heading"
+                tools:text="Push / Pull / Legs" />
+
+            <ImageView
+                android:id="@+id/image_active_rotation_badge"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_marginStart="@dimen/lp_space_2"
+                android:contentDescription="@string/cd_active_rotation"
+                android:src="@drawable/ic_checkmark"
+                android:visibility="gone"
+                app:tint="?attr/lpAccent"
+                tools:visibility="visible" />
 
             <TextView
                 android:id="@+id/text_plan_count"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:background="@drawable/badge_rounded_background"
-                android:backgroundTint="@color/fitness_primary"
-                android:paddingHorizontal="10dp"
-                android:paddingVertical="6dp"
-                android:text="3 plans"
-                android:textColor="@color/white"
-                android:textSize="12sp" />
+                android:layout_marginStart="@dimen/lp_space_2"
+                android:textAppearance="@style/TextAppearance.LP.Metric.S"
+                tools:text="3 plans" />
         </LinearLayout>
 
-        <!-- Next plan label -->
         <TextView
             android:id="@+id/text_next_plan"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:textColor="@color/fitness_text_secondary"
-            android:textSize="13sp"
-            android:visibility="gone" />
+            android:layout_marginTop="2dp"
+            android:textAppearance="@style/TextAppearance.LP.Label"
+            android:textColor="?attr/lpInkTertiary"
+            android:visibility="gone"
+            tools:text="Next: Push Day"
+            tools:visibility="visible" />
 
-        <!-- Action buttons -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:gravity="end"
+            android:layout_marginTop="@dimen/lp_space_3"
+            android:baselineAligned="false"
             android:orientation="horizontal">
 
-            <TextView
-                android:id="@+id/button_edit_plan_set"
-                android:layout_width="wrap_content"
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/button_use_plan_set"
+                style="@style/Widget.LP.Button"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
-                android:background="?attr/selectableItemBackground"
-                android:paddingHorizontal="12dp"
-                android:paddingVertical="6dp"
-                android:text="Edit"
-                android:textColor="@color/fitness_primary"
-                android:textSize="13sp" />
+                android:layout_marginEnd="@dimen/lp_card_gap_dense"
+                android:layout_weight="1"
+                android:minHeight="44dp"
+                android:text="@string/btn_use_rotation" />
 
-            <TextView
-                android:id="@+id/button_delete_plan_set"
-                android:layout_width="wrap_content"
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/button_edit_plan_set"
+                style="@style/Widget.LP.Button.Outlined"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:background="?attr/selectableItemBackground"
-                android:paddingHorizontal="12dp"
-                android:paddingVertical="6dp"
-                android:text="Delete"
-                android:textColor="@color/fitness_error"
-                android:textSize="13sp" />
+                android:layout_marginEnd="@dimen/lp_card_gap_dense"
+                android:layout_weight="1"
+                android:minHeight="44dp"
+                android:text="@string/button_edit" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/button_delete_plan_set"
+                style="@style/Widget.LP.Button.Destructive"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:minHeight="44dp"
+                android:text="@string/button_delete" />
         </LinearLayout>
     </LinearLayout>
-</androidx.cardview.widget.CardView>
+</com.google.android.material.card.MaterialCardView>

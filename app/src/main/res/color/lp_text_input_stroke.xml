@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Outlined text-field border.
+
+  Hairline at rest, accent when focused — the field announces itself only while being
+  used. Theme attributes inside a colour state list need API 23+; minSdk is 35.
+
+  Order matters: the first matching item wins, so focused must precede the catch-all.
+-->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:color="?attr/lpAccent"
+        android:state_focused="true" />
+    <item
+        android:alpha="0.4"
+        android:color="?attr/lpHairline"
+        android:state_enabled="false" />
+    <item
+        android:color="?attr/lpHairlineStrong"
+        android:state_hovered="true" />
+    <item android:color="?attr/lpHairline" />
+</selector>

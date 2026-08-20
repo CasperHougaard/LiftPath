@@ -1,23 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  The active workout. This is the screen the app exists for, and the only one used with a
+  barbell waiting, so it takes the DENSE half of the density scale throughout: 12dp gutter,
+  12dp card padding, 6dp between cards.
+
+  Layout is a fixed header, a scrolling exercise list, and a rest-timer bar pinned to the
+  bottom. The bar stays permanent rather than appearing on demand because during a session
+  you reach for it constantly, and a control that moves is a control you have to look for.
+-->
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/fitness_background"
+    android:background="?attr/lpCanvas"
     tools:context=".activities.ActiveTrainingActivity">
 
     <ImageView
         android:id="@+id/image_bg_animation"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:alpha="1.0"
+        android:contentDescription="@null"
         android:scaleType="centerCrop"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/avd_background_flow" />
+        app:srcCompat="@drawable/lp_bg_ambient_flow"
+        app:tint="?attr/lpAccent" />
 
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
@@ -25,125 +35,117 @@
         android:layout_height="?attr/actionBarSize"
         android:background="@android:color/transparent"
         android:theme="@style/ThemeOverlay.AppCompat.ActionBar"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:titleTextColor="@color/fitness_text_primary"
-        app:title="Active Workout" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:title="@string/title_active_workout"
+        app:titleTextColor="?attr/lpInk" />
 
-    <!-- DATE HEADER AND MUSCLE OVERVIEW BUTTON -->
+    <!-- DATE + SESSION CLOCK + SHORTCUTS -->
     <LinearLayout
         android:id="@+id/layout_date_header"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
         android:gravity="center_vertical"
-        app:layout_constraintTop_toBottomOf="@id/toolbar"
+        android:orientation="horizontal"
+        android:paddingHorizontal="@dimen/lp_space_1"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+        app:layout_constraintTop_toBottomOf="@id/toolbar">
 
-        <!-- DATE HEADER -->
         <LinearLayout
             android:id="@+id/layout_date"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingStart="16dp"
-            android:paddingEnd="8dp"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp"
             android:background="?attr/selectableItemBackground"
             android:clickable="true"
-            android:focusable="true">
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="@dimen/lp_space_2"
+            android:paddingVertical="@dimen/lp_space_2">
 
             <ImageView
-                android:layout_width="20dp"
-                android:layout_height="20dp"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:contentDescription="@null"
                 android:src="@drawable/ic_calendar_today_24"
-                app:tint="@color/fitness_text_secondary" />
+                app:tint="?attr/lpInkTertiary" />
 
             <TextView
                 android:id="@+id/text_date"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                tools:text="Mon, Nov 13"
-                android:textColor="@color/fitness_text_secondary"
-                android:textSize="14sp"
-                android:textStyle="bold" />
+                android:layout_marginStart="@dimen/lp_space_2"
+                android:textAppearance="@style/TextAppearance.LP.Label"
+                android:textColor="?attr/lpInkSecondary"
+                tools:text="Mon, Nov 13" />
 
             <ImageView
-                android:layout_width="16dp"
-                android:layout_height="16dp"
-                android:layout_marginStart="4dp"
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:layout_marginStart="@dimen/lp_space_1"
+                android:contentDescription="@null"
                 android:src="@drawable/ic_arrow_drop_down_24"
-                app:tint="@color/fitness_text_secondary" />
+                app:tint="?attr/lpInkTertiary" />
         </LinearLayout>
 
-        <!-- PLAN BUTTON -->
-        <ImageButton
-            android:id="@+id/button_plan"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_marginEnd="8dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@drawable/ic_plans"
-            app:tint="@color/fitness_primary"
-            android:contentDescription="Select Workout Plan" />
-
-        <!-- WORKOUT TIMER -->
+        <!-- Total session time. Mono: this ticks. -->
         <TextView
             android:id="@+id/text_workout_timer"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="8dp"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp"
-            android:paddingTop="4dp"
-            android:paddingBottom="4dp"
-            tools:text="00:00:00"
+            android:paddingHorizontal="@dimen/lp_space_2"
             android:text="00:00:00"
-            android:textColor="@color/fitness_text_primary"
-            android:textSize="14sp"
-            android:textStyle="bold" />
+            android:textAppearance="@style/TextAppearance.LP.Metric.S"
+            android:textColor="?attr/lpInkSecondary"
+            tools:text="00:42:18" />
 
-        <!-- MUSCLE OVERVIEW BUTTON -->
+        <ImageButton
+            android:id="@+id/button_plan"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/cd_select_workout_plan"
+            android:padding="@dimen/lp_space_3"
+            android:src="@drawable/ic_plans"
+            app:tint="?attr/lpAccent" />
+
         <ImageButton
             android:id="@+id/button_muscle_overview"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_marginEnd="8dp"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginEnd="@dimen/lp_space_1"
             android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/cd_view_muscle_overview"
+            android:padding="@dimen/lp_space_3"
             android:src="@drawable/ic_fitness_center_24"
-            app:tint="@color/fitness_primary"
-            android:contentDescription="View Muscle Overview" />
+            app:tint="?attr/lpAccent" />
     </LinearLayout>
 
-    <!-- EXERCISES LIST -->
+    <!-- EXERCISES -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recycler_view_active_workout"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:clipToPadding="false"
-        android:paddingBottom="16dp"
-        app:layout_constraintTop_toBottomOf="@id/layout_date_header"
+        android:paddingTop="@dimen/lp_card_gap_dense"
+        android:paddingBottom="@dimen/lp_space_3"
         app:layout_constraintBottom_toTopOf="@id/card_timer_container"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintTop_toBottomOf="@id/layout_date_header" />
 
-    <!-- TIMER CARD - PERMANENT -->
-    <androidx.cardview.widget.CardView
+    <!-- REST TIMER — permanent -->
+    <com.google.android.material.card.MaterialCardView
         android:id="@+id/card_timer_container"
+        style="@style/Widget.LP.Card"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="16dp"
-        app:cardBackgroundColor="@color/fitness_card_background"
-        app:cardCornerRadius="16dp"
-        app:cardElevation="4dp"
+        android:layout_marginStart="@dimen/lp_gutter_dense"
+        android:layout_marginEnd="@dimen/lp_gutter_dense"
+        android:layout_marginBottom="@dimen/lp_space_4"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent">
@@ -151,121 +153,101 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:clipChildren="false"
-            android:clipToPadding="false"
-            android:orientation="vertical"
-            android:padding="12dp">
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="@dimen/lp_space_2"
+            android:paddingVertical="@dimen/lp_space_2">
 
-            <!-- Timer Display with Controls -->
+            <ImageButton
+                android:id="@+id/button_timer_start_pause"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/cd_start_pause_timer"
+                android:padding="@dimen/lp_space_2"
+                android:src="@drawable/ic_play"
+                app:tint="?attr/lpAccent" />
+
             <LinearLayout
-                android:layout_width="match_parent"
+                android:id="@+id/button_timer_minus_15"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
                 android:gravity="center_vertical"
+                android:minHeight="40dp"
                 android:orientation="horizontal"
-                android:clipChildren="false"
-                android:clipToPadding="false">
+                android:paddingHorizontal="@dimen/lp_space_1">
 
-                <!-- Start/Pause Icon -->
-                <ImageButton
-                    android:id="@+id/button_timer_start_pause"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:contentDescription="Start/Pause timer"
-                    android:padding="8dp"
-                    android:src="@drawable/ic_play"
-                    app:tint="@color/fitness_primary" />
+                <ImageView
+                    android:layout_width="13dp"
+                    android:layout_height="13dp"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_minus"
+                    app:tint="?attr/lpInkTertiary" />
 
-                <!-- -15 Button -->
-                <LinearLayout
-                    android:id="@+id/button_timer_minus_15"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:minHeight="40dp"
-                    android:paddingStart="8dp"
-                    android:paddingEnd="8dp">
-
-                    <ImageView
-                        android:layout_width="16dp"
-                        android:layout_height="16dp"
-                        android:src="@drawable/ic_minus"
-                        app:tint="@color/fitness_text_secondary" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="4dp"
-                        android:text="15"
-                        android:textColor="@color/fitness_text_secondary"
-                        android:textSize="12sp"
-                        android:textStyle="bold" />
-                </LinearLayout>
-
-                <!-- Timer Display -->
                 <TextView
-                    android:id="@+id/text_timer_display"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:gravity="center"
-                    android:minHeight="48dp"
-                    android:text="00:00"
-                    android:textColor="@color/fitness_text_primary"
-                    android:textSize="32sp"
-                    android:textStyle="bold"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:background="?attr/selectableItemBackgroundBorderless" />
-
-                <!-- +15 Button -->
-                <LinearLayout
-                    android:id="@+id/button_timer_plus_15"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:minHeight="40dp"
-                    android:paddingStart="8dp"
-                    android:paddingEnd="8dp">
-
-                    <ImageView
-                        android:layout_width="16dp"
-                        android:layout_height="16dp"
-                        android:src="@drawable/ic_plus"
-                        app:tint="@color/fitness_text_secondary" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="4dp"
-                        android:text="15"
-                        android:textColor="@color/fitness_text_secondary"
-                        android:textSize="12sp"
-                        android:textStyle="bold" />
-                </LinearLayout>
-
-                <!-- Reset Icon -->
-                <ImageButton
-                    android:id="@+id/button_timer_reset_stop"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:layout_marginStart="8dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:contentDescription="Reset timer"
-                    android:padding="8dp"
-                    android:src="@drawable/ic_refresh"
-                    app:tint="@color/fitness_text_secondary" />
+                    android:layout_marginStart="2dp"
+                    android:text="15"
+                    android:textAppearance="@style/TextAppearance.LP.Metric.S"
+                    android:textColor="?attr/lpInkTertiary" />
             </LinearLayout>
+
+            <!-- The number this bar exists for. Tap to set a custom duration. -->
+            <TextView
+                android:id="@+id/text_timer_display"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:minHeight="44dp"
+                android:text="00:00"
+                android:textAppearance="@style/TextAppearance.LP.Metric.L" />
+
+            <LinearLayout
+                android:id="@+id/button_timer_plus_15"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:minHeight="40dp"
+                android:orientation="horizontal"
+                android:paddingHorizontal="@dimen/lp_space_1">
+
+                <ImageView
+                    android:layout_width="13dp"
+                    android:layout_height="13dp"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_plus"
+                    app:tint="?attr/lpInkTertiary" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="2dp"
+                    android:text="15"
+                    android:textAppearance="@style/TextAppearance.LP.Metric.S"
+                    android:textColor="?attr/lpInkTertiary" />
+            </LinearLayout>
+
+            <ImageButton
+                android:id="@+id/button_timer_reset_stop"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/cd_reset_timer"
+                android:padding="@dimen/lp_space_2"
+                android:src="@drawable/ic_refresh"
+                app:tint="?attr/lpInkTertiary" />
         </LinearLayout>
-    </androidx.cardview.widget.CardView>
+    </com.google.android.material.card.MaterialCardView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

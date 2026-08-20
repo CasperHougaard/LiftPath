@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Plan tab: the workout-plans list, hosted by MainActivity's bottom navigation.
+
+  AIRY spacing — this is a browsing surface, not a working one. "Create plan" stays ink
+  (Widget.LP.Button) as the one thing on this screen worth spending the darkest colour on;
+  "Plan rotations" is a secondary destination and stays outlined.
+-->
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?attr/lpCanvas"
+    tools:context="com.liftpath.fragments.PlanFragment">
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@android:color/transparent"
+        android:clipToPadding="false"
+        android:fillViewport="true">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:clipChildren="false"
+            android:clipToPadding="false"
+            android:padding="@dimen/lp_gutter">
+
+            <!-- HEADER. No back button: a bottom-nav tab has nowhere to go back to. -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/button_more_options"
+                style="@style/Widget.LP.Card.Control"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
+
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:contentDescription="@string/abc_action_menu_overflow_description"
+                    android:padding="@dimen/lp_space_3"
+                    android:src="@drawable/ic_more_vert"
+                    app:tint="?attr/lpInk" />
+            </com.google.android.material.card.MaterialCardView>
+
+            <LinearLayout
+                android:id="@+id/header_container"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="@dimen/lp_space_2"
+                android:gravity="center_vertical"
+                android:orientation="vertical"
+                app:layout_constraintBottom_toBottomOf="@id/button_more_options"
+                app:layout_constraintEnd_toStartOf="@id/button_more_options"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="@id/button_more_options">
+
+                <TextView
+                    android:id="@+id/text_plans_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/title_workout_plans"
+                    android:textAppearance="@style/TextAppearance.LP.Title" />
+
+                <TextView
+                    android:id="@+id/text_plans_subtitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/subtitle_workout_plans"
+                    android:textAppearance="@style/TextAppearance.LP.Body" />
+            </LinearLayout>
+
+            <!-- ACTIVE ROUTINE — what the Workout tab treats as "up next". Either a single
+                 plan, a rotation's next plan, or a nudge to pick one below. -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_active_routine"
+                style="@style/Widget.LP.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/lp_space_4"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/header_container">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/lp_card_padding">
+
+                    <TextView
+                        android:id="@+id/text_active_routine_eyebrow"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textAppearance="@style/TextAppearance.LP.Label"
+                        android:textColor="?attr/lpAccent"
+                        tools:text="Rotation" />
+
+                    <TextView
+                        android:id="@+id/text_active_routine_title"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:textAppearance="@style/TextAppearance.LP.Heading"
+                        tools:text="Push / Pull / Legs" />
+
+                    <TextView
+                        android:id="@+id/text_active_routine_sub"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:textAppearance="@style/TextAppearance.LP.Label"
+                        android:textColor="?attr/lpInkTertiary"
+                        tools:text="Next: Push Day" />
+
+                    <TextView
+                        android:id="@+id/text_active_routine_empty"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/label_active_routine_empty_title"
+                        android:textAppearance="@style/TextAppearance.LP.Heading"
+                        android:visibility="gone"
+                        tools:visibility="visible" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <TextView
+                android:id="@+id/text_plan_library_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/lp_space_6"
+                android:text="@string/label_plan_library"
+                android:textAppearance="@style/TextAppearance.LP.Label"
+                android:textColor="?attr/lpInkSecondary"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/card_active_routine" />
+
+            <!-- PLANS — each row is its own card (list_item_workout_plan.xml), so this
+                 RecyclerView sits directly on the canvas rather than inside a wrapper card;
+                 nesting one hairline card's rows inside another hairline card just doubles
+                 the seam. -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recycler_view_plans"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/lp_space_2"
+                android:clipChildren="false"
+                android:clipToPadding="false"
+                android:nestedScrollingEnabled="false"
+                app:layout_constraintBottom_toTopOf="@id/fab_create_plan"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/text_plan_library_title" />
+
+            <TextView
+                android:id="@+id/text_empty_state"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/lp_space_10"
+                android:gravity="center"
+                android:padding="@dimen/lp_space_6"
+                android:text="@string/empty_state_no_plans"
+                android:textAppearance="@style/TextAppearance.LP.Body"
+                android:visibility="gone"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/text_plan_library_title" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/fab_create_plan"
+                style="@style/Widget.LP.Button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/lp_space_2"
+                android:text="@string/btn_create_plan"
+                app:icon="@drawable/ic_plus"
+                app:iconGravity="textStart"
+                app:layout_constraintBottom_toTopOf="@id/button_plan_rotations"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/button_plan_rotations"
+                style="@style/Widget.LP.Button.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/btn_plan_rotations"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </androidx.core.widget.NestedScrollView>
+</androidx.constraintlayout.widget.ConstraintLayout>

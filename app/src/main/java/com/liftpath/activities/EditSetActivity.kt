@@ -50,12 +50,12 @@ class EditSetActivity : AppCompatActivity() {
 
         // Update title and subtitle based on mode
         if (isEditMode) {
-            binding.textTitle.text = "Edit Set"
-            binding.textSubtitle.text = "Update set details"
+            binding.textTitle.setText(R.string.title_edit_set)
+            binding.textSubtitle.setText(R.string.subtitle_update_set_details)
             binding.cardDelete.visibility = View.VISIBLE
         } else {
-            binding.textTitle.text = "Add Set"
-            binding.textSubtitle.text = "Enter set details"
+            binding.textTitle.setText(R.string.title_add_set)
+            binding.textSubtitle.setText(R.string.subtitle_enter_set_details)
             binding.cardDelete.visibility = View.GONE
         }
 
@@ -64,12 +64,11 @@ class EditSetActivity : AppCompatActivity() {
         isBodyweight = exerciseEntry.isBodyweightEntry()
         isTimeBased = exerciseEntry.isTimedEntry()
 
-        // Populate fields with existing data
-        if (isTimeBased) {
-            setupTimeMode()
-        } else if (isBodyweight) {
-            setupBodyweightMode()
-        } else {
+        // Populate fields with existing data. The two axes are independent — a bodyweight hold is
+        // both timed and bodyweight, so both halves of the form are set up.
+        if (isTimeBased) setupTimeMode()
+        if (isBodyweight) setupBodyweightMode()
+        if (!isTimeBased && !isBodyweight) {
             binding.editTextKg.setText(exerciseEntry.kg.toString())
         }
         if (isTimeBased) {
@@ -119,17 +118,21 @@ class EditSetActivity : AppCompatActivity() {
 
     private fun round1(v: Float): Float = Math.round(v * 10f) / 10f
 
+    /** Metric half only: duration instead of reps. The load half is owned by the caller. */
     private fun setupTimeMode() {
-        // Show the duration field instead of reps; weight is optional (kept in the weighted field).
         binding.repsContainer.visibility = View.GONE
         binding.timeContainer.visibility = View.VISIBLE
-        binding.bodyweightContainer.visibility = View.GONE
-        binding.weightedWeightContainer.visibility = View.VISIBLE
-        if (exerciseEntry.kg > 0f) {
-            binding.editTextKg.setText(formatNum(exerciseEntry.kg))
+        // A weighted hold keeps the optional external-load field; a bodyweight hold uses the
+        // body-weight fields instead (set up by setupBodyweightMode).
+        if (!isBodyweight) {
+            binding.weightedWeightContainer.visibility = View.VISIBLE
+            if (exerciseEntry.kg > 0f) {
+                binding.editTextKg.setText(formatNum(exerciseEntry.kg))
+            }
         }
     }
 
+    /** Load half only: body-weight snapshot plus the signed Added/Assisted extra. */
     private fun setupBodyweightMode() {
         binding.weightedWeightContainer.visibility = View.GONE
         binding.bodyweightContainer.visibility = View.VISIBLE
@@ -212,15 +215,12 @@ class EditSetActivity : AppCompatActivity() {
             return
         }
 
-        // Resolve the load (time: optional kg; weighted vs bodyweight).
+        // Resolve the load, independently of the metric above: bodyweight (reps or hold) →
+        // snapshot + signed extra; weighted hold → optional kg; weighted reps → kg required.
         val updatedKg: Float
         val updatedBodyweight: Float?
         val updatedAdded: Float?
-        if (isTimeBased) {
-            updatedKg = binding.editTextKg.text.toString().toFloatOrNull() ?: 0f
-            updatedBodyweight = null
-            updatedAdded = null
-        } else if (isBodyweight) {
+        if (isBodyweight) {
             val bw = binding.editTextBodyweight.text.toString().trim().toFloatOrNull()
             if (bw == null || bw < 20f || bw > 400f) {
                 Toast.makeText(this, getString(R.string.bodyweight_invalid), Toast.LENGTH_SHORT).show()
@@ -237,6 +237,11 @@ class EditSetActivity : AppCompatActivity() {
             updatedKg = effective
             updatedBodyweight = roundedBw
             updatedAdded = added
+        } else if (isTimeBased) {
+            // External load on a hold is optional; blank means an unloaded hold.
+            updatedKg = binding.editTextKg.text.toString().toFloatOrNull() ?: 0f
+            updatedBodyweight = null
+            updatedAdded = null
         } else {
             val parsedKg = binding.editTextKg.text.toString().toFloatOrNull()
             if (parsedKg == null) {

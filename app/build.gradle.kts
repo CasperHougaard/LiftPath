@@ -87,6 +87,9 @@ android {
     buildFeatures {
         viewBinding = true
     }
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
 }
 
 dependencies {
@@ -99,8 +102,22 @@ dependencies {
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
+    // ProcessLifecycleOwner, for refreshing the zero-login cloud snapshot on backgrounding.
+    implementation("androidx.lifecycle:lifecycle-process:2.7.0")
     implementation("androidx.health.connect:connect-client:1.1.0-alpha11")
     implementation("androidx.viewpager2:viewpager2:1.1.0")
+    // Spring physics for the home-screen entrance + press feedback. ~30KB; the
+    // alternative is hand-tuned interpolators that never quite settle right.
+    implementation("androidx.dynamicanimation:dynamicanimation:1.0.0")
+    // Android 12+ SplashScreen API compat — lets us hook a custom exit animation on the
+    // system-drawn splash instead of accepting its default fade.
+    implementation("androidx.core:core-splashscreen:1.0.1")
+    // Backup & sync: SAF folder access, background scheduling
+    implementation("androidx.documentfile:documentfile:1.0.1")
+    implementation("androidx.work:work-runtime-ktx:2.9.1")
+    // Google Drive backup destination: Play Services' Authorization API only, no Drive client
+    // library — DriveBackupHelper talks to the REST API directly.
+    implementation("com.google.android.gms:play-services-auth:21.2.0")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

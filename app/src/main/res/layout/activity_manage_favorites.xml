@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/fitness_background"
+    android:background="?attr/lpCanvas"
     android:fitsSystemWindows="true"
     tools:context=".activities.ManageFavoritesActivity">
 
@@ -19,26 +19,22 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/avd_background_flow" />
+        app:srcCompat="@drawable/lp_bg_ambient_flow"
+        app:tint="?attr/lpAccent" />
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:clipChildren="false"
         android:clipToPadding="false"
-        android:padding="24dp">
+        android:padding="@dimen/lp_space_6">
 
         <!-- HEADER WITH BACK BUTTON -->
-        <androidx.cardview.widget.CardView
+        <com.google.android.material.card.MaterialCardView
             android:id="@+id/button_back"
+            style="@style/Widget.LP.Card.Control"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:clickable="true"
-            android:focusable="true"
-            android:foreground="?attr/selectableItemBackground"
-            app:cardBackgroundColor="@color/fitness_card_background"
-            app:cardCornerRadius="24dp"
-            app:cardElevation="0dp"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent">
 
@@ -47,18 +43,18 @@
                 android:layout_height="match_parent"
                 android:background="@android:color/transparent"
                 android:contentDescription="@string/progress_back_content_description"
-                android:padding="12dp"
+                android:padding="@dimen/lp_space_3"
                 android:src="@drawable/ic_arrow_back_24"
                 android:clickable="false"
                 android:focusable="false"
-                app:tint="@color/fitness_text_primary" />
-        </androidx.cardview.widget.CardView>
+                app:tint="?attr/lpInk" />
+        </com.google.android.material.card.MaterialCardView>
 
         <LinearLayout
             android:id="@+id/header_container"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
+            android:layout_marginStart="@dimen/lp_space_4"
             android:orientation="vertical"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@id/button_back"
@@ -68,30 +64,27 @@
                 android:id="@+id/text_title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Add Favourites"
-                android:textColor="@color/fitness_text_primary"
-                android:textSize="28sp"
-                android:textStyle="bold" />
+                android:text="@string/title_manage_favorites"
+                android:textAppearance="@style/TextAppearance.LP.Title" />
 
             <TextView
                 android:id="@+id/text_selected_count"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="0 selected"
-                android:textColor="@color/fitness_text_secondary"
-                android:textSize="14sp" />
+                android:layout_marginTop="@dimen/lp_space_1"
+                android:textAppearance="@style/TextAppearance.LP.Body"
+                tools:text="0 selected" />
         </LinearLayout>
 
         <!-- SEARCH FIELD -->
-        <androidx.cardview.widget.CardView
+        <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_search"
+            style="@style/Widget.LP.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            app:cardBackgroundColor="@color/fitness_card_background"
-            app:cardCornerRadius="20dp"
-            app:cardElevation="4dp"
+            android:layout_marginTop="@dimen/lp_space_4"
+            android:clickable="false"
+            android:focusable="false"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/header_container">
@@ -101,41 +94,41 @@
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
-                android:padding="16dp">
+                android:padding="@dimen/lp_card_padding">
 
                 <ImageView
                     android:layout_width="24dp"
                     android:layout_height="24dp"
+                    android:layout_marginEnd="@dimen/lp_space_3"
+                    android:importantForAccessibility="no"
                     android:src="@drawable/ic_search_24"
-                    app:tint="@color/fitness_text_secondary"
-                    android:layout_marginEnd="12dp" />
+                    app:tint="?attr/lpInkSecondary" />
 
                 <EditText
                     android:id="@+id/edit_text_search"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:hint="Search exercises..."
-                    android:textColor="@color/fitness_text_primary"
-                    android:textColorHint="@color/fitness_text_secondary"
-                    android:textSize="16sp"
                     android:background="@android:color/transparent"
-                    android:inputType="text"
+                    android:hint="@string/hint_search_exercises"
                     android:imeOptions="actionSearch"
-                    android:maxLines="1" />
+                    android:inputType="text"
+                    android:maxLines="1"
+                    android:textAppearance="@style/TextAppearance.LP.Input"
+                    android:textColorHint="?attr/lpInkTertiary" />
             </LinearLayout>
-        </androidx.cardview.widget.CardView>
+        </com.google.android.material.card.MaterialCardView>
 
         <!-- EXERCISES LIST CARD -->
-        <androidx.cardview.widget.CardView
+        <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_exercises_list"
+            style="@style/Widget.LP.Card"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="12dp"
-            app:cardBackgroundColor="@color/fitness_card_background"
-            app:cardCornerRadius="20dp"
-            app:cardElevation="4dp"
+            android:layout_marginTop="@dimen/lp_space_4"
+            android:layout_marginBottom="@dimen/lp_space_3"
+            android:clickable="false"
+            android:focusable="false"
             app:layout_constraintBottom_toTopOf="@id/button_container"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -145,10 +138,10 @@
                 android:id="@+id/recycler_view_exercises"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:padding="12dp"
+                android:padding="@dimen/lp_card_padding_dense"
                 android:clipToPadding="false"
                 android:clipChildren="false" />
-        </androidx.cardview.widget.CardView>
+        </com.google.android.material.card.MaterialCardView>
 
         <!-- BUTTON CONTAINER - FIXED AT BOTTOM -->
         <LinearLayout
@@ -159,68 +152,28 @@
             android:clipChildren="false"
             android:clipToPadding="false"
             android:orientation="horizontal"
-            android:paddingBottom="24dp"
+            android:paddingBottom="@dimen/lp_space_6"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent">
 
-            <androidx.cardview.widget.CardView
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/button_cancel"
+                style="@style/Widget.LP.Button.Outlined"
                 android:layout_width="0dp"
-                android:layout_height="60dp"
-                android:layout_marginEnd="8dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="@dimen/lp_space_2"
                 android:layout_weight="1"
-                android:clickable="true"
-                android:focusable="true"
-                android:foreground="?attr/selectableItemBackground"
-                app:cardBackgroundColor="@color/fitness_card_background"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="2dp">
+                android:text="@string/button_cancel" />
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:gravity="center"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Cancel"
-                        android:textColor="@color/fitness_text_primary"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
-                </LinearLayout>
-            </androidx.cardview.widget.CardView>
-
-            <androidx.cardview.widget.CardView
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/button_save"
+                style="@style/Widget.LP.Button"
                 android:layout_width="0dp"
-                android:layout_height="60dp"
-                android:layout_marginStart="8dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/lp_space_2"
                 android:layout_weight="1"
-                android:clickable="true"
-                android:focusable="true"
-                android:foreground="?attr/selectableItemBackground"
-                app:cardBackgroundColor="@color/fitness_primary"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="4dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:gravity="center"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Save"
-                        android:textColor="@color/white"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
-                </LinearLayout>
-            </androidx.cardview.widget.CardView>
+                android:text="@string/button_save" />
         </LinearLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>

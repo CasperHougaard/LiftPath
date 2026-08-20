@@ -13,6 +13,8 @@ import androidx.appcompat.app.AppCompatActivity
 import com.liftpath.R
 import com.liftpath.databinding.DialogRestTimerBinding
 import com.liftpath.services.RestTimerService
+import com.liftpath.helpers.lpColor
+import java.util.Locale
 
 class RestTimerDialogActivity : AppCompatActivity() {
 
@@ -133,13 +135,15 @@ class RestTimerDialogActivity : AppCompatActivity() {
     private fun updateTimerDisplay(seconds: Int) {
         val minutes = seconds / 60
         val secs = seconds % 60
-        binding.tvTimerDisplay.text = String.format("%d:%02d", minutes, secs)
-        
-        // Change color based on time remaining
+        binding.tvTimerDisplay.text = String.format(Locale.getDefault(), "%d:%02d", minutes, secs)
+
+        // Urgency runs quiet -> accent -> negative. All three are theme attributes, so the
+        // gradient stays coherent in every palette; the holo_* colours this replaced were
+        // Android 4 stock orange and red, and read as somebody else's app.
         val color = when {
-            seconds > 60 -> getColor(R.color.fitness_accent)
-            seconds > 30 -> getColor(android.R.color.holo_orange_dark)
-            else -> getColor(android.R.color.holo_red_dark)
+            seconds > 60 -> lpColor(R.attr.lpInk)
+            seconds > 30 -> lpColor(R.attr.lpAccent)
+            else -> lpColor(R.attr.lpNegative)
         }
         binding.tvTimerDisplay.setTextColor(color)
     }

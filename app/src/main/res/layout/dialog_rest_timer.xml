@@ -1,75 +1,87 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  The rest timer, as its own window (RestTimerDialogActivity), shown over the lock screen.
+
+  This screen has exactly one job: make the remaining seconds legible from wherever you set
+  the phone down. So the countdown gets Metric.XL and everything else gets out of its way —
+  the exercise name is an eyebrow, not a title, and the four controls are ranked rather than
+  given equal weight: adjust, then Skip (ink, ends the rest), then Dismiss (text, only hides
+  this window and leaves the timer running).
+
+  AIRY spacing, unlike the rest of the workout loop. Nothing here is being operated in a
+  hurry, and density would work against the one thing the screen is for.
+-->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:padding="24dp"
+    android:background="?attr/lpCanvas"
     android:gravity="center"
-    android:background="@color/fitness_background"
+    android:orientation="vertical"
+    android:padding="@dimen/lp_space_6"
     tools:context=".activities.RestTimerDialogActivity">
 
     <TextView
         android:id="@+id/tvExerciseName"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Exercise Name"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        android:textColor="@color/fitness_text_primary"
-        android:layout_marginBottom="16dp" />
+        android:ellipsize="end"
+        android:gravity="center"
+        android:maxLines="1"
+        android:textAppearance="@style/TextAppearance.LP.Caption"
+        tools:text="Bench Press" />
 
+    <!-- Colour is set per-tick by the activity: quiet ink with time in hand, accent as it
+         closes, negative in the last thirty seconds. -->
     <TextView
         android:id="@+id/tvTimerDisplay"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="120"
-        android:textSize="96sp"
-        android:textStyle="bold"
-        android:textColor="@color/fitness_accent"
-        android:fontFamily="monospace"
-        android:layout_marginBottom="32dp" />
+        android:layout_marginTop="@dimen/lp_space_2"
+        android:layout_marginBottom="@dimen/lp_space_6"
+        android:text="0:00"
+        android:textAppearance="@style/TextAppearance.LP.Metric.XL"
+        tools:text="2:00" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
+        android:baselineAligned="false"
         android:gravity="center"
-        android:layout_marginBottom="16dp">
+        android:orientation="horizontal">
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnRemove15s"
+            style="@style/Widget.LP.Button.Outlined"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginEnd="@dimen/lp_card_gap"
             android:layout_weight="1"
-            android:layout_marginEnd="8dp"
-            android:text="-15s"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+            android:text="@string/btn_minus_15s" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnAdd15s"
+            style="@style/Widget.LP.Button.Outlined"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginStart="8dp"
-            android:text="+15s"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+            android:text="@string/btn_plus_15s" />
     </LinearLayout>
 
-    <Button
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/btnSkipRest"
+        style="@style/Widget.LP.Button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Skip"
-        android:layout_marginBottom="8dp"
-        style="@style/Widget.MaterialComponents.Button.TextButton" />
+        android:layout_marginTop="@dimen/lp_space_3"
+        android:text="@string/btn_skip_rest" />
 
-    <Button
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/btnDismiss"
+        style="@style/Widget.LP.Button.Text"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Dismiss"
-        style="@style/Widget.MaterialComponents.Button.TextButton" />
+        android:layout_marginTop="@dimen/lp_space_1"
+        android:text="@string/btn_dismiss" />
 
 </LinearLayout>
-

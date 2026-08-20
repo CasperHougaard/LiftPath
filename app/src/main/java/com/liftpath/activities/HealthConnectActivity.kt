@@ -24,6 +24,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.*
+import com.liftpath.helpers.lpColor
 
 class HealthConnectActivity : AppCompatActivity() {
 
@@ -152,7 +153,7 @@ class HealthConnectActivity : AppCompatActivity() {
             setPadding(16, 16, 16, 16)
             // Use card background color for theme consistency
             background = android.graphics.drawable.GradientDrawable().apply {
-                setColor(ContextCompat.getColor(this@HealthConnectActivity, R.color.fitness_card_background))
+                setColor(this@HealthConnectActivity.lpColor(R.attr.lpSurface))
                 cornerRadius = 12f * resources.displayMetrics.density
             }
             // Add alpha if ignored
@@ -181,7 +182,7 @@ class HealthConnectActivity : AppCompatActivity() {
             }
             text = typeName
             textSize = 14f
-            setTextColor(ContextCompat.getColor(this@HealthConnectActivity, R.color.fitness_text_primary))
+            setTextColor(this@HealthConnectActivity.lpColor(R.attr.lpInk))
             setTypeface(null, android.graphics.Typeface.BOLD)
             layoutParams = LinearLayout.LayoutParams(
                 0,
@@ -195,7 +196,7 @@ class HealthConnectActivity : AppCompatActivity() {
         val clickHintText = TextView(this).apply {
             text = if (storedActivity.ignored) "Tap to include" else "Tap to exclude"
             textSize = 10f
-            setTextColor(ContextCompat.getColor(this@HealthConnectActivity, R.color.fitness_text_secondary))
+            setTextColor(this@HealthConnectActivity.lpColor(R.attr.lpInkSecondary))
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
@@ -209,7 +210,7 @@ class HealthConnectActivity : AppCompatActivity() {
         val dateText = TextView(this).apply {
             text = "${dateTimeFormat.format(Date(activity.startTime))} (${durationMinutes}min)"
             textSize = 12f
-            setTextColor(ContextCompat.getColor(this@HealthConnectActivity, R.color.fitness_text_secondary))
+            setTextColor(this@HealthConnectActivity.lpColor(R.attr.lpInkSecondary))
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
@@ -224,7 +225,7 @@ class HealthConnectActivity : AppCompatActivity() {
             val ignoreReasonText = TextView(this).apply {
                 text = "Reason: ${storedActivity.ignoreReason}"
                 textSize = 11f
-                setTextColor(ContextCompat.getColor(this@HealthConnectActivity, R.color.fitness_text_secondary))
+                setTextColor(this@HealthConnectActivity.lpColor(R.attr.lpInkSecondary))
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
@@ -245,7 +246,7 @@ class HealthConnectActivity : AppCompatActivity() {
                     activity.fatigue.systemicFatigue
                 )
                 textSize = 11f
-                setTextColor(ContextCompat.getColor(this@HealthConnectActivity, R.color.fitness_text_secondary))
+                setTextColor(this@HealthConnectActivity.lpColor(R.attr.lpInkSecondary))
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
@@ -292,14 +293,14 @@ class HealthConnectActivity : AppCompatActivity() {
         
         if (!isAvailable) {
             binding.textStatus.text = "Health Connect is not available on this device"
-            binding.textStatus.setTextColor(ContextCompat.getColor(this, R.color.fitness_error_border))
+            binding.textStatus.setTextColor(this.lpColor(R.attr.lpNegative))
             binding.buttonSync.isEnabled = false
             binding.buttonRequestPermissions.visibility = View.GONE
             return
         }
 
         binding.textStatus.text = "Health Connect is available"
-        binding.textStatus.setTextColor(ContextCompat.getColor(this, R.color.fitness_highlight_border))
+        binding.textStatus.setTextColor(this.lpColor(R.attr.lpPositive))
 
         // Check permissions
         val client = HealthConnectHelper.getClient(this)
@@ -322,11 +323,11 @@ class HealthConnectActivity : AppCompatActivity() {
     private fun updatePermissionStatus(hasPermissions: Boolean) {
         if (hasPermissions) {
             binding.textPermissionStatus.text = "Permissions: Granted"
-            binding.textPermissionStatus.setTextColor(ContextCompat.getColor(this, R.color.fitness_highlight_border))
+            binding.textPermissionStatus.setTextColor(this.lpColor(R.attr.lpPositive))
             binding.buttonRequestPermissions.visibility = View.GONE
         } else {
             binding.textPermissionStatus.text = "Permissions: Not granted"
-            binding.textPermissionStatus.setTextColor(ContextCompat.getColor(this, R.color.fitness_error_border))
+            binding.textPermissionStatus.setTextColor(this.lpColor(R.attr.lpNegative))
             binding.buttonRequestPermissions.visibility = View.VISIBLE
         }
     }

@@ -9,8 +9,10 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.card.MaterialCardView
 import com.liftpath.R
 import com.liftpath.helpers.ProgressAnalysisHelper
+import com.liftpath.helpers.RestTimerHelper
 import java.text.SimpleDateFormat
 import java.util.*
+import com.liftpath.helpers.lpColor
 
 /**
  * Adapter for the PR page "Player Stats Card" list.
@@ -46,22 +48,22 @@ class ExercisePRStatsAdapter(
         private val textStat1rm: TextView = itemView.findViewById(R.id.text_stat_1rm)
         private val textStatWeight: TextView = itemView.findViewById(R.id.text_stat_weight)
         private val textStatVolume: TextView = itemView.findViewById(R.id.text_stat_volume)
-        private val textStatReps: TextView = itemView.findViewById(R.id.text_stat_reps)
+        private val textStatHold: TextView = itemView.findViewById(R.id.text_stat_hold)
 
         fun bind(summary: ProgressAnalysisHelper.ExerciseStatsSummary) {
             textExerciseName.text = summary.exerciseName
 
             val ctx = itemView.context
-            val mutedColor = ContextCompat.getColor(ctx, R.color.fitness_text_secondary)
+            val mutedColor = ctx.lpColor(R.attr.lpInkSecondary)
 
             fun daysSince(timestamp: Long) =
                 if (timestamp <= 0) Int.MAX_VALUE
                 else ((System.currentTimeMillis() - timestamp) / (24 * 60 * 60 * 1000)).toInt()
 
             fun recencyColor(daysSince: Int) = when {
-                daysSince <= 7  -> ContextCompat.getColor(ctx, R.color.pr_fresh)
-                daysSince <= 30 -> ContextCompat.getColor(ctx, R.color.pr_improved)
-                else            -> ContextCompat.getColor(ctx, R.color.pr_older)
+                daysSince <= 7  -> ctx.lpColor(R.attr.lpPositive)
+                daysSince <= 30 -> ctx.lpColor(R.attr.lpAccent)
+                else            -> ctx.lpColor(R.attr.lpInkTertiary)
             }
 
             // Card border uses the most recent PR date across all types
@@ -91,7 +93,8 @@ class ExercisePRStatsAdapter(
             textStat1rm.text   = summary.best1RM?.let { String.format(Locale.US, "%.1f kg", it) } ?: "—"
             textStatWeight.text = summary.bestWeight?.let { String.format(Locale.US, "%.1f kg", it) } ?: "—"
             textStatVolume.text = summary.bestVolume?.let { String.format(Locale.US, "%,.0f kg", it) } ?: "—"
-            textStatReps.text  = "—"
+            // Longest hold, for timed/isometric exercises (planks, hangs, wall sits).
+            textStatHold.text = summary.bestHoldSeconds?.let { RestTimerHelper.formatDuration(it) } ?: "—"
 
             textStat1rm.setTextColor(
                 if (summary.best1RM != null) recencyColor(daysSince(summary.last1RMPrDate)) else mutedColor
@@ -102,7 +105,9 @@ class ExercisePRStatsAdapter(
             textStatVolume.setTextColor(
                 if (summary.bestVolume != null) recencyColor(daysSince(summary.lastVolumePrDate)) else mutedColor
             )
-            textStatReps.setTextColor(mutedColor)
+            textStatHold.setTextColor(
+                if (summary.bestHoldSeconds != null) recencyColor(daysSince(summary.lastHoldPrDate)) else mutedColor
+            )
         }
     }
 }

@@ -97,6 +97,12 @@ enum class WorkoutSourceType {
     @SerializedName("plan_set") PLAN_SET
 }
 
+/** Which kind of routine the Plan tab has been told is "the one" — see [TrainingData.activeRoutineType]. */
+enum class ActiveRoutineType {
+    @SerializedName("single_plan") SINGLE_PLAN,
+    @SerializedName("rotation")    ROTATION
+}
+
 enum class PlanExerciseSelectionType {
     @SerializedName("specific_variant") SPECIFIC_VARIANT,
     @SerializedName("family_slot")      FAMILY_SLOT
@@ -105,13 +111,20 @@ enum class PlanExerciseSelectionType {
 enum class PlanSlotType(val value: String) {
     @SerializedName("exercise") EXERCISE("exercise"),
     @SerializedName("warmup")   WARMUP("warmup"),
-    @SerializedName("cooldown") COOLDOWN("cooldown")
+    @SerializedName("cooldown") COOLDOWN("cooldown"),
+    @SerializedName("circuit")  CIRCUIT("circuit")
 }
 
 /** Sentinel exerciseId used to store a completed warm-up element in the session log. */
 const val WARMUP_EXERCISE_ID = -1
 /** Sentinel exerciseId used to store a completed cool-down element in the session log. */
 const val COOLDOWN_EXERCISE_ID = -2
+/**
+ * First sentinel exerciseId for a circuit *row* in the active workout list; further circuits in the
+ * same session take -101, -102, … A circuit row is only ever a container — the sets it produces are
+ * logged against the real exerciseIds of its members, so these ids never reach the session log.
+ */
+const val CIRCUIT_ROW_ID_BASE = -100
 
 enum class Equipment(val displayName: String) {
     @SerializedName("barbell")     BARBELL("Barbell"),
@@ -182,12 +195,20 @@ data class PlanExerciseSlot(
     val familyId: String? = null,
     val movementPattern: MovementPattern? = null,
     val slotType: PlanSlotType = PlanSlotType.EXERCISE,
-    val durationSeconds: Int? = null
+    val durationSeconds: Int? = null,
+    /**
+     * The [CircuitTemplate] this slot runs, for `slotType == CIRCUIT`. The slot's [setsTarget]
+     * carries the *suggested* round count (nullable — a plan may leave it open) and
+     * [restTimeSeconds] the rest between rounds, so a circuit needs no fields of its own.
+     */
+    val circuitId: String? = null
 ) : Parcelable {
     val effectiveSelectionType: PlanExerciseSelectionType
         get() = selectionType ?: PlanExerciseSelectionType.SPECIFIC_VARIANT
     val isSpecialElement: Boolean
         get() = slotType == PlanSlotType.WARMUP || slotType == PlanSlotType.COOLDOWN
+    val isCircuit: Boolean
+        get() = slotType == PlanSlotType.CIRCUIT
 }
 
 @Parcelize
@@ -213,6 +234,80 @@ data class PlanSetProgress(
     val planSetId: String,
     val lastCompletedPlanId: String? = null,
     val lastCompletedAt: Long? = null
+) : Parcelable
+
+// --- CIRCUITS ---
+//
+// A circuit is a fixed list of exercises done back-to-back and repeated for rounds, with rest
+// only between rounds — the shape of lactate/HIIT work, as opposed to a superset (two exercises)
+// or straight sets. Round count is always the athlete's call: a template may carry a *suggestion*,
+// but nothing in this model or the runner treats it as a limit.
+
+/** One station in a circuit. Exactly one of [targetReps] / [targetDurationSeconds] is meaningful. */
+@Parcelize
+data class CircuitItem(
+    val id: String = UUID.randomUUID().toString(),
+    val exerciseId: Int,
+    /** Free text like "12" or "12-15"; for a unilateral exercise this reads as per side. */
+    val targetReps: String? = null,
+    /** Hold/work duration for a time-based station (e.g. a 45 s wall sit). */
+    val targetDurationSeconds: Int? = null,
+    val targetKg: Float? = null,
+    val notes: String? = null
+) : Parcelable
+
+/** A reusable circuit definition, stored in [TrainingData.circuits] and shown in the Library tab. */
+@Parcelize
+data class CircuitTemplate(
+    val id: String = UUID.randomUUID().toString(),
+    val name: String,
+    /** A suggestion only — never enforced. Null means "as many rounds as you feel like". */
+    val suggestedRounds: Int? = null,
+    val restBetweenRoundsSeconds: Int = 90,
+    val items: List<CircuitItem> = emptyList(),
+    val notes: String? = null,
+    val createdDate: String = "",
+    /** Set on circuits seeded by DefaultCircuitsHelper; blocks re-seeding the same one twice. */
+    val defaultKey: String? = null
+) : Parcelable
+
+/**
+ * A circuit as it exists inside one session: a snapshot of the template plus live progress.
+ *
+ * Snapshotted rather than referenced so editing the template mid-session cannot change what you
+ * are part-way through, exactly as [DraftExerciseRow] snapshots plan targets.
+ */
+@Parcelize
+data class CircuitInstance(
+    val instanceId: String = UUID.randomUUID().toString(),
+    /** Null for a circuit assembled ad hoc in the workout rather than from the Library. */
+    val templateId: String? = null,
+    val name: String,
+    /** Display only ("round 2 of 3"); never a stopping condition. */
+    val suggestedRounds: Int? = null,
+    val restBetweenRoundsSeconds: Int = 90,
+    val items: List<CircuitItem> = emptyList(),
+    val completedRounds: Int = 0,
+    /** Elapsed work time of each completed round, in order. */
+    val roundWorkSeconds: List<Int> = emptyList(),
+    /** Round numbers whose sets have been entered — rounds deferred with "Later" are absent. */
+    val loggedRounds: List<Int> = emptyList(),
+    /** True once the user said "finish". Reversible: a finished circuit can take another round. */
+    val isFinished: Boolean = false
+) : Parcelable {
+    /** Rounds that were run but whose sets were deferred and never filled in. */
+    val pendingRounds: List<Int> get() = (1..completedRounds).filter { it !in loggedRounds }
+}
+
+/** What a circuit did in a saved session: the round structure that the flat set list can't express. */
+@Parcelize
+data class CircuitLog(
+    val instanceId: String,
+    val templateId: String? = null,
+    val name: String,
+    val roundsCompleted: Int,
+    val roundWorkSeconds: List<Int> = emptyList(),
+    val restBetweenRoundsSeconds: Int = 0
 ) : Parcelable
 
 @Parcelize
@@ -308,6 +403,9 @@ data class ExerciseEntry(
      */
     fun isEffectivelyWarmup(): Boolean = isWarmup || isLegacyWarmup()
 
+    /** True for the warmup/cooldown "special element" log entries (sentinel IDs), not a real exercise. */
+    fun isSpecialSlotEntry(): Boolean = exerciseId == WARMUP_EXERCISE_ID || exerciseId == COOLDOWN_EXERCISE_ID
+
     fun getEffectiveIntent(parentSessionType: String?): SetIntent {
         // Priority 1: RPE 6.0 indicates warmup for legacy data only
         if (isLegacyWarmup()) {
@@ -342,7 +440,9 @@ data class TrainingSession(
     val defaultWorkoutType: String? = null,
     val planId: String? = null,
     val planName: String? = null,
-    val durationSeconds: Long? = null
+    val durationSeconds: Long? = null,
+    /** One entry per circuit run in this session; null for sessions with no circuits. */
+    val circuitLogs: List<CircuitLog>? = null
 ) : Parcelable {
     fun getDominantIntent(): SetIntent {
         val intentCounts = exercises
@@ -420,7 +520,16 @@ data class TrainingData(
     var planSets: MutableList<PlanSet> = mutableListOf(),
     var planSetProgress: MutableList<PlanSetProgress> = mutableListOf(),
     val schemaVersion: Int = 2,
-    var exerciseFamilies: MutableList<ExerciseFamily>? = null
+    var exerciseFamilies: MutableList<ExerciseFamily>? = null,
+    // The routine explicitly chosen on the Plan tab — what the Workout tab treats as
+    // "up next" without needing a completed workout to infer it from. Null until the
+    // user has ever chosen one; PlanRotationHelper.resolveActiveRoutine falls back to
+    // the old completion-based heuristic in that case.
+    var activeRoutineType: ActiveRoutineType? = null,
+    var activePlanId: String? = null,
+    var activePlanSetId: String? = null,
+    /** Reusable circuit blocks. Nullable so Gson reading pre-circuit JSON deserialises cleanly. */
+    var circuits: MutableList<CircuitTemplate>? = null
 ) : Parcelable
 
 // Helper Classes (SupersetPair for Gson-safe draft serialization)
@@ -451,10 +560,17 @@ data class DraftExerciseRow(
     val isSpecialCompleted: Boolean = false,
     val durationSeconds: Int = 300,
     val slotSelectionType: PlanExerciseSelectionType? = null,
-    val slotFamilyId: String? = null
+    val slotFamilyId: String? = null,
+    /** Non-null only for `slotType == CIRCUIT`; carries the round progress across a draft restore. */
+    val circuit: CircuitInstance? = null
 ) {
     val isSpecialElement: Boolean
         get() = slotType == PlanSlotType.WARMUP || slotType == PlanSlotType.COOLDOWN
+    val isCircuit: Boolean
+        get() = slotType == PlanSlotType.CIRCUIT
+    /** True only for a row that stands for one library exercise — not warmup, cooldown or circuit. */
+    val isRealExercise: Boolean
+        get() = slotType == PlanSlotType.EXERCISE
 }
 
 data class ActiveWorkoutDraft(
@@ -506,10 +622,17 @@ data class GroupedExercise(
     // Timed-exercise target (seconds). Distinct from `durationSeconds` (warmup/cooldown length).
     val plannedDurationSeconds: Int? = null,
     val slotSelectionType: PlanExerciseSelectionType? = null,
-    val slotFamilyId: String? = null
+    val slotFamilyId: String? = null,
+    /** Non-null only for `slotType == CIRCUIT`. The row is then a container, not an exercise. */
+    val circuit: CircuitInstance? = null
 ) {
     val isSpecialElement: Boolean
         get() = slotType == PlanSlotType.WARMUP || slotType == PlanSlotType.COOLDOWN
+    val isCircuit: Boolean
+        get() = slotType == PlanSlotType.CIRCUIT
+    /** True only for a row that stands for one library exercise — not warmup, cooldown or circuit. */
+    val isRealExercise: Boolean
+        get() = slotType == PlanSlotType.EXERCISE
     val isFamilySlot: Boolean
         get() = slotSelectionType == PlanExerciseSelectionType.FAMILY_SLOT
 }
@@ -519,10 +642,16 @@ data class ExerciseSet(
     val setNumber: Int,
     val kg: Float,
     val reps: Int,
-    val rpe: Float? = null
-    // TODO(bodyweight results model): carry bodyweightKg/addedKg here when bodyweight load
-    //  needs to influence volume/1RM/PR/progression differently from effective load.
-)
+    val rpe: Float? = null,
+    // Carried through from ExerciseEntry so progress charts can tell a hold from a rep set and a
+    // bodyweight set from a weighted one. `kg` remains the effective load in every case.
+    val durationSeconds: Int? = null,
+    val bodyweightKg: Float? = null,
+    val addedKg: Float? = null
+) {
+    fun isTimedSet(): Boolean = durationSeconds != null
+    fun isBodyweightSet(): Boolean = bodyweightKg != null
+}
 
 // Workout Report Data Classes
 data class WorkoutSummary(
@@ -531,7 +660,10 @@ data class WorkoutSummary(
     val totalReps: Int,
     val exerciseCount: Int,
     val durationSeconds: Long?,
-    val prCount: Int
+    val prCount: Int,
+    // Timed/isometric work carries no rep-based volume, so it is summarised separately.
+    val totalHoldSeconds: Int = 0,
+    val holdSetCount: Int = 0
 )
 
 data class ExerciseTrendData(
@@ -551,7 +683,19 @@ data class ExerciseTrendData(
     val prVolume: Float?,   // All-time best volume for this exercise
     val prVolumeDate: Long, // Timestamp of volume PR
     val pr1RM: Float?,      // All-time best estimated 1RM for this exercise
-    val pr1RMDate: Long     // Timestamp of 1RM PR
+    val pr1RMDate: Long,    // Timestamp of 1RM PR
+
+    // Timed/isometric metrics. For a timed exercise the rep-based fields above are all zero/null,
+    // and the card reports hold time instead of volume, 1RM and top set.
+    val isTimedExercise: Boolean = false,
+    val currentBestHoldSeconds: Int? = null,
+    val previousBestHoldSeconds: Int? = null,
+    val currentTotalHoldSeconds: Int = 0,
+    val previousTotalHoldSeconds: Int? = null,
+    /** kg·s for a *weighted* hold; null when the hold carries no external load. */
+    val currentLoadSeconds: Float? = null,
+    val prHoldSeconds: Int? = null,   // All-time longest hold for this exercise
+    val prHoldDate: Long = 0L         // Timestamp of hold PR
 )
 
 data class MuscleGroupTrend(

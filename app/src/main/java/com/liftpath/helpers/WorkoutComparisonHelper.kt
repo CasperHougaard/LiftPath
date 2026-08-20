@@ -24,12 +24,14 @@ object WorkoutComparisonHelper {
         session: TrainingSession,
         allSessions: List<TrainingSession>
     ): WorkoutSummary {
-        val workingSets = session.exercises.filterNot { it.isWarmup }
+        val workingSets = session.exercises.filterNot { it.isWarmup || it.isSpecialSlotEntry() }
 
-        val totalVolume = workingSets.sumOf { (it.kg * it.reps).toDouble() }.toFloat()
+        // Timed holds carry no reps, so they contribute to neither volume nor the rep count —
+        // their work is reported as hold time instead.
+        val totalVolume = SetMetrics.totalVolumeKg(workingSets)
         val totalSets = workingSets.size
-        val totalReps = workingSets.sumOf { it.reps }
-        val exerciseCount = session.exercises.map { it.exerciseId }.distinct().size
+        val totalReps = SetMetrics.totalReps(workingSets)
+        val exerciseCount = session.exercises.filterNot { it.isSpecialSlotEntry() }.map { it.exerciseId }.distinct().size
 
         // Canonical all-time PR count for this session
         val prCount = ProgressAnalysisHelper.getPRsForSession(allSessions, session.id).size
@@ -40,7 +42,9 @@ object WorkoutComparisonHelper {
             totalReps = totalReps,
             exerciseCount = exerciseCount,
             durationSeconds = session.durationSeconds,
-            prCount = prCount
+            prCount = prCount,
+            totalHoldSeconds = SetMetrics.totalHoldSeconds(workingSets),
+            holdSetCount = SetMetrics.holdSetCount(workingSets)
         )
     }
 
@@ -75,6 +79,7 @@ object WorkoutComparisonHelper {
             .toSet()
 
         currentSession.exercises
+            .filterNot { it.isSpecialSlotEntry() }
             .groupBy { it.exerciseId }
             .forEach { (exerciseId, currentSets) ->
                 val currentWorkingSets = currentSets.filterNot { it.isWarmup }
@@ -83,14 +88,23 @@ object WorkoutComparisonHelper {
                 val exerciseName = currentSets.first().exerciseName
                 val exerciseIntent = resolveIntent(currentWorkingSets, currentSession)
 
+                // Volume, 1RM and top set are all rep-based. Timed holds must be excluded from
+                // them — otherwise a plank reports 0 kg of volume and a "0.0kg × 0" top set.
+                val currentRepSets = SetMetrics.repBasedSets(currentWorkingSets)
+                val isTimedExercise = SetMetrics.hasTimedWork(currentWorkingSets) &&
+                    currentRepSets.isEmpty()
+
                 // Current session metrics
-                val currentVolume =
-                    currentWorkingSets.sumOf { (it.kg * it.reps).toDouble() }.toFloat()
-                val current1RM = currentWorkingSets
+                val currentVolume = SetMetrics.totalVolumeKg(currentRepSets)
+                val current1RM = currentRepSets
                     .mapNotNull { OneRMEstimationHelper.calculateOneRM(it.kg, it.reps, it.rpe) }
                     .maxOrNull()
-                val currentTopSet = currentWorkingSets.maxByOrNull { it.kg }
+                val currentTopSet = currentRepSets.maxByOrNull { it.kg }
                     ?.let { it.kg to it.reps }
+                val currentBestHold = SetMetrics.bestHoldSeconds(currentWorkingSets)
+                val currentTotalHold = SetMetrics.totalHoldSeconds(currentWorkingSets)
+                val currentLoadSeconds = SetMetrics.totalLoadSeconds(currentWorkingSets)
+                    .takeIf { it > 0f }
 
                 // Per-intent rolling window: up to TREND_WINDOW_SIZE previous sessions
                 val intentSessions = findIntentSessions(
@@ -99,19 +113,18 @@ object WorkoutComparisonHelper {
                 val intentSessionCount = intentSessions.size
                 val previousSession = intentSessions.firstOrNull()
 
-                val (previousVolume, previous1RM, previousTopSet) =
-                    if (previousSession != null) {
-                        val prevSets = previousSession.exercises
-                            .filter { it.exerciseId == exerciseId }
-                            .filterNot { it.isWarmup }
-                        Triple(
-                            prevSets.sumOf { (it.kg * it.reps).toDouble() }.toFloat(),
-                            prevSets.mapNotNull {
-                                OneRMEstimationHelper.calculateOneRM(it.kg, it.reps, it.rpe)
-                            }.maxOrNull(),
-                            prevSets.maxByOrNull { it.kg }?.let { it.kg to it.reps }
-                        )
-                    } else Triple(null, null, null)
+                val prevSets = previousSession?.exercises
+                    ?.filter { it.exerciseId == exerciseId }
+                    ?.filterNot { it.isWarmup }
+                val prevRepSets = prevSets?.let { SetMetrics.repBasedSets(it) }
+
+                val previousVolume = prevRepSets?.let { SetMetrics.totalVolumeKg(it) }
+                val previous1RM = prevRepSets
+                    ?.mapNotNull { OneRMEstimationHelper.calculateOneRM(it.kg, it.reps, it.rpe) }
+                    ?.maxOrNull()
+                val previousTopSet = prevRepSets?.maxByOrNull { it.kg }?.let { it.kg to it.reps }
+                val previousBestHold = prevSets?.let { SetMetrics.bestHoldSeconds(it) }
+                val previousTotalHold = prevSets?.let { SetMetrics.totalHoldSeconds(it) }
 
                 val summary = summaryMap[exerciseId]
 
@@ -133,7 +146,15 @@ object WorkoutComparisonHelper {
                         prVolume = summary?.bestVolume,
                         prVolumeDate = summary?.lastVolumePrDate ?: 0L,
                         pr1RM = summary?.best1RM,
-                        pr1RMDate = summary?.last1RMPrDate ?: 0L
+                        pr1RMDate = summary?.last1RMPrDate ?: 0L,
+                        isTimedExercise = isTimedExercise,
+                        currentBestHoldSeconds = currentBestHold,
+                        previousBestHoldSeconds = previousBestHold?.takeIf { it > 0 },
+                        currentTotalHoldSeconds = currentTotalHold,
+                        previousTotalHoldSeconds = previousTotalHold?.takeIf { it > 0 },
+                        currentLoadSeconds = currentLoadSeconds,
+                        prHoldSeconds = summary?.bestHoldSeconds,
+                        prHoldDate = summary?.lastHoldPrDate ?: 0L
                     )
                 )
             }
@@ -260,17 +281,29 @@ object WorkoutComparisonHelper {
             )
             muscleProgressMap[muscle] = if (previousVolume != null && previousVolume > 0) {
                 ((currentVolume - previousVolume) / previousVolume) * 100f
+            } else if (currentVolume == 0f) {
+                // Purely isometric work for this muscle (e.g. a core session of only planks) has no
+                // rep-based volume to compare, so fall back to time under tension. Without this the
+                // muscle is marked "worked" with a null trend and paints as untouched.
+                val currentHold = calculateSingleMuscleHoldSeconds(currentSession, muscle, exerciseLibrary)
+                val previousHold = findPreviousSingleMuscleHoldSeconds(
+                    previousSessions, muscle, exerciseLibrary
+                )
+                if (currentHold > 0 && previousHold != null && previousHold > 0) {
+                    ((currentHold - previousHold).toFloat() / previousHold) * 100f
+                } else null
             } else null
         }
 
         return muscleProgressMap
     }
 
-    private fun calculateMuscleGroupVolume(
+    /** Sets of [session] that train any of [targetMuscles], warmups excluded. */
+    private fun setsForMuscles(
         session: TrainingSession,
         targetMuscles: List<TargetMuscle>,
         exerciseLibrary: List<ExerciseLibraryItem>
-    ): Float {
+    ): List<ExerciseEntry> {
         return session.exercises.filterNot { it.isWarmup }
             .filter { entry ->
                 exerciseLibrary.find { it.id == entry.exerciseId }?.let { ex ->
@@ -278,23 +311,37 @@ object WorkoutComparisonHelper {
                         ex.secondaryTargets.any { it in targetMuscles }
                 } ?: false
             }
-            .sumOf { (it.kg * it.reps).toDouble() }
-            .toFloat()
     }
+
+    private fun calculateMuscleGroupVolume(
+        session: TrainingSession,
+        targetMuscles: List<TargetMuscle>,
+        exerciseLibrary: List<ExerciseLibraryItem>
+    ): Float = SetMetrics.totalVolumeKg(setsForMuscles(session, targetMuscles, exerciseLibrary))
 
     private fun calculateSingleMuscleVolume(
         session: TrainingSession,
         targetMuscle: TargetMuscle,
         exerciseLibrary: List<ExerciseLibraryItem>
-    ): Float {
-        return session.exercises.filterNot { it.isWarmup }
-            .filter { entry ->
-                exerciseLibrary.find { it.id == entry.exerciseId }?.let { ex ->
-                    targetMuscle in ex.primaryTargets || targetMuscle in ex.secondaryTargets
-                } ?: false
+    ): Float = SetMetrics.totalVolumeKg(setsForMuscles(session, listOf(targetMuscle), exerciseLibrary))
+
+    private fun calculateSingleMuscleHoldSeconds(
+        session: TrainingSession,
+        targetMuscle: TargetMuscle,
+        exerciseLibrary: List<ExerciseLibraryItem>
+    ): Int = SetMetrics.totalHoldSeconds(setsForMuscles(session, listOf(targetMuscle), exerciseLibrary))
+
+    /** Hold seconds for [targetMuscle] in the most recent prior session that trained it isometrically. */
+    private fun findPreviousSingleMuscleHoldSeconds(
+        previousSessions: List<TrainingSession>,
+        targetMuscle: TargetMuscle,
+        exerciseLibrary: List<ExerciseLibraryItem>
+    ): Int? {
+        return previousSessions.sortedByDescending { it.date }
+            .firstNotNullOfOrNull { session ->
+                calculateSingleMuscleHoldSeconds(session, targetMuscle, exerciseLibrary)
+                    .takeIf { it > 0 }
             }
-            .sumOf { (it.kg * it.reps).toDouble() }
-            .toFloat()
     }
 
     private fun findPreviousMuscleGroupVolume(

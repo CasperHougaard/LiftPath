@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  A circuit slot while authoring a plan. No progressive disclosure, same as the warmup/cooldown
+  slot — a circuit's stations live on the CircuitTemplate, so this card only edits the plan's own
+  overrides: the suggested round count (blank = open-ended) and the rest between rounds.
+-->
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    style="@style/Widget.LP.Card.Dense"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="@dimen/lp_card_gap_dense"
+    android:clickable="false"
+    android:focusable="false">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- Header row: icon, name + stations, move buttons, remove -->
+        <LinearLayout
+            android:id="@+id/layout_header_row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:minHeight="@dimen/lp_row_min_height"
+            android:orientation="horizontal"
+            android:paddingHorizontal="@dimen/lp_card_padding_dense"
+            android:paddingVertical="@dimen/lp_space_2">
+
+            <TextView
+                android:id="@+id/text_slot_icon"
+                android:layout_width="26dp"
+                android:layout_height="26dp"
+                android:gravity="center"
+                android:text="@string/circuit_icon"
+                android:textSize="16sp" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/lp_space_3"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/text_slot_label"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textAppearance="@style/TextAppearance.LP.Label"
+                    tools:text="Lower Lactate" />
+
+                <TextView
+                    android:id="@+id/text_slot_subtitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textAppearance="@style/TextAppearance.LP.Caption"
+                    tools:text="Hip Thrust \u00b7 Split Squat \u00b7 Wall Sit" />
+            </LinearLayout>
+
+            <ImageButton
+                android:id="@+id/button_move_up"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/cd_move_up"
+                android:padding="@dimen/lp_space_1"
+                android:src="@drawable/ic_arrow_up"
+                app:tint="?attr/lpInkTertiary" />
+
+            <ImageButton
+                android:id="@+id/button_move_down"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/cd_move_down"
+                android:padding="@dimen/lp_space_1"
+                android:src="@drawable/ic_arrow_down"
+                app:tint="?attr/lpInkTertiary" />
+
+            <ImageButton
+                android:id="@+id/button_remove_slot"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/cd_delete_exercise"
+                android:padding="@dimen/lp_space_1"
+                android:src="@drawable/ic_delete"
+                app:tint="?attr/lpNegative" />
+        </LinearLayout>
+
+        <View style="@style/Widget.LP.Divider" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="@dimen/lp_card_padding_dense"
+            android:paddingTop="@dimen/lp_space_3"
+            android:paddingBottom="@dimen/lp_card_padding_dense">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/lp_space_3"
+                android:baselineAligned="false"
+                android:orientation="horizontal">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="@dimen/lp_card_gap_dense"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="@dimen/lp_space_1"
+                        android:text="@string/edit_circuit_hint_rounds"
+                        android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+                    <EditText
+                        android:id="@+id/edit_circuit_rounds"
+                        style="@style/Widget.LP.EditText.Boxed"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="@string/circuit_preview_open"
+                        android:inputType="number"
+                        android:maxLength="2" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="@dimen/lp_space_1"
+                        android:text="@string/edit_circuit_hint_rest"
+                        android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+                    <EditText
+                        android:id="@+id/edit_circuit_rest"
+                        style="@style/Widget.LP.EditText.Boxed"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="@string/hint_seconds_example"
+                        android:inputType="number"
+                        android:maxLength="3" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/lp_space_1"
+                android:text="@string/label_notes"
+                android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+            <EditText
+                android:id="@+id/edit_circuit_notes"
+                style="@style/Widget.LP.EditText.Boxed.Notes"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textMultiLine"
+                android:minLines="2" />
+        </LinearLayout>
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

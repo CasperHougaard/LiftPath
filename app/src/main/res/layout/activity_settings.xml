@@ -1,25 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Settings: one scrolling screen, grouped into sections (Appearance / Training / Data /
+  Backup & Sync / Destructive actions) rather than the General/Advanced tabs this screen
+  used to have. Tabs added a navigation layer for no real benefit at ~7 cards' worth of
+  content — a single scroll with section eyebrows is one fewer thing to get lost in, and
+  removing the tab mechanism is why `panel_general`/`panel_advanced`/`tab_layout_settings`
+  are gone from this file (see SettingsActivity.kt, which no longer has setupSettingsTabs()).
+
+  Rows within a section are hairline-divided list rows (Widget.LP.Row) inside ONE section
+  card, not each row as its own nested card — the same fix applied to list-heavy screens
+  earlier in this redesign (a card nested in a card reads as an accidental double border).
+-->
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/fitness_background"
+    android:background="?attr/lpCanvas"
     android:fitsSystemWindows="true"
     tools:context=".activities.SettingsActivity">
 
-    <!-- Background Flow Animation -->
     <ImageView
         android:id="@+id/image_bg_animation"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:contentDescription="@null"
         android:scaleType="centerCrop"
-        android:alpha="1.0"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/avd_background_flow" />
+        app:srcCompat="@drawable/lp_bg_ambient_flow"
+        app:tint="?attr/lpAccent" />
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
@@ -28,580 +40,774 @@
         android:clipToPadding="false"
         android:fillViewport="true">
 
-        <androidx.constraintlayout.widget.ConstraintLayout
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:clipChildren="false"
-            android:clipToPadding="false"
-            android:padding="24dp">
+            android:orientation="vertical"
+            android:padding="@dimen/lp_gutter">
 
-            <!-- HEADER WITH BACK BUTTON -->
-            <androidx.cardview.widget.CardView
-                android:id="@+id/button_back_header"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:clickable="true"
-                android:focusable="true"
-                android:foreground="?attr/selectableItemBackground"
-                app:cardBackgroundColor="@color/fitness_card_background"
-                app:cardCornerRadius="24dp"
-                app:cardElevation="0dp"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent">
-
-                <ImageButton
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:background="@android:color/transparent"
-                    android:clickable="false"
-                    android:focusable="false"
-                    android:contentDescription="@string/progress_back_content_description"
-                    android:padding="12dp"
-                    android:src="@drawable/ic_arrow_back_24"
-                    app:tint="@color/fitness_text_primary" />
-            </androidx.cardview.widget.CardView>
-
+            <!-- HEADER -->
             <LinearLayout
-                android:id="@+id/header_container"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:gravity="center_vertical"
-                android:orientation="vertical"
-                app:layout_constraintBottom_toBottomOf="@id/button_back_header"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toEndOf="@id/button_back_header"
-                app:layout_constraintTop_toTopOf="@id/button_back_header">
-
-                <TextView
-                    android:id="@+id/text_title"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Settings"
-                    android:textColor="@color/fitness_text_primary"
-                    android:textSize="28sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-
-            <com.google.android.material.tabs.TabLayout
-                android:id="@+id/tab_layout_settings"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:background="@android:color/transparent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/header_container"
-                app:tabGravity="start"
-                app:tabIndicatorColor="@color/fitness_primary"
-                app:tabIndicatorHeight="3dp"
-                app:tabMode="fixed"
-                app:tabRippleColor="@android:color/transparent"
-                app:tabSelectedTextColor="@color/fitness_primary"
-                app:tabTextAppearance="@style/TabTextAppearance"
-                app:tabTextColor="@color/fitness_text_secondary" />
-
-            <LinearLayout
-                android:id="@+id/panel_general"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/tab_layout_settings">
-
-            <!-- DATA MANAGEMENT CARD -->
-            <androidx.cardview.widget.CardView
-                android:id="@+id/card_data_management"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:clipChildren="false"
-                android:clipToPadding="false"
-                app:cardBackgroundColor="@color/fitness_card_background"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="4dp">
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/button_back_header"
+                    style="@style/Widget.LP.Card.Control"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp">
+
+                    <ImageButton
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="false"
+                        android:focusable="false"
+                        android:contentDescription="@string/progress_back_content_description"
+                        android:padding="@dimen/lp_space_3"
+                        android:src="@drawable/ic_arrow_back_24"
+                        app:tint="?attr/lpInk" />
+                </com.google.android.material.card.MaterialCardView>
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/lp_space_4"
+                    android:layout_weight="1"
+                    android:text="@string/title_settings"
+                    android:textAppearance="@style/TextAppearance.LP.Title" />
+            </LinearLayout>
+
+            <!-- APPEARANCE -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_appearance"
+                style="@style/Widget.LP.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/lp_section_gap">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp"
-                    android:clipChildren="false"
-                    android:clipToPadding="false">
+                    android:padding="@dimen/lp_card_padding">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Data Management"
-                        android:textColor="@color/fitness_text_primary"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
+                        android:text="@string/settings_appearance_title"
+                        android:textAppearance="@style/TextAppearance.LP.Heading" />
 
-                    <!-- Export Data Button -->
-                    <androidx.cardview.widget.CardView
-                        android:id="@+id/button_export_data"
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="@string/settings_appearance_subtitle"
+                        android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/lp_space_4"
+                        android:text="@string/settings_appearance_mode_label"
+                        android:textAppearance="@style/TextAppearance.LP.Label" />
+
+                    <com.google.android.material.chip.ChipGroup
+                        android:id="@+id/chip_group_appearance_mode"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/lp_space_2"
+                        app:chipSpacing="@dimen/lp_card_gap_dense"
+                        app:selectionRequired="true"
+                        app:singleSelection="true">
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chip_mode_system"
+                            style="@style/Widget.LP.Chip.Choice"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/appearance_mode_system" />
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chip_mode_light"
+                            style="@style/Widget.LP.Chip.Choice"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/appearance_mode_light" />
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chip_mode_dark"
+                            style="@style/Widget.LP.Chip.Choice"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/appearance_mode_dark" />
+                    </com.google.android.material.chip.ChipGroup>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/lp_space_4"
+                        android:text="@string/settings_appearance_light_label"
+                        android:textAppearance="@style/TextAppearance.LP.Label" />
+
+                    <Spinner
+                        android:id="@+id/spinner_light_theme"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:foreground="?attr/selectableItemBackground"
-                        app:cardBackgroundColor="@color/fitness_card_background"
-                        app:cardCornerRadius="12dp"
-                        app:cardElevation="2dp">
+                        android:layout_marginTop="@dimen/lp_space_2"
+                        android:background="@drawable/spinner_background"
+                        android:popupBackground="@drawable/spinner_popup_background" />
 
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:gravity="center_vertical"
-                            android:minHeight="40dp"
-                            android:orientation="horizontal"
-                            android:padding="10dp">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/lp_space_4"
+                        android:text="@string/settings_appearance_dark_label"
+                        android:textAppearance="@style/TextAppearance.LP.Label" />
 
-                            <ImageView
-                                android:layout_width="24dp"
-                                android:layout_height="24dp"
-                                android:src="@drawable/ic_arrow_back_24"
-                                android:rotation="180"
-                                app:tint="@color/fitness_primary" />
-
-                            <TextView
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_marginStart="12dp"
-                                android:layout_weight="1"
-                                android:text="Export Data"
-                                android:textColor="@color/fitness_text_primary"
-                                android:textSize="16sp"
-                                android:textStyle="bold" />
-                        </LinearLayout>
-                    </androidx.cardview.widget.CardView>
-
-                    <!-- Import Data Button -->
-                    <androidx.cardview.widget.CardView
-                        android:id="@+id/button_import_data"
+                    <Spinner
+                        android:id="@+id/spinner_dark_theme"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:foreground="?attr/selectableItemBackground"
-                        app:cardBackgroundColor="@color/fitness_card_background"
-                        app:cardCornerRadius="12dp"
-                        app:cardElevation="2dp">
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:gravity="center_vertical"
-                            android:minHeight="40dp"
-                            android:orientation="horizontal"
-                            android:padding="10dp">
-
-                            <ImageView
-                                android:layout_width="24dp"
-                                android:layout_height="24dp"
-                                android:src="@drawable/ic_arrow_back_24"
-                                app:tint="@color/fitness_primary" />
-
-                            <TextView
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_marginStart="12dp"
-                                android:layout_weight="1"
-                                android:text="Import Data"
-                                android:textColor="@color/fitness_text_primary"
-                                android:textSize="16sp"
-                                android:textStyle="bold" />
-                        </LinearLayout>
-                    </androidx.cardview.widget.CardView>
-
-                    <!-- Export Exercise Library -->
-                    <androidx.cardview.widget.CardView
-                        android:id="@+id/button_export_library"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:foreground="?attr/selectableItemBackground"
-                        app:cardBackgroundColor="@color/fitness_card_background"
-                        app:cardCornerRadius="12dp"
-                        app:cardElevation="2dp">
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:gravity="center_vertical"
-                            android:minHeight="40dp"
-                            android:orientation="horizontal"
-                            android:padding="10dp">
-
-                            <ImageView
-                                android:layout_width="24dp"
-                                android:layout_height="24dp"
-                                android:src="@drawable/ic_arrow_back_24"
-                                android:rotation="180"
-                                app:tint="@color/fitness_primary" />
-
-                            <TextView
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_marginStart="12dp"
-                                android:layout_weight="1"
-                                android:text="@string/button_export_library"
-                                android:textColor="@color/fitness_text_primary"
-                                android:textSize="16sp"
-                                android:textStyle="bold" />
-                        </LinearLayout>
-                    </androidx.cardview.widget.CardView>
-
-                    <!-- AI Export Button -->
-                    <androidx.cardview.widget.CardView
-                        android:id="@+id/button_ai_export"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:foreground="?attr/selectableItemBackground"
-                        app:cardBackgroundColor="@color/fitness_card_background"
-                        app:cardCornerRadius="12dp"
-                        app:cardElevation="2dp">
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:gravity="center_vertical"
-                            android:minHeight="40dp"
-                            android:orientation="horizontal"
-                            android:padding="10dp">
-
-                            <ImageView
-                                android:layout_width="24dp"
-                                android:layout_height="24dp"
-                                android:src="@drawable/ic_graph"
-                                app:tint="@color/fitness_primary" />
-
-                            <LinearLayout
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_marginStart="12dp"
-                                android:layout_weight="1"
-                                android:orientation="vertical">
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="@string/button_ai_export"
-                                    android:textColor="@color/fitness_text_primary"
-                                    android:textSize="16sp"
-                                    android:textStyle="bold" />
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="@string/button_ai_export_subtitle"
-                                    android:textColor="@color/fitness_text_secondary"
-                                    android:textSize="13sp" />
-                            </LinearLayout>
-                        </LinearLayout>
-                    </androidx.cardview.widget.CardView>
+                        android:layout_marginTop="@dimen/lp_space_2"
+                        android:background="@drawable/spinner_background"
+                        android:popupBackground="@drawable/spinner_popup_background" />
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
 
-            <!-- BODY WEIGHT CARD -->
-            <androidx.cardview.widget.CardView
-                android:id="@+id/card_body_weight"
+            <!-- TRAINING -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/lp_section_gap"
+                android:text="@string/settings_section_training"
+                android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.LP.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                app:cardBackgroundColor="@color/fitness_card_background"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="4dp">
+                android:layout_marginTop="@dimen/lp_space_2">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:id="@+id/button_progression_settings"
+                        style="@style/Widget.LP.Row"
+                        android:gravity="center_vertical">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_settings"
+                            app:tint="?attr/lpAccent" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="@dimen/lp_space_3"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/settings_row_progression_settings"
+                                android:textAppearance="@style/TextAppearance.LP.Label" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/settings_row_progression_settings_subtitle"
+                                android:textAppearance="@style/TextAppearance.LP.Caption" />
+                        </LinearLayout>
+
+                        <ImageView
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:contentDescription="@string/cd_open_screen"
+                            android:src="@drawable/ic_arrow_forward_24"
+                            app:tint="?attr/lpInkTertiary" />
+                    </LinearLayout>
+
+                    <View style="@style/Widget.LP.Divider" android:layout_marginStart="60dp" />
+
+                    <LinearLayout
+                        android:id="@+id/button_readiness"
+                        style="@style/Widget.LP.Row"
+                        android:gravity="center_vertical">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_graph"
+                            app:tint="?attr/lpAccent" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="@dimen/lp_space_3"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/settings_row_readiness"
+                                android:textAppearance="@style/TextAppearance.LP.Label" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/settings_row_readiness_subtitle"
+                                android:textAppearance="@style/TextAppearance.LP.Caption" />
+                        </LinearLayout>
+
+                        <ImageView
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:contentDescription="@string/cd_open_screen"
+                            android:src="@drawable/ic_arrow_forward_24"
+                            app:tint="?attr/lpInkTertiary" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- BODY WEIGHT -->
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.LP.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/lp_card_gap">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:padding="@dimen/lp_card_padding">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/settings_bodyweight_title"
-                        android:textColor="@color/fitness_text_primary"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
+                        android:textAppearance="@style/TextAppearance.LP.Heading" />
 
                     <com.google.android.material.textfield.TextInputLayout
-                        android:id="@+id/text_input_layout_body_weight"
-                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        style="@style/Widget.LP.TextInputLayout.Numeric"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:hint="@string/bodyweight_field_hint"
-                        app:boxStrokeColor="@color/fitness_primary"
-                        app:hintTextColor="@color/fitness_primary">
+                        android:layout_marginTop="@dimen/lp_space_3"
+                        android:hint="@string/bodyweight_field_hint">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/edit_text_body_weight"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:inputType="numberDecimal"
-                            android:textColor="@color/fitness_text_primary" />
+                            android:inputType="numberDecimal" />
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <TextView
                         android:id="@+id/text_body_weight_source"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:textColor="@color/fitness_text_secondary"
-                        android:textSize="13sp" />
+                        android:layout_marginTop="@dimen/lp_space_2"
+                        android:textAppearance="@style/TextAppearance.LP.Label"
+                        android:textColor="?attr/lpInkTertiary" />
 
-                    <androidx.cardview.widget.CardView
+                    <com.google.android.material.button.MaterialButton
                         android:id="@+id/button_save_body_weight"
+                        style="@style/Widget.LP.Button"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:foreground="?attr/selectableItemBackground"
-                        app:cardBackgroundColor="@color/fitness_primary"
-                        app:cardCornerRadius="12dp"
-                        app:cardElevation="2dp">
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:gravity="center"
-                            android:padding="14dp"
-                            android:text="@string/settings_save_bodyweight"
-                            android:textColor="@color/white"
-                            android:textSize="15sp"
-                            android:textStyle="bold" />
-                    </androidx.cardview.widget.CardView>
+                        android:layout_marginTop="@dimen/lp_space_3"
+                        android:text="@string/settings_save_bodyweight" />
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
 
-            <!-- PROGRESSION SETTINGS BUTTON -->
-            <androidx.cardview.widget.CardView
-                android:id="@+id/button_progression_settings"
+            <!-- DATA -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/lp_section_gap"
+                android:text="@string/settings_section_data"
+                android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.LP.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:layout_marginBottom="24dp"
-                android:minHeight="60dp"
-                android:clickable="true"
-                android:focusable="true"
-                android:foreground="?attr/selectableItemBackground"
-                app:cardBackgroundColor="@color/fitness_primary"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="4dp">
+                android:layout_marginTop="@dimen/lp_space_2">
 
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:gravity="center"
-                    android:orientation="horizontal"
-                    android:padding="16dp">
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:src="@drawable/ic_settings"
-                        app:tint="@color/white" />
+                    <LinearLayout
+                        android:id="@+id/button_export_data"
+                        style="@style/Widget.LP.Row"
+                        android:gravity="center_vertical">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="12dp"
-                        android:text="Progression Settings"
-                        android:textColor="@color/white"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:contentDescription="@null"
+                            android:rotation="180"
+                            android:src="@drawable/ic_arrow_back_24"
+                            app:tint="?attr/lpAccent" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="@dimen/lp_space_3"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/button_export_data"
+                                android:textAppearance="@style/TextAppearance.LP.Label" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/button_export_data_subtitle"
+                                android:textAppearance="@style/TextAppearance.LP.Caption" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <View style="@style/Widget.LP.Divider" android:layout_marginStart="60dp" />
+
+                    <LinearLayout
+                        android:id="@+id/button_import_data"
+                        style="@style/Widget.LP.Row"
+                        android:gravity="center_vertical">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_arrow_back_24"
+                            app:tint="?attr/lpAccent" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="@dimen/lp_space_3"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/button_import_data"
+                                android:textAppearance="@style/TextAppearance.LP.Label" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/button_import_data_subtitle"
+                                android:textAppearance="@style/TextAppearance.LP.Caption" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <View style="@style/Widget.LP.Divider" android:layout_marginStart="60dp" />
+
+                    <LinearLayout
+                        android:id="@+id/button_export_library"
+                        style="@style/Widget.LP.Row"
+                        android:gravity="center_vertical">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:contentDescription="@null"
+                            android:rotation="180"
+                            android:src="@drawable/ic_arrow_back_24"
+                            app:tint="?attr/lpAccent" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="@dimen/lp_space_3"
+                            android:layout_weight="1"
+                            android:text="@string/button_export_library"
+                            android:textAppearance="@style/TextAppearance.LP.Label" />
+                    </LinearLayout>
+
+                    <View style="@style/Widget.LP.Divider" android:layout_marginStart="60dp" />
+
+                    <LinearLayout
+                        android:id="@+id/button_ai_export"
+                        style="@style/Widget.LP.Row"
+                        android:gravity="center_vertical">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_graph"
+                            app:tint="?attr/lpAccent" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="@dimen/lp_space_3"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/button_ai_export"
+                                android:textAppearance="@style/TextAppearance.LP.Label" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/button_ai_export_subtitle"
+                                android:textAppearance="@style/TextAppearance.LP.Caption" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <View style="@style/Widget.LP.Divider" android:layout_marginStart="60dp" />
+
+                    <LinearLayout
+                        android:id="@+id/button_withings_data"
+                        style="@style/Widget.LP.Row"
+                        android:gravity="center_vertical">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_graph"
+                            app:tint="?attr/lpAccent" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="@dimen/lp_space_3"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/settings_row_withings_title"
+                                android:textAppearance="@style/TextAppearance.LP.Label" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/settings_row_withings_subtitle"
+                                android:textAppearance="@style/TextAppearance.LP.Caption" />
+                        </LinearLayout>
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_info_outline_24"
+                            app:tint="?attr/lpInkTertiary" />
+                    </LinearLayout>
+
+                    <!--
+                        TriPath connection. Always present so the integration is discoverable,
+                        but the dialog behind it explains itself differently depending on whether
+                        TriPath is installed at all.
+                    -->
+                    <View style="@style/Widget.LP.Divider" android:layout_marginStart="60dp" />
+
+                    <LinearLayout
+                        android:id="@+id/button_tripath"
+                        style="@style/Widget.LP.Row"
+                        android:gravity="center_vertical">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_graph"
+                            app:tint="?attr/lpAccent" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="@dimen/lp_space_3"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/tripath_settings_title"
+                                android:textAppearance="@style/TextAppearance.LP.Label" />
+
+                            <TextView
+                                android:id="@+id/text_tripath_status"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/placeholder_dash"
+                                android:textAppearance="@style/TextAppearance.LP.Caption" />
+                        </LinearLayout>
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_info_outline_24"
+                            app:tint="?attr/lpInkTertiary" />
+                    </LinearLayout>
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
 
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/panel_advanced"
-                android:layout_width="0dp"
+            <!-- BACKUP & SYNC -->
+            <TextView
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:visibility="gone"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/tab_layout_settings">
+                android:layout_marginTop="@dimen/lp_section_gap"
+                android:text="@string/backup_section_title"
+                android:textAppearance="@style/TextAppearance.LP.Caption" />
 
-                <androidx.cardview.widget.CardView
-                    android:id="@+id/card_advanced"
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.LP.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/lp_space_2">
+
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:layout_marginBottom="24dp"
-                    android:clipChildren="false"
-                    android:clipToPadding="false"
-                    app:cardBackgroundColor="@color/fitness_card_background"
-                    app:cardCornerRadius="20dp"
-                    app:cardElevation="4dp">
+                    android:orientation="vertical"
+                    android:padding="@dimen/lp_card_padding">
+
+                    <TextView
+                        android:id="@+id/text_backup_status"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/backup_status_none"
+                        android:textAppearance="@style/TextAppearance.LP.Body" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:padding="16dp"
-                        android:clipChildren="false"
-                        android:clipToPadding="false">
+                        android:layout_marginTop="@dimen/lp_space_3"
+                        android:gravity="center_vertical"
+                        android:minHeight="@dimen/lp_row_min_height"
+                        android:orientation="horizontal">
 
                         <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/backup_auto_title"
+                            android:textAppearance="@style/TextAppearance.LP.Label" />
+
+                        <com.google.android.material.materialswitch.MaterialSwitch
+                            android:id="@+id/switch_auto_backup"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/settings_advanced_section_title"
-                            android:textColor="@color/fitness_text_primary"
-                            android:textSize="16sp"
-                            android:textStyle="bold" />
-
-                        <androidx.cardview.widget.CardView
-                            android:id="@+id/button_reset_data"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="12dp"
-                            android:clickable="true"
-                            android:focusable="true"
-                            android:foreground="?attr/selectableItemBackground"
-                            app:cardBackgroundColor="@color/fitness_card_background"
-                            app:cardCornerRadius="12dp"
-                            app:cardElevation="2dp">
-
-                            <LinearLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:gravity="center_vertical"
-                                android:minHeight="40dp"
-                                android:orientation="horizontal"
-                                android:padding="10dp">
-
-                                <ImageView
-                                    android:layout_width="24dp"
-                                    android:layout_height="24dp"
-                                    android:src="@drawable/ic_delete"
-                                    app:tint="@color/design_default_color_error" />
-
-                                <TextView
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_marginStart="12dp"
-                                    android:layout_weight="1"
-                                    android:text="@string/dialog_title_reset_data"
-                                    android:textColor="@color/design_default_color_error"
-                                    android:textSize="16sp"
-                                    android:textStyle="bold" />
-                            </LinearLayout>
-                        </androidx.cardview.widget.CardView>
-
-                        <androidx.cardview.widget.CardView
-                            android:id="@+id/button_reset_library"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
-                            android:clickable="true"
-                            android:focusable="true"
-                            android:foreground="?attr/selectableItemBackground"
-                            app:cardBackgroundColor="@color/fitness_card_background"
-                            app:cardCornerRadius="12dp"
-                            app:cardElevation="2dp">
-
-                            <LinearLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:gravity="center_vertical"
-                                android:minHeight="40dp"
-                                android:orientation="horizontal"
-                                android:padding="10dp">
-
-                                <ImageView
-                                    android:layout_width="24dp"
-                                    android:layout_height="24dp"
-                                    android:src="@drawable/ic_refresh"
-                                    app:tint="@color/fitness_accent" />
-
-                                <TextView
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_marginStart="12dp"
-                                    android:layout_weight="1"
-                                    android:text="@string/button_reset_library"
-                                    android:textColor="@color/fitness_text_primary"
-                                    android:textSize="16sp"
-                                    android:textStyle="bold" />
-                            </LinearLayout>
-                        </androidx.cardview.widget.CardView>
-
-                        <!-- Withings Data Info Button -->
-                        <androidx.cardview.widget.CardView
-                            android:id="@+id/button_withings_data"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
-                            android:clickable="true"
-                            android:focusable="true"
-                            android:foreground="?attr/selectableItemBackground"
-                            app:cardBackgroundColor="@color/fitness_card_background"
-                            app:cardCornerRadius="12dp"
-                            app:cardElevation="2dp">
-
-                            <LinearLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:gravity="center_vertical"
-                                android:minHeight="40dp"
-                                android:orientation="horizontal"
-                                android:padding="10dp">
-
-                                <ImageView
-                                    android:layout_width="24dp"
-                                    android:layout_height="24dp"
-                                    android:src="@drawable/ic_graph"
-                                    app:tint="@color/fitness_primary" />
-
-                                <LinearLayout
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_marginStart="12dp"
-                                    android:layout_weight="1"
-                                    android:orientation="vertical">
-
-                                    <TextView
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:text="Withings Data"
-                                        android:textColor="@color/fitness_text_primary"
-                                        android:textSize="16sp"
-                                        android:textStyle="bold" />
-
-                                    <TextView
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:text="View synced body scan information"
-                                        android:textColor="@color/fitness_text_secondary"
-                                        android:textSize="13sp" />
-                                </LinearLayout>
-
-                                <ImageView
-                                    android:layout_width="20dp"
-                                    android:layout_height="20dp"
-                                    android:src="@drawable/ic_info_outline_24"
-                                    app:tint="@color/fitness_text_secondary" />
-                            </LinearLayout>
-                        </androidx.cardview.widget.CardView>
+                            app:showText="false" />
                     </LinearLayout>
-                </androidx.cardview.widget.CardView>
-            </LinearLayout>
 
-        </androidx.constraintlayout.widget.ConstraintLayout>
+                    <View style="@style/Widget.LP.Divider" />
+
+                    <LinearLayout
+                        android:id="@+id/button_backup_folder"
+                        style="@style/Widget.LP.Row"
+                        android:paddingHorizontal="0dp"
+                        android:gravity="center_vertical">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_folder_24"
+                            app:tint="?attr/lpAccent" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="@dimen/lp_space_3"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/backup_folder_title"
+                                android:textAppearance="@style/TextAppearance.LP.Label" />
+
+                            <TextView
+                                android:id="@+id/text_backup_folder_status"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/backup_folder_not_set"
+                                android:textAppearance="@style/TextAppearance.LP.Caption" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <View style="@style/Widget.LP.Divider" />
+
+                    <LinearLayout
+                        android:id="@+id/button_backup_drive"
+                        style="@style/Widget.LP.Row"
+                        android:paddingHorizontal="0dp"
+                        android:gravity="center_vertical">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_cloud_upload_24"
+                            app:tint="?attr/lpAccent" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="@dimen/lp_space_3"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/backup_drive_title"
+                                android:textAppearance="@style/TextAppearance.LP.Label" />
+
+                            <TextView
+                                android:id="@+id/text_backup_drive_status"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/backup_drive_not_connected"
+                                android:textAppearance="@style/TextAppearance.LP.Caption" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <View style="@style/Widget.LP.Divider" />
+
+                    <LinearLayout
+                        android:id="@+id/button_backup_restore"
+                        style="@style/Widget.LP.Row"
+                        android:paddingHorizontal="0dp"
+                        android:gravity="center_vertical">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_restore_24"
+                            app:tint="?attr/lpAccent" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="@dimen/lp_space_3"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/backup_restore_title"
+                                android:textAppearance="@style/TextAppearance.LP.Label" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/backup_restore_subtitle"
+                                android:textAppearance="@style/TextAppearance.LP.Caption" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/button_backup_now"
+                        style="@style/Widget.LP.Button"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/lp_space_3"
+                        android:text="@string/backup_now_button" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- DESTRUCTIVE ACTIONS -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/lp_section_gap"
+                android:text="@string/settings_advanced_section_title"
+                android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.LP.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/lp_space_2"
+                android:layout_marginBottom="@dimen/lp_gutter"
+                app:strokeColor="?attr/lpNegative">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:id="@+id/button_reset_data"
+                        style="@style/Widget.LP.Row"
+                        android:gravity="center_vertical">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_delete"
+                            app:tint="?attr/lpNegative" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="@dimen/lp_space_3"
+                            android:layout_weight="1"
+                            android:text="@string/dialog_title_reset_data"
+                            android:textAppearance="@style/TextAppearance.LP.Label"
+                            android:textColor="?attr/lpNegative" />
+                    </LinearLayout>
+
+                    <View style="@style/Widget.LP.Divider" android:layout_marginStart="60dp" />
+
+                    <LinearLayout
+                        android:id="@+id/button_reset_library"
+                        style="@style/Widget.LP.Row"
+                        android:gravity="center_vertical">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_refresh"
+                            app:tint="?attr/lpNegative" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="@dimen/lp_space_3"
+                            android:layout_weight="1"
+                            android:text="@string/button_reset_library"
+                            android:textAppearance="@style/TextAppearance.LP.Label"
+                            android:textColor="?attr/lpNegative" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+        </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Tinted pill behind a small tappable value (the warm-up/cool-down duration badge).
+
+  Accent wash rather than an outline: at this size a 1dp stroke on a 20dp-tall chip reads
+  as noise, and the wash already says "this is interactive" without spending a hairline.
+  Both colours are ?attr/, so the badge follows the selected palette.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <corners android:radius="@dimen/lp_radius_sm" />
+    <solid android:color="?attr/lpAccentWash" />
+</shape>

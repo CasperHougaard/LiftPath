@@ -45,7 +45,7 @@ class EditPlanSetActivity : AppCompatActivity() {
         isEditing = planSetId != null
 
         setupBackgroundAnimation()
-        binding.textHeaderTitle.text = if (isEditing) "Edit Rotation" else "Create Rotation"
+        binding.textHeaderTitle.setText(if (isEditing) R.string.title_edit_rotation else R.string.title_create_rotation)
 
         allPlans = jsonHelper.readTrainingData().workoutPlans
 
@@ -101,18 +101,18 @@ class EditPlanSetActivity : AppCompatActivity() {
 
     private fun showAddPlanDialog() {
         if (orderedPlanIds.size >= MAX_PLANS_IN_SET) {
-            Toast.makeText(this, "Maximum $MAX_PLANS_IN_SET plans per rotation", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.toast_max_plans_in_rotation, MAX_PLANS_IN_SET), Toast.LENGTH_SHORT).show()
             return
         }
         // Only show plans not already in the set
         val available = allPlans.filter { it.id !in orderedPlanIds }
         if (available.isEmpty()) {
-            Toast.makeText(this, "All plans are already in this rotation", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.toast_all_plans_in_rotation), Toast.LENGTH_SHORT).show()
             return
         }
         val names = available.map { it.name }.toTypedArray()
         DialogHelper.createBuilder(this)
-            .setTitle("Add Plan to Rotation")
+            .setTitle(getString(R.string.dialog_title_add_plan_to_rotation))
             .setItems(names) { _, which ->
                 val selected = available[which]
                 adapter.addPlan(selected.id)
@@ -135,11 +135,11 @@ class EditPlanSetActivity : AppCompatActivity() {
     private fun savePlanSet() {
         val name = binding.editTextPlanSetName.text.toString().trim()
         if (name.isEmpty()) {
-            Toast.makeText(this, "Please enter a rotation name", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.toast_enter_rotation_name), Toast.LENGTH_SHORT).show()
             return
         }
         if (orderedPlanIds.isEmpty()) {
-            Toast.makeText(this, "Please add at least one plan", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.toast_add_one_plan), Toast.LENGTH_SHORT).show()
             return
         }
 

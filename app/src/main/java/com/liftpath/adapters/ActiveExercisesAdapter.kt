@@ -1,12 +1,10 @@
 package com.liftpath.adapters
 
 import android.content.Context
-import android.graphics.Typeface
 import android.os.CountDownTimer
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.style.ForegroundColorSpan
-import android.text.style.StyleSpan
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -14,8 +12,8 @@ import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.cardview.widget.CardView
-import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.liftpath.R
 import com.liftpath.helpers.DialogHelper
@@ -23,6 +21,8 @@ import com.liftpath.helpers.JsonHelper
 import com.liftpath.helpers.ProgressionHelper
 import com.liftpath.helpers.ProgressionSettingsManager
 import com.liftpath.helpers.RestTimerHelper
+import com.liftpath.helpers.CircuitStore
+import com.liftpath.helpers.SetFormatter
 import com.liftpath.helpers.WorkoutGenerator
 import com.liftpath.helpers.showWithTransparentWindow
 import com.liftpath.models.DraftExerciseRow
@@ -31,6 +31,7 @@ import com.liftpath.models.PlanSlotType
 import com.liftpath.models.SetIntent
 import com.google.android.material.chip.ChipGroup
 import java.util.Locale
+import com.liftpath.helpers.lpColor
 
 class ActiveExercisesAdapter(
     private val groupedExercises: List<GroupedExercise>,
@@ -64,13 +65,17 @@ class ActiveExercisesAdapter(
     private val onEditDurationClicked: (exerciseId: Int) -> Unit = {},
     private val onChangeExerciseClicked: ((position: Int) -> Unit)? = null,
     private val getTimerEndTimeMillis: (exerciseId: Int) -> Long? = { null },
-    private val onSpecialTimerReset: (exerciseId: Int) -> Unit = {}
+    private val onSpecialTimerReset: (exerciseId: Int) -> Unit = {},
+    private val onStartCircuitClicked: (position: Int) -> Unit = {},
+    private val onDeleteCircuitClicked: (exerciseId: Int) -> Unit = {},
+    private val onCircuitSettingsClicked: (position: Int) -> Unit = {}
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     
     companion object {
         private const val VIEW_TYPE_EXERCISE    = 0
         private const val VIEW_TYPE_ADD_BUTTONS = 1
         private const val VIEW_TYPE_SPECIAL     = 2
+        private const val VIEW_TYPE_CIRCUIT     = 3
     }
 
     private val cardTimers = mutableMapOf<Int, CountDownTimer?>()
@@ -78,7 +83,27 @@ class ActiveExercisesAdapter(
     /** Always use '.' as decimal separator (locale-independent) for workout numbers. */
     private fun formatOneDecimal(value: Float): String = String.format(Locale.US, "%.1f", value)
 
-    private val collapsedExercises = mutableSetOf<Int>()
+    /**
+     * Exercises the user has ticked off with the check button.
+     *
+     * Deliberately separate from [expandedExerciseId]: this is a *session fact* — "I'm done
+     * with this one, whatever the target says" — and it drives the card outline and the
+     * auto-advance. Expansion is pure view state and carries no meaning.
+     */
+    private val manuallyCompleted = mutableSetOf<Int>()
+
+    /**
+     * The one exercise showing its full controls; null means everything is collapsed.
+     *
+     * One-at-a-time is the whole point of the card: the always-expanded version fitted about
+     * one and a half exercises on screen, so you scrolled to find your place instead of
+     * seeing the session.
+     */
+    private var expandedExerciseId: Int? = null
+    private var hasAutoExpanded = false
+
+    /** Held only so expansion can scroll the newly-opened card into view. */
+    private var attachedRecyclerView: RecyclerView? = null
 
     /** Rebuilt when exercise list layout / superset membership changes (not when only sets change). */
     private var cachedSupersetLayoutKey: Int = Int.MIN_VALUE
@@ -116,35 +141,122 @@ class ActiveExercisesAdapter(
         progressionSettingsCache = null
     }
 
+    // ------------------------------------------------------------------ completion state
+
+    /** Working sets actually logged: warmups excluded, and a set counts once it has load or is ticked. */
+    private fun workingSetsLogged(exercise: GroupedExercise): Int =
+        exercise.sets.count { !it.isEffectivelyWarmup() && (it.kg > 0f || it.completed == true) }
+
+    /**
+     * How many working sets this exercise is aiming for. A superset's shared target wins over
+     * the generator's recommendation, which in turn wins over "however many you did last time".
+     * Zero means there is no target, so the card can never read as complete on its own.
+     */
+    private fun targetSetsFor(exercise: GroupedExercise): Int {
+        val supersetTarget = getSupersetTargetSets(exercise.supersetGroupId)
+        val recommended = exerciseRecommendations[exercise.exerciseId]?.recommendedSets
+        val lastWorkingSets = exerciseIntents[exercise.exerciseId]
+            ?.let { lastWorkoutData[exercise.exerciseId]?.get(it) }
+            ?.count { !it.isEffectivelyWarmup() }
+            ?: 0
+        return supersetTarget ?: recommended ?: lastWorkingSets
+    }
+
+    /** Target met, or the user said so by tapping the check. */
+    private fun isExerciseDone(exercise: GroupedExercise): Boolean {
+        if (exercise.exerciseId in manuallyCompleted) return true
+        val target = targetSetsFor(exercise)
+        return target > 0 && workingSetsLogged(exercise) >= target
+    }
+
+    // ------------------------------------------------------------------ expansion state
+
+    /**
+     * Opens the first exercise that still has work left.
+     *
+     * Called at the top of [onBindViewHolder] rather than from a lifecycle callback because the
+     * exercise list is populated before the first bind but not necessarily before attach. It
+     * settles on the very first bind of a pass, so every holder in that pass reads a final
+     * value and no notify is needed.
+     */
+    private fun ensureAutoExpanded() {
+        if (hasAutoExpanded || groupedExercises.isEmpty()) return
+        hasAutoExpanded = true
+        val realExercises = groupedExercises.filter { !it.isSpecialElement && !it.isCircuit }
+        expandedExerciseId = (realExercises.firstOrNull { !isExerciseDone(it) } ?: realExercises.firstOrNull())
+            ?.exerciseId
+    }
+
+    private fun indexOfExercise(exerciseId: Int): Int =
+        groupedExercises.indexOfFirst { it.exerciseId == exerciseId }
+
+    /** Moves the single expansion to [exerciseId], or closes everything when null. */
+    private fun setExpanded(exerciseId: Int?) {
+        val previous = expandedExerciseId
+        if (previous == exerciseId) return
+        expandedExerciseId = exerciseId
+        hasAutoExpanded = true
+
+        previous?.let { id -> indexOfExercise(id).takeIf { it >= 0 }?.let(::notifyItemChanged) }
+        val newPosition = exerciseId?.let { indexOfExercise(it) } ?: -1
+        if (newPosition >= 0) {
+            notifyItemChanged(newPosition)
+            // The card that just grew is often the one that just left the viewport.
+            attachedRecyclerView?.post { attachedRecyclerView?.smoothScrollToPosition(newPosition) }
+        }
+    }
+
+    /**
+     * Hands the expansion to the next exercise with work left after ticking one off.
+     *
+     * Scans forward first so an ordinary top-to-bottom session simply walks down the list, then
+     * wraps to the start so an exercise skipped earlier isn't stranded closed.
+     */
+    private fun advanceExpansionPast(position: Int) {
+        val order = (position + 1 until groupedExercises.size) + (0 until position)
+        val next = order
+            .map { groupedExercises[it] }
+            .firstOrNull { !it.isSpecialElement && !it.isCircuit && !isExerciseDone(it) }
+        setExpanded(next?.exerciseId)
+    }
+
     class GroupedExerciseViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val cardExercise: MaterialCardView = view.findViewById(R.id.card_exercise)
+
+        // --- header: always visible, tapping it toggles expansion ---
+        val header: View = view.findViewById(R.id.layout_header)
         val exerciseName: TextView = view.findViewById(R.id.text_exercise_name)
-        val swapExerciseButton: android.widget.ImageButton = view.findViewById(R.id.button_swap_exercise)
         val intentBadge: TextView = view.findViewById(R.id.text_intent_badge)
-        val recommendedInfo: TextView = view.findViewById(R.id.text_recommended_info)
-        val setsCount: TextView = view.findViewById(R.id.text_sets_count)
-        val loggedSets: TextView = view.findViewById(R.id.text_logged_sets)
-        val lastWorkoutSets: TextView = view.findViewById(R.id.text_last_workout_sets)
+        val swapExerciseButton: android.widget.ImageButton = view.findViewById(R.id.button_swap_exercise)
+        val noteTooltipButton: android.widget.ImageButton = view.findViewById(R.id.button_note_tooltip)
+        val collapsedSummary: TextView = view.findViewById(R.id.text_collapsed_summary)
         val completionCheck: ImageView = view.findViewById(R.id.image_completion_check)
-        val layoutActionButtons: View = view.findViewById(R.id.layout_action_buttons)
-        val addSetButton: CardView = view.findViewById(R.id.button_add_set)
-        val duplicateSetButton: CardView = view.findViewById(R.id.button_duplicate_set)
-        val editActivityButton: CardView = view.findViewById(R.id.button_edit_activity)
-        val completeExerciseButton: CardView = view.findViewById(R.id.button_complete_exercise)
-        val iconCompleteExercise: ImageView = view.findViewById(R.id.icon_complete_exercise)
-        val deleteExerciseButton: CardView = view.findViewById(R.id.button_delete_exercise)
+        val setsCount: TextView = view.findViewById(R.id.text_sets_count)
+        val chevron: ImageView = view.findViewById(R.id.image_expand_chevron)
+
+        // --- body: shown for the single expanded exercise ---
+        val body: View = view.findViewById(R.id.layout_body)
         val chipGroupIntent: ChipGroup = view.findViewById(R.id.chip_group_intent)
         val chipStrength: com.google.android.material.chip.Chip = view.findViewById(R.id.chip_strength)
         val chipBuild: com.google.android.material.chip.Chip = view.findViewById(R.id.chip_build)
         val chipFlush: com.google.android.material.chip.Chip = view.findViewById(R.id.chip_flush)
-        val noteTooltipButton: android.widget.ImageButton = view.findViewById(R.id.button_note_tooltip)
+        val setComparison: View = view.findViewById(R.id.layout_set_comparison)
+        val loggedSets: TextView = view.findViewById(R.id.text_logged_sets)
+        val lastWorkoutSets: TextView = view.findViewById(R.id.text_last_workout_sets)
+        val addSetButton: MaterialCardView = view.findViewById(R.id.button_add_set)
+        val duplicateSetButton: MaterialCardView = view.findViewById(R.id.button_duplicate_set)
+        val editActivityButton: MaterialCardView = view.findViewById(R.id.button_edit_activity)
+        val completeExerciseButton: MaterialCardView = view.findViewById(R.id.button_complete_exercise)
+        val iconCompleteExercise: ImageView = view.findViewById(R.id.icon_complete_exercise)
+        val deleteExerciseButton: MaterialCardView = view.findViewById(R.id.button_delete_exercise)
+
         val supersetLinkTop: android.widget.ImageButton = view.findViewById(R.id.button_superset_link_top)
         val supersetLinkBottom: android.widget.ImageButton = view.findViewById(R.id.button_superset_link_bottom)
-        val cardExercise: MaterialCardView = view.findViewById(R.id.card_exercise)
     }
     
     class AddButtonsViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val regularPlusButton: CardView = view.findViewById(R.id.button_add_exercise_regular)
-        val bonusPlusButton: CardView = view.findViewById(R.id.button_add_exercise_bonus)
+        val regularPlusButton: MaterialButton = view.findViewById(R.id.button_add_exercise_regular)
+        val bonusPlusButton: MaterialButton = view.findViewById(R.id.button_add_exercise_bonus)
     }
 
     class SpecialElementViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -165,8 +277,20 @@ class ActiveExercisesAdapter(
         var boundExerciseId: Int = -1
     }
 
+    class CircuitViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val name: TextView = view.findViewById(R.id.text_circuit_name)
+        val summary: TextView = view.findViewById(R.id.text_circuit_summary)
+        val roundsBadge: TextView = view.findViewById(R.id.text_rounds_badge)
+        val stations: TextView = view.findViewById(R.id.text_circuit_stations)
+        val pending: TextView = view.findViewById(R.id.text_circuit_pending)
+        val deleteButton: android.widget.ImageButton = view.findViewById(R.id.button_delete_circuit)
+        val runCard: MaterialCardView = view.findViewById(R.id.card_run_circuit)
+        val runText: TextView = view.findViewById(R.id.text_run_circuit)
+    }
+
     override fun getItemViewType(position: Int): Int = when {
         position == groupedExercises.size -> VIEW_TYPE_ADD_BUTTONS
+        groupedExercises[position].isCircuit -> VIEW_TYPE_CIRCUIT
         groupedExercises[position].isSpecialElement -> VIEW_TYPE_SPECIAL
         else -> VIEW_TYPE_EXERCISE
     }
@@ -183,15 +307,66 @@ class ActiveExercisesAdapter(
             VIEW_TYPE_SPECIAL -> SpecialElementViewHolder(
                 inflater.inflate(R.layout.list_item_active_special, parent, false)
             )
+            VIEW_TYPE_CIRCUIT -> CircuitViewHolder(
+                inflater.inflate(R.layout.list_item_active_circuit, parent, false)
+            )
             else -> throw IllegalArgumentException("Unknown view type: $viewType")
         }
     }
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+        ensureAutoExpanded()
         when (holder) {
             is SpecialElementViewHolder -> bindSpecialViewHolder(holder, position)
             is GroupedExerciseViewHolder -> bindExerciseViewHolder(holder, position)
             is AddButtonsViewHolder -> bindAddButtonsViewHolder(holder)
+            is CircuitViewHolder -> bindCircuitViewHolder(holder, position)
+        }
+    }
+
+    private fun bindCircuitViewHolder(holder: CircuitViewHolder, position: Int) {
+        val group = groupedExercises[position]
+        val circuit = group.circuit ?: return
+        val ctx = holder.itemView.context
+
+        holder.name.text = group.exerciseName
+        holder.summary.text = CircuitStore.formatSummary(circuit.suggestedRounds, circuit.restBetweenRoundsSeconds)
+        holder.summary.setOnClickListener {
+            val pos = holder.bindingAdapterPosition
+            if (pos >= 0) onCircuitSettingsClicked(pos)
+        }
+
+        if (circuit.completedRounds > 0) {
+            holder.roundsBadge.text = ctx.getString(R.string.circuit_rounds_done, circuit.completedRounds)
+            holder.roundsBadge.visibility = View.VISIBLE
+        } else {
+            holder.roundsBadge.visibility = View.GONE
+        }
+
+        val library = jsonHelper.readTrainingData().exerciseLibrary
+        val nameById = library.associate { it.id to it.name }
+        val stationNames = circuit.items.mapNotNull { nameById[it.exerciseId] }
+        holder.stations.text = if (stationNames.isEmpty()) {
+            ctx.getString(R.string.circuit_no_stations)
+        } else {
+            stationNames.joinToString(" · ")
+        }
+
+        val pendingRounds = circuit.pendingRounds
+        if (pendingRounds.isNotEmpty()) {
+            holder.pending.text = ctx.getString(R.string.circuit_round_not_logged, pendingRounds.first())
+            holder.pending.visibility = View.VISIBLE
+        } else {
+            holder.pending.visibility = View.GONE
+        }
+
+        holder.deleteButton.setOnClickListener { onDeleteCircuitClicked(group.exerciseId) }
+        holder.runText.setText(
+            if (circuit.completedRounds > 0) R.string.btn_continue_circuit else R.string.btn_start_circuit
+        )
+        holder.runCard.setOnClickListener {
+            val pos = holder.bindingAdapterPosition
+            if (pos >= 0) onStartCircuitClicked(pos)
         }
     }
 
@@ -234,10 +409,14 @@ class ActiveExercisesAdapter(
         cardTimers[element.exerciseId]?.cancel()
         cardTimers[element.exerciseId] = null
 
-        val primaryColor = ContextCompat.getColor(ctx, R.color.fitness_primary)
-        val greenColor = ContextCompat.getColor(ctx, R.color.superset_complete_green)
-        val grayColor = ContextCompat.getColor(ctx, R.color.fitness_text_secondary)
-        val strokePx = (3 * ctx.resources.displayMetrics.density).toInt()
+        val primaryColor = ctx.lpColor(R.attr.lpAccent)
+        val greenColor = ctx.lpColor(R.attr.lpPositive)
+        val grayColor = ctx.lpColor(R.attr.lpInkSecondary)
+        // A running slot gets the same 2dp emphasis ring the exercise cards use; when it is not
+        // running the card falls back to the hairline rather than losing its edge entirely.
+        val emphasisedStrokePx = (2 * ctx.resources.displayMetrics.density).toInt()
+        val hairlineStrokePx = ctx.resources.getDimensionPixelSize(R.dimen.lp_hairline_width)
+        val hairlineColor = ctx.lpColor(R.attr.lpHairline)
 
         val endTimeMillis = getTimerEndTimeMillis(element.exerciseId)
         val nowMs = System.currentTimeMillis()
@@ -261,7 +440,8 @@ class ActiveExercisesAdapter(
                 }
 
                 holder.progressTimer.visibility = View.GONE
-                holder.cardSpecial.strokeWidth = 0
+                holder.cardSpecial.strokeWidth = emphasisedStrokePx
+                holder.cardSpecial.strokeColor = greenColor
             }
 
             isTimerActive -> {
@@ -283,11 +463,10 @@ class ActiveExercisesAdapter(
                     if (pos >= 0) onSpecialTimerReset(element.exerciseId)
                 }
 
-                holder.cardSpecial.strokeWidth = strokePx
+                holder.cardSpecial.strokeWidth = emphasisedStrokePx
                 holder.cardSpecial.strokeColor = greenColor
 
                 holder.progressTimer.visibility = View.VISIBLE
-                holder.progressTimer.alpha = 1f
 
                 val totalMs = element.durationSeconds * 1000L
                 val remainingMs = endTimeMillis!! - nowMs
@@ -335,7 +514,8 @@ class ActiveExercisesAdapter(
                 }
 
                 holder.progressTimer.visibility = View.GONE
-                holder.cardSpecial.strokeWidth = 0
+                holder.cardSpecial.strokeWidth = hairlineStrokePx
+                holder.cardSpecial.strokeColor = hairlineColor
             }
         }
 
@@ -357,17 +537,28 @@ class ActiveExercisesAdapter(
     
     private fun bindExerciseViewHolder(holder: GroupedExerciseViewHolder, position: Int) {
         val groupedExercise = groupedExercises[position]
-        holder.exerciseName.text = groupedExercise.exerciseName
+        val ctx = holder.itemView.context
+        val isExpanded = expandedExerciseId == groupedExercise.exerciseId
 
-        if (groupedExercise.isFamilySlot && onChangeExerciseClicked != null) {
-            holder.swapExerciseButton.visibility = View.VISIBLE
-            holder.swapExerciseButton.setOnClickListener {
-                val pos = holder.bindingAdapterPosition
-                if (pos >= 0) onChangeExerciseClicked.invoke(pos)
-            }
-        } else {
-            holder.swapExerciseButton.visibility = View.GONE
-            holder.swapExerciseButton.setOnClickListener(null)
+        holder.exerciseName.text = groupedExercise.exerciseName
+        holder.body.visibility = if (isExpanded) View.VISIBLE else View.GONE
+        holder.chevron.rotation = if (isExpanded) 180f else 0f
+
+        // Swapping and the note/illustration are only offered on the open card — in the
+        // collapsed row they would be four icons of chrome per exercise.
+        val canSwap = isExpanded && groupedExercise.isFamilySlot && onChangeExerciseClicked != null
+        holder.swapExerciseButton.visibility = if (canSwap) View.VISIBLE else View.GONE
+        holder.swapExerciseButton.setOnClickListener(
+            if (canSwap) {
+                { _: View ->
+                    val pos = holder.bindingAdapterPosition
+                    if (pos >= 0) onChangeExerciseClicked!!.invoke(pos)
+                }
+            } else null
+        )
+
+        holder.header.setOnClickListener {
+            setExpanded(if (expandedExerciseId == groupedExercise.exerciseId) null else groupedExercise.exerciseId)
         }
 
         ensureSupersetPositionCache()
@@ -404,21 +595,19 @@ class ActiveExercisesAdapter(
             set.kg > 0f || set.completed == true
         }
         val hasSets = groupedExercise.sets.isNotEmpty()
-        val loggedSetsCount = completedSets.size
-        val recommendation = exerciseRecommendations[groupedExercise.exerciseId]
-        val recommendedSetsCount = recommendation?.recommendedSets
-        val currentWorkingSets = completedSets.count { !it.isEffectivelyWarmup() && (it.kg > 0f || it.completed == true) }
-        val lastWorkingSetsCount = lastWorkoutSets.count { !it.isEffectivelyWarmup() }
-        val targetSets = supersetTarget ?: recommendedSetsCount ?: lastWorkingSetsCount
+        val currentWorkingSets = workingSetsLogged(groupedExercise)
+        val targetSets = targetSetsFor(groupedExercise)
         val isComplete = targetSets > 0 && currentWorkingSets >= targetSets
-        // Card outline: target met (header check) or user tapped check to collapse ("done" for this session)
-        val outlineComplete = isComplete || groupedExercise.exerciseId in collapsedExercises
         // Any logged set counts (warmup or working): kg > 0 or explicitly completed
         val hasAnyRegisteredSet = completedSets.isNotEmpty()
-        val canCollapseExercise = currentWorkingSets > 0
-        if (groupedExercise.exerciseId in collapsedExercises && !canCollapseExercise) {
-            collapsedExercises.remove(groupedExercise.exerciseId)
+        val canMarkDone = currentWorkingSets > 0
+        // "Done" can't survive the last set being deleted.
+        if (groupedExercise.exerciseId in manuallyCompleted && !canMarkDone) {
+            manuallyCompleted.remove(groupedExercise.exerciseId)
         }
+        val isMarkedDone = groupedExercise.exerciseId in manuallyCompleted
+        // Card outline: target met, or the user said so by tapping the check.
+        val outlineComplete = isComplete || isMarkedDone
 
         val hasSupersetReachedTarget = groupId != null && supersetTarget != null &&
             groupIndices.all { workingSetCount(groupedExercises[it]) >= supersetTarget }
@@ -433,91 +622,56 @@ class ActiveExercisesAdapter(
 
         val isSelectedForSuperset = position in selectedForSupersetPositions()
         val isSupersetComplete = groupId != null && groupId in getCompletedSupersetGroupIds()
-        val strokeWidthPx = (2 * holder.itemView.resources.displayMetrics.density).toInt()
-        val incompleteOutlineColorRes = when {
-            hasAnyRegisteredSet -> R.color.superset_active_border
-            else -> R.color.active_exercise_outline_idle
+
+        // The card's whole state vocabulary is its outline: hairline when idle, a 2dp accent
+        // ring once work has started, 2dp positive when done. Colours are carried as @AttrRes
+        // and resolved with lpColor so they follow the selected palette.
+        val restingOutlineAttr = when {
+            outlineComplete -> R.attr.lpPositive
+            hasAnyRegisteredSet -> R.attr.lpAccent
+            else -> R.attr.lpHairline
         }
-        when {
-            isSupersetComplete -> {
-                holder.cardExercise.strokeWidth = strokeWidthPx
-                holder.cardExercise.strokeColor = ContextCompat.getColor(holder.itemView.context, R.color.superset_complete_green)
-                holder.cardExercise.alpha = 1f
-            }
-            isSelectedForSuperset -> {
-                holder.cardExercise.strokeWidth = strokeWidthPx
-                holder.cardExercise.strokeColor = ContextCompat.getColor(holder.itemView.context, R.color.fitness_accent)
-                holder.cardExercise.alpha = 1f
-            }
-            hasSupersetReachedTarget -> {
-                holder.cardExercise.strokeWidth = strokeWidthPx
-                holder.cardExercise.strokeColor = ContextCompat.getColor(
-                    holder.itemView.context,
-                    if (outlineComplete) R.color.superset_complete_green else incompleteOutlineColorRes
-                )
-                holder.cardExercise.alpha = 1f
-            }
-            isActive -> {
-                holder.cardExercise.strokeWidth = strokeWidthPx
-                holder.cardExercise.strokeColor = ContextCompat.getColor(
-                    holder.itemView.context,
-                    if (outlineComplete) R.color.superset_complete_green else incompleteOutlineColorRes
-                )
-                holder.cardExercise.alpha = 1f
-            }
-            isWaitingForTimer -> {
-                holder.cardExercise.strokeWidth = strokeWidthPx
-                holder.cardExercise.strokeColor = ContextCompat.getColor(
-                    holder.itemView.context,
-                    when {
-                        outlineComplete -> R.color.superset_complete_green
-                        hasAnyRegisteredSet -> R.color.superset_waiting_border
-                        else -> R.color.active_exercise_outline_idle
-                    }
-                )
-                holder.cardExercise.alpha = 1f
-            }
-            isInSuperset && !canAddSet -> {
-                holder.cardExercise.strokeWidth = 0
-                holder.cardExercise.alpha = 0.5f
-            }
-            else -> {
-                holder.cardExercise.strokeWidth = strokeWidthPx
-                holder.cardExercise.strokeColor = ContextCompat.getColor(
-                    holder.itemView.context,
-                    if (outlineComplete) R.color.superset_complete_green else incompleteOutlineColorRes
-                )
-                holder.cardExercise.alpha = 1f
-            }
+        val emphasisedStrokePx = (2 * holder.itemView.resources.displayMetrics.density).toInt()
+        val hairlineStrokePx = holder.itemView.resources.getDimensionPixelSize(R.dimen.lp_hairline_width)
+        val (outlineAttr, cardAlpha) = when {
+            isSupersetComplete -> R.attr.lpPositive to 1f
+            isSelectedForSuperset -> R.attr.lpAccent to 1f
+            // Queued behind a superset partner: dimmed, but never left with no edge at all.
+            isInSuperset && !canAddSet && !hasSupersetReachedTarget && !isActive && !isWaitingForTimer ->
+                R.attr.lpHairline to 0.5f
+            isWaitingForTimer && !outlineComplete && hasAnyRegisteredSet -> R.attr.lpIntentBuild to 1f
+            else -> restingOutlineAttr to 1f
         }
+        holder.cardExercise.strokeColor = ctx.lpColor(outlineAttr)
+        holder.cardExercise.strokeWidth =
+            if (outlineAttr == R.attr.lpHairline) hairlineStrokePx else emphasisedStrokePx
+        holder.cardExercise.alpha = cardAlpha
 
         holder.addSetButton.isEnabled = canAddSet
-        holder.addSetButton.alpha = if (canAddSet) 1f else 0.5f
+        holder.addSetButton.alpha = if (canAddSet) 1f else 0.4f
         holder.duplicateSetButton.isEnabled = canAddSet
-        holder.duplicateSetButton.alpha = if (canAddSet) 1f else 0.5f
-        holder.itemView.isClickable = canAddSet
-        holder.itemView.isFocusable = canAddSet
+        holder.duplicateSetButton.alpha = if (canAddSet) 1f else 0.4f
+        // The header owns tap; the card itself only listens for the superset long-press, so it
+        // must not also ripple as though the whole surface were a button.
+        holder.cardExercise.isClickable = false
+        holder.cardExercise.isFocusable = false
 
         holder.itemView.setOnLongClickListener {
             onExerciseLongPress(position)
             true
         }
 
-        // Get exercise note from library
+        // Get exercise note and illustration from library
         val trainingData = jsonHelper.readTrainingData()
         val exerciseLibraryItem = trainingData.exerciseLibrary.find { it.id == groupedExercise.exerciseId }
-        val exerciseNoteText = exerciseLibraryItem?.note?.takeIf { it.isNotEmpty() }
-        
-        // Show/hide note tooltip button based on whether note exists
-        if (exerciseNoteText != null) {
-            holder.noteTooltipButton.visibility = View.VISIBLE
-            
-            // Set up note tooltip popup dialog
-            holder.noteTooltipButton.setOnClickListener {
-                showNoteDialog(holder.itemView.context, groupedExercise.exerciseId, groupedExercise.exerciseName, exerciseNoteText, position)
-            }
-        } else {
-            holder.noteTooltipButton.visibility = View.GONE
+        val exerciseNoteText = exerciseLibraryItem?.note?.takeIf { it.isNotEmpty() } ?: ""
+        val illustrationRes = exerciseLibraryItem?.illustrationRes
+
+        // The stick figure (and note, if any) is offered on the open card — which is the one
+        // you're about to perform, so it is the only card where it is worth the space.
+        holder.noteTooltipButton.visibility = if (isExpanded) View.VISIBLE else View.GONE
+        holder.noteTooltipButton.setOnClickListener {
+            showNoteDialog(ctx, groupedExercise.exerciseId, groupedExercise.exerciseName, exerciseNoteText, illustrationRes, position)
         }
 
         // Setup Intent Selection ChipGroup
@@ -545,30 +699,32 @@ class ActiveExercisesAdapter(
         
         // Emoji icons can't be reliably tinted, so grey the WHOLE chip for the two not chosen.
         run {
-            val grey = ContextCompat.getColor(holder.itemView.context, R.color.fitness_text_secondary)
-            val normal = ContextCompat.getColor(holder.itemView.context, R.color.fitness_text_primary)
+            val grey = ctx.lpColor(R.attr.lpInkTertiary)
+            // A state list, not a flat colour: Widget.LP.Chip.Choice fills the CHECKED chip with
+            // ink, so a flat lpInk label would be ink-on-ink and vanish. The greyed chips are
+            // safe as a flat colour because a locked non-matching chip is never the checked one.
+            val normal = androidx.core.content.ContextCompat.getColorStateList(ctx, R.color.lp_chip_text)
 
             fun applyChipState(
                 chip: com.google.android.material.chip.Chip,
-                baseLabel: String,
+                @androidx.annotation.StringRes labelRes: Int,
                 intent: SetIntent,
             ) {
-                // Add "(Last)" if this is the last intent used
-                val label = if (lastIntent == intent) {
-                    "$baseLabel (Last)"
+                val baseLabel = ctx.getString(labelRes)
+                chip.text = if (lastIntent == intent) {
+                    ctx.getString(R.string.intent_chip_last_suffix, baseLabel)
                 } else {
                     baseLabel
                 }
-                chip.text = label
 
                 val shouldGrey = isLocked && lockedIntent != intent
                 chip.alpha = if (shouldGrey) 0.45f else 1.0f
-                chip.setTextColor(if (shouldGrey) grey else normal)
+                if (shouldGrey) chip.setTextColor(grey) else chip.setTextColor(normal)
             }
 
-            applyChipState(holder.chipStrength, "Strength 💥", SetIntent.STRENGTH)
-            applyChipState(holder.chipBuild, "Build 🛡️", SetIntent.BUILD)
-            applyChipState(holder.chipFlush, "Flush 🩸", SetIntent.FLUSH)
+            applyChipState(holder.chipStrength, R.string.intent_strength_chip, SetIntent.STRENGTH)
+            applyChipState(holder.chipBuild, R.string.intent_build_chip, SetIntent.BUILD)
+            applyChipState(holder.chipFlush, R.string.intent_flush_chip, SetIntent.FLUSH)
         }
         
         // Handle selection changes
@@ -623,19 +779,130 @@ class ActiveExercisesAdapter(
 
         holder.completionCheck.visibility = if (isComplete) View.VISIBLE else View.GONE
 
-        // Show sets count: "(N of X sets)" where both count only working sets; for supersets use user-defined target
-        if (targetSets > 0) {
-            holder.setsCount.text = "($currentWorkingSets of $targetSets sets)"
-        } else if (currentWorkingSets > 0) {
-            holder.setsCount.text = "($currentWorkingSets sets)"
+        // "2/3" rather than "(2 of 3 sets)": in the collapsed header this sits at the end of a
+        // row that also carries the name, and mono keeps the column from twitching as it counts up.
+        holder.setsCount.text = when {
+            targetSets > 0 -> "$currentWorkingSets/$targetSets"
+            currentWorkingSets > 0 -> "$currentWorkingSets"
+            else -> ""
+        }
+        holder.setsCount.setTextColor(
+            ctx.lpColor(if (outlineComplete) R.attr.lpPositive else R.attr.lpInkTertiary)
+        )
+
+        // --- collapsed row content: intent shorthand + this session's working sets ---
+
+        val intentEmoji = when (exerciseIntents[groupedExercise.exerciseId]) {
+            SetIntent.STRENGTH -> "💥"
+            SetIntent.BUILD -> "🛡️"
+            SetIntent.FLUSH -> "🩸"
+            else -> null
+        }
+        holder.intentBadge.text = intentEmoji ?: ""
+        holder.intentBadge.visibility =
+            if (!isExpanded && intentEmoji != null) View.VISIBLE else View.GONE
+
+        val summarySets = completedSets
+            .filter { !it.isEffectivelyWarmup() }
+            .sortedBy { it.setNumber }
+        if (!isExpanded && summarySets.isNotEmpty()) {
+            val compact = SpannableStringBuilder()
+            summarySets.forEachIndexed { i, set ->
+                if (i > 0) compact.append("  ·  ")
+                compact.append(SetFormatter.compact(ctx, set))
+            }
+            holder.collapsedSummary.text = compact
+            holder.collapsedSummary.visibility = View.VISIBLE
         } else {
-            holder.setsCount.text = ""
+            holder.collapsedSummary.visibility = View.GONE
         }
 
-        // Hide recommended info (replaced by inline last workout data)
-        holder.recommendedInfo.visibility = View.GONE
+        // The logged-vs-last comparison is the expensive part of this bind — several set lines,
+        // a progression lookup and a spannable build — so it is skipped entirely for the cards
+        // that are collapsed, which is all but one of them.
+        if (isExpanded) {
+            bindSetComparison(holder, groupedExercise, completedSets, lastWorkoutSets, currentIntent, hasSets)
+        }
 
-        // Show actual logged sets with last workout data
+        // Visibility logic
+        holder.duplicateSetButton.visibility = if (hasSets) View.VISIBLE else View.GONE
+        holder.editActivityButton.visibility = if (hasSets) View.VISIBLE else View.GONE
+        holder.deleteExerciseButton.visibility = View.VISIBLE // Always show delete button
+
+        // --- CLICK LISTENERS ---
+
+        // Add Set — only when canAddSet (active or waiting in a superset)
+        holder.addSetButton.setOnClickListener {
+            if (canAddSet) onAddSetClicked(groupedExercise.exerciseId, groupedExercise.exerciseName)
+        }
+
+        // Duplicate Last Set — same gate
+        holder.duplicateSetButton.setOnClickListener {
+            if (canAddSet) onDuplicateSetClicked(groupedExercise.exerciseId)
+        }
+
+        holder.editActivityButton.setOnClickListener { onEditActivityClicked(groupedExercise) }
+
+        holder.deleteExerciseButton.setOnClickListener {
+            onDeleteExerciseClicked(groupedExercise.exerciseId)
+        }
+
+        // Tapping the set list is the shortcut into the editor — the header owns expansion, so
+        // the old "tap anywhere on the card" gesture would now be ambiguous.
+        holder.setComparison.setOnClickListener {
+            if (hasSets) {
+                onEditActivityClicked(groupedExercise)
+            } else if (canAddSet) {
+                onAddSetClicked(groupedExercise.exerciseId, groupedExercise.exerciseName)
+            }
+        }
+
+        // --- The check: mark done, and hand the expansion to whatever is next ---
+
+        holder.completeExerciseButton.setOnClickListener {
+            val pos = holder.bindingAdapterPosition
+            if (pos < 0) return@setOnClickListener
+            val id = groupedExercise.exerciseId
+            if (id in manuallyCompleted) {
+                manuallyCompleted.remove(id)
+                notifyItemChanged(pos)
+                setExpanded(id)
+            } else if (canMarkDone) {
+                manuallyCompleted.add(id)
+                notifyItemChanged(pos)
+                advanceExpansionPast(pos)
+            }
+        }
+
+        holder.completeExerciseButton.isEnabled = isMarkedDone || canMarkDone
+        holder.completeExerciseButton.alpha = if (holder.completeExerciseButton.isEnabled) 1f else 0.4f
+        if (isMarkedDone) {
+            holder.completeExerciseButton.setCardBackgroundColor(ctx.lpColor(R.attr.lpPositive))
+            holder.iconCompleteExercise.setColorFilter(ctx.lpColor(R.attr.lpInkInverse))
+        } else {
+            holder.completeExerciseButton.setCardBackgroundColor(ctx.lpColor(R.attr.lpSurface))
+            holder.iconCompleteExercise.setColorFilter(ctx.lpColor(R.attr.lpPositive))
+        }
+    }
+
+    /**
+     * Fills the expanded card's logged-sets column and the matching "last time" column beside it.
+     *
+     * The two lists are padded against each other line for line — warmups first, then working
+     * sets — so set 2 always sits opposite last session's set 2 even when the counts differ.
+     * The progression (or plan) suggestion is spliced in directly under the last set logged,
+     * which is where you look next.
+     */
+    private fun bindSetComparison(
+        holder: GroupedExerciseViewHolder,
+        groupedExercise: GroupedExercise,
+        completedSets: List<com.liftpath.models.ExerciseEntry>,
+        lastWorkoutSets: List<com.liftpath.models.ExerciseEntry>,
+        currentIntent: SetIntent?,
+        hasSets: Boolean
+    ) {
+        val ctx = holder.itemView.context
+
         if (hasSets && completedSets.isNotEmpty()) {
             val sortedCurrentSets = completedSets.sortedBy { it.setNumber }
             
@@ -646,7 +913,6 @@ class ActiveExercisesAdapter(
             val lastWorkingSets = lastWorkoutSets.filter { !it.isEffectivelyWarmup() }
             
             // Build display text with matching
-            val ctx = holder.itemView.context
             val currentSetsText = mutableListOf<CharSequence>()
             val lastSetsText = mutableListOf<CharSequence>()
             
@@ -721,7 +987,7 @@ class ActiveExercisesAdapter(
                 shouldShowSuggestion = !planComplete
                 effectiveIndicatorText = planIndicatorText
             } else {
-                val suggestionInfo = getSuggestionInfo(holder.itemView.context, groupedExercise.exerciseId, currentIntent)
+                val suggestionInfo = getSuggestionInfo(ctx, groupedExercise.exerciseId, currentIntent)
                 val suggestedSetsCount = suggestionInfo?.suggestedSets ?: 3
                 shouldShowSuggestion = suggestionInfo != null &&
                     currentWorkingSetsCount < suggestedSetsCount &&
@@ -778,11 +1044,11 @@ class ActiveExercisesAdapter(
             // No sets logged yet - plan targets take priority over progression suggestion
             val planSnapshot = planSnapshots[groupedExercise.exerciseId]
             val effectiveSuggestionText = planSnapshot?.let { buildPlanIndicatorText(it) }
-                ?: getSuggestionForIntent(holder.itemView.context, groupedExercise.exerciseId, currentIntent)
+                ?: getSuggestionForIntent(ctx, groupedExercise.exerciseId, currentIntent)
 
             if (effectiveSuggestionText != null) {
                 // Show suggestion in the logged sets area with colored text
-                val displayText = buildSpannableWithSuggestion(holder.itemView.context, emptyList(), effectiveSuggestionText)
+                val displayText = buildSpannableWithSuggestion(ctx, emptyList(), effectiveSuggestionText)
                 holder.loggedSets.text = displayText
                 holder.loggedSets.visibility = View.VISIBLE
             } else {
@@ -791,7 +1057,6 @@ class ActiveExercisesAdapter(
 
             if (lastWorkoutSets.isNotEmpty()) {
                 // Show all last workout sets (legacy: RPE 6 = warmup; new: use isWarmup only)
-                val ctx = holder.itemView.context
                 val lastWarmupSets = lastWorkoutSets.filter { it.isEffectivelyWarmup() }
                 val lastWorkingSets = lastWorkoutSets.filter { !it.isEffectivelyWarmup() }
                 val lastSetsText = mutableListOf<CharSequence>()
@@ -811,128 +1076,6 @@ class ActiveExercisesAdapter(
                 // Don't show anything if no intent selected or no data
                 holder.lastWorkoutSets.visibility = View.GONE
             }
-        }
-
-        // Visibility logic
-        holder.duplicateSetButton.visibility = if (hasSets) View.VISIBLE else View.GONE
-        holder.editActivityButton.visibility = if (hasSets) View.VISIBLE else View.GONE
-        holder.deleteExerciseButton.visibility = View.VISIBLE // Always show delete button
-
-        // --- CLICK LISTENERS ---
-
-        // 1. Add Set (Plus button) - only when canAddSet (active or waiting in superset)
-        holder.addSetButton.setOnClickListener {
-            if (canAddSet) onAddSetClicked(groupedExercise.exerciseId, groupedExercise.exerciseName)
-        }
-
-        // 2. Duplicate Last Set - only when canAddSet
-        holder.duplicateSetButton.setOnClickListener {
-            if (canAddSet) onDuplicateSetClicked(groupedExercise.exerciseId)
-        }
-
-        // 3. Edit (Pencil button)
-        holder.editActivityButton.setOnClickListener {
-            onEditActivityClicked(groupedExercise)
-        }
-
-        // 4. Delete Exercise (Trash button)
-        holder.deleteExerciseButton.setOnClickListener {
-            onDeleteExerciseClicked(groupedExercise.exerciseId)
-        }
-
-        // 5. Card Body Click -> Trigger Edit or Add (only when canAddSet for add)
-        holder.itemView.setOnClickListener {
-            if (!canAddSet) return@setOnClickListener
-            if (hasSets) {
-                onEditActivityClicked(groupedExercise)
-            } else {
-                onAddSetClicked(groupedExercise.exerciseId, groupedExercise.exerciseName)
-            }
-        }
-
-        // --- Collapse / Expand toggle ---
-        val isCollapsed = groupedExercise.exerciseId in collapsedExercises
-
-        // Check button: toggle collapsed state (collapse only allowed with ≥1 working set logged)
-        holder.completeExerciseButton.setOnClickListener {
-            if (groupedExercise.exerciseId in collapsedExercises) {
-                collapsedExercises.remove(groupedExercise.exerciseId)
-            } else if (canCollapseExercise) {
-                collapsedExercises.add(groupedExercise.exerciseId)
-            }
-            notifyItemChanged(position)
-        }
-
-        if (isCollapsed) {
-            // Collapsed: hide intent chips, action buttons row, note icon, previous sets column
-            holder.chipGroupIntent.visibility = View.GONE
-            holder.layoutActionButtons.visibility = View.GONE
-            holder.noteTooltipButton.visibility = View.GONE
-            holder.lastWorkoutSets.visibility = View.GONE
-
-            // Intent emoji badge next to exercise name
-            val intentEmoji = when (exerciseIntents[groupedExercise.exerciseId]) {
-                SetIntent.STRENGTH -> "💥"
-                SetIntent.BUILD -> "🛡️"
-                SetIntent.FLUSH -> "🩸"
-                else -> null
-            }
-            holder.intentBadge.text = intentEmoji ?: ""
-            holder.intentBadge.visibility = if (intentEmoji != null) View.VISIBLE else View.GONE
-
-            // Compact inline working sets only (no warmups, no previous)
-            val workingSets = completedSets
-                .filter { !it.isEffectivelyWarmup() }
-                .sortedBy { it.setNumber }
-            if (workingSets.isNotEmpty()) {
-                val ctx = holder.itemView.context
-                val compact = SpannableStringBuilder()
-                workingSets.forEachIndexed { i, set ->
-                    if (i > 0) compact.append("  ·  ")
-                    if (set.isTimedEntry()) {
-                        compact.append(RestTimerHelper.formatDuration(set.durationSeconds ?: 0))
-                        if (set.kg > 0f) compact.append(" +${trimNum(set.kg)}")
-                    } else {
-                        compact.append(weightPortion(ctx, set))
-                        compact.append("×${set.reps}")
-                    }
-                }
-                holder.loggedSets.text = compact
-                holder.loggedSets.visibility = View.VISIBLE
-            } else {
-                holder.loggedSets.visibility = View.GONE
-            }
-
-            // Filled green check button = "done" (only reachable with ≥1 working set; reset state for recycled holders)
-            holder.completeExerciseButton.isEnabled = true
-            holder.completeExerciseButton.alpha = 1f
-            holder.completeExerciseButton.setCardBackgroundColor(
-                ContextCompat.getColor(holder.itemView.context, R.color.superset_complete_green)
-            )
-            holder.iconCompleteExercise.setColorFilter(
-                ContextCompat.getColor(holder.itemView.context, android.R.color.white)
-            )
-
-            // Clicking anywhere on the card expands it again
-            holder.itemView.setOnClickListener {
-                collapsedExercises.remove(groupedExercise.exerciseId)
-                notifyItemChanged(position)
-            }
-        } else {
-            // Expanded: ensure all sections visible (normal state)
-            holder.chipGroupIntent.visibility = View.VISIBLE
-            holder.layoutActionButtons.visibility = View.VISIBLE
-            holder.intentBadge.visibility = View.GONE
-
-            // Reset check button to outline style
-            holder.completeExerciseButton.isEnabled = canCollapseExercise
-            holder.completeExerciseButton.alpha = if (canCollapseExercise) 1f else 0.5f
-            holder.completeExerciseButton.setCardBackgroundColor(
-                ContextCompat.getColor(holder.itemView.context, R.color.fitness_card_background)
-            )
-            holder.iconCompleteExercise.setColorFilter(
-                android.graphics.Color.parseColor("#4CAF50")
-            )
         }
     }
 
@@ -957,16 +1100,45 @@ class ActiveExercisesAdapter(
         }
     }
 
+    override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
+        super.onAttachedToRecyclerView(recyclerView)
+        attachedRecyclerView = recyclerView
+    }
+
     override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
         super.onDetachedFromRecyclerView(recyclerView)
+        attachedRecyclerView = null
         cardTimers.values.forEach { it?.cancel() }
         cardTimers.clear()
     }
 
-    private fun showNoteDialog(context: Context, exerciseId: Int, exerciseName: String, noteText: String, position: Int) {
+    private fun showNoteDialog(
+        context: Context,
+        exerciseId: Int,
+        exerciseName: String,
+        noteText: String,
+        illustrationRes: Int?,
+        position: Int
+    ) {
+        val dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_exercise_note_with_media, null)
+        dialogView.findViewById<TextView>(R.id.text_dialog_title).text = exerciseName
+
+        // Show the exercise stick-figure illustration (falls back to a generic icon).
+        val mediaImageView = dialogView.findViewById<ImageView>(R.id.image_exercise_media)
+        dialogView.findViewById<TextView>(R.id.text_media_attribution).visibility = View.GONE
+        mediaImageView.visibility = View.VISIBLE
+        mediaImageView.setImageResource(illustrationRes ?: R.drawable.ic_dumbbell)
+
+        val noteTextView = dialogView.findViewById<TextView>(R.id.text_dialog_note)
+        if (noteText.isNotEmpty()) {
+            noteTextView.visibility = View.VISIBLE
+            noteTextView.text = noteText
+        } else {
+            noteTextView.visibility = View.GONE
+        }
+
         DialogHelper.createBuilder(context)
-            .setTitle(exerciseName)
-            .setMessage(noteText)
+            .setView(dialogView)
             .setPositiveButton(context.getString(R.string.button_ok), null)
             .setNeutralButton(context.getString(R.string.button_edit_note)) { _, _ ->
                 showEditNoteDialog(context, exerciseId, exerciseName, noteText, position)
@@ -1114,59 +1286,25 @@ class ActiveExercisesAdapter(
         )
     }
     
-    private fun trimNum(v: Float): String =
-        if (v % 1 == 0f) v.toInt().toString() else v.toString()
+    private fun trimNum(v: Float): String = SetFormatter.trimNum(v)
 
     /**
-     * The weight portion of a set line. Plain text for weighted sets. For bodyweight sets the body
-     * weight is shown muted (1 decimal) and the signed added/assisted weight in a contrasting color
-     * (green +, red −) so progression is readable even when body weight differs between workouts.
+     * A full set line. All load/metric rendering (weighted, bodyweight, timed hold, bodyweight hold)
+     * lives in [SetFormatter] so this list and the history detail screen can't drift apart.
      */
-    private fun weightPortion(context: Context, set: com.liftpath.models.ExerciseEntry): CharSequence {
-        if (!set.isBodyweightEntry()) {
-            return trimNum(set.kg)
-        }
-        val bw = set.bodyweightKg ?: 0f
-        val added = set.addedKg ?: 0f
-        val b = SpannableStringBuilder()
-        b.append(String.format(Locale.US, "%.1f", bw))
-        b.setSpan(
-            ForegroundColorSpan(ContextCompat.getColor(context, R.color.fitness_text_secondary)),
-            0, b.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-        )
-        if (added != 0f) {
-            val sign = if (added > 0f) "+" else "−"
-            val mag = if (added < 0f) -added else added
-            val start = b.length
-            b.append(" $sign${trimNum(mag)}")
-            val colorRes = if (added > 0f) R.color.fitness_highlight_border else R.color.fitness_error_border
-            b.setSpan(ForegroundColorSpan(ContextCompat.getColor(context, colorRes)), start, b.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-            b.setSpan(StyleSpan(Typeface.BOLD), start, b.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-        }
-        return b
-    }
-
-    /** A full set line: "<prefix><weight portion>kg × <reps><suffix>". */
     private fun buildSetLine(
         context: Context,
         prefix: String,
         set: com.liftpath.models.ExerciseEntry,
         spaceBeforeKg: Boolean,
         suffix: String
-    ): CharSequence {
-        val b = SpannableStringBuilder()
-        b.append(prefix)
-        // Timed holds render the duration, with weight appended only when present.
-        if (set.isTimedEntry()) {
-            b.append(RestTimerHelper.formatDuration(set.durationSeconds ?: 0))
-            if (set.kg > 0f) b.append(" + ${trimNum(set.kg)} kg")
-            b.append(suffix)
-            return b
-        }
-        b.append(weightPortion(context, set))
-        b.append(if (spaceBeforeKg) " kg × ${set.reps}$suffix" else "kg × ${set.reps}$suffix")
-        return b
-    }
+    ): CharSequence = SetFormatter.setLine(
+        context = context,
+        e = set,
+        prefix = prefix,
+        suffix = suffix,
+        spaceBeforeUnit = spaceBeforeKg
+    )
 
     private fun joinLines(lines: List<CharSequence>): CharSequence {
         val b = SpannableStringBuilder()
@@ -1193,7 +1331,7 @@ class ActiveExercisesAdapter(
         }
 
         val builder = SpannableStringBuilder()
-        val suggestionColor = ContextCompat.getColor(context, R.color.fitness_suggestion)
+        val suggestionColor = context.lpColor(R.attr.lpAccent)
 
         if (lines.isEmpty()) {
             val start = builder.length

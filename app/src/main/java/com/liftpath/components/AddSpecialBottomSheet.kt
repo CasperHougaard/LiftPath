@@ -26,6 +26,7 @@ class AddSpecialBottomSheet : DialogFragment() {
     private var onWarmupSelected: (() -> Unit)? = null
     private var onCooldownSelected: (() -> Unit)? = null
     private var onSuperSetSelected: (() -> Unit)? = null
+    private var onCircuitSelected: (() -> Unit)? = null
 
     companion object {
         /**
@@ -34,12 +35,14 @@ class AddSpecialBottomSheet : DialogFragment() {
         fun newInstance(
             onWarmupSelected: () -> Unit,
             onCooldownSelected: () -> Unit,
-            onSuperSetSelected: () -> Unit
+            onSuperSetSelected: () -> Unit,
+            onCircuitSelected: () -> Unit
         ): AddSpecialBottomSheet {
             return AddSpecialBottomSheet().apply {
                 this.onWarmupSelected = onWarmupSelected
                 this.onCooldownSelected = onCooldownSelected
                 this.onSuperSetSelected = onSuperSetSelected
+                this.onCircuitSelected = onCircuitSelected
             }
         }
     }
@@ -130,6 +133,21 @@ class AddSpecialBottomSheet : DialogFragment() {
         supersetTile.setOnClickListener {
             dismiss()
             onSuperSetSelected?.invoke()
+        }
+
+        // Circuit Tile — the only one with a subtitle, because "circuit" needs a word of
+        // explanation the other three don't.
+        val circuitTile = view.findViewById<View>(R.id.tile_circuit)
+        val circuitIcon = circuitTile.findViewById<ImageView>(R.id.icon_tile)
+        val circuitTitle = circuitTile.findViewById<TextView>(R.id.text_tile_title)
+        val circuitSubtitle = circuitTile.findViewById<TextView>(R.id.text_tile_subtitle)
+        circuitIcon.setImageResource(R.drawable.ic_refresh)
+        circuitTitle.text = getString(R.string.tile_circuit)
+        circuitSubtitle.text = getString(R.string.tile_circuit_subtitle)
+        circuitSubtitle.visibility = View.VISIBLE
+        circuitTile.setOnClickListener {
+            dismiss()
+            onCircuitSelected?.invoke()
         }
     }
 }

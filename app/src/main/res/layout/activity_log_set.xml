@@ -1,25 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Log one set. The single most-used screen in the app after the workout list itself.
+
+  DENSE spacing: this is operated between sets, so vertical space spent on air is space that
+  pushes Save off the fold. The whole form lives in one card rather than four, separated by
+  hairlines — four cards for weight / reps / RPE / note read as four unrelated decisions when
+  they are one entry.
+
+  Numeric fields all use Widget.LP.TextInputLayout.Numeric.Large (JetBrains Mono, Metric.L) so
+  the value stays put as digits change under a stepper, and the −/+ pair uses Widget.LP.Stepper,
+  where increment carries an accent wash and decrement does not — you should be able to hit the
+  right one without reading the glyph.
+-->
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/fitness_background"
+    android:background="?attr/lpCanvas"
     android:fitsSystemWindows="true"
     tools:context=".activities.LogSetActivity">
 
-    <!-- Background Flow Animation -->
     <ImageView
         android:id="@+id/image_bg_animation"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:alpha="1.0"
+        android:contentDescription="@null"
         android:scaleType="centerCrop"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/avd_background_flow" />
+        app:srcCompat="@drawable/lp_bg_ambient_flow"
+        app:tint="?attr/lpAccent" />
 
     <androidx.core.widget.NestedScrollView
         android:id="@+id/scroll_view_content"
@@ -37,10 +50,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingStart="24dp"
-            android:paddingTop="24dp"
-            android:paddingEnd="24dp"
-            android:paddingBottom="24dp">
+            android:padding="@dimen/lp_gutter_dense">
 
             <!-- ── HEADER ──────────────────────────────────── -->
             <LinearLayout
@@ -50,87 +60,79 @@
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
-                <androidx.cardview.widget.CardView
+                <com.google.android.material.card.MaterialCardView
+                    style="@style/Widget.LP.Card.Control"
                     android:layout_width="48dp"
                     android:layout_height="48dp"
-                    app:cardBackgroundColor="@color/fitness_card_background"
-                    app:cardCornerRadius="24dp"
-                    app:cardElevation="0dp">
+                    android:clickable="false"
+                    android:focusable="false">
 
                     <ImageButton
                         android:id="@+id/button_back"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
-                        android:background="@android:color/transparent"
+                        android:background="?attr/selectableItemBackground"
                         android:contentDescription="@string/progress_back_content_description"
-                        android:padding="12dp"
+                        android:padding="@dimen/lp_space_3"
                         android:src="@drawable/ic_arrow_back_24"
-                        app:tint="@color/fitness_text_primary" />
-                </androidx.cardview.widget.CardView>
+                        app:tint="?attr/lpInk" />
+                </com.google.android.material.card.MaterialCardView>
 
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="16dp"
+                    android:layout_marginStart="@dimen/lp_space_3"
                     android:layout_weight="1"
                     android:orientation="vertical">
 
-                    <!-- Set number badge: "SET 3 OF 4" in intent color -->
+                    <!-- Both this and the intent label below are tinted from Kotlin with the
+                         matching lpIntent* token, which is the only colour on this screen. -->
                     <TextView
                         android:id="@+id/text_set_number_badge"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:letterSpacing="0.08"
-                        android:textAllCaps="true"
-                        android:textSize="11sp"
-                        android:textStyle="bold"
+                        android:textAppearance="@style/TextAppearance.LP.Caption"
                         tools:text="SET 3"
-                        tools:textColor="@color/intent_strength" />
+                        tools:textColor="?attr/lpIntentStrength" />
 
-                    <!-- Exercise name: truncates at 1 line -->
                     <TextView
                         android:id="@+id/text_log_set_title"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="1dp"
                         android:ellipsize="end"
                         android:maxLines="1"
-                        android:textColor="@color/fitness_text_primary"
-                        android:textSize="20sp"
-                        android:textStyle="bold"
+                        android:textAppearance="@style/TextAppearance.LP.Title"
                         tools:text="Bench Press" />
 
-                    <!-- Intent name below exercise, same intent color -->
                     <TextView
                         android:id="@+id/text_intent_label"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="1dp"
-                        android:textSize="12sp"
+                        android:textAppearance="@style/TextAppearance.LP.Label"
                         tools:text="Strength"
-                        tools:textColor="@color/intent_strength" />
+                        tools:textColor="?attr/lpIntentStrength" />
                 </LinearLayout>
 
                 <ImageView
                     android:id="@+id/image_log_set_illustration"
                     android:layout_width="48dp"
                     android:layout_height="48dp"
-                    android:layout_marginStart="12dp"
-                    android:scaleType="fitCenter"
-                    android:importantForAccessibility="no" />
+                    android:layout_marginStart="@dimen/lp_space_3"
+                    android:importantForAccessibility="no"
+                    android:scaleType="fitCenter" />
             </LinearLayout>
 
             <!-- ── SUGGESTION BANNER ──────────────────────── -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/card_suggestion_hint"
+                style="@style/Widget.LP.Card.Dense"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="@dimen/lp_space_3"
+                android:clickable="false"
+                android:focusable="false"
                 android:visibility="gone"
-                app:cardBackgroundColor="@color/fitness_warning_background"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="0dp"
-                app:strokeWidth="0dp"
+                app:cardBackgroundColor="?attr/lpSurfaceAlt"
                 tools:visibility="visible">
 
                 <LinearLayout
@@ -138,12 +140,12 @@
                     android:layout_height="wrap_content"
                     android:orientation="horizontal">
 
-                    <!-- Left accent stripe — color set from Kotlin to match intent -->
+                    <!-- Intent-coloured stripe, set from Kotlin. -->
                     <View
                         android:id="@+id/view_suggestion_stripe"
-                        android:layout_width="4dp"
+                        android:layout_width="3dp"
                         android:layout_height="match_parent"
-                        android:background="@color/fitness_accent" />
+                        android:background="?attr/lpAccent" />
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -151,49 +153,46 @@
                         android:layout_weight="1"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
-                        android:padding="12dp">
+                        android:padding="@dimen/lp_card_padding_dense">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="💡"
-                            android:textSize="15sp" />
+                            android:textAppearance="@style/TextAppearance.LP.Label" />
 
                         <TextView
                             android:id="@+id/text_suggestion_content"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
+                            android:layout_marginStart="@dimen/lp_space_2"
                             android:layout_weight="1"
-                            android:textColor="@color/fitness_text_primary"
-                            android:textSize="13sp"
+                            android:textAppearance="@style/TextAppearance.LP.Label"
                             tools:text="Maintain 57.5 kg · aim for 5 reps @ RPE 8.0" />
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- ── INPUT CARD ──────────────────────────────── -->
-            <androidx.cardview.widget.CardView
+            <!-- ── ONE CARD FOR THE WHOLE ENTRY ────────────── -->
+            <com.google.android.material.card.MaterialCardView
                 android:id="@+id/card_inputs"
+                style="@style/Widget.LP.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                app:cardBackgroundColor="@color/fitness_card_background"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="4dp">
+                android:layout_marginTop="@dimen/lp_space_3">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:padding="@dimen/lp_card_padding">
 
-                    <!-- ── Bodyweight block (shown only for BW exercises) ─ -->
+                    <!-- ── Bodyweight block (bodyweight exercises only) ─ -->
                     <LinearLayout
                         android:id="@+id/bodyweight_container"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
+                        android:layout_marginBottom="@dimen/lp_space_3"
                         android:orientation="vertical"
                         android:visibility="gone">
 
@@ -207,27 +206,21 @@
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:text="Body weight"
-                                android:textColor="@color/fitness_text_primary"
-                                android:textSize="14sp"
-                                android:textStyle="bold" />
+                                android:text="@string/label_body_weight"
+                                android:textAppearance="@style/TextAppearance.LP.Caption" />
 
                             <com.google.android.material.chip.Chip
                                 android:id="@+id/chip_bodyweight"
-                                style="@style/Widget.MaterialComponents.Chip.Action"
+                                style="@style/Widget.LP.Chip.Action"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="@string/bodyweight_chip_unknown"
-                                android:textColor="@color/fitness_text_primary"
-                                app:chipBackgroundColor="@color/fitness_background"
-                                app:chipStrokeColor="@color/fitness_primary"
-                                app:chipStrokeWidth="1dp" />
+                                android:text="@string/bodyweight_chip_unknown" />
                         </LinearLayout>
 
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="12dp"
+                            android:layout_marginTop="@dimen/lp_space_3"
                             android:gravity="center_vertical"
                             android:orientation="horizontal">
 
@@ -235,57 +228,57 @@
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:text="Extra weight"
-                                android:textColor="@color/fitness_text_primary"
-                                android:textSize="14sp"
-                                android:textStyle="bold" />
+                                android:text="@string/label_extra_weight"
+                                android:textAppearance="@style/TextAppearance.LP.Caption" />
 
                             <com.google.android.material.chip.ChipGroup
                                 android:id="@+id/chip_group_extra_type"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                app:chipSpacing="8dp"
+                                app:chipSpacing="@dimen/lp_card_gap_dense"
                                 app:selectionRequired="true"
                                 app:singleSelection="true">
 
                                 <com.google.android.material.chip.Chip
                                     android:id="@+id/chip_added"
-                                    style="@style/Widget.MaterialComponents.Chip.Choice"
+                                    style="@style/Widget.LP.Chip.Choice"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:text="@string/bodyweight_added" />
 
                                 <com.google.android.material.chip.Chip
                                     android:id="@+id/chip_assisted"
-                                    style="@style/Widget.MaterialComponents.Chip.Choice"
+                                    style="@style/Widget.LP.Chip.Choice"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:text="@string/bodyweight_assisted" />
                             </com.google.android.material.chip.ChipGroup>
                         </LinearLayout>
 
-                        <androidx.cardview.widget.CardView
+                        <!-- The number that actually goes on the bar. Ink fill: it is the
+                             conclusion of the three controls above it. -->
+                        <com.google.android.material.card.MaterialCardView
+                            style="@style/Widget.LP.Card.Action"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="12dp"
-                            app:cardBackgroundColor="@color/fitness_primary"
-                            app:cardCornerRadius="14dp"
-                            app:cardElevation="0dp">
+                            android:layout_marginTop="@dimen/lp_space_3"
+                            android:clickable="false"
+                            android:focusable="false">
 
                             <TextView
                                 android:id="@+id/text_effective_load"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:gravity="center"
-                                android:paddingHorizontal="16dp"
-                                android:paddingVertical="10dp"
-                                android:textColor="@color/white"
-                                android:textSize="14sp"
-                                android:textStyle="bold" />
-                        </androidx.cardview.widget.CardView>
+                                android:paddingHorizontal="@dimen/lp_space_4"
+                                android:paddingVertical="@dimen/lp_space_3"
+                                android:textAppearance="@style/TextAppearance.LP.Metric.M"
+                                android:textColor="?attr/lpInkInverse"
+                                tools:text="Effective load 82.5 kg" />
+                        </com.google.android.material.card.MaterialCardView>
                     </LinearLayout>
 
-                    <!-- ── WEIGHT STEPPER (hidden in BW mode via layout id) ─ -->
+                    <!-- ── WEIGHT ─────────────────────────────────── -->
                     <LinearLayout
                         android:id="@+id/layout_weight_stepper_row"
                         android:layout_width="match_parent"
@@ -295,206 +288,149 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Weight"
-                            android:textColor="@color/fitness_text_primary"
-                            android:textSize="13sp"
-                            android:textStyle="bold" />
+                            android:text="@string/label_weight"
+                            android:textAppearance="@style/TextAppearance.LP.Caption" />
 
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
+                            android:layout_marginTop="@dimen/lp_space_2"
                             android:baselineAligned="false"
                             android:gravity="center_vertical"
                             android:orientation="horizontal">
 
                             <com.google.android.material.card.MaterialCardView
                                 android:id="@+id/btn_weight_minus"
-                                android:layout_width="52dp"
-                                android:layout_height="52dp"
-                                android:clickable="true"
-                                android:focusable="true"
-                                android:foreground="?attr/selectableItemBackground"
-                                app:cardBackgroundColor="@color/fitness_background"
-                                app:cardCornerRadius="14dp"
-                                app:cardElevation="0dp"
-                                app:strokeColor="@color/fitness_divider"
-                                app:strokeWidth="1dp">
+                                style="@style/Widget.LP.Stepper">
 
                                 <ImageView
                                     android:layout_width="match_parent"
                                     android:layout_height="match_parent"
-                                    android:padding="14dp"
+                                    android:contentDescription="@string/cd_decrease_weight"
+                                    android:padding="@dimen/lp_stepper_icon_padding"
                                     android:src="@drawable/ic_minus"
-                                    app:tint="@color/fitness_text_primary" />
+                                    app:tint="?attr/lpInk" />
                             </com.google.android.material.card.MaterialCardView>
 
                             <com.google.android.material.textfield.TextInputLayout
                                 android:id="@+id/text_input_layout_kg"
-                                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                                style="@style/Widget.LP.TextInputLayout.Numeric.Large"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
-                                android:layout_marginStart="8dp"
-                                android:layout_marginEnd="8dp"
+                                android:layout_marginHorizontal="@dimen/lp_space_2"
                                 android:layout_weight="1"
-                                android:hint="kg"
-                                app:boxStrokeColor="@color/fitness_primary"
-                                app:hintTextColor="@color/fitness_primary">
+                                android:hint="@string/hint_kg">
 
                                 <com.google.android.material.textfield.TextInputEditText
                                     android:id="@+id/edit_text_kg"
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
-                                    android:gravity="center"
-                                    android:inputType="numberDecimal"
-                                    android:textColor="@color/fitness_text_primary"
-                                    android:textSize="26sp"
-                                    android:textStyle="bold" />
+                                    android:inputType="numberDecimal" />
                             </com.google.android.material.textfield.TextInputLayout>
 
                             <com.google.android.material.card.MaterialCardView
                                 android:id="@+id/btn_weight_plus"
-                                android:layout_width="52dp"
-                                android:layout_height="52dp"
-                                android:clickable="true"
-                                android:focusable="true"
-                                android:foreground="?attr/selectableItemBackground"
-                                app:cardBackgroundColor="@color/fitness_primary"
-                                app:cardCornerRadius="14dp"
-                                app:cardElevation="0dp"
-                                app:strokeWidth="0dp">
+                                style="@style/Widget.LP.Stepper.Increment">
 
                                 <ImageView
                                     android:layout_width="match_parent"
                                     android:layout_height="match_parent"
-                                    android:padding="14dp"
+                                    android:contentDescription="@string/cd_increase_weight"
+                                    android:padding="@dimen/lp_stepper_icon_padding"
                                     android:src="@drawable/ic_plus"
-                                    app:tint="@color/white" />
+                                    app:tint="?attr/lpAccent" />
                             </com.google.android.material.card.MaterialCardView>
                         </LinearLayout>
                     </LinearLayout>
 
-                    <!-- BW: extra weight field (shown in bodyweight mode only) -->
+                    <!-- BW: extra weight field (bodyweight mode only) -->
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/text_input_layout_extra"
-                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        style="@style/Widget.LP.TextInputLayout.Numeric.Large"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:hint="Extra (kg)"
-                        android:visibility="gone"
-                        app:boxStrokeColor="@color/fitness_primary"
-                        app:hintTextColor="@color/fitness_primary">
+                        android:layout_marginTop="@dimen/lp_space_2"
+                        android:hint="@string/hint_extra_kg"
+                        android:visibility="gone">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/edit_text_extra"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:gravity="center"
-                            android:inputType="numberDecimal"
-                            android:textColor="@color/fitness_text_primary"
-                            android:textSize="26sp"
-                            android:textStyle="bold" />
+                            android:inputType="numberDecimal" />
                     </com.google.android.material.textfield.TextInputLayout>
 
-                    <!-- ── DIVIDER ─────────────────────────────────── -->
                     <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginTop="14dp"
-                        android:layout_marginBottom="14dp"
-                        android:background="@color/fitness_divider" />
+                        style="@style/Widget.LP.Divider"
+                        android:layout_marginTop="@dimen/lp_space_4"
+                        android:layout_marginBottom="@dimen/lp_space_4" />
 
-                    <!-- ── REPS STEPPER ───────────────────────────── -->
+                    <!-- ── REPS ───────────────────────────────────── -->
                     <LinearLayout
                         android:id="@+id/reps_container"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Reps"
-                        android:textColor="@color/fitness_text_primary"
-                        android:textSize="13sp"
-                        android:textStyle="bold" />
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:baselineAligned="false"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
-
-                        <com.google.android.material.card.MaterialCardView
-                            android:id="@+id/btn_reps_minus"
-                            android:layout_width="52dp"
-                            android:layout_height="52dp"
-                            android:clickable="true"
-                            android:focusable="true"
-                            android:foreground="?attr/selectableItemBackground"
-                            app:cardBackgroundColor="@color/fitness_background"
-                            app:cardCornerRadius="14dp"
-                            app:cardElevation="0dp"
-                            app:strokeColor="@color/fitness_divider"
-                            app:strokeWidth="1dp">
-
-                            <ImageView
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent"
-                                android:padding="14dp"
-                                android:src="@drawable/ic_minus"
-                                app:tint="@color/fitness_text_primary" />
-                        </com.google.android.material.card.MaterialCardView>
-
-                        <com.google.android.material.textfield.TextInputLayout
-                            android:id="@+id/text_input_layout_reps"
-                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                            android:layout_width="0dp"
+                        <TextView
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
-                            android:layout_marginEnd="8dp"
-                            android:layout_weight="1"
-                            android:hint="Reps"
-                            app:boxStrokeColor="@color/fitness_primary"
-                            app:hintTextColor="@color/fitness_primary">
+                            android:text="@string/label_reps"
+                            android:textAppearance="@style/TextAppearance.LP.Caption" />
 
-                            <com.google.android.material.textfield.TextInputEditText
-                                android:id="@+id/edit_text_reps"
-                                android:layout_width="match_parent"
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/lp_space_2"
+                            android:baselineAligned="false"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <com.google.android.material.card.MaterialCardView
+                                android:id="@+id/btn_reps_minus"
+                                style="@style/Widget.LP.Stepper">
+
+                                <ImageView
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    android:contentDescription="@string/cd_decrease_reps"
+                                    android:padding="@dimen/lp_stepper_icon_padding"
+                                    android:src="@drawable/ic_minus"
+                                    app:tint="?attr/lpInk" />
+                            </com.google.android.material.card.MaterialCardView>
+
+                            <com.google.android.material.textfield.TextInputLayout
+                                android:id="@+id/text_input_layout_reps"
+                                style="@style/Widget.LP.TextInputLayout.Numeric.Large"
+                                android:layout_width="0dp"
                                 android:layout_height="wrap_content"
-                                android:gravity="center"
-                                android:inputType="number"
-                                android:textColor="@color/fitness_text_primary"
-                                android:textSize="26sp"
-                                android:textStyle="bold" />
-                        </com.google.android.material.textfield.TextInputLayout>
+                                android:layout_marginHorizontal="@dimen/lp_space_2"
+                                android:layout_weight="1"
+                                android:hint="@string/label_reps">
 
-                        <com.google.android.material.card.MaterialCardView
-                            android:id="@+id/btn_reps_plus"
-                            android:layout_width="52dp"
-                            android:layout_height="52dp"
-                            android:clickable="true"
-                            android:focusable="true"
-                            android:foreground="?attr/selectableItemBackground"
-                            app:cardBackgroundColor="@color/fitness_primary"
-                            app:cardCornerRadius="14dp"
-                            app:cardElevation="0dp"
-                            app:strokeWidth="0dp">
+                                <com.google.android.material.textfield.TextInputEditText
+                                    android:id="@+id/edit_text_reps"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:inputType="number" />
+                            </com.google.android.material.textfield.TextInputLayout>
 
-                            <ImageView
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent"
-                                android:padding="14dp"
-                                android:src="@drawable/ic_plus"
-                                app:tint="@color/white" />
-                        </com.google.android.material.card.MaterialCardView>
-                    </LinearLayout>
+                            <com.google.android.material.card.MaterialCardView
+                                android:id="@+id/btn_reps_plus"
+                                style="@style/Widget.LP.Stepper.Increment">
+
+                                <ImageView
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    android:contentDescription="@string/cd_increase_reps"
+                                    android:padding="@dimen/lp_stepper_icon_padding"
+                                    android:src="@drawable/ic_plus"
+                                    app:tint="?attr/lpAccent" />
+                            </com.google.android.material.card.MaterialCardView>
+                        </LinearLayout>
                     </LinearLayout>
 
-                    <!-- ── TIME / HOLD BLOCK (shown only for timed exercises) ─ -->
+                    <!-- ── TIME / HOLD (timed exercises only) ─────── -->
                     <LinearLayout
                         android:id="@+id/time_container"
                         android:layout_width="match_parent"
@@ -506,78 +442,66 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/hold_time_label"
-                            android:textColor="@color/fitness_text_primary"
-                            android:textSize="13sp"
-                            android:textStyle="bold" />
+                            android:textAppearance="@style/TextAppearance.LP.Caption" />
 
                         <TextView
                             android:id="@+id/text_timer_display"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
+                            android:layout_marginTop="@dimen/lp_space_2"
                             android:gravity="center"
                             android:text="0:00"
-                            android:textColor="@color/fitness_accent"
-                            android:textSize="48sp"
-                            android:textStyle="bold" />
+                            android:textAppearance="@style/TextAppearance.LP.Metric.XL"
+                            android:textColor="?attr/lpAccent"
+                            tools:text="0:45" />
 
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
+                            android:layout_marginTop="@dimen/lp_space_2"
                             android:baselineAligned="false"
                             android:gravity="center_vertical"
                             android:orientation="horizontal">
 
                             <com.google.android.material.button.MaterialButton
                                 android:id="@+id/button_timer_start_stop"
+                                style="@style/Widget.LP.Button"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:minHeight="52dp"
                                 android:text="@string/timer_start" />
 
                             <com.google.android.material.button.MaterialButton
                                 android:id="@+id/button_timer_reset"
-                                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                                style="@style/Widget.LP.Button.Outlined"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_marginStart="8dp"
-                                android:minHeight="52dp"
+                                android:layout_marginStart="@dimen/lp_card_gap_dense"
                                 android:text="@string/timer_reset" />
                         </LinearLayout>
 
                         <com.google.android.material.textfield.TextInputLayout
                             android:id="@+id/text_input_layout_duration"
-                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                            style="@style/Widget.LP.TextInputLayout.Numeric"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="12dp"
-                            android:hint="@string/hold_seconds_hint"
-                            app:boxStrokeColor="@color/fitness_primary"
-                            app:hintTextColor="@color/fitness_primary">
+                            android:layout_marginTop="@dimen/lp_space_3"
+                            android:hint="@string/hold_seconds_hint">
 
                             <com.google.android.material.textfield.TextInputEditText
                                 android:id="@+id/edit_text_duration_seconds"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:gravity="center"
-                                android:inputType="number"
-                                android:textColor="@color/fitness_text_primary"
-                                android:textSize="20sp"
-                                android:textStyle="bold" />
+                                android:inputType="number" />
                         </com.google.android.material.textfield.TextInputLayout>
                     </LinearLayout>
 
-                    <!-- ── DIVIDER ─────────────────────────────────── -->
                     <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginTop="14dp"
-                        android:layout_marginBottom="14dp"
-                        android:background="@color/fitness_divider" />
+                        style="@style/Widget.LP.Divider"
+                        android:layout_marginTop="@dimen/lp_space_4"
+                        android:layout_marginBottom="@dimen/lp_space_4" />
 
-                    <!-- ── RPE SECTION ────────────────────────────── -->
+                    <!-- ── RPE ────────────────────────────────────── -->
                     <LinearLayout
                         android:id="@+id/rpe_header_container"
                         android:layout_width="match_parent"
@@ -590,92 +514,69 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="RPE (Optional)"
-                            android:textColor="@color/fitness_text_primary"
-                            android:textSize="13sp"
-                            android:textStyle="bold" />
+                            android:text="@string/label_rpe_optional"
+                            android:textAppearance="@style/TextAppearance.LP.Caption" />
 
                         <ImageButton
                             android:id="@+id/btnRpeHelp"
-                            android:layout_width="36dp"
-                            android:layout_height="36dp"
+                            android:layout_width="32dp"
+                            android:layout_height="32dp"
                             android:background="?attr/selectableItemBackgroundBorderless"
-                            android:contentDescription="RPE Help"
-                            android:src="@android:drawable/ic_menu_help"
-                            app:tint="@color/fitness_accent" />
+                            android:contentDescription="@string/cd_rpe_help"
+                            android:padding="@dimen/lp_space_2"
+                            android:src="@drawable/ic_help_outline"
+                            app:tint="?attr/lpInkTertiary" />
                     </LinearLayout>
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
+                        android:layout_marginTop="@dimen/lp_space_2"
                         android:baselineAligned="false"
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
                         <com.google.android.material.card.MaterialCardView
                             android:id="@+id/btn_rpe_minus"
-                            android:layout_width="52dp"
-                            android:layout_height="52dp"
-                            android:clickable="true"
-                            android:focusable="true"
-                            android:foreground="?attr/selectableItemBackground"
-                            app:cardBackgroundColor="@color/fitness_background"
-                            app:cardCornerRadius="14dp"
-                            app:cardElevation="0dp"
-                            app:strokeColor="@color/fitness_divider"
-                            app:strokeWidth="1dp">
+                            style="@style/Widget.LP.Stepper">
 
                             <ImageView
                                 android:layout_width="match_parent"
                                 android:layout_height="match_parent"
-                                android:padding="14dp"
+                                android:contentDescription="@string/cd_decrease_rpe"
+                                android:padding="@dimen/lp_stepper_icon_padding"
                                 android:src="@drawable/ic_minus"
-                                app:tint="@color/fitness_text_primary" />
+                                app:tint="?attr/lpInk" />
                         </com.google.android.material.card.MaterialCardView>
 
                         <com.google.android.material.textfield.TextInputLayout
                             android:id="@+id/text_input_layout_rpe"
-                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                            style="@style/Widget.LP.TextInputLayout.Numeric.Large"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
-                            android:layout_marginEnd="8dp"
+                            android:layout_marginHorizontal="@dimen/lp_space_2"
                             android:layout_weight="1"
-                            android:hint="6.0 – 10.0"
-                            app:boxStrokeColor="@color/fitness_primary"
-                            app:hintTextColor="@color/fitness_primary">
+                            android:hint="@string/hint_rpe_range">
 
                             <com.google.android.material.textfield.TextInputEditText
                                 android:id="@+id/edit_text_rpe"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:gravity="center"
                                 android:inputType="numberDecimal"
-                                android:maxLength="4"
-                                android:textColor="@color/fitness_text_primary"
-                                android:textSize="26sp"
-                                android:textStyle="bold" />
+                                android:maxLength="4" />
                         </com.google.android.material.textfield.TextInputLayout>
 
                         <com.google.android.material.card.MaterialCardView
                             android:id="@+id/btn_rpe_plus"
-                            android:layout_width="52dp"
-                            android:layout_height="52dp"
-                            android:clickable="true"
-                            android:focusable="true"
-                            android:foreground="?attr/selectableItemBackground"
-                            app:cardBackgroundColor="@color/fitness_primary"
-                            app:cardCornerRadius="14dp"
-                            app:cardElevation="0dp"
-                            app:strokeWidth="0dp">
+                            style="@style/Widget.LP.Stepper.Increment">
 
                             <ImageView
                                 android:layout_width="match_parent"
                                 android:layout_height="match_parent"
-                                android:padding="14dp"
+                                android:contentDescription="@string/cd_increase_rpe"
+                                android:padding="@dimen/lp_stepper_icon_padding"
                                 android:src="@drawable/ic_plus"
-                                app:tint="@color/white" />
+                                app:tint="?attr/lpAccent" />
                         </com.google.android.material.card.MaterialCardView>
                     </LinearLayout>
 
@@ -683,20 +584,17 @@
                         android:id="@+id/text_rpe_hint"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:text="How hard was this set? Leave blank if unsure."
-                        android:textColor="@color/fitness_text_secondary"
-                        android:textSize="12sp" />
+                        android:layout_marginTop="@dimen/lp_space_2"
+                        android:text="@string/hint_rpe_explainer"
+                        android:textAppearance="@style/TextAppearance.LP.Label"
+                        android:textColor="?attr/lpInkTertiary" />
 
-                    <!-- ── DIVIDER ─────────────────────────────────── -->
                     <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginTop="14dp"
-                        android:layout_marginBottom="14dp"
-                        android:background="@color/fitness_divider" />
+                        style="@style/Widget.LP.Divider"
+                        android:layout_marginTop="@dimen/lp_space_4"
+                        android:layout_marginBottom="@dimen/lp_space_3" />
 
-                    <!-- ── WARMUP CHIP ROW ────────────────────────── -->
+                    <!-- ── SET TYPE ───────────────────────────────── -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -708,105 +606,71 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Set type"
-                            android:textColor="@color/fitness_text_secondary"
-                            android:textSize="13sp" />
+                            android:text="@string/label_set_type"
+                            android:textAppearance="@style/TextAppearance.LP.Caption" />
 
                         <com.google.android.material.chip.ChipGroup
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             app:singleSelection="false">
 
+                            <!-- Checked state is recoloured from Kotlin with lpIntentWarmup. -->
                             <com.google.android.material.chip.Chip
                                 android:id="@+id/chip_warmup"
-                                style="@style/Widget.MaterialComponents.Chip.Choice"
+                                style="@style/Widget.LP.Chip.Choice"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:minHeight="40dp"
-                                android:text="Warmup"
-                                android:textColor="@color/fitness_text_secondary"
-                                app:chipBackgroundColor="@android:color/transparent"
-                                app:chipStrokeColor="@color/fitness_text_secondary"
-                                app:chipStrokeWidth="1dp"
-                                app:checkedIconTint="@color/white" />
+                                android:text="@string/label_warmup" />
                         </com.google.android.material.chip.ChipGroup>
                     </LinearLayout>
 
-                    <!-- ── NOTE TOGGLE ────────────────────────────── -->
+                    <!-- ── NOTE ───────────────────────────────────── -->
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/button_toggle_note"
-                        style="@style/Widget.MaterialComponents.Button.TextButton"
+                        style="@style/Widget.LP.Button.Text"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
+                        android:layout_marginStart="-8dp"
                         android:minHeight="40dp"
-                        android:text="Add note"
-                        android:textColor="@color/fitness_text_secondary"
-                        android:textSize="13sp"
+                        android:text="@string/btn_add_note"
                         app:icon="@drawable/ic_note"
-                        app:iconSize="16dp"
-                        app:iconTint="@color/fitness_text_secondary" />
+                        app:iconSize="16dp" />
 
-                    <!-- Note field: initially GONE, revealed by toggle button -->
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/text_input_layout_note"
-                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        style="@style/Widget.LP.TextInputLayout"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:hint="Note (optional)"
-                        android:visibility="gone"
-                        app:boxStrokeColor="@color/fitness_primary"
-                        app:hintTextColor="@color/fitness_primary">
+                        android:layout_marginTop="@dimen/lp_space_2"
+                        android:hint="@string/hint_note_optional"
+                        android:visibility="gone">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/edit_text_note"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:inputType="textCapSentences"
-                            android:textColor="@color/fitness_text_primary" />
+                            android:inputType="textCapSentences" />
                     </com.google.android.material.textfield.TextInputLayout>
 
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
-    <!-- ── SAVE BUTTON — FIXED AT BOTTOM ──────────────── -->
-    <androidx.cardview.widget.CardView
+    <!-- ── SAVE — PINNED ──────────────────────────────── -->
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/button_save_set"
+        style="@style/Widget.LP.Button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="24dp"
-        android:layout_marginEnd="24dp"
-        android:layout_marginBottom="24dp"
-        android:clickable="true"
-        android:focusable="true"
-        android:foreground="?attr/selectableItemBackground"
-        app:cardBackgroundColor="@color/fitness_primary"
-        app:cardCornerRadius="24dp"
-        app:cardElevation="8dp"
+        android:layout_marginStart="@dimen/lp_gutter_dense"
+        android:layout_marginEnd="@dimen/lp_gutter_dense"
+        android:layout_marginBottom="@dimen/lp_gutter_dense"
+        android:minHeight="60dp"
+        android:text="@string/btn_save_set"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            android:minHeight="60dp"
-            android:orientation="horizontal"
-            android:padding="16dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Save Set"
-                android:textColor="@color/white"
-                android:textSize="18sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-    </androidx.cardview.widget.CardView>
+        app:layout_constraintStart_toStartOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

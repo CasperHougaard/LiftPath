@@ -5,14 +5,15 @@ import android.content.Intent
 import android.graphics.drawable.Animatable
 import android.os.Bundle
 import android.view.View
-import android.webkit.WebView
-import android.webkit.WebViewClient
 import android.widget.ArrayAdapter
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import com.liftpath.R
 import com.liftpath.databinding.ActivityEditExerciseBinding
 import com.liftpath.helpers.DialogHelper
 import com.liftpath.helpers.JsonHelper
+import com.liftpath.helpers.MuscleMapColorResolver
+import com.liftpath.helpers.MuscleMapRenderer
 import com.liftpath.helpers.showWithTransparentWindow
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
@@ -25,13 +26,16 @@ import com.liftpath.models.MovementPattern
 import com.liftpath.models.TargetMuscle
 import com.liftpath.models.Tier
 import com.liftpath.models.ExerciseFamily
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import com.liftpath.helpers.lpColor
 
 class EditExerciseActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityEditExerciseBinding
     private lateinit var jsonHelper: JsonHelper
     private var exerciseId: Int = -1
-    private var isWebViewReady = false
     private var isFavorite: Boolean = false
     private var availableFamilies: List<ExerciseFamily> = emptyList()
     private var selectedFamilyId: String? = null
@@ -52,9 +56,9 @@ class EditExerciseActivity : AppCompatActivity() {
         availableFamilies = jsonHelper.readTrainingData().exerciseFamilies ?: emptyList()
         setupBackgroundAnimation()
         setupDropdowns()
-        setupWebView()
         loadExerciseData()
         setupClickListeners()
+        updateMuscleMap()
     }
 
     private fun setupBackgroundAnimation() {
@@ -111,8 +115,8 @@ class EditExerciseActivity : AppCompatActivity() {
             chip.isCheckable = true
             chip.tag = muscle
             chip.chipStrokeWidth = 1f
-            chip.chipStrokeColor = getColorStateList(R.color.fitness_primary)
-            chip.setTextColor(getColorStateList(R.color.fitness_text_primary))
+            chip.chipStrokeColor = android.content.res.ColorStateList.valueOf(lpColor(R.attr.lpAccent))
+            chip.setTextColor(android.content.res.ColorStateList.valueOf(lpColor(R.attr.lpInk)))
             chip.setOnCheckedChangeListener(onChipChecked)
             binding.chipGroupPrimaryTargets.addView(chip)
         }
@@ -125,183 +129,37 @@ class EditExerciseActivity : AppCompatActivity() {
             chip.isCheckable = true
             chip.tag = muscle
             chip.chipStrokeWidth = 1f
-            chip.chipStrokeColor = getColorStateList(R.color.fitness_primary)
-            chip.setTextColor(getColorStateList(R.color.fitness_text_primary))
+            chip.chipStrokeColor = android.content.res.ColorStateList.valueOf(lpColor(R.attr.lpAccent))
+            chip.setTextColor(android.content.res.ColorStateList.valueOf(lpColor(R.attr.lpInk)))
             chip.setOnCheckedChangeListener(onChipChecked)
             binding.chipGroupSecondaryTargets.addView(chip)
         }
     }
 
-    private fun setupWebView() {
-        // Essential setup for asset loading and interaction
-        binding.webViewMuscleMap.settings.apply {
-            javaScriptEnabled = true
-            useWideViewPort = true
-            loadWithOverviewMode = true
-            
-            // CRITICAL SETTINGS FOR LOCAL FILES
-            allowFileAccess = true
-            allowContentAccess = true
-            allowFileAccessFromFileURLs = true // Allows JS to load other local files
-            allowUniversalAccessFromFileURLs = true // Allows JS to access content from any origin
-        }
-        binding.webViewMuscleMap.setBackgroundColor(android.graphics.Color.TRANSPARENT)
-        
-        // Add WebChromeClient to capture JavaScript console messages
-        binding.webViewMuscleMap.webChromeClient = object : android.webkit.WebChromeClient() {
-            override fun onConsoleMessage(consoleMessage: android.webkit.ConsoleMessage?): Boolean {
-                consoleMessage?.let {
-                    android.util.Log.d("WebViewConsole", 
-                        "${it.message()} -- From line ${it.lineNumber()} of ${it.sourceId()}")
-                }
-                return true
-            }
-        }
-        
-        binding.webViewMuscleMap.webViewClient = object : WebViewClient() {
-            override fun onPageFinished(view: WebView?, url: String?) {
-                super.onPageFinished(view, url)
-                // Set flag and then update muscle map
-                isWebViewReady = true
-                checkMissingMuscleIds()
-                updateMuscleMap()
-            }
-        }
-        binding.webViewMuscleMap.loadUrl("file:///android_asset/muscle_map.html")
-    }
-
-    private fun checkMissingMuscleIds() {
-        if (!isWebViewReady) {
-            android.util.Log.d("MuscleMap", "WebView not ready yet for muscle ID check")
-            return
-        }
-
-        // Get all TargetMuscle enum values
-        val allMuscleIds = TargetMuscle.values().map { it.name }
-        val muscleIdsArray = allMuscleIds.joinToString(
-            prefix = "[",
-            postfix = "]",
-            separator = ", "
-        ) { "'$it'" }
-
-        android.util.Log.d("MuscleMap", "Checking for missing muscle IDs. Expected: ${allMuscleIds.size} muscles")
-        
-        // Call the JavaScript function to check for missing IDs
-        val jsCode = """
-            (function() {
-                try {
-                    if (typeof checkMissingMuscleIds === 'function') {
-                        var result = checkMissingMuscleIds($muscleIdsArray);
-                        return result || 'checkMissingMuscleIds called (no return value)';
-                    } else if (typeof window.checkMissingMuscleIds === 'function') {
-                        var result = window.checkMissingMuscleIds($muscleIdsArray);
-                        return result || 'window.checkMissingMuscleIds called (no return value)';
-                    } else {
-                        console.error('checkMissingMuscleIds function not found!');
-                        return 'ERROR: checkMissingMuscleIds not found';
-                    }
-                } catch (e) {
-                    console.error('Error calling checkMissingMuscleIds:', e);
-                    return 'ERROR: ' + e.message;
-                }
-            })();
-        """.trimIndent()
-        
-        binding.webViewMuscleMap.evaluateJavascript(jsCode) { result ->
-            try {
-                // Remove quotes from result string
-                val cleanResult = result.trim().removeSurrounding("\"")
-                android.util.Log.d("MuscleMap", "Muscle ID check result: $cleanResult")
-                
-                // Try to parse JSON result
-                val jsonResult = cleanResult.replace("\\\"", "\"")
-                    .replace("\\n", "\n")
-                    .replace("\\t", "\t")
-                
-                if (jsonResult.startsWith("{")) {
-                    android.util.Log.d("MuscleMap", "Parsed JSON: $jsonResult")
-                    // Extract missing IDs from JSON-like string
-                    val missingMatch = Regex("""missing":\[(.*?)\]""").find(jsonResult)
-                    if (missingMatch != null) {
-                        val missingIds = missingMatch.groupValues[1]
-                            .split(",")
-                            .map { it.trim().removeSurrounding("\"") }
-                            .filter { it.isNotEmpty() }
-                        
-                        if (missingIds.isNotEmpty()) {
-                            android.util.Log.w("MuscleMap", "⚠️⚠️⚠️ MISSING MUSCLE IDs in SVG: ${missingIds.joinToString(", ")}")
-                            android.util.Log.w("MuscleMap", "Expected ${allMuscleIds.size} muscles, but ${missingIds.size} are missing!")
-                            missingIds.forEach { missingId ->
-                                android.util.Log.w("MuscleMap", "  - Missing: $missingId")
-                            }
-                        } else {
-                            android.util.Log.d("MuscleMap", "✓ All ${allMuscleIds.size} muscle IDs found in SVG!")
-                        }
-                        
-                        // Also log all expected muscles for comparison
-                        android.util.Log.d("MuscleMap", "Expected muscle IDs (${allMuscleIds.size} total): ${allMuscleIds.joinToString(", ")}")
-                    }
-                }
-            } catch (e: Exception) {
-                android.util.Log.e("MuscleMap", "Error parsing muscle ID check result: ${e.message}")
-                android.util.Log.d("MuscleMap", "Raw result: $result")
-            }
-        }
-    }
-
     private fun updateMuscleMap() {
-        // Prevent JavaScript call until WebView is confirmed ready
-        if (!isWebViewReady) {
-            android.util.Log.d("MuscleMap", "WebView not ready yet")
-            return
-        }
+        val primaryTargets = getSelectedTargetMuscles(binding.chipGroupPrimaryTargets).toSet()
+        val secondaryTargets = getSelectedTargetMuscles(binding.chipGroupSecondaryTargets).toSet()
 
-        val primaryTargets = getSelectedTargetMuscles(binding.chipGroupPrimaryTargets)
-        val secondaryTargets = getSelectedTargetMuscles(binding.chipGroupSecondaryTargets)
-        
-        android.util.Log.d("MuscleMap", "Updating muscle map - Primary: ${primaryTargets.map { it.name }}, Secondary: ${secondaryTargets.map { it.name }}")
-        
-        // Convert enum lists to JavaScript array format
-        val primaryArray = primaryTargets.joinToString(
-            prefix = "[",
-            postfix = "]",
-            separator = ", "
-        ) { "'${it.name}'" }
-        
-        val secondaryArray = secondaryTargets.joinToString(
-            prefix = "[",
-            postfix = "]",
-            separator = ", "
-        ) { "'${it.name}'" }
-        
-        // Call the JavaScript function setHighlights() with primary and secondary separately
-        // Try both window.setHighlights and setHighlights for compatibility
-        val jsCode = """
-            (function() {
-                try {
-                    if (typeof setHighlights === 'function') {
-                        var result = setHighlights($primaryArray, $secondaryArray);
-                        return result || 'setHighlights called (no return value)';
-                    } else if (typeof window.setHighlights === 'function') {
-                        var result = window.setHighlights($primaryArray, $secondaryArray);
-                        return result || 'window.setHighlights called (no return value)';
-                    } else {
-                        console.error('setHighlights function not found!');
-                        return 'ERROR: setHighlights not found';
-                    }
-                } catch (e) {
-                    console.error('Error calling setHighlights:', e);
-                    return 'ERROR: ' + e.message;
-                }
-            })();
-        """.trimIndent()
-        android.util.Log.d("MuscleMap", "Calling JavaScript: setHighlights($primaryArray, $secondaryArray)")
-        binding.webViewMuscleMap.evaluateJavascript(jsCode) { result ->
-            android.util.Log.d("MuscleMap", "JavaScript result: $result")
+        lifecycleScope.launch {
+            val muscleRoles = MuscleMapColorResolver.resolveHighlightColors(primaryTargets, secondaryTargets)
+            val maskRoles = MuscleMapColorResolver.flattenToMaskCategories(
+                muscleRoles, rank = MuscleMapColorResolver::highlightRank
+            )
+            val maskColors = maskRoles.map { (maskResId, role) ->
+                maskResId to MuscleMapColorResolver.colorFor(this@EditExerciseActivity, role)
+            }
+            val bitmap = withContext(Dispatchers.Default) {
+                MuscleMapRenderer.render(this@EditExerciseActivity, maskColors)
+            }
+            binding.imageMuscleMap.setImageBitmap(bitmap)
         }
     }
 
     private fun loadExerciseData() {
+        // Generic image up front so every path (new exercise, missing library entry, or an
+        // exercise with no drawing of its own) still shows something.
+        binding.imageExerciseIllustration.setImageResource(R.drawable.ic_dumbbell)
+
         if (exerciseId != -1) {
             binding.textEditExerciseTitle.text = "Edit Exercise"
             binding.cardDelete.visibility = View.VISIBLE
@@ -335,7 +193,10 @@ class EditExerciseActivity : AppCompatActivity() {
                 
                 // Load note
                 binding.editTextNote.setText(exercise.note ?: "")
-                
+
+                // Swap in the exercise's own illustration when it has one
+                exercise.illustrationRes?.let { binding.imageExerciseIllustration.setImageResource(it) }
+
                 // Populate family dropdown
                 selectedFamilyId = exercise.familyId
                 val familyText = if (exercise.familyId != null) {
@@ -391,10 +252,10 @@ class EditExerciseActivity : AppCompatActivity() {
     private fun updateFavoriteStarIcon() {
         if (isFavorite) {
             binding.imageFavoriteStar.setImageResource(R.drawable.ic_star)
-            binding.imageFavoriteStar.setColorFilter(getColor(R.color.fitness_primary), android.graphics.PorterDuff.Mode.SRC_IN)
+            binding.imageFavoriteStar.setColorFilter(lpColor(R.attr.lpAccent), android.graphics.PorterDuff.Mode.SRC_IN)
         } else {
             binding.imageFavoriteStar.setImageResource(R.drawable.ic_star_outline)
-            binding.imageFavoriteStar.setColorFilter(getColor(R.color.fitness_primary), android.graphics.PorterDuff.Mode.SRC_IN)
+            binding.imageFavoriteStar.setColorFilter(lpColor(R.attr.lpAccent), android.graphics.PorterDuff.Mode.SRC_IN)
         }
     }
 

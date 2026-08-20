@@ -1,18 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  A warm-up or cool-down slot in the active workout.
+
+  Sits alongside list_item_active_exercise, so it uses the same dense card treatment and
+  the same gutter — the two must read as members of one list, not two designs. It has no
+  progressive disclosure because there is nothing to disclose: a duration, an optional
+  note, and two actions.
+
+  Every runtime colour here (both action fills, the card stroke) is set by
+  ActiveExercisesAdapter.bindSpecialViewHolder; the values in this file are the idle state.
+-->
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/card_special"
+    style="@style/Widget.LP.Card.Dense"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginStart="4dp"
-    android:layout_marginTop="4dp"
-    android:layout_marginEnd="4dp"
-    android:layout_marginBottom="12dp"
-    app:cardBackgroundColor="@color/fitness_card_background"
-    app:cardCornerRadius="16dp"
-    app:cardElevation="2dp"
-    app:strokeWidth="0dp">
+    android:layout_marginStart="@dimen/lp_gutter_dense"
+    android:layout_marginEnd="@dimen/lp_gutter_dense"
+    android:layout_marginTop="@dimen/lp_card_gap_dense"
+    android:layout_marginBottom="@dimen/lp_card_gap_dense"
+    android:clickable="false"
+    android:focusable="false">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -23,22 +33,22 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:padding="@dimen/lp_card_padding_dense">
 
-            <!-- Title row: icon + label + duration badge + delete -->
+            <!-- Title row: icon + label/subtitle + duration badge + delete -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
                 <TextView
                     android:id="@+id/text_special_icon"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textSize="22sp"
-                    android:layout_marginEnd="10dp"
+                    android:layout_marginEnd="@dimen/lp_space_2"
                     android:text="🔥"
+                    android:textAppearance="@style/TextAppearance.LP.Heading"
                     tools:text="🔥" />
 
                 <LinearLayout
@@ -52,47 +62,41 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="@string/label_warmup_element"
-                        android:textColor="@color/fitness_text_primary"
-                        android:textSize="18sp"
-                        android:textStyle="bold"
+                        android:textAppearance="@style/TextAppearance.LP.Heading"
                         tools:text="Warm-up" />
 
                     <TextView
                         android:id="@+id/text_special_subtitle"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
                         android:text="@string/warmup_element_subtitle"
-                        android:textColor="@color/fitness_text_secondary"
-                        android:textSize="12sp"
+                        android:textAppearance="@style/TextAppearance.LP.Caption"
                         tools:text="Prepare your body" />
                 </LinearLayout>
 
-                <!-- Duration badge (clickable chip) -->
+                <!-- Duration badge — tap to change how long the slot runs. -->
                 <TextView
                     android:id="@+id/text_duration_badge"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginEnd="8dp"
-                    android:background="@drawable/fitness_card_background"
+                    android:layout_marginEnd="@dimen/lp_space_2"
+                    android:background="@drawable/lp_badge_wash"
                     android:clickable="true"
                     android:focusable="true"
-                    android:paddingHorizontal="10dp"
-                    android:paddingVertical="4dp"
-                    android:textColor="@color/fitness_primary"
-                    android:textSize="13sp"
-                    android:textStyle="bold"
+                    android:paddingHorizontal="@dimen/lp_space_2"
+                    android:paddingVertical="@dimen/lp_space_1"
+                    android:textAppearance="@style/TextAppearance.LP.Metric.S"
+                    android:textColor="?attr/lpAccent"
                     tools:text="5 min" />
 
-                <!-- Delete button -->
                 <ImageButton
                     android:id="@+id/button_delete_special"
                     android:layout_width="32dp"
                     android:layout_height="32dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
-                    android:contentDescription="Delete"
+                    android:contentDescription="@string/cd_delete_exercise"
                     android:src="@drawable/ic_delete"
-                    app:tint="@color/fitness_accent" />
+                    app:tint="?attr/lpInkTertiary" />
             </LinearLayout>
 
             <!-- Notes (shown if non-empty) -->
@@ -100,48 +104,40 @@
                 android:id="@+id/text_special_notes"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:textColor="@color/fitness_text_secondary"
-                android:textSize="13sp"
+                android:layout_marginTop="@dimen/lp_space_2"
+                android:textAppearance="@style/TextAppearance.LP.Body"
                 android:visibility="gone"
                 tools:text="5 min light cardio"
                 tools:visibility="visible" />
 
-            <!-- Divider -->
             <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginTop="12dp"
-                android:layout_marginBottom="8dp"
-                android:background="@color/fitness_text_secondary"
-                android:alpha="0.2" />
+                style="@style/Widget.LP.Divider"
+                android:layout_marginTop="@dimen/lp_space_3"
+                android:layout_marginBottom="@dimen/lp_space_3" />
 
-            <!-- Action buttons row -->
+            <!-- Action row -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
+                android:baselineAligned="false"
                 android:gravity="center_vertical"
+                android:orientation="horizontal"
                 android:weightSum="1.0">
 
-                <!-- Start Timer / Countdown area (70%) -->
-                <androidx.cardview.widget.CardView
+                <!-- Start timer, or the live countdown once running (70%) -->
+                <com.google.android.material.card.MaterialCardView
                     android:id="@+id/card_start_timer"
+                    style="@style/Widget.LP.Card.Action"
                     android:layout_width="0dp"
                     android:layout_height="44dp"
+                    android:layout_marginEnd="@dimen/lp_card_gap_dense"
                     android:layout_weight="0.7"
-                    android:layout_marginEnd="6dp"
-                    android:clickable="true"
-                    android:focusable="true"
-                    app:cardBackgroundColor="@color/fitness_primary"
-                    app:cardCornerRadius="8dp"
-                    app:cardElevation="0dp">
+                    app:cardBackgroundColor="?attr/lpAccent">
 
                     <FrameLayout
                         android:layout_width="match_parent"
                         android:layout_height="match_parent">
 
-                        <!-- Idle state: play icon + "Start Timer" -->
                         <LinearLayout
                             android:id="@+id/layout_timer_idle"
                             android:layout_width="match_parent"
@@ -150,22 +146,21 @@
                             android:orientation="horizontal">
 
                             <ImageView
-                                android:layout_width="16dp"
-                                android:layout_height="16dp"
+                                android:layout_width="15dp"
+                                android:layout_height="15dp"
+                                android:layout_marginEnd="@dimen/lp_space_1"
+                                android:contentDescription="@null"
                                 android:src="@drawable/ic_play"
-                                android:layout_marginEnd="6dp"
-                                app:tint="@color/white" />
+                                app:tint="?attr/lpInkInverse" />
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/btn_start_timer"
-                                android:textColor="@color/white"
-                                android:textSize="13sp"
-                                android:textStyle="bold" />
+                                android:textAppearance="@style/TextAppearance.LP.Label"
+                                android:textColor="?attr/lpInkInverse" />
                         </LinearLayout>
 
-                        <!-- Running state: countdown display -->
                         <LinearLayout
                             android:id="@+id/layout_timer_running"
                             android:layout_width="match_parent"
@@ -175,36 +170,34 @@
                             android:visibility="gone">
 
                             <ImageView
-                                android:layout_width="14dp"
-                                android:layout_height="14dp"
+                                android:layout_width="13dp"
+                                android:layout_height="13dp"
+                                android:layout_marginEnd="@dimen/lp_space_2"
+                                android:contentDescription="@null"
                                 android:src="@drawable/ic_pause"
-                                android:layout_marginEnd="8dp"
-                                app:tint="@color/white" />
+                                app:tint="?attr/lpInkInverse" />
 
+                            <!-- Mono so the card doesn't twitch every time a digit drops. -->
                             <TextView
                                 android:id="@+id/text_timer_countdown"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="5:00"
-                                android:textColor="@color/white"
-                                android:textSize="18sp"
-                                android:textStyle="bold"
+                                android:textAppearance="@style/TextAppearance.LP.Metric.M"
+                                android:textColor="?attr/lpInkInverse"
                                 tools:text="4:52" />
                         </LinearLayout>
                     </FrameLayout>
-                </androidx.cardview.widget.CardView>
+                </com.google.android.material.card.MaterialCardView>
 
-                <!-- Mark Complete / Reset button (30%) -->
-                <androidx.cardview.widget.CardView
+                <!-- Mark complete, or reset while running (30%) -->
+                <com.google.android.material.card.MaterialCardView
                     android:id="@+id/card_mark_complete"
+                    style="@style/Widget.LP.Card.Action"
                     android:layout_width="0dp"
                     android:layout_height="44dp"
                     android:layout_weight="0.3"
-                    android:clickable="true"
-                    android:focusable="true"
-                    app:cardBackgroundColor="@color/fitness_primary"
-                    app:cardCornerRadius="8dp"
-                    app:cardElevation="0dp">
+                    app:cardBackgroundColor="?attr/lpAccent">
 
                     <TextView
                         android:id="@+id/text_mark_complete"
@@ -212,25 +205,23 @@
                         android:layout_height="match_parent"
                         android:gravity="center"
                         android:text="@string/btn_mark_complete"
-                        android:textColor="@color/white"
-                        android:textSize="13sp"
-                        android:textStyle="bold" />
-                </androidx.cardview.widget.CardView>
+                        android:textAppearance="@style/TextAppearance.LP.Label"
+                        android:textColor="?attr/lpInkInverse" />
+                </com.google.android.material.card.MaterialCardView>
             </LinearLayout>
         </LinearLayout>
 
-        <!-- Timer progress bar at card bottom (shown while running) -->
+        <!-- Timer progress, flush to the card's bottom edge while running -->
         <ProgressBar
             android:id="@+id/progress_timer"
             style="?android:attr/progressBarStyleHorizontal"
             android:layout_width="match_parent"
-            android:layout_height="4dp"
+            android:layout_height="3dp"
             android:max="100"
             android:progress="100"
-            android:progressTint="@color/superset_complete_green"
-            android:progressBackgroundTint="@color/fitness_text_secondary"
+            android:progressBackgroundTint="?attr/lpHairline"
             android:progressBackgroundTintMode="src_in"
-            android:alpha="0.3"
+            android:progressTint="?attr/lpPositive"
             android:visibility="gone" />
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

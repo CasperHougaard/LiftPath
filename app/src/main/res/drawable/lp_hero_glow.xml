@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Radial glow behind the hero's play icon.
+
+  Drawn in WHITE with an alpha falloff and tinted at the point of use with
+  android:backgroundTint="?attr/lpAccent". SRC_IN tinting (the default) multiplies the
+  tint through the existing alpha, so the falloff survives while the hue is replaced —
+  which means one drawable serves all four palettes instead of four near-identical
+  gradients that would all need editing together.
+
+  Replaces the old flat #20FFFFFF disc, which on an ink fill read as a grey smudge.
+  A radial falloff gives the hero a light source, and that is what makes the card feel
+  lit rather than merely filled.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <gradient
+        android:type="radial"
+        android:gradientRadius="50%"
+        android:startColor="#66FFFFFF"
+        android:centerColor="#2EFFFFFF"
+        android:endColor="#00FFFFFF" />
+</shape>

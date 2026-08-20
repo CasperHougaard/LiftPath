@@ -20,6 +20,7 @@ import com.liftpath.models.SetIntent
 import com.liftpath.utils.WorkoutTypeFormatter
 import com.liftpath.helpers.DurationHelper
 import com.liftpath.helpers.DialogHelper
+import com.liftpath.helpers.ExerciseModeResolver
 import com.liftpath.helpers.showWithTransparentWindow
 import com.liftpath.R
 import android.widget.EditText
@@ -29,6 +30,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.UUID
 import com.liftpath.models.WorkoutPlan
+import com.liftpath.helpers.lpColor
 
 class TrainingDetailActivity : AppCompatActivity() {
 
@@ -149,13 +151,13 @@ class TrainingDetailActivity : AppCompatActivity() {
 
         if (session != null) {
             trainingSession = session
-            title = "Training #${trainingSession.trainingNumber} - ${trainingSession.date}"
+            title = getString(R.string.title_training_detail_format, trainingSession.trainingNumber, trainingSession.date)
             setupDominantIntentBadge()
             setupDurationDisplay()
             setupRecyclerView()
             setupClickListeners()
         } else {
-            title = "Training Details"
+            title = getString(R.string.title_training_detail)
         }
     }
 
@@ -166,16 +168,16 @@ class TrainingDetailActivity : AppCompatActivity() {
 
         binding.buttonDelete.setOnClickListener {
             DialogHelper.createBuilder(this)
-                .setTitle("Delete Training")
-                .setMessage("Are you sure you want to delete this training permanently?")
-                .setPositiveButton("Delete") { _, _ ->
+                .setTitle(R.string.dialog_title_delete_training)
+                .setMessage(R.string.dialog_message_delete_training)
+                .setPositiveButton(R.string.button_delete) { _, _ ->
                     val trainingData = jsonHelper.readTrainingData()
                     val updatedTrainings = trainingData.trainings.toMutableList()
                     updatedTrainings.remove(trainingSession)
                     jsonHelper.writeTrainingData(trainingData.copy(trainings = updatedTrainings))
                     finish()
                 }
-                .setNegativeButton("Cancel", null)
+                .setNegativeButton(R.string.button_cancel, null)
                 .showWithTransparentWindow()
         }
 
@@ -189,6 +191,13 @@ class TrainingDetailActivity : AppCompatActivity() {
 
         binding.buttonSaveAsPlan.setOnClickListener {
             showSaveAsPlanDialog()
+        }
+
+        binding.buttonViewReport.setOnClickListener {
+            val intent = Intent(this, WorkoutReportActivity::class.java).apply {
+                putExtra(WorkoutReportActivity.EXTRA_TRAINING_SESSION, trainingSession)
+            }
+            startActivity(intent)
         }
     }
 
@@ -247,16 +256,16 @@ class TrainingDetailActivity : AppCompatActivity() {
             trainingSession.exercises.removeAt(exerciseIndex)
             persistTrainingSession()
             setupRecyclerView()
-            Toast.makeText(this, "Set deleted", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, R.string.toast_set_deleted, Toast.LENGTH_SHORT).show()
         }
     }
 
     private fun setupDominantIntentBadge() {
         val dominantIntent = trainingSession.getDominantIntent()
         val isLegacy = trainingSession.isLegacySession()
-        
+
         binding.textDominantIntent.text = if (isLegacy) {
-            "${dominantIntent.displayName} (Legacy)"
+            getString(R.string.format_intent_legacy, dominantIntent.displayName)
         } else {
             dominantIntent.displayName
         }
@@ -276,40 +285,40 @@ class TrainingDetailActivity : AppCompatActivity() {
         trainingSession.durationSeconds?.let { seconds ->
             binding.textWorkoutDuration.text = DurationHelper.formatDuration(seconds)
         } ?: run {
-            binding.textWorkoutDuration.text = "Not recorded"
+            binding.textWorkoutDuration.text = getString(R.string.label_not_recorded)
         }
     }
 
     private fun showEditDurationDialog() {
         val currentDuration = trainingSession.durationSeconds ?: 0L
         val currentFormatted = DurationHelper.formatDuration(currentDuration)
-        
+
         val input = EditText(this)
         input.setText(currentFormatted)
-        input.hint = "HH:mm:ss or mm:ss"
-        input.setTextColor(ContextCompat.getColor(this, R.color.fitness_text_primary))
-        input.setHintTextColor(ContextCompat.getColor(this, R.color.fitness_text_secondary))
+        input.hint = getString(R.string.hint_duration_format)
+        input.setTextColor(this.lpColor(R.attr.lpInk))
+        input.setHintTextColor(this.lpColor(R.attr.lpInkSecondary))
         input.setTextSize(16f)
         input.setPadding(16, 16, 16, 16)
-        
+
         DialogHelper.createBuilder(this)
-            .setTitle("Edit Workout Duration")
-            .setMessage("Enter duration in format HH:mm:ss (e.g., 01:30:00) or mm:ss (e.g., 90:00)")
+            .setTitle(R.string.dialog_title_edit_workout_duration)
+            .setMessage(R.string.dialog_message_edit_workout_duration)
             .setView(input)
-            .setPositiveButton("Save") { _, _ ->
+            .setPositiveButton(R.string.button_save) { _, _ ->
                 val inputText = input.text.toString().trim()
                 val parsedSeconds = DurationHelper.parseDurationToSeconds(inputText)
-                
+
                 if (parsedSeconds != null && parsedSeconds >= 0) {
                     trainingSession = trainingSession.copy(durationSeconds = parsedSeconds)
                     persistTrainingSession()
                     setupDurationDisplay()
-                    Toast.makeText(this, "Duration updated", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, R.string.toast_duration_updated, Toast.LENGTH_SHORT).show()
                 } else {
-                    Toast.makeText(this, "Invalid duration format. Use HH:mm:ss or mm:ss", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this, R.string.toast_invalid_duration_format, Toast.LENGTH_LONG).show()
                 }
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton(R.string.button_cancel, null)
             .showWithTransparentWindow()
     }
 
@@ -342,20 +351,33 @@ class TrainingDetailActivity : AppCompatActivity() {
             .filter { it.exerciseId == exerciseId && !it.isEffectivelyWarmup() }
             .lastOrNull()
 
+        // Without these the log screen always opens in weighted-reps mode, so a set added to a
+        // past workout would lose the body-weight snapshot or be forced to invent a rep count.
+        val isBodyweight = ExerciseModeResolver.isBodyweight(trainingData.exerciseLibrary, exerciseId)
+        val isTimeBased = ExerciseModeResolver.isTimeBased(trainingData.exerciseLibrary, exerciseId)
+
         val intent = Intent(this, LogSetActivity::class.java).apply {
             putExtra(LogSetActivity.EXTRA_EXERCISE_ID, exerciseId)
             putExtra(LogSetActivity.EXTRA_EXERCISE_NAME, exerciseName)
             putExtra(LogSetActivity.EXTRA_SET_NUMBER, setNumber)
             putExtra(LogSetActivity.EXTRA_WORKOUT_TYPE, trainingSession.defaultWorkoutType ?: "custom")  // Keep for legacy compatibility
             putExtra(LogSetActivity.EXTRA_INTENT, exerciseIntent.name)
-            lastWorkingInSession?.let {
-                putExtra(LogSetActivity.EXTRA_PREVIOUS_SET_REPS, it.reps)
+            putExtra(LogSetActivity.EXTRA_IS_BODYWEIGHT, isBodyweight)
+            putExtra(LogSetActivity.EXTRA_IS_TIME_BASED, isTimeBased)
+            if (isTimeBased) {
+                // Reps/kg prefills are meaningless for a hold — pass the last duration instead.
+                lastWorkingInSession?.durationSeconds?.takeIf { it > 0 }
+                    ?.let { putExtra(LogSetActivity.EXTRA_DURATION_TARGET, it) }
+            } else {
+                lastWorkingInSession?.let {
+                    putExtra(LogSetActivity.EXTRA_PREVIOUS_SET_REPS, it.reps)
+                }
+                lastEntry?.let {
+                    putExtra(LogSetActivity.EXTRA_LAST_LOGGED_KG, it.kg)
+                    putExtra(LogSetActivity.EXTRA_LAST_LOGGED_REPS, it.reps)
+                }
             }
-            lastEntry?.let {
-                putExtra(LogSetActivity.EXTRA_LAST_LOGGED_KG, it.kg)
-                putExtra(LogSetActivity.EXTRA_LAST_LOGGED_REPS, it.reps)
-                it.rpe?.let { rpe -> putExtra(LogSetActivity.EXTRA_LAST_LOGGED_RPE, rpe) }
-            }
+            lastEntry?.rpe?.let { rpe -> putExtra(LogSetActivity.EXTRA_LAST_LOGGED_RPE, rpe) }
         }
         logSetLauncher.launch(intent)
     }
@@ -364,37 +386,37 @@ class TrainingDetailActivity : AppCompatActivity() {
         trainingSession.exercises.add(loggedSet)
         persistTrainingSession()
         setupRecyclerView()
-        Toast.makeText(this, "Set added to workout", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, R.string.toast_set_added_to_workout, Toast.LENGTH_SHORT).show()
     }
 
     private fun showSaveAsPlanDialog() {
         val input = EditText(this)
-        input.hint = "Enter plan name"
-        input.setTextColor(ContextCompat.getColor(this, R.color.fitness_text_primary))
-        input.setHintTextColor(ContextCompat.getColor(this, R.color.fitness_text_secondary))
+        input.hint = getString(R.string.hint_plan_name)
+        input.setTextColor(this.lpColor(R.attr.lpInk))
+        input.setHintTextColor(this.lpColor(R.attr.lpInkSecondary))
         input.setTextSize(16f)
         input.setPadding(16, 16, 16, 16)
 
         DialogHelper.createBuilder(this)
-            .setTitle("Save as Plan")
-            .setMessage("Enter a name for this workout plan")
+            .setTitle(R.string.action_save_as_plan)
+            .setMessage(R.string.dialog_message_save_as_plan_name)
             .setView(input)
-            .setPositiveButton("Save") { _, _ ->
+            .setPositiveButton(R.string.button_save) { _, _ ->
                 val planName = input.text.toString().trim()
                 if (planName.isEmpty()) {
-                    Toast.makeText(this, "Please enter a plan name", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, R.string.toast_please_enter_plan_name, Toast.LENGTH_SHORT).show()
                 } else {
                     saveWorkoutAsPlan(planName)
                 }
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton(R.string.button_cancel, null)
             .showWithTransparentWindow()
     }
 
     private fun saveWorkoutAsPlan(planName: String) {
         // Check if workout has exercises
         if (trainingSession.exercises.isEmpty()) {
-            Toast.makeText(this, "Cannot save plan: workout has no exercises", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, R.string.toast_cannot_save_plan_no_exercises, Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -428,6 +450,6 @@ class TrainingDetailActivity : AppCompatActivity() {
         jsonHelper.writeTrainingData(trainingData)
 
         // Show success message
-        Toast.makeText(this, "Plan saved successfully", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, R.string.toast_plan_saved_successfully, Toast.LENGTH_SHORT).show()
     }
 }

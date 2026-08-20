@@ -1,19 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    style="@style/Widget.LP.Card.Dense"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginTop="8dp"
-    app:cardBackgroundColor="@color/fitness_card_background"
-    app:cardCornerRadius="16dp"
-    app:cardElevation="3dp">
+    android:layout_marginBottom="@dimen/lp_card_gap_dense">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="16dp">
+        android:padding="@dimen/lp_card_padding_dense">
 
         <!-- PR Icon -->
         <ImageView
@@ -21,16 +19,16 @@
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:background="@drawable/bg_circle_decoration"
-            android:backgroundTint="@color/fitness_accent"
-            android:padding="8dp"
+            android:backgroundTint="?attr/lpAccent"
+            android:padding="@dimen/lp_space_2"
             android:src="@drawable/ic_star"
-            app:tint="@color/white" />
+            app:tint="?attr/lpInkInverse" />
 
         <!-- PR Details -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
+            android:layout_marginStart="@dimen/lp_space_3"
             android:layout_weight="1"
             android:orientation="vertical">
 
@@ -47,32 +45,27 @@
                     android:layout_weight="1"
                     android:ellipsize="end"
                     android:maxLines="1"
-                    android:textColor="@color/fitness_text_primary"
-                    android:textSize="15sp"
-                    android:textStyle="bold"
+                    android:textAppearance="@style/TextAppearance.LP.Heading"
                     tools:text="Bench Press" />
 
                 <TextView
                     android:id="@+id/text_intent_badge"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
+                    android:layout_marginStart="@dimen/lp_space_2"
                     android:background="@drawable/badge_rounded_background"
-                    android:paddingStart="6dp"
-                    android:paddingTop="2dp"
-                    android:paddingEnd="6dp"
-                    android:paddingBottom="2dp"
-                    android:textColor="@color/white"
-                    android:textSize="9sp"
-                    android:textStyle="bold"
-                    tools:backgroundTint="@color/intent_strength"
+                    android:paddingHorizontal="@dimen/lp_space_2"
+                    android:paddingVertical="@dimen/lp_space_1"
+                    android:textAppearance="@style/TextAppearance.LP.Caption"
+                    android:textColor="?attr/lpInkInverse"
+                    tools:backgroundTint="?attr/lpIntentStrength"
                     tools:text="STRENGTH" />
             </LinearLayout>
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="@dimen/lp_space_1"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
@@ -80,35 +73,34 @@
                     android:id="@+id/text_pr_type"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textColor="@color/fitness_text_secondary"
-                    android:textSize="12sp"
+                    android:textAppearance="@style/TextAppearance.LP.Label"
+                    android:textColor="?attr/lpInkSecondary"
                     tools:text="Weight PR" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:layout_marginEnd="8dp"
+                    android:layout_marginStart="@dimen/lp_space_2"
+                    android:layout_marginEnd="@dimen/lp_space_2"
                     android:text="•"
-                    android:textColor="@color/fitness_text_secondary"
-                    android:textSize="12sp" />
+                    android:textAppearance="@style/TextAppearance.LP.Label"
+                    android:textColor="?attr/lpInkSecondary" />
 
                 <TextView
                     android:id="@+id/text_pr_value"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textColor="@color/fitness_primary"
-                    android:textSize="14sp"
-                    android:textStyle="bold"
+                    android:textAppearance="@style/TextAppearance.LP.Metric.M"
+                    android:textColor="?attr/lpAccent"
                     tools:text="100kg" />
 
                 <TextView
                     android:id="@+id/text_improvement"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:textColor="@color/fitness_accent"
-                    android:textSize="12sp"
+                    android:layout_marginStart="@dimen/lp_space_2"
+                    android:textAppearance="@style/TextAppearance.LP.Metric.S"
+                    android:textColor="?attr/lpAccent"
                     tools:text="+2.5kg" />
             </LinearLayout>
 
@@ -116,10 +108,10 @@
                 android:id="@+id/text_date"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:textColor="@color/fitness_text_secondary"
-                android:textSize="11sp"
+                android:layout_marginTop="@dimen/lp_space_1"
+                android:textAppearance="@style/TextAppearance.LP.Label"
+                android:textColor="?attr/lpInkSecondary"
                 tools:text="Jan 15, 2024" />
         </LinearLayout>
     </LinearLayout>
-</androidx.cardview.widget.CardView>
+</com.google.android.material.card.MaterialCardView>

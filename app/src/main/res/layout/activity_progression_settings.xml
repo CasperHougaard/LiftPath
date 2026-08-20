@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/fitness_background"
+    android:background="?attr/lpCanvas"
     android:fitsSystemWindows="true"
     tools:context=".activities.ProgressionSettingsActivity">
 
@@ -14,12 +14,12 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:scaleType="centerCrop"
-        android:alpha="1.0"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/avd_background_flow" />
+        app:srcCompat="@drawable/lp_bg_ambient_flow"
+        app:tint="?attr/lpAccent" />
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
@@ -28,469 +28,490 @@
         android:clipToPadding="false"
         android:fillViewport="true">
 
-        <androidx.constraintlayout.widget.ConstraintLayout
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:clipChildren="false"
-            android:clipToPadding="false"
-            android:padding="24dp">
+            android:orientation="vertical"
+            android:padding="@dimen/lp_gutter_dense">
 
-            <!-- HEADER WITH BACK BUTTON -->
-            <androidx.cardview.widget.CardView
-                android:id="@+id/button_back_header"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:clickable="true"
-                android:focusable="true"
-                android:foreground="?attr/selectableItemBackground"
-                app:cardBackgroundColor="@color/fitness_card_background"
-                app:cardCornerRadius="24dp"
-                app:cardElevation="0dp"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent">
-
-                <ImageButton
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:background="@android:color/transparent"
-                    android:clickable="false"
-                    android:focusable="false"
-                    android:contentDescription="@string/progress_back_content_description"
-                    android:padding="12dp"
-                    android:src="@drawable/ic_arrow_back_24"
-                    app:tint="@color/fitness_text_primary" />
-            </androidx.cardview.widget.CardView>
-
+            <!-- HEADER -->
             <LinearLayout
-                android:id="@+id/header_container"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:gravity="center_vertical"
-                android:orientation="vertical"
-                app:layout_constraintBottom_toBottomOf="@id/button_back_header"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toEndOf="@id/button_back_header"
-                app:layout_constraintTop_toTopOf="@id/button_back_header">
-
-                <TextView
-                    android:id="@+id/text_title"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Progression Settings"
-                    android:textColor="@color/fitness_text_primary"
-                    android:textSize="28sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-
-            <TextView
-                android:id="@+id/text_subtitle"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="Configure your workout progression preferences"
-                android:textColor="@color/fitness_text_secondary"
-                android:textSize="16sp"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/header_container" />
-
-            <!-- Intent Progression Settings Card -->
-            <androidx.cardview.widget.CardView
-                android:id="@+id/card_core_settings"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                app:cardBackgroundColor="@color/fitness_card_background"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="4dp"
-                app:layout_constraintTop_toBottomOf="@id/text_subtitle">
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/button_back_header"
+                    style="@style/Widget.LP.Card.Control"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp">
+
+                    <ImageButton
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@android:color/transparent"
+                        android:clickable="false"
+                        android:contentDescription="@string/progress_back_content_description"
+                        android:focusable="false"
+                        android:padding="@dimen/lp_space_3"
+                        android:src="@drawable/ic_arrow_back_24"
+                        app:tint="?attr/lpInk" />
+                </com.google.android.material.card.MaterialCardView>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/lp_space_3"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/text_title"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/title_progression_settings"
+                        android:textAppearance="@style/TextAppearance.LP.Title" />
+
+                    <TextView
+                        android:id="@+id/text_subtitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/subtitle_progression_settings"
+                        android:textAppearance="@style/TextAppearance.LP.Body" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- INTENT PROGRESSION SETTINGS CARD -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_core_settings"
+                style="@style/Widget.LP.Card.Dense"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/lp_space_4"
+                android:clickable="false"
+                android:focusable="false">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
+                    android:orientation="vertical">
 
-                    <!-- Collapsible Header -->
+                    <!-- Collapsible header -->
                     <LinearLayout
                         android:id="@+id/header_core_settings"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical"
+                        android:background="?attr/selectableItemBackground"
                         android:clickable="true"
                         android:focusable="true"
-                        android:foreground="?attr/selectableItemBackground"
-                        android:paddingVertical="4dp">
+                        android:gravity="center_vertical"
+                        android:minHeight="@dimen/lp_row_min_height"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="@dimen/lp_card_padding_dense"
+                        android:paddingVertical="@dimen/lp_space_3">
 
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="@string/settings_intent_progression_title"
-                            android:textSize="16sp"
-                            android:textStyle="bold"
-                            android:textColor="@color/fitness_text_primary" />
+                            android:textAppearance="@style/TextAppearance.LP.Heading" />
 
                         <ImageView
                             android:id="@+id/icon_expand_core"
                             android:layout_width="24dp"
                             android:layout_height="24dp"
-                            android:src="@drawable/ic_arrow_back_24"
+                            android:contentDescription="@string/cd_expand_collapse_section"
                             android:rotation="270"
-                            android:contentDescription="Expand or collapse section"
-                            app:tint="@color/fitness_text_secondary" />
+                            android:src="@drawable/ic_arrow_back_24"
+                            app:tint="?attr/lpInkTertiary" />
                     </LinearLayout>
 
-                    <!-- Expandable Content -->
+                    <!-- Expandable content -->
                     <LinearLayout
                         android:id="@+id/content_core_settings"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:layout_marginTop="8dp">
+                        android:paddingHorizontal="@dimen/lp_card_padding_dense"
+                        android:paddingTop="@dimen/lp_space_2"
+                        android:paddingBottom="@dimen/lp_card_padding_dense">
 
-                        <!-- STRENGTH Intent Section -->
+                        <!-- STRENGTH intent -->
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
+                            android:layout_marginBottom="@dimen/lp_space_2"
                             android:text="@string/settings_strength_intent"
-                            android:textSize="15sp"
-                            android:textStyle="bold"
-                            android:textColor="@color/intent_strength"
-                            android:layout_marginBottom="8dp" />
+                            android:textAppearance="@style/TextAppearance.LP.Label"
+                            android:textColor="?attr/lpIntentStrength" />
 
+                        <!-- Min reps / Max reps -->
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
+                            android:baselineAligned="false"
                             android:orientation="horizontal">
 
-                            <com.google.android.material.textfield.TextInputLayout
+                            <LinearLayout
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
+                                android:layout_marginEnd="@dimen/lp_card_gap_dense"
                                 android:layout_weight="1"
-                                android:layout_marginEnd="8dp"
-                                android:hint="@string/settings_min_reps"
-                                app:boxBackgroundMode="outline"
-                                app:boxStrokeColor="@color/fitness_primary"
-                                app:hintTextColor="@color/fitness_primary">
+                                android:orientation="vertical">
 
-                                <com.google.android.material.textfield.TextInputEditText
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginBottom="@dimen/lp_space_1"
+                                    android:text="@string/settings_min_reps"
+                                    android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+                                <EditText
                                     android:id="@+id/etStrengthMinReps"
+                                    style="@style/Widget.LP.EditText.Boxed"
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
-                                    android:inputType="number"
-                                    android:textColor="@color/fitness_text_primary" />
-                            </com.google.android.material.textfield.TextInputLayout>
+                                    android:inputType="number" />
+                            </LinearLayout>
 
-                            <com.google.android.material.textfield.TextInputLayout
+                            <LinearLayout
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:layout_marginStart="8dp"
-                                android:hint="@string/settings_max_reps"
-                                app:boxBackgroundMode="outline"
-                                app:boxStrokeColor="@color/fitness_primary"
-                                app:hintTextColor="@color/fitness_primary">
+                                android:orientation="vertical">
 
-                                <com.google.android.material.textfield.TextInputEditText
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginBottom="@dimen/lp_space_1"
+                                    android:text="@string/settings_max_reps"
+                                    android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+                                <EditText
                                     android:id="@+id/etStrengthMaxReps"
+                                    style="@style/Widget.LP.EditText.Boxed"
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
-                                    android:inputType="number"
-                                    android:textColor="@color/fitness_text_primary" />
-                            </com.google.android.material.textfield.TextInputLayout>
+                                    android:inputType="number" />
+                            </LinearLayout>
                         </LinearLayout>
 
+                        <!-- Target RPE / Increase threshold -->
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:layout_marginTop="8dp">
-
-                            <com.google.android.material.textfield.TextInputLayout
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:layout_marginEnd="8dp"
-                                android:hint="@string/settings_target_rpe"
-                                app:boxBackgroundMode="outline"
-                                app:boxStrokeColor="@color/fitness_primary"
-                                app:hintTextColor="@color/fitness_primary">
-
-                                <com.google.android.material.textfield.TextInputEditText
-                                    android:id="@+id/etStrengthTargetRpe"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:inputType="numberDecimal"
-                                    android:textColor="@color/fitness_text_primary" />
-                            </com.google.android.material.textfield.TextInputLayout>
-
-                            <com.google.android.material.textfield.TextInputLayout
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:layout_marginStart="8dp"
-                                android:hint="@string/settings_increase_threshold"
-                                app:boxBackgroundMode="outline"
-                                app:boxStrokeColor="@color/fitness_primary"
-                                app:hintTextColor="@color/fitness_primary">
-
-                                <com.google.android.material.textfield.TextInputEditText
-                                    android:id="@+id/etStrengthIncreaseThreshold"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:inputType="numberDecimal"
-                                    android:textColor="@color/fitness_text_primary" />
-                            </com.google.android.material.textfield.TextInputLayout>
-                        </LinearLayout>
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:text="@string/settings_strength_hint"
-                            android:textSize="12sp"
-                            android:textColor="@color/fitness_text_secondary" />
-
-                        <!-- BUILD Intent Section -->
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="@string/settings_build_intent"
-                            android:textSize="15sp"
-                            android:textStyle="bold"
-                            android:textColor="@color/intent_build"
-                            android:layout_marginTop="20dp"
-                            android:layout_marginBottom="8dp" />
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/lp_space_3"
+                            android:baselineAligned="false"
                             android:orientation="horizontal">
 
-                            <com.google.android.material.textfield.TextInputLayout
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginEnd="@dimen/lp_card_gap_dense"
+                                android:layout_weight="1"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginBottom="@dimen/lp_space_1"
+                                    android:text="@string/settings_target_rpe"
+                                    android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+                                <EditText
+                                    android:id="@+id/etStrengthTargetRpe"
+                                    style="@style/Widget.LP.EditText.Boxed"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:inputType="numberDecimal" />
+                            </LinearLayout>
+
+                            <LinearLayout
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:layout_marginEnd="8dp"
-                                android:hint="@string/settings_min_reps"
-                                app:boxBackgroundMode="outline"
-                                app:boxStrokeColor="@color/fitness_primary"
-                                app:hintTextColor="@color/fitness_primary">
+                                android:orientation="vertical">
 
-                                <com.google.android.material.textfield.TextInputEditText
-                                    android:id="@+id/etBuildMinReps"
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginBottom="@dimen/lp_space_1"
+                                    android:text="@string/settings_increase_threshold"
+                                    android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+                                <EditText
+                                    android:id="@+id/etStrengthIncreaseThreshold"
+                                    style="@style/Widget.LP.EditText.Boxed"
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
-                                    android:inputType="number"
-                                    android:textColor="@color/fitness_text_primary" />
-                            </com.google.android.material.textfield.TextInputLayout>
-
-                            <com.google.android.material.textfield.TextInputLayout
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:layout_marginStart="8dp"
-                                android:hint="@string/settings_max_reps"
-                                app:boxBackgroundMode="outline"
-                                app:boxStrokeColor="@color/fitness_primary"
-                                app:hintTextColor="@color/fitness_primary">
-
-                                <com.google.android.material.textfield.TextInputEditText
-                                    android:id="@+id/etBuildMaxReps"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:inputType="number"
-                                    android:textColor="@color/fitness_text_primary" />
-                            </com.google.android.material.textfield.TextInputLayout>
+                                    android:inputType="numberDecimal" />
+                            </LinearLayout>
                         </LinearLayout>
 
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/lp_space_2"
+                            android:text="@string/settings_strength_hint"
+                            android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+                        <!-- BUILD intent -->
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/lp_section_gap_dense"
+                            android:layout_marginBottom="@dimen/lp_space_2"
+                            android:text="@string/settings_build_intent"
+                            android:textAppearance="@style/TextAppearance.LP.Label"
+                            android:textColor="?attr/lpIntentBuild" />
+
+                        <!-- Min reps / Max reps -->
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:layout_marginTop="8dp">
+                            android:baselineAligned="false"
+                            android:orientation="horizontal">
 
-                            <com.google.android.material.textfield.TextInputLayout
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginEnd="@dimen/lp_card_gap_dense"
+                                android:layout_weight="1"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginBottom="@dimen/lp_space_1"
+                                    android:text="@string/settings_min_reps"
+                                    android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+                                <EditText
+                                    android:id="@+id/etBuildMinReps"
+                                    style="@style/Widget.LP.EditText.Boxed"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:inputType="number" />
+                            </LinearLayout>
+
+                            <LinearLayout
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:layout_marginEnd="8dp"
-                                android:hint="@string/settings_target_rpe"
-                                app:boxBackgroundMode="outline"
-                                app:boxStrokeColor="@color/fitness_primary"
-                                app:hintTextColor="@color/fitness_primary">
+                                android:orientation="vertical">
 
-                                <com.google.android.material.textfield.TextInputEditText
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginBottom="@dimen/lp_space_1"
+                                    android:text="@string/settings_max_reps"
+                                    android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+                                <EditText
+                                    android:id="@+id/etBuildMaxReps"
+                                    style="@style/Widget.LP.EditText.Boxed"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:inputType="number" />
+                            </LinearLayout>
+                        </LinearLayout>
+
+                        <!-- Target RPE / Increase threshold -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/lp_space_3"
+                            android:baselineAligned="false"
+                            android:orientation="horizontal">
+
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginEnd="@dimen/lp_card_gap_dense"
+                                android:layout_weight="1"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginBottom="@dimen/lp_space_1"
+                                    android:text="@string/settings_target_rpe"
+                                    android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+                                <EditText
                                     android:id="@+id/etBuildTargetRpe"
+                                    style="@style/Widget.LP.EditText.Boxed"
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
-                                    android:inputType="numberDecimal"
-                                    android:textColor="@color/fitness_text_primary" />
-                            </com.google.android.material.textfield.TextInputLayout>
+                                    android:inputType="numberDecimal" />
+                            </LinearLayout>
 
-                            <com.google.android.material.textfield.TextInputLayout
+                            <LinearLayout
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:layout_marginStart="8dp"
-                                android:hint="@string/settings_increase_threshold"
-                                app:boxBackgroundMode="outline"
-                                app:boxStrokeColor="@color/fitness_primary"
-                                app:hintTextColor="@color/fitness_primary">
+                                android:orientation="vertical">
 
-                                <com.google.android.material.textfield.TextInputEditText
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginBottom="@dimen/lp_space_1"
+                                    android:text="@string/settings_increase_threshold"
+                                    android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+                                <EditText
                                     android:id="@+id/etBuildIncreaseThreshold"
+                                    style="@style/Widget.LP.EditText.Boxed"
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
-                                    android:inputType="numberDecimal"
-                                    android:textColor="@color/fitness_text_primary" />
-                            </com.google.android.material.textfield.TextInputLayout>
+                                    android:inputType="numberDecimal" />
+                            </LinearLayout>
                         </LinearLayout>
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
+                            android:layout_marginTop="@dimen/lp_space_2"
                             android:text="@string/settings_build_hint"
-                            android:textSize="12sp"
-                            android:textColor="@color/fitness_text_secondary" />
+                            android:textAppearance="@style/TextAppearance.LP.Caption" />
 
-                        <!-- Cross-Intent Fallback Setting -->
-                        <com.google.android.material.textfield.TextInputLayout
+                        <!-- Cross-intent fallback (standalone) -->
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/lp_section_gap_dense"
+                            android:layout_marginBottom="@dimen/lp_space_1"
+                            android:text="@string/settings_fallback_days"
+                            android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+                        <EditText
+                            android:id="@+id/etIntentFallbackDays"
+                            style="@style/Widget.LP.EditText.Boxed"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="16dp"
-                            android:hint="@string/settings_fallback_days"
-                            app:boxBackgroundMode="outline"
-                            app:boxStrokeColor="@color/fitness_primary"
-                            app:hintTextColor="@color/fitness_primary">
-
-                            <com.google.android.material.textfield.TextInputEditText
-                                android:id="@+id/etIntentFallbackDays"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:inputType="number"
-                                android:textColor="@color/fitness_text_primary" />
-                        </com.google.android.material.textfield.TextInputLayout>
+                            android:inputType="number" />
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
+                            android:layout_marginTop="@dimen/lp_space_2"
                             android:text="@string/settings_fallback_days_hint"
-                            android:textSize="12sp"
-                            android:textColor="@color/fitness_text_secondary" />
+                            android:textAppearance="@style/TextAppearance.LP.Caption" />
 
-                        <!-- Info Card -->
-                        <androidx.cardview.widget.CardView
+                        <!-- Info card -->
+                        <com.google.android.material.card.MaterialCardView
+                            style="@style/Widget.LP.Card"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="16dp"
-                            app:cardBackgroundColor="@color/fitness_info_banner_background"
-                            app:cardCornerRadius="12dp"
-                            app:cardElevation="0dp">
+                            android:layout_marginTop="@dimen/lp_space_4"
+                            android:clickable="false"
+                            android:focusable="false"
+                            app:cardBackgroundColor="?attr/lpSurfaceAlt">
 
                             <LinearLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:orientation="vertical"
-                                android:padding="12dp">
+                                android:padding="@dimen/lp_card_padding_dense">
 
                                 <TextView
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
                                     android:text="@string/settings_progression_info_title"
-                                    android:textSize="13sp"
-                                    android:textStyle="bold"
-                                    android:textColor="@color/fitness_text_primary" />
+                                    android:textAppearance="@style/TextAppearance.LP.Label" />
 
                                 <TextView
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
-                                    android:layout_marginTop="4dp"
+                                    android:layout_marginTop="@dimen/lp_space_1"
                                     android:text="@string/settings_progression_info_body"
-                                    android:textSize="12sp"
-                                    android:textColor="@color/fitness_text_secondary"
+                                    android:textAppearance="@style/TextAppearance.LP.Body"
                                     android:lineSpacingExtra="2dp" />
                             </LinearLayout>
-                        </androidx.cardview.widget.CardView>
+                        </com.google.android.material.card.MaterialCardView>
 
                     </LinearLayout>
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
 
-            <!-- Rest Timer Settings Card -->
-            <androidx.cardview.widget.CardView
+            <!-- REST TIMER CARD -->
+            <com.google.android.material.card.MaterialCardView
                 android:id="@+id/card_rest_timer"
+                style="@style/Widget.LP.Card.Dense"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                app:cardBackgroundColor="@color/fitness_card_background"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="4dp"
-                app:layout_constraintTop_toBottomOf="@id/card_core_settings">
+                android:layout_marginTop="@dimen/lp_section_gap_dense"
+                android:clickable="false"
+                android:focusable="false">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
+                    android:orientation="vertical">
 
-                    <!-- Collapsible Header -->
+                    <!-- Collapsible header -->
                     <LinearLayout
                         android:id="@+id/header_rest_timer"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical"
+                        android:background="?attr/selectableItemBackground"
                         android:clickable="true"
                         android:focusable="true"
-                        android:foreground="?attr/selectableItemBackground"
-                        android:paddingVertical="4dp">
+                        android:gravity="center_vertical"
+                        android:minHeight="@dimen/lp_row_min_height"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="@dimen/lp_card_padding_dense"
+                        android:paddingVertical="@dimen/lp_space_3">
 
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="⏱️ Rest Timer"
-                            android:textSize="16sp"
-                            android:textStyle="bold"
-                            android:textColor="@color/fitness_text_primary" />
+                            android:text="@string/settings_rest_timer_title"
+                            android:textAppearance="@style/TextAppearance.LP.Heading" />
 
-                        <androidx.appcompat.widget.SwitchCompat
+                        <com.google.android.material.materialswitch.MaterialSwitch
                             android:id="@+id/switchRestTimer"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginEnd="8dp" />
+                            android:layout_marginEnd="@dimen/lp_space_2"
+                            app:showText="false" />
 
                         <ImageView
                             android:id="@+id/icon_expand_rest_timer"
                             android:layout_width="24dp"
                             android:layout_height="24dp"
-                            android:src="@drawable/ic_arrow_back_24"
+                            android:contentDescription="@string/cd_expand_collapse_section"
                             android:rotation="270"
-                            android:contentDescription="Expand or collapse section"
-                            app:tint="@color/fitness_text_secondary" />
+                            android:src="@drawable/ic_arrow_back_24"
+                            app:tint="?attr/lpInkTertiary" />
                     </LinearLayout>
 
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="Auto-start rest timer after logging sets"
-                        android:textSize="12sp"
-                        android:textColor="@color/fitness_text_secondary" />
+                        android:paddingHorizontal="@dimen/lp_card_padding_dense"
+                        android:paddingBottom="@dimen/lp_space_3"
+                        android:text="@string/settings_rest_timer_description"
+                        android:textAppearance="@style/TextAppearance.LP.Body" />
 
-                    <!-- Expandable Content -->
+                    <!-- Expandable content -->
                     <LinearLayout
                         android:id="@+id/content_rest_timer"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:orientation="vertical">
+                        android:orientation="vertical"
+                        android:paddingHorizontal="@dimen/lp_card_padding_dense"
+                        android:paddingBottom="@dimen/lp_card_padding_dense">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="@dimen/lp_space_2"
+                            android:text="@string/eyebrow_base_rest_times"
+                            android:textAppearance="@style/TextAppearance.LP.Caption" />
 
                         <LinearLayout
                             android:id="@+id/layoutRestTimerSettings"
@@ -498,644 +519,696 @@
                             android:layout_height="wrap_content"
                             android:orientation="vertical">
 
-                            <com.google.android.material.textfield.TextInputLayout
+                            <!-- Strength rest / Build rest -->
+                            <LinearLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:hint="Strength Rest (seconds)"
-                                app:boxBackgroundMode="outline"
-                                app:boxStrokeColor="@color/fitness_primary"
-                                app:hintTextColor="@color/fitness_primary">
+                                android:baselineAligned="false"
+                                android:orientation="horizontal">
 
-                                <com.google.android.material.textfield.TextInputEditText
-                                    android:id="@+id/etStrengthRest"
-                                    android:layout_width="match_parent"
+                                <LinearLayout
+                                    android:layout_width="0dp"
                                     android:layout_height="wrap_content"
-                                    android:inputType="number"
-                                    android:textColor="@color/fitness_text_primary" />
-                            </com.google.android.material.textfield.TextInputLayout>
+                                    android:layout_marginEnd="@dimen/lp_card_gap_dense"
+                                    android:layout_weight="1"
+                                    android:orientation="vertical">
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginBottom="@dimen/lp_space_1"
+                                        android:text="@string/label_strength_rest_seconds"
+                                        android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+                                    <EditText
+                                        android:id="@+id/etStrengthRest"
+                                        style="@style/Widget.LP.EditText.Boxed"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:inputType="number" />
+                                </LinearLayout>
+
+                                <LinearLayout
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:orientation="vertical">
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginBottom="@dimen/lp_space_1"
+                                        android:text="@string/label_build_rest_seconds"
+                                        android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+                                    <EditText
+                                        android:id="@+id/etBuildRest"
+                                        style="@style/Widget.LP.EditText.Boxed"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:inputType="number" />
+                                </LinearLayout>
+                            </LinearLayout>
 
                             <TextView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="8dp"
-                                android:text="Rest time for Strength intent sets (default: 180s / 3min)"
-                                android:textSize="12sp"
-                                android:textColor="@color/fitness_text_secondary" />
-
-                            <com.google.android.material.textfield.TextInputLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="12dp"
-                                android:hint="Build Rest (seconds)"
-                                app:boxBackgroundMode="outline"
-                                app:boxStrokeColor="@color/fitness_primary"
-                                app:hintTextColor="@color/fitness_primary">
-
-                                <com.google.android.material.textfield.TextInputEditText
-                                    android:id="@+id/etBuildRest"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:inputType="number"
-                                    android:textColor="@color/fitness_text_primary" />
-                            </com.google.android.material.textfield.TextInputLayout>
+                                android:layout_marginTop="@dimen/lp_space_1"
+                                android:text="@string/settings_strength_rest_hint"
+                                android:textAppearance="@style/TextAppearance.LP.Caption" />
 
                             <TextView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="8dp"
-                                android:text="Rest time for Build intent sets (default: 90s / 1.5min)"
-                                android:textSize="12sp"
-                                android:textColor="@color/fitness_text_secondary" />
+                                android:text="@string/settings_build_rest_hint"
+                                android:textAppearance="@style/TextAppearance.LP.Caption" />
 
-                            <com.google.android.material.textfield.TextInputLayout
+                            <!-- Flush rest / Superset transition -->
+                            <LinearLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="12dp"
-                                android:hint="Flush Rest (seconds)"
-                                app:boxBackgroundMode="outline"
-                                app:boxStrokeColor="@color/fitness_primary"
-                                app:hintTextColor="@color/fitness_primary">
+                                android:layout_marginTop="@dimen/lp_space_3"
+                                android:baselineAligned="false"
+                                android:orientation="horizontal">
 
-                                <com.google.android.material.textfield.TextInputEditText
-                                    android:id="@+id/etFlushRest"
-                                    android:layout_width="match_parent"
+                                <LinearLayout
+                                    android:layout_width="0dp"
                                     android:layout_height="wrap_content"
-                                    android:inputType="number"
-                                    android:textColor="@color/fitness_text_primary" />
-                            </com.google.android.material.textfield.TextInputLayout>
+                                    android:layout_marginEnd="@dimen/lp_card_gap_dense"
+                                    android:layout_weight="1"
+                                    android:orientation="vertical">
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginBottom="@dimen/lp_space_1"
+                                        android:text="@string/label_flush_rest_seconds"
+                                        android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+                                    <EditText
+                                        android:id="@+id/etFlushRest"
+                                        style="@style/Widget.LP.EditText.Boxed"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:inputType="number" />
+                                </LinearLayout>
+
+                                <LinearLayout
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:orientation="vertical">
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginBottom="@dimen/lp_space_1"
+                                        android:text="@string/settings_superset_transition_hint"
+                                        android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+                                    <EditText
+                                        android:id="@+id/etSupersetTransition"
+                                        style="@style/Widget.LP.EditText.Boxed"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:inputType="number" />
+                                </LinearLayout>
+                            </LinearLayout>
 
                             <TextView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="8dp"
-                                android:text="Rest time for Flush intent sets (default: 45s)"
-                                android:textSize="12sp"
-                                android:textColor="@color/fitness_text_secondary" />
-
-                            <com.google.android.material.textfield.TextInputLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="12dp"
-                                android:hint="@string/settings_superset_transition_hint"
-                                app:boxBackgroundMode="outline"
-                                app:boxStrokeColor="@color/fitness_primary"
-                                app:hintTextColor="@color/fitness_primary">
-
-                                <com.google.android.material.textfield.TextInputEditText
-                                    android:id="@+id/etSupersetTransition"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:inputType="number"
-                                    android:textColor="@color/fitness_text_primary" />
-                            </com.google.android.material.textfield.TextInputLayout>
+                                android:layout_marginTop="@dimen/lp_space_1"
+                                android:text="@string/settings_flush_rest_hint"
+                                android:textAppearance="@style/TextAppearance.LP.Caption" />
 
                             <TextView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="8dp"
                                 android:text="@string/settings_superset_transition_description"
-                                android:textSize="12sp"
-                                android:textColor="@color/fitness_text_secondary" />
-
-                            <com.google.android.material.textfield.TextInputLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="12dp"
-                                android:hint="@string/settings_superset_rest_bonus_hint"
-                                app:boxBackgroundMode="outline"
-                                app:boxStrokeColor="@color/fitness_primary"
-                                app:hintTextColor="@color/fitness_primary">
-
-                                <com.google.android.material.textfield.TextInputEditText
-                                    android:id="@+id/etSupersetRestBonus"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:inputType="number"
-                                    android:textColor="@color/fitness_text_primary" />
-                            </com.google.android.material.textfield.TextInputLayout>
-
-                            <TextView
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="8dp"
-                                android:text="@string/settings_superset_rest_bonus_description"
-                                android:textSize="12sp"
-                                android:textColor="@color/fitness_text_secondary" />
+                                android:textAppearance="@style/TextAppearance.LP.Caption" />
                         </LinearLayout>
+
+                        <View
+                            style="@style/Widget.LP.Divider"
+                            android:layout_marginTop="@dimen/lp_space_4"
+                            android:layout_marginBottom="@dimen/lp_space_3" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="@dimen/lp_space_2"
+                            android:text="@string/eyebrow_supersets"
+                            android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="@dimen/lp_space_1"
+                            android:text="@string/settings_superset_rest_bonus_hint"
+                            android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+                        <EditText
+                            android:id="@+id/etSupersetRestBonus"
+                            style="@style/Widget.LP.EditText.Boxed"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="number" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/lp_space_2"
+                            android:text="@string/settings_superset_rest_bonus_description"
+                            android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+                        <View
+                            style="@style/Widget.LP.Divider"
+                            android:layout_marginTop="@dimen/lp_space_4"
+                            android:layout_marginBottom="@dimen/lp_space_3" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="@dimen/lp_space_2"
+                            android:text="@string/eyebrow_notifications"
+                            android:textAppearance="@style/TextAppearance.LP.Caption" />
 
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="16dp"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical">
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
 
                             <TextView
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:text="Live Countdown in Notification"
-                                android:textSize="16sp"
-                                android:textStyle="bold"
-                                android:textColor="@color/fitness_text_primary" />
+                                android:text="@string/label_live_countdown_notification"
+                                android:textAppearance="@style/TextAppearance.LP.Label" />
 
-                            <androidx.appcompat.widget.SwitchCompat
+                            <com.google.android.material.materialswitch.MaterialSwitch
                                 android:id="@+id/switchNotificationLiveCountdown"
                                 android:layout_width="wrap_content"
-                                android:layout_height="wrap_content" />
+                                android:layout_height="wrap_content"
+                                app:showText="false" />
                         </LinearLayout>
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
-                            android:text="Show live countdown timer in notification (e.g., 2:30 remaining)"
-                            android:textSize="12sp"
-                            android:textColor="@color/fitness_text_secondary" />
+                            android:layout_marginTop="@dimen/lp_space_1"
+                            android:text="@string/settings_live_countdown_description"
+                            android:textAppearance="@style/TextAppearance.LP.Caption" />
 
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="16dp"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical">
+                            android:layout_marginTop="@dimen/lp_space_3"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
 
                             <TextView
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:text="Auto-Dismiss Notification"
-                                android:textSize="16sp"
-                                android:textStyle="bold"
-                                android:textColor="@color/fitness_text_primary" />
+                                android:text="@string/label_auto_dismiss_notification"
+                                android:textAppearance="@style/TextAppearance.LP.Label" />
 
-                            <androidx.appcompat.widget.SwitchCompat
+                            <com.google.android.material.materialswitch.MaterialSwitch
                                 android:id="@+id/switchNotificationAutoDismiss"
                                 android:layout_width="wrap_content"
-                                android:layout_height="wrap_content" />
+                                android:layout_height="wrap_content"
+                                app:showText="false" />
                         </LinearLayout>
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
-                            android:text="Automatically dismiss the completion notification after a set time"
-                            android:textSize="12sp"
-                            android:textColor="@color/fitness_text_secondary" />
+                            android:layout_marginTop="@dimen/lp_space_1"
+                            android:text="@string/settings_auto_dismiss_description"
+                            android:textAppearance="@style/TextAppearance.LP.Caption" />
 
                         <LinearLayout
                             android:id="@+id/layoutNotificationAutoDismissSettings"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="12dp"
+                            android:layout_marginTop="@dimen/lp_space_3"
                             android:orientation="vertical">
 
-                            <com.google.android.material.textfield.TextInputLayout
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginBottom="@dimen/lp_space_1"
+                                android:text="@string/label_auto_dismiss_seconds"
+                                android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+                            <EditText
+                                android:id="@+id/etNotificationAutoDismiss"
+                                style="@style/Widget.LP.EditText.Boxed"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:hint="Auto-Dismiss Time (seconds)"
-                                app:boxBackgroundMode="outline"
-                                app:boxStrokeColor="@color/fitness_primary"
-                                app:hintTextColor="@color/fitness_primary">
-
-                                <com.google.android.material.textfield.TextInputEditText
-                                    android:id="@+id/etNotificationAutoDismiss"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:inputType="number"
-                                    android:textColor="@color/fitness_text_primary" />
-                            </com.google.android.material.textfield.TextInputLayout>
+                                android:inputType="number" />
 
                             <TextView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="8dp"
-                                android:text="How long the completion notification stays visible before auto-dismissing (default: 10 seconds)"
-                                android:textSize="12sp"
-                                android:textColor="@color/fitness_text_secondary" />
+                                android:layout_marginTop="@dimen/lp_space_2"
+                                android:text="@string/settings_auto_dismiss_hint"
+                                android:textAppearance="@style/TextAppearance.LP.Caption" />
                         </LinearLayout>
+
+                        <View
+                            style="@style/Widget.LP.Divider"
+                            android:layout_marginTop="@dimen/lp_space_4"
+                            android:layout_marginBottom="@dimen/lp_space_3" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="@dimen/lp_space_2"
+                            android:text="@string/eyebrow_rpe_based_adjustment"
+                            android:textAppearance="@style/TextAppearance.LP.Caption" />
 
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="16dp"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical">
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
 
                             <TextView
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:text="RPE-Based Adjustment"
-                                android:textSize="16sp"
-                                android:textStyle="bold"
-                                android:textColor="@color/fitness_text_primary" />
+                                android:text="@string/label_rpe_based_adjustment_title"
+                                android:textAppearance="@style/TextAppearance.LP.Label" />
 
-                            <androidx.appcompat.widget.SwitchCompat
+                            <com.google.android.material.materialswitch.MaterialSwitch
                                 android:id="@+id/switchRpeAdjustment"
                                 android:layout_width="wrap_content"
-                                android:layout_height="wrap_content" />
+                                android:layout_height="wrap_content"
+                                app:showText="false" />
                         </LinearLayout>
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
-                            android:text="Add extra rest time for high RPE sets"
-                            android:textSize="12sp"
-                            android:textColor="@color/fitness_text_secondary" />
+                            android:layout_marginTop="@dimen/lp_space_1"
+                            android:text="@string/settings_rpe_based_adjustment_description"
+                            android:textAppearance="@style/TextAppearance.LP.Caption" />
 
                         <LinearLayout
                             android:id="@+id/layoutRpeAdjustmentSettings"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="12dp"
+                            android:layout_marginTop="@dimen/lp_space_3"
                             android:orientation="vertical">
 
-                            <com.google.android.material.textfield.TextInputLayout
+                            <!-- High RPE threshold / Bonus rest -->
+                            <LinearLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:hint="High RPE Threshold"
-                                app:boxBackgroundMode="outline"
-                                app:boxStrokeColor="@color/fitness_primary"
-                                app:hintTextColor="@color/fitness_primary">
+                                android:baselineAligned="false"
+                                android:orientation="horizontal">
 
-                                <com.google.android.material.textfield.TextInputEditText
-                                    android:id="@+id/etRpeThreshold"
-                                    android:layout_width="match_parent"
+                                <LinearLayout
+                                    android:layout_width="0dp"
                                     android:layout_height="wrap_content"
-                                    android:inputType="numberDecimal"
-                                    android:textColor="@color/fitness_text_primary" />
-                            </com.google.android.material.textfield.TextInputLayout>
+                                    android:layout_marginEnd="@dimen/lp_card_gap_dense"
+                                    android:layout_weight="1"
+                                    android:orientation="vertical">
 
-                            <TextView
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="8dp"
-                                android:text="Sets with RPE ≥ this value get bonus rest (default: 9.0)"
-                                android:textSize="12sp"
-                                android:textColor="@color/fitness_text_secondary" />
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginBottom="@dimen/lp_space_1"
+                                        android:text="@string/label_high_rpe_threshold"
+                                        android:textAppearance="@style/TextAppearance.LP.Caption" />
 
-                            <com.google.android.material.textfield.TextInputLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="12dp"
-                                android:hint="Bonus Rest (seconds)"
-                                app:boxBackgroundMode="outline"
-                                app:boxStrokeColor="@color/fitness_primary"
-                                app:hintTextColor="@color/fitness_primary">
+                                    <EditText
+                                        android:id="@+id/etRpeThreshold"
+                                        style="@style/Widget.LP.EditText.Boxed"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:inputType="numberDecimal" />
+                                </LinearLayout>
 
-                                <com.google.android.material.textfield.TextInputEditText
-                                    android:id="@+id/etRpeBonus"
-                                    android:layout_width="match_parent"
+                                <LinearLayout
+                                    android:layout_width="0dp"
                                     android:layout_height="wrap_content"
-                                    android:inputType="number"
-                                    android:textColor="@color/fitness_text_primary" />
-                            </com.google.android.material.textfield.TextInputLayout>
+                                    android:layout_weight="1"
+                                    android:orientation="vertical">
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginBottom="@dimen/lp_space_1"
+                                        android:text="@string/label_bonus_rest_seconds"
+                                        android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+                                    <EditText
+                                        android:id="@+id/etRpeBonus"
+                                        style="@style/Widget.LP.EditText.Boxed"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:inputType="number" />
+                                </LinearLayout>
+                            </LinearLayout>
 
                             <TextView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="8dp"
-                                android:text="Extra rest added for high RPE sets (default: 60s)"
-                                android:textSize="12sp"
-                                android:textColor="@color/fitness_text_secondary" />
+                                android:layout_marginTop="@dimen/lp_space_1"
+                                android:text="@string/settings_high_rpe_threshold_hint"
+                                android:textAppearance="@style/TextAppearance.LP.Caption" />
 
                             <TextView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="16dp"
-                                android:text="RPE Deviation Adjustment"
-                                android:textSize="16sp"
-                                android:textStyle="bold"
-                                android:textColor="@color/fitness_text_primary" />
+                                android:text="@string/settings_bonus_rest_hint"
+                                android:textAppearance="@style/TextAppearance.LP.Caption" />
 
                             <TextView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="8dp"
-                                android:text="Adjust rest time based on logged RPE vs suggested RPE"
-                                android:textSize="12sp"
-                                android:textColor="@color/fitness_text_secondary" />
+                                android:layout_marginTop="@dimen/lp_space_4"
+                                android:text="@string/label_rpe_deviation_adjustment_title"
+                                android:textAppearance="@style/TextAppearance.LP.Label" />
 
-                            <com.google.android.material.textfield.TextInputLayout
+                            <TextView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="12dp"
-                                android:hint="RPE Deviation Threshold"
-                                app:boxBackgroundMode="outline"
-                                app:boxStrokeColor="@color/fitness_primary"
-                                app:hintTextColor="@color/fitness_primary">
+                                android:layout_marginTop="@dimen/lp_space_1"
+                                android:text="@string/settings_rpe_deviation_description"
+                                android:textAppearance="@style/TextAppearance.LP.Body" />
 
-                                <com.google.android.material.textfield.TextInputEditText
-                                    android:id="@+id/etRpeDeviationThreshold"
-                                    android:layout_width="match_parent"
+                            <!-- RPE deviation threshold / Positive adjustment -->
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/lp_space_3"
+                                android:baselineAligned="false"
+                                android:orientation="horizontal">
+
+                                <LinearLayout
+                                    android:layout_width="0dp"
                                     android:layout_height="wrap_content"
-                                    android:inputType="numberDecimal"
-                                    android:textColor="@color/fitness_text_primary" />
-                            </com.google.android.material.textfield.TextInputLayout>
+                                    android:layout_marginEnd="@dimen/lp_card_gap_dense"
+                                    android:layout_weight="1"
+                                    android:orientation="vertical">
 
-                            <TextView
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="8dp"
-                                android:text="RPE difference threshold to trigger adjustment (default: 1.0)"
-                                android:textSize="12sp"
-                                android:textColor="@color/fitness_text_secondary" />
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginBottom="@dimen/lp_space_1"
+                                        android:text="@string/label_rpe_deviation_threshold"
+                                        android:textAppearance="@style/TextAppearance.LP.Caption" />
 
-                            <com.google.android.material.textfield.TextInputLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="12dp"
-                                android:hint="Positive Adjustment (seconds)"
-                                app:boxBackgroundMode="outline"
-                                app:boxStrokeColor="@color/fitness_primary"
-                                app:hintTextColor="@color/fitness_primary">
+                                    <EditText
+                                        android:id="@+id/etRpeDeviationThreshold"
+                                        style="@style/Widget.LP.EditText.Boxed"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:inputType="numberDecimal" />
+                                </LinearLayout>
 
-                                <com.google.android.material.textfield.TextInputEditText
-                                    android:id="@+id/etRpePositiveAdjustment"
-                                    android:layout_width="match_parent"
+                                <LinearLayout
+                                    android:layout_width="0dp"
                                     android:layout_height="wrap_content"
-                                    android:inputType="number"
-                                    android:textColor="@color/fitness_text_primary" />
-                            </com.google.android.material.textfield.TextInputLayout>
+                                    android:layout_weight="1"
+                                    android:orientation="vertical">
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginBottom="@dimen/lp_space_1"
+                                        android:text="@string/label_positive_adjustment_seconds"
+                                        android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+                                    <EditText
+                                        android:id="@+id/etRpePositiveAdjustment"
+                                        style="@style/Widget.LP.EditText.Boxed"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:inputType="number" />
+                                </LinearLayout>
+                            </LinearLayout>
 
                             <TextView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="8dp"
-                                android:text="Add seconds when logged RPE ≥ suggested + threshold (default: 30s)"
-                                android:textSize="12sp"
-                                android:textColor="@color/fitness_text_secondary" />
-
-                            <com.google.android.material.textfield.TextInputLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="12dp"
-                                android:hint="Negative Adjustment (seconds)"
-                                app:boxBackgroundMode="outline"
-                                app:boxStrokeColor="@color/fitness_primary"
-                                app:hintTextColor="@color/fitness_primary">
-
-                                <com.google.android.material.textfield.TextInputEditText
-                                    android:id="@+id/etRpeNegativeAdjustment"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:inputType="number"
-                                    android:textColor="@color/fitness_text_primary" />
-                            </com.google.android.material.textfield.TextInputLayout>
+                                android:layout_marginTop="@dimen/lp_space_1"
+                                android:text="@string/settings_rpe_deviation_threshold_hint"
+                                android:textAppearance="@style/TextAppearance.LP.Caption" />
 
                             <TextView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="8dp"
-                                android:text="Subtract seconds when logged RPE ≤ suggested - threshold (default: 15s)"
-                                android:textSize="12sp"
-                                android:textColor="@color/fitness_text_secondary" />
+                                android:text="@string/settings_positive_adjustment_hint"
+                                android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+                            <!-- Negative adjustment (standalone) -->
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/lp_space_3"
+                                android:layout_marginBottom="@dimen/lp_space_1"
+                                android:text="@string/label_negative_adjustment_seconds"
+                                android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+                            <EditText
+                                android:id="@+id/etRpeNegativeAdjustment"
+                                style="@style/Widget.LP.EditText.Boxed"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="number" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/lp_space_2"
+                                android:text="@string/settings_negative_adjustment_hint"
+                                android:textAppearance="@style/TextAppearance.LP.Caption" />
                         </LinearLayout>
 
-                        <!-- RPE & Timing Info Card -->
-                        <androidx.cardview.widget.CardView
+                        <!-- How Rest Timer Works -->
+                        <com.google.android.material.card.MaterialCardView
+                            style="@style/Widget.LP.Card"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="16dp"
-                            app:cardBackgroundColor="@color/fitness_accent"
-                            app:cardCornerRadius="12dp"
-                            app:cardElevation="2dp">
+                            android:layout_marginTop="@dimen/lp_space_4"
+                            android:clickable="false"
+                            android:focusable="false"
+                            app:cardBackgroundColor="?attr/lpSurfaceAlt">
 
                             <LinearLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:orientation="vertical"
-                                android:padding="16dp">
+                                android:padding="@dimen/lp_card_padding_dense">
 
                                 <TextView
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
-                                    android:text="⏱️ How Rest Timer Works"
-                                    android:textSize="16sp"
-                                    android:textStyle="bold"
-                                    android:textColor="@color/white" />
+                                    android:text="@string/title_how_rest_timer_works"
+                                    android:textAppearance="@style/TextAppearance.LP.Heading" />
 
                                 <TextView
                                     android:id="@+id/textRpeSuggestions"
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
-                                    android:layout_marginTop="12dp"
-                                    android:text="Suggested RPE values:\n• Strength: Novice 8.0, Intermediate 8.5\n• Build: Novice 7.5, Intermediate 8.0\n• Flush: Novice 7.0, Intermediate 7.5"
-                                    android:textSize="13sp"
-                                    android:textColor="@color/white"
+                                    android:layout_marginTop="@dimen/lp_space_3"
+                                    android:text="@string/settings_rpe_suggestions_text"
+                                    android:textAppearance="@style/TextAppearance.LP.Body"
                                     android:lineSpacingExtra="4dp" />
 
                                 <TextView
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
-                                    android:layout_marginTop="12dp"
-                                    android:text="Timer Calculation:"
-                                    android:textSize="14sp"
-                                    android:textStyle="bold"
-                                    android:textColor="@color/white" />
+                                    android:layout_marginTop="@dimen/lp_space_3"
+                                    android:text="@string/label_timer_calculation_title"
+                                    android:textAppearance="@style/TextAppearance.LP.Label" />
 
                                 <TextView
                                     android:id="@+id/textTimerCalculation"
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
-                                    android:layout_marginTop="8dp"
-                                    android:text="1. Start with base rest time (Heavy/Light/Custom)\n2. If RPE ≥ High Threshold: +Bonus seconds\n3. If logged RPE ≥ suggested+threshold: +Positive adjustment\n4. If logged RPE ≤ suggested-threshold: -Negative adjustment"
-                                    android:textSize="12sp"
-                                    android:textColor="@color/white"
+                                    android:layout_marginTop="@dimen/lp_space_2"
+                                    android:text="@string/settings_timer_calculation_default"
+                                    android:textAppearance="@style/TextAppearance.LP.Body"
                                     android:lineSpacingExtra="2dp" />
 
                                 <TextView
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
-                                    android:layout_marginTop="12dp"
-                                    android:text="Example: Strength intent, Intermediate, logged RPE 9.5\nBase: 180s + High RPE bonus (9.5≥9.0): +60s + Deviation (9.5-8.5=1.0): +30s = 270s total"
-                                    android:textSize="11sp"
-                                    android:textColor="@color/white"
-                                    android:fontFamily="monospace"
+                                    android:layout_marginTop="@dimen/lp_space_3"
+                                    android:text="@string/settings_timer_calculation_example"
+                                    android:textAppearance="@style/TextAppearance.LP.Metric.S"
                                     android:lineSpacingExtra="2dp" />
                             </LinearLayout>
-                        </androidx.cardview.widget.CardView>
+                        </com.google.android.material.card.MaterialCardView>
                     </LinearLayout>
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
 
-            <!-- Deload Settings Card -->
-            <androidx.cardview.widget.CardView
+            <!-- DELOAD DETECTION CARD -->
+            <com.google.android.material.card.MaterialCardView
                 android:id="@+id/card_deload"
+                style="@style/Widget.LP.Card.Dense"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                app:cardBackgroundColor="@color/fitness_card_background"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="4dp"
-                app:layout_constraintTop_toBottomOf="@id/card_rest_timer">
+                android:layout_marginTop="@dimen/lp_section_gap_dense"
+                android:clickable="false"
+                android:focusable="false">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
+                    android:orientation="vertical">
 
-                    <!-- Collapsible Header -->
+                    <!-- Collapsible header -->
                     <LinearLayout
                         android:id="@+id/header_deload"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical"
+                        android:background="?attr/selectableItemBackground"
                         android:clickable="true"
                         android:focusable="true"
-                        android:foreground="?attr/selectableItemBackground"
-                        android:paddingVertical="4dp">
+                        android:gravity="center_vertical"
+                        android:minHeight="@dimen/lp_row_min_height"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="@dimen/lp_card_padding_dense"
+                        android:paddingVertical="@dimen/lp_space_3">
 
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="⚠️ Deload Detection"
-                            android:textSize="16sp"
-                            android:textStyle="bold"
-                            android:textColor="@color/fitness_text_primary" />
+                            android:text="@string/settings_deload_title"
+                            android:textAppearance="@style/TextAppearance.LP.Heading" />
 
                         <ImageView
                             android:id="@+id/icon_expand_deload"
                             android:layout_width="24dp"
                             android:layout_height="24dp"
-                            android:src="@drawable/ic_arrow_back_24"
+                            android:contentDescription="@string/cd_expand_collapse_section"
                             android:rotation="270"
-                            android:contentDescription="Expand or collapse section"
-                            app:tint="@color/fitness_text_secondary" />
+                            android:src="@drawable/ic_arrow_back_24"
+                            app:tint="?attr/lpInkTertiary" />
                     </LinearLayout>
 
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="Recommends recovery weeks when you've had too many hard sessions"
-                        android:textSize="12sp"
-                        android:textColor="@color/fitness_text_secondary" />
+                        android:paddingHorizontal="@dimen/lp_card_padding_dense"
+                        android:paddingBottom="@dimen/lp_space_3"
+                        android:text="@string/settings_deload_description"
+                        android:textAppearance="@style/TextAppearance.LP.Body" />
 
-                    <!-- Expandable Content -->
+                    <!-- Expandable content -->
                     <LinearLayout
                         android:id="@+id/content_deload"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:orientation="vertical">
+                        android:orientation="vertical"
+                        android:paddingHorizontal="@dimen/lp_card_padding_dense"
+                        android:paddingBottom="@dimen/lp_card_padding_dense">
 
-                        <com.google.android.material.textfield.TextInputLayout
+                        <!-- Consecutive hard sessions / High RPE threshold -->
+                        <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:hint="Consecutive Hard Sessions"
-                            app:boxBackgroundMode="outline"
-                            app:boxStrokeColor="@color/fitness_primary"
-                            app:hintTextColor="@color/fitness_primary">
+                            android:baselineAligned="false"
+                            android:orientation="horizontal">
 
-                            <com.google.android.material.textfield.TextInputEditText
-                                android:id="@+id/etDeloadThreshold"
-                                android:layout_width="match_parent"
+                            <LinearLayout
+                                android:layout_width="0dp"
                                 android:layout_height="wrap_content"
-                                android:inputType="number"
-                                android:textColor="@color/fitness_text_primary" />
-                        </com.google.android.material.textfield.TextInputLayout>
+                                android:layout_marginEnd="@dimen/lp_card_gap_dense"
+                                android:layout_weight="1"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginBottom="@dimen/lp_space_1"
+                                    android:text="@string/label_consecutive_hard_sessions"
+                                    android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+                                <EditText
+                                    android:id="@+id/etDeloadThreshold"
+                                    style="@style/Widget.LP.EditText.Boxed"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:inputType="number" />
+                            </LinearLayout>
+
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginBottom="@dimen/lp_space_1"
+                                    android:text="@string/label_high_rpe_threshold"
+                                    android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+                                <EditText
+                                    android:id="@+id/etDeloadRPE"
+                                    style="@style/Widget.LP.EditText.Boxed"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:inputType="numberDecimal" />
+                            </LinearLayout>
+                        </LinearLayout>
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
-                            android:text="Trigger deload after N hard sessions (default: 3)"
-                            android:textSize="12sp"
-                            android:textColor="@color/fitness_text_secondary" />
-
-                        <com.google.android.material.textfield.TextInputLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="12dp"
-                            android:hint="High RPE Threshold"
-                            app:boxBackgroundMode="outline"
-                            app:boxStrokeColor="@color/fitness_primary"
-                            app:hintTextColor="@color/fitness_primary">
-
-                            <com.google.android.material.textfield.TextInputEditText
-                                android:id="@+id/etDeloadRPE"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:inputType="numberDecimal"
-                                android:textColor="@color/fitness_text_primary" />
-                        </com.google.android.material.textfield.TextInputLayout>
+                            android:layout_marginTop="@dimen/lp_space_1"
+                            android:text="@string/settings_deload_threshold_hint"
+                            android:textAppearance="@style/TextAppearance.LP.Caption" />
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
-                            android:text="What counts as 'hard' (default: 9.0)"
-                            android:textSize="12sp"
-                            android:textColor="@color/fitness_text_secondary" />
+                            android:text="@string/settings_deload_rpe_hint"
+                            android:textAppearance="@style/TextAppearance.LP.Caption" />
 
                     </LinearLayout>
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
 
-            <!-- Action Buttons -->
+            <!-- ACTION BUTTONS -->
             <LinearLayout
                 android:id="@+id/layout_buttons"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                android:layout_marginBottom="24dp"
-                android:orientation="horizontal"
+                android:layout_marginTop="@dimen/lp_space_6"
                 android:baselineAligned="false"
-                app:layout_constraintTop_toBottomOf="@id/card_deload">
+                android:orientation="horizontal">
 
-                <androidx.cardview.widget.CardView
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnResetDefaults"
+                    style="@style/Widget.LP.Button.Outlined"
                     android:layout_width="0dp"
-                    android:layout_height="60dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="@dimen/lp_card_gap_dense"
                     android:layout_weight="1"
-                    android:layout_marginEnd="8dp"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:foreground="?attr/selectableItemBackground"
-                    app:cardBackgroundColor="@color/fitness_card_background"
-                    app:cardCornerRadius="20dp"
-                    app:cardElevation="2dp">
+                    android:text="@string/btn_reset_defaults" />
 
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:text="Reset to Defaults"
-                        android:textColor="@color/fitness_text_primary"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
-                </androidx.cardview.widget.CardView>
-
-                <androidx.cardview.widget.CardView
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnSave"
+                    style="@style/Widget.LP.Button"
                     android:layout_width="0dp"
-                    android:layout_height="60dp"
+                    android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:layout_marginStart="8dp"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:foreground="?attr/selectableItemBackground"
-                    app:cardBackgroundColor="@color/fitness_primary"
-                    app:cardCornerRadius="20dp"
-                    app:cardElevation="4dp">
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:text="Save Settings"
-                        android:textColor="@color/white"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
-                </androidx.cardview.widget.CardView>
+                    android:text="@string/btn_save_settings" />
             </LinearLayout>
 
-        </androidx.constraintlayout.widget.ConstraintLayout>
+        </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 </androidx.constraintlayout.widget.ConstraintLayout>

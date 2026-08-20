@@ -3,21 +3,27 @@ package com.liftpath.adapters
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageButton
 import android.widget.TextView
 import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.RecyclerView
 import com.liftpath.R
+import com.liftpath.helpers.DurationHelper
 import com.liftpath.helpers.JsonHelper
+import com.liftpath.helpers.RestTimerHelper
+import com.liftpath.helpers.SetMetrics
 import com.liftpath.helpers.WorkoutComparisonHelper
 import com.liftpath.models.SetIntent
 import com.liftpath.models.TrainingSession
 import java.text.SimpleDateFormat
 import java.util.*
+import com.liftpath.helpers.lpColor
 
 class SessionComparisonAdapter(
     private var sessions: List<TrainingSession>,
     private val onSessionClick: (TrainingSession) -> Unit,
-    private val allSessions: List<TrainingSession> = emptyList()
+    private val allSessions: List<TrainingSession> = emptyList(),
+    private val onViewReportClick: (TrainingSession) -> Unit = {}
 ) : RecyclerView.Adapter<SessionComparisonAdapter.SessionViewHolder>() {
 
     private val dateFormat = SimpleDateFormat("yyyy/MM/dd", Locale.getDefault())
@@ -56,6 +62,8 @@ class SessionComparisonAdapter(
         private val textVolume: TextView = itemView.findViewById(R.id.text_volume)
         private val textExercises: TextView = itemView.findViewById(R.id.text_exercises)
         private val textPrs: TextView = itemView.findViewById(R.id.text_prs)
+        private val textSessionSummary: TextView = itemView.findViewById(R.id.text_session_summary)
+        private val buttonViewReport: ImageButton = itemView.findViewById(R.id.button_view_report)
 
         fun bind(session: TrainingSession) {
             // Parse date
@@ -75,17 +83,16 @@ class SessionComparisonAdapter(
             textIntentBadge.text = dominantIntent.displayName.uppercase()
             textIntentBadge.backgroundTintList = android.content.res.ColorStateList.valueOf(
                 when (dominantIntent) {
-                    SetIntent.STRENGTH -> itemView.context.getColor(R.color.intent_strength)
-                    SetIntent.BUILD -> itemView.context.getColor(R.color.intent_build)
-                    SetIntent.FLUSH -> itemView.context.getColor(R.color.intent_flush)
-                    else -> itemView.context.getColor(R.color.fitness_primary)
+                    SetIntent.STRENGTH -> itemView.context.lpColor(R.attr.lpIntentStrength)
+                    SetIntent.BUILD -> itemView.context.lpColor(R.attr.lpIntentBuild)
+                    SetIntent.FLUSH -> itemView.context.lpColor(R.attr.lpIntentFlush)
+                    else -> itemView.context.lpColor(R.attr.lpAccent)
                 }
             )
 
-            // Volume
-            val totalVolume = session.exercises
-                .filterNot { it.isWarmup }
-                .sumOf { (it.kg * it.reps).toDouble() }
+            // Volume (warmups excluded, matching every other volume figure in the app)
+            val workingSets = SetMetrics.workingSets(session)
+            val totalVolume = SetMetrics.totalVolumeKg(workingSets)
             textVolume.text = String.format(Locale.US, "%,.0fkg", totalVolume)
 
             // Exercises count
@@ -104,8 +111,31 @@ class SessionComparisonAdapter(
             }
             textPrs.text = prCount.toString()
 
+            // Sets / Avg RPE / Duration / hold-time summary line
+            val totalSets = session.exercises.size
+            val rpeValues = session.exercises.mapNotNull { it.rpe }
+            val avgRpeText = if (rpeValues.isNotEmpty()) {
+                String.format(Locale.US, "%.1f", rpeValues.average())
+            } else {
+                "N/A"
+            }
+            val durationText = session.durationSeconds?.let { DurationHelper.formatDuration(it) } ?: "N/A"
+            val holdSeconds = SetMetrics.totalHoldSeconds(workingSets)
+            val summaryParts = mutableListOf(
+                "$totalSets set${if (totalSets != 1) "s" else ""}",
+                "Avg RPE $avgRpeText",
+                durationText
+            )
+            if (holdSeconds > 0) {
+                summaryParts.add(RestTimerHelper.formatHoldTotal(holdSeconds))
+            }
+            textSessionSummary.text = summaryParts.joinToString(" • ")
+
             itemView.setOnClickListener {
                 onSessionClick(session)
+            }
+            buttonViewReport.setOnClickListener {
+                onViewReportClick(session)
             }
         }
     }

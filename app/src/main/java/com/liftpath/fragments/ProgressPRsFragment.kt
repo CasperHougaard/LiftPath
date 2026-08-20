@@ -54,6 +54,7 @@ class ProgressPRsFragment : Fragment() {
                 R.id.chip_strength_pr -> PRType.WEIGHT
                 R.id.chip_volume_pr -> PRType.VOLUME
                 R.id.chip_1rm_pr -> PRType.ONE_RM
+                R.id.chip_hold_pr -> PRType.TIME_HOLD
                 else -> null
             }
             loadPRData()
@@ -84,6 +85,7 @@ class ProgressPRsFragment : Fragment() {
                     PRType.WEIGHT -> summary.bestWeight != null
                     PRType.VOLUME -> summary.bestVolume != null
                     PRType.ONE_RM -> summary.best1RM != null
+                    PRType.TIME_HOLD -> summary.bestHoldSeconds != null
                     else -> true
                 }
             }

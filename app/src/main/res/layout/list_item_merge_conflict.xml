@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    style="@style/Widget.LP.Card"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginBottom="8dp"
-    app:cardBackgroundColor="@color/fitness_card_background"
-    app:cardCornerRadius="12dp"
-    app:cardElevation="2dp">
+    app:cardCornerRadius="@dimen/lp_radius_sm">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -27,9 +26,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:textColor="@color/fitness_text_primary"
-                android:textSize="16sp"
-                android:textStyle="bold"
+                android:textAppearance="@style/TextAppearance.LP.Heading"
                 tools:text="Bench Press (Barbell)" />
 
             <ImageView
@@ -42,7 +39,7 @@
                 android:foreground="?attr/selectableItemBackgroundBorderless"
                 android:padding="2dp"
                 android:src="@drawable/ic_info_outline_24"
-                app:tint="@color/fitness_text_secondary" />
+                app:tint="?attr/lpInkSecondary" />
         </LinearLayout>
 
         <TextView
@@ -51,9 +48,8 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:text="@string/label_conflict_exercise_badge"
-            android:textColor="@color/fitness_accent"
-            android:textSize="12sp"
-            android:textStyle="bold" />
+            android:textAppearance="@style/TextAppearance.LP.Label"
+            android:textColor="?attr/lpAccent" />
 
         <TextView
             android:id="@+id/text_conflict_hint"
@@ -61,8 +57,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:text="@string/subtitle_library_update_conflict"
-            android:textColor="@color/fitness_text_secondary"
-            android:textSize="13sp" />
+            android:textAppearance="@style/TextAppearance.LP.Body" />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -80,7 +75,7 @@
                 android:layout_weight="1"
                 android:text="@string/button_keep_local"
                 android:textAllCaps="false"
-                app:strokeColor="@color/fitness_primary" />
+                app:strokeColor="?attr/lpAccent" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/button_use_catalog"
@@ -91,7 +86,7 @@
                 android:layout_weight="1"
                 android:text="@string/button_use_catalog"
                 android:textAllCaps="false"
-                app:strokeColor="@color/fitness_primary" />
+                app:strokeColor="?attr/lpAccent" />
         </LinearLayout>
     </LinearLayout>
-</androidx.cardview.widget.CardView>
+</com.google.android.material.card.MaterialCardView>

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  PALETTE: Steel & Signal — DARK
+
+  Cool graphite near-black. Signal orange is the one accent across all four palettes
+  that needs almost no adjustment for dark — it lifts slightly to #FF7A52 to stay
+  comfortable rather than glaring against near-black.
+-->
+<resources>
+
+    <color name="steel_canvas">#0E1013</color>
+    <color name="steel_canvas_sunken">#090A0C</color>
+    <color name="steel_surface">#171A1E</color>
+    <color name="steel_surface_alt">#1F2328</color>
+
+    <color name="steel_hairline">#292E34</color>
+    <color name="steel_hairline_strong">#3C424A</color>
+
+    <color name="steel_ink">#F1F3F5</color>
+    <color name="steel_ink_secondary">#99A0A8</color>
+    <color name="steel_ink_tertiary">#697079</color>
+    <color name="steel_ink_inverse">#0E1013</color>
+    <color name="steel_ink_inverse_secondary">#4C525A</color>
+
+    <color name="steel_accent">#FF7A52</color>
+    <color name="steel_accent_pressed">#E3603A</color>
+    <color name="steel_accent_wash">#2B1712</color>
+
+    <color name="steel_positive">#6FB894</color>
+    <color name="steel_negative">#E0796A</color>
+    <color name="steel_neutral">#838A91</color>
+
+    <color name="steel_intent_strength">#E0796A</color>
+    <color name="steel_intent_build">#D9A94A</color>
+    <color name="steel_intent_flush">#6FB894</color>
+    <color name="steel_intent_warmup">#838A91</color>
+
+    <color name="steel_chart_volume">#6FB894</color>
+    <color name="steel_chart_rpe">#D9A94A</color>
+    <color name="steel_chart_time">#7DA6CC</color>
+    <color name="steel_chart_fatigue">#E0796A</color>
+    <color name="steel_chart_grid">#22262B</color>
+
+    <color name="steel_ripple">#1AF1F3F5</color>
+    <color name="steel_ripple_inverse">#220E1013</color>
+
+</resources>

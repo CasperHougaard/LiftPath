@@ -15,12 +15,11 @@ import com.liftpath.databinding.ActivitySelectExerciseBinding
 import android.os.Handler
 import android.os.Looper
 import android.view.View
-import android.webkit.WebChromeClient
-import android.webkit.WebView
-import android.webkit.WebViewClient
 import androidx.core.view.isVisible
 import com.liftpath.helpers.JsonHelper
 import com.liftpath.helpers.MuscleActivationHelper
+import com.liftpath.helpers.MuscleMapColorResolver
+import com.liftpath.helpers.MuscleMapRenderer
 import com.liftpath.models.BodyRegion
 import com.liftpath.models.ExerciseFamily
 import com.liftpath.models.ExerciseLibraryItem
@@ -65,7 +64,6 @@ class SelectExerciseActivity : AppCompatActivity() {
     private var muscleActivationState: MuscleActivationHelper.MuscleActivationState? = null
     private var missingMusclesState: MuscleActivationHelper.MuscleActivationState? = null
     private var isMuscleOverviewExpanded: Boolean = false
-    private var isWebViewReady: Boolean = false
     
     // Coroutine scope for background loading
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
@@ -315,53 +313,17 @@ class SelectExerciseActivity : AppCompatActivity() {
         binding.layoutMuscleOverviewHeader.setOnClickListener {
             toggleMuscleOverview()
         }
-        
-        // Set up WebView
-        binding.webviewMuscleOverview.settings.apply {
-            javaScriptEnabled = true
-            useWideViewPort = true
-            loadWithOverviewMode = true
-            allowFileAccess = true
-            allowContentAccess = true
-            allowFileAccessFromFileURLs = true
-            allowUniversalAccessFromFileURLs = true
-        }
-        binding.webviewMuscleOverview.setBackgroundColor(android.graphics.Color.TRANSPARENT)
-        
-        binding.webviewMuscleOverview.webChromeClient = object : WebChromeClient() {
-            override fun onConsoleMessage(consoleMessage: android.webkit.ConsoleMessage?): Boolean {
-                consoleMessage?.let {
-                    android.util.Log.d("MuscleOverview", 
-                        "${it.message()} -- From line ${it.lineNumber()} of ${it.sourceId()}")
-                }
-                return true
-            }
-        }
-        
-        binding.webviewMuscleOverview.webViewClient = object : WebViewClient() {
-            override fun onPageFinished(view: WebView?, url: String?) {
-                super.onPageFinished(view, url)
-                isWebViewReady = true
-                binding.progressMuscleOverview.visibility = View.GONE
-                if (isMuscleOverviewExpanded) {
-                    updateMuscleMap()
-                }
-            }
-        }
-        
-        // Load WebView eagerly (as per plan requirement)
-        binding.webviewMuscleOverview.loadUrl("file:///android_asset/muscle_map.html")
+        binding.progressMuscleOverview.visibility = View.GONE
     }
-    
+
     private fun toggleMuscleOverview() {
         isMuscleOverviewExpanded = !isMuscleOverviewExpanded
-        
+
         if (isMuscleOverviewExpanded) {
             binding.layoutMuscleOverviewContent.visibility = View.VISIBLE
             binding.imageMuscleOverviewExpand.rotation = 180f
-            
-            // Update muscle map if WebView is ready and we have data
-            if (isWebViewReady && muscleActivationState != null) {
+
+            if (muscleActivationState != null) {
                 updateMuscleMap()
             }
         } else {
@@ -369,7 +331,7 @@ class SelectExerciseActivity : AppCompatActivity() {
             binding.imageMuscleOverviewExpand.rotation = 0f
         }
     }
-    
+
     private fun updateMuscleOverviewBadge() {
         val activated = muscleActivationState
         if (activated != null) {
@@ -380,60 +342,34 @@ class SelectExerciseActivity : AppCompatActivity() {
             binding.textMuscleOverviewBadge.text = "0/24"
         }
     }
-    
+
     private fun updateMuscleMap() {
-        if (!isWebViewReady || muscleActivationState == null) {
-            return
-        }
-        
-        val activated = muscleActivationState!!
-        
+        val activated = muscleActivationState ?: return
+
         // Show empty state if no muscles activated
         if (activated.isEmpty()) {
             binding.textMuscleOverviewEmpty.visibility = View.VISIBLE
-            binding.webviewMuscleOverview.visibility = View.GONE
+            binding.imageMuscleOverview.visibility = View.GONE
             return
         }
-        
+
         binding.textMuscleOverviewEmpty.visibility = View.GONE
-        binding.webviewMuscleOverview.visibility = View.VISIBLE
-        
-        // Convert muscle sets to JavaScript arrays
-        val primaryArray = activated.primaryMuscles.joinToString(
-            prefix = "[",
-            postfix = "]",
-            separator = ", "
-        ) { "'${it.name}'" }
-        
-        val secondaryArray = activated.secondaryMuscles.joinToString(
-            prefix = "[",
-            postfix = "]",
-            separator = ", "
-        ) { "'${it.name}'" }
-        
-        // Call JavaScript setHighlights function
-        val jsCode = """
-            (function() {
-                try {
-                    if (typeof setHighlights === 'function') {
-                        setHighlights($primaryArray, $secondaryArray);
-                        return 'setHighlights called';
-                    } else if (typeof window.setHighlights === 'function') {
-                        window.setHighlights($primaryArray, $secondaryArray);
-                        return 'window.setHighlights called';
-                    } else {
-                        console.error('setHighlights function not found!');
-                        return 'ERROR: setHighlights not found';
-                    }
-                } catch (e) {
-                    console.error('Error calling setHighlights:', e);
-                    return 'ERROR: ' + e.message;
-                }
-            })();
-        """.trimIndent()
-        
-        binding.webviewMuscleOverview.evaluateJavascript(jsCode) { result ->
-            android.util.Log.d("MuscleOverview", "JavaScript result: $result")
+        binding.imageMuscleOverview.visibility = View.VISIBLE
+
+        scope.launch {
+            val muscleRoles = MuscleMapColorResolver.resolveHighlightColors(
+                activated.primaryMuscles, activated.secondaryMuscles
+            )
+            val maskRoles = MuscleMapColorResolver.flattenToMaskCategories(
+                muscleRoles, rank = MuscleMapColorResolver::highlightRank
+            )
+            val maskColors = maskRoles.map { (maskResId, role) ->
+                maskResId to MuscleMapColorResolver.colorFor(this@SelectExerciseActivity, role)
+            }
+            val bitmap = withContext(Dispatchers.Default) {
+                MuscleMapRenderer.render(this@SelectExerciseActivity, maskColors)
+            }
+            binding.imageMuscleOverview.setImageBitmap(bitmap)
         }
     }
 

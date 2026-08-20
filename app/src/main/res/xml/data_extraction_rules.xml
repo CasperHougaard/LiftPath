@@ -1,29 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-   Data extraction rules for Android 12+ (API 31+)
-   Controls what gets backed up to cloud and transferred between devices
+   Data extraction rules for Android 12+ (API 31+).
+
+   Cloud backup sees only files/cloud_backup/ (CloudSnapshotStore's gzipped, curated
+   snapshot — see BackupManager.kt) — never the raw files/prefs directly. A single
+   <include> makes the "file" domain allow-list-only, so training_data.json,
+   pre_restore_backup.json etc. at the filesDir root are excluded without a separate rule.
+   "sharedpref" gets no <include>, so its <exclude> is what fully excludes it (a domain
+   with zero rules defaults to fully included).
+
+   Device-transfer (same app version, phone-to-phone, no quota concern) copies everything
+   raw for speed and completeness.
+
    See https://developer.android.com/about/versions/12/backup-restore#xml-changes
 -->
 <data-extraction-rules>
     <cloud-backup>
-        <!-- Include all files (training_data.json is stored here) -->
-        <include domain="file" path="."/>
-        
-        <!-- Include all SharedPreferences (user settings) -->
-        <include domain="sharedpref" path="."/>
-        
-        <!-- Include databases if any -->
-        <include domain="database" path="."/>
-        
-        <!-- Exclude cache directory (temporary files) -->
-        <exclude domain="file" path="cache/"/>
+        <include domain="file" path="cloud_backup/"/>
+        <exclude domain="sharedpref" path="."/>
     </cloud-backup>
-    
+
     <device-transfer>
-        <!-- Same rules for device-to-device transfer -->
         <include domain="file" path="."/>
         <include domain="sharedpref" path="."/>
-        <include domain="database" path="."/>
-        <exclude domain="file" path="cache/"/>
     </device-transfer>
 </data-extraction-rules>

@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/fitness_background"
+    android:background="?attr/lpCanvas"
     android:fitsSystemWindows="true"
     tools:context=".activities.ReadinessCalibrationActivity">
 
@@ -18,7 +18,8 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/avd_background_flow" />
+        app:srcCompat="@drawable/lp_bg_ambient_flow"
+        app:tint="?attr/lpAccent" />
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
@@ -33,7 +34,7 @@
             android:clipChildren="false"
             android:clipToPadding="false"
             android:orientation="vertical"
-            android:padding="24dp">
+            android:padding="@dimen/lp_space_6">
 
             <!-- HEADER -->
             <LinearLayout
@@ -43,114 +44,103 @@
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
-                <androidx.cardview.widget.CardView
+                <com.google.android.material.card.MaterialCardView
                     android:id="@+id/button_back"
+                    style="@style/Widget.LP.Card.Control"
                     android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:foreground="?attr/selectableItemBackground"
-                    app:cardBackgroundColor="@color/fitness_card_background"
-                    app:cardCornerRadius="24dp"
-                    app:cardElevation="0dp">
+                    android:layout_height="48dp">
 
                     <ImageButton
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:background="@android:color/transparent"
-                        android:contentDescription="Back"
-                        android:padding="12dp"
+                        android:clickable="false"
+                        android:contentDescription="@string/progress_back_content_description"
+                        android:focusable="false"
+                        android:padding="@dimen/lp_space_3"
                         android:src="@drawable/ic_arrow_back_24"
-                        app:tint="@color/fitness_text_primary" />
-                </androidx.cardview.widget.CardView>
+                        app:tint="?attr/lpInk" />
+                </com.google.android.material.card.MaterialCardView>
 
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="16dp"
+                    android:layout_marginStart="@dimen/lp_space_4"
                     android:layout_weight="1"
                     android:orientation="vertical">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Readiness Calibration"
-                        android:textColor="@color/fitness_text_primary"
-                        android:textSize="26sp"
-                        android:textStyle="bold" />
+                        android:text="@string/readiness_calibration_title"
+                        android:textAppearance="@style/TextAppearance.LP.Title" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="Customize recovery calculations for your body"
-                        android:textColor="@color/fitness_text_secondary"
-                        android:textSize="14sp" />
+                        android:layout_marginTop="@dimen/lp_space_1"
+                        android:text="@string/readiness_calibration_subtitle"
+                        android:textAppearance="@style/TextAppearance.LP.Body" />
                 </LinearLayout>
             </LinearLayout>
 
             <!-- SECTION A: MY PHYSIOLOGY -->
-            <androidx.cardview.widget.CardView
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.LP.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                app:cardBackgroundColor="@color/fitness_card_background"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="4dp">
+                android:layout_marginTop="@dimen/lp_space_6"
+                android:clickable="false"
+                android:focusable="false">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="20dp">
+                    android:padding="@dimen/lp_card_padding">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="My Physiology"
-                        android:textColor="@color/fitness_text_primary"
-                        android:textSize="18sp"
-                        android:textStyle="bold" />
+                        android:text="@string/readiness_physiology_title"
+                        android:textAppearance="@style/TextAppearance.LP.Heading" />
 
                     <!-- Recovery Speed -->
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="20dp"
-                        android:text="Recovery Speed"
-                        android:textColor="@color/fitness_text_primary"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
+                        android:layout_marginTop="@dimen/lp_space_5"
+                        android:text="@string/readiness_recovery_speed_label"
+                        android:textAppearance="@style/TextAppearance.LP.Label" />
 
                     <TextView
                         android:id="@+id/text_recovery_speed_value"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="Normal"
-                        android:textColor="@color/fitness_text_secondary"
-                        android:textSize="12sp" />
+                        android:layout_marginTop="@dimen/lp_space_1"
+                        android:text="@string/readiness_recovery_speed_normal_placeholder"
+                        android:textAppearance="@style/TextAppearance.LP.Label"
+                        android:textColor="?attr/lpInkSecondary" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
+                        android:layout_marginTop="@dimen/lp_space_2"
                         android:orientation="horizontal"
                         android:gravity="center_vertical">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Slow (Cautious)"
-                            android:textColor="@color/fitness_text_secondary"
-                            android:textSize="12sp" />
+                            android:text="@string/readiness_recovery_speed_slow_label"
+                            android:textAppearance="@style/TextAppearance.LP.Caption" />
 
                         <SeekBar
                             android:id="@+id/seekbar_recovery_speed"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="16dp"
-                            android:layout_marginEnd="16dp"
+                            android:layout_marginStart="@dimen/lp_space_4"
+                            android:layout_marginEnd="@dimen/lp_space_4"
                             android:layout_weight="1"
                             android:max="2"
                             android:progress="1" />
@@ -158,57 +148,51 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Fast (Athlete)"
-                            android:textColor="@color/fitness_text_secondary"
-                            android:textSize="12sp" />
+                            android:text="@string/readiness_recovery_speed_fast_label"
+                            android:textAppearance="@style/TextAppearance.LP.Caption" />
                     </LinearLayout>
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="Adjusts recovery time multiplier (0.8x, 1.0x, 1.2x)"
-                        android:textColor="@color/fitness_text_secondary"
-                        android:textSize="12sp" />
+                        android:layout_marginTop="@dimen/lp_space_2"
+                        android:text="@string/readiness_recovery_speed_hint"
+                        android:textAppearance="@style/TextAppearance.LP.Caption" />
 
                     <!-- Default RPE -->
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="24dp"
-                        android:text="Default RPE"
-                        android:textColor="@color/fitness_text_primary"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
+                        android:layout_marginTop="@dimen/lp_space_6"
+                        android:text="@string/readiness_default_rpe_title"
+                        android:textAppearance="@style/TextAppearance.LP.Label" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="Assume this intensity for workouts where I forgot to log RPE."
-                        android:textColor="@color/fitness_text_secondary"
-                        android:textSize="12sp" />
+                        android:layout_marginTop="@dimen/lp_space_1"
+                        android:text="@string/readiness_default_rpe_description"
+                        android:textAppearance="@style/TextAppearance.LP.Caption" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
+                        android:layout_marginTop="@dimen/lp_space_2"
                         android:orientation="horizontal"
                         android:gravity="center_vertical">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="1"
-                            android:textColor="@color/fitness_text_secondary"
-                            android:textSize="12sp" />
+                            android:text="@string/readiness_rpe_scale_min"
+                            android:textAppearance="@style/TextAppearance.LP.Caption" />
 
                         <SeekBar
                             android:id="@+id/seekbar_default_rpe"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="16dp"
-                            android:layout_marginEnd="16dp"
+                            android:layout_marginStart="@dimen/lp_space_4"
+                            android:layout_marginEnd="@dimen/lp_space_4"
                             android:layout_weight="1"
                             android:max="9"
                             android:progress="6" />
@@ -216,78 +200,70 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="10"
-                            android:textColor="@color/fitness_text_secondary"
-                            android:textSize="12sp" />
+                            android:text="@string/readiness_rpe_scale_max"
+                            android:textAppearance="@style/TextAppearance.LP.Caption" />
                     </LinearLayout>
 
                     <TextView
                         android:id="@+id/text_default_rpe_value"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="7.0"
-                        android:textColor="@color/fitness_text_primary"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
+                        android:layout_marginTop="@dimen/lp_space_2"
+                        android:text="@string/readiness_default_rpe_placeholder"
+                        android:textAppearance="@style/TextAppearance.LP.Metric.M" />
 
                     <!-- Training Experience -->
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="24dp"
-                        android:text="Training Experience"
-                        android:textColor="@color/fitness_text_primary"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
+                        android:layout_marginTop="@dimen/lp_space_6"
+                        android:text="@string/readiness_training_experience_title"
+                        android:textAppearance="@style/TextAppearance.LP.Label" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="Adjusts fatigue thresholds (Novice: 40, Intermediate: 50, Advanced: 60)"
-                        android:textColor="@color/fitness_text_secondary"
-                        android:textSize="12sp" />
+                        android:layout_marginTop="@dimen/lp_space_1"
+                        android:text="@string/readiness_training_experience_hint"
+                        android:textAppearance="@style/TextAppearance.LP.Caption" />
 
                     <Spinner
                         android:id="@+id/spinner_training_experience"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:padding="16dp"
+                        android:layout_marginTop="@dimen/lp_space_2"
+                        android:padding="@dimen/lp_space_4"
                         android:background="@drawable/spinner_background"
-                        android:textColor="@color/fitness_text_primary" />
+                        android:textColor="?attr/lpInk" />
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
 
             <!-- SECTION B: SAFETY GUARDRAILS -->
-            <androidx.cardview.widget.CardView
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.LP.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                app:cardBackgroundColor="@color/fitness_card_background"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="4dp">
+                android:layout_marginTop="@dimen/lp_space_3"
+                android:clickable="false"
+                android:focusable="false">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="20dp">
+                    android:padding="@dimen/lp_card_padding">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Safety Guardrails"
-                        android:textColor="@color/fitness_text_primary"
-                        android:textSize="18sp"
-                        android:textStyle="bold" />
+                        android:text="@string/readiness_safety_guardrails_title"
+                        android:textAppearance="@style/TextAppearance.LP.Heading" />
 
                     <!-- Strict Run Blocking -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="20dp"
+                        android:layout_marginTop="@dimen/lp_space_5"
                         android:orientation="horizontal"
                         android:gravity="center_vertical">
 
@@ -300,33 +276,31 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Strict Run Blocking"
-                                android:textColor="@color/fitness_text_primary"
-                                android:textSize="14sp"
-                                android:textStyle="bold" />
+                                android:text="@string/readiness_strict_run_blocking_title"
+                                android:textAppearance="@style/TextAppearance.LP.Label" />
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="4dp"
-                                android:text="If ON, strictly block Running when Leg Fatigue is high to prevent injury. If OFF, allow 'Easy Runs' even with fatigue."
-                                android:textColor="@color/fitness_text_secondary"
-                                android:textSize="12sp" />
+                                android:layout_marginTop="@dimen/lp_space_1"
+                                android:text="@string/readiness_strict_run_blocking_description"
+                                android:textAppearance="@style/TextAppearance.LP.Caption" />
                         </LinearLayout>
 
-                        <androidx.appcompat.widget.SwitchCompat
+                        <com.google.android.material.materialswitch.MaterialSwitch
                             android:id="@+id/switch_strict_run_blocking"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="16dp"
-                            android:checked="true" />
+                            android:layout_marginStart="@dimen/lp_space_4"
+                            android:checked="true"
+                            app:showText="false" />
                     </LinearLayout>
 
                     <!-- Weekend Warrior Mode -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="24dp"
+                        android:layout_marginTop="@dimen/lp_space_6"
                         android:orientation="horizontal"
                         android:gravity="center_vertical">
 
@@ -339,59 +313,44 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Ignore Fatigue on Weekends"
-                                android:textColor="@color/fitness_text_primary"
-                                android:textSize="14sp"
-                                android:textStyle="bold" />
+                                android:text="@string/readiness_ignore_weekends_title"
+                                android:textAppearance="@style/TextAppearance.LP.Label" />
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="4dp"
-                                android:text="Disable warnings on Saturday/Sunday (allows overreaching)."
-                                android:textColor="@color/fitness_text_secondary"
-                                android:textSize="12sp" />
+                                android:layout_marginTop="@dimen/lp_space_1"
+                                android:text="@string/readiness_ignore_weekends_description"
+                                android:textAppearance="@style/TextAppearance.LP.Caption" />
                         </LinearLayout>
 
-                        <androidx.appcompat.widget.SwitchCompat
+                        <com.google.android.material.materialswitch.MaterialSwitch
                             android:id="@+id/switch_ignore_weekends"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="16dp"
-                            android:checked="false" />
+                            android:layout_marginStart="@dimen/lp_space_4"
+                            android:checked="false"
+                            app:showText="false" />
                     </LinearLayout>
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
 
-            <!-- RESET BUTTON -->
-            <androidx.cardview.widget.CardView
+            <!--
+              RESET BUTTON. Previously a CardView wrapping a raw Button with an
+              accent-filled background and @color/white text — both are contract
+              violations (accent is a sparse highlight, not a CTA fill; @color/white
+              cannot follow the palette). Widget.LP.Button already supplies the
+              ink-fill + inverse-text treatment directly, so the wrapping card is
+              dropped rather than re-themed.
+            -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/button_reset"
+                style="@style/Widget.LP.Button"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                app:cardBackgroundColor="@color/fitness_card_background"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="4dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="20dp">
-
-                    <android.widget.Button
-                        android:id="@+id/button_reset"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Reset to Recommended"
-                        android:textColor="@color/white"
-                        android:backgroundTint="@color/fitness_accent"
-                        android:padding="16dp"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
-                </LinearLayout>
-            </androidx.cardview.widget.CardView>
+                android:layout_marginTop="@dimen/lp_space_6"
+                android:text="@string/btn_reset_to_recommended" />
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 </androidx.constraintlayout.widget.ConstraintLayout>
-
