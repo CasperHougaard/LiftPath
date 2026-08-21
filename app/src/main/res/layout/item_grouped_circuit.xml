@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  A finished circuit within a past session: name, rounds/rest summary, then one "Round N"
+  sub-header per round with its stations' set lines underneath. Kept as its own view type
+  (see TrainingDetailAdapter.VIEW_TYPE_CIRCUIT) so a circuit's stations read as one grouped
+  unit instead of being scattered alphabetically among unrelated exercises.
+-->
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    style="@style/Widget.LP.Card.Dense"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="@dimen/lp_card_gap_dense"
+    android:clickable="false"
+    android:focusable="false">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="@dimen/lp_card_padding_dense">
+
+        <!-- Title -->
+        <TextView
+            android:id="@+id/text_circuit_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="@style/TextAppearance.LP.Heading"
+            tools:text="Lower Lactate" />
+
+        <!-- Rounds / rest summary -->
+        <TextView
+            android:id="@+id/text_circuit_summary"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textAppearance="@style/TextAppearance.LP.Label"
+            android:textColor="?attr/lpInkTertiary"
+            tools:text="3 rounds · 90s rest" />
+
+        <!-- One "Round N" caption + its station lines per round, built in the adapter -->
+        <LinearLayout
+            android:id="@+id/rounds_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/lp_space_3"
+            android:orientation="vertical" />
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

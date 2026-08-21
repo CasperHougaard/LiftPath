@@ -406,6 +406,10 @@ data class ExerciseEntry(
     /** True for the warmup/cooldown "special element" log entries (sentinel IDs), not a real exercise. */
     fun isSpecialSlotEntry(): Boolean = exerciseId == WARMUP_EXERCISE_ID || exerciseId == COOLDOWN_EXERCISE_ID
 
+    /** True for a set logged as one station of a circuit round — still a normal, separately-counted
+     *  set for PRs/muscle-maps/Progress; this only flags it for later, circuit-aware filtering. */
+    fun isCircuitEntry(): Boolean = groupType == GroupType.CIRCUIT
+
     fun getEffectiveIntent(parentSessionType: String?): SetIntent {
         // Priority 1: RPE 6.0 indicates warmup for legacy data only
         if (isLegacyWarmup()) {

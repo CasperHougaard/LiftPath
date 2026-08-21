@@ -8,8 +8,12 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.View
+import android.view.ViewGroup
 import androidx.activity.addCallback
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.liftpath.R
 import com.liftpath.adapters.CircuitStationAdapter
@@ -17,8 +21,10 @@ import com.liftpath.components.CircuitRoundLogBottomSheet
 import com.liftpath.databinding.ActivityCircuitRunnerBinding
 import com.liftpath.helpers.BodyWeightHelper
 import com.liftpath.helpers.CircuitStore
+import com.liftpath.helpers.DialogHelper
 import com.liftpath.helpers.JsonHelper
 import com.liftpath.helpers.RestTimerHelper
+import com.liftpath.helpers.showWithTransparentWindow
 import com.liftpath.models.CircuitInstance
 import com.liftpath.models.CircuitItem
 import com.liftpath.models.ExerciseEntry
@@ -73,8 +79,25 @@ class CircuitRunnerActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+
         binding = ActivityCircuitRunnerBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, windowInsets ->
+            val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
+            binding.layoutHeader.setPadding(
+                binding.layoutHeader.paddingLeft,
+                insets.top + resources.getDimensionPixelSize(R.dimen.lp_gutter),
+                binding.layoutHeader.paddingRight,
+                binding.layoutHeader.paddingBottom
+            )
+            val actionsParams = binding.layoutActions.layoutParams as ViewGroup.MarginLayoutParams
+            actionsParams.bottomMargin = insets.bottom
+            binding.layoutActions.layoutParams = actionsParams
+            windowInsets
+        }
 
         val loadedInstance = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             intent.getParcelableExtra(EXTRA_CIRCUIT_INSTANCE, CircuitInstance::class.java)
@@ -110,7 +133,7 @@ class CircuitRunnerActivity : AppCompatActivity() {
         refreshStationList()
 
         binding.buttonBack.setOnClickListener { finishWithResult(markFinished = false) }
-        binding.buttonFinish.setOnClickListener { finishWithResult(markFinished = true) }
+        binding.buttonFinish.setOnClickListener { confirmFinish() }
         binding.buttonPrimary.setOnClickListener { onPrimaryClicked() }
         binding.buttonLogRound.setOnClickListener { logPendingRound() }
         binding.buttonPause.setOnClickListener { togglePause() }
@@ -324,6 +347,15 @@ class CircuitRunnerActivity : AppCompatActivity() {
                 updateRestUi()
             }
         }
+    }
+
+    private fun confirmFinish() {
+        DialogHelper.createBuilder(this)
+            .setTitle(R.string.circuit_finish_confirm_title)
+            .setMessage(getString(R.string.circuit_finish_confirm_message, instance.completedRounds))
+            .setPositiveButton(R.string.circuit_finish) { _, _ -> finishWithResult(markFinished = true) }
+            .setNegativeButton(R.string.button_cancel, null)
+            .showWithTransparentWindow()
     }
 
     private fun finishWithResult(markFinished: Boolean) {

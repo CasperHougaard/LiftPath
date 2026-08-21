@@ -8,19 +8,26 @@ import android.text.TextWatcher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.liftpath.R
 import com.liftpath.adapters.ListItem
 import com.liftpath.adapters.SelectExerciseWithPlanAdapter
 import com.liftpath.databinding.ActivitySelectExerciseBinding
 import android.os.Handler
 import android.os.Looper
+import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
+import android.widget.TextView
 import androidx.core.view.isVisible
+import com.google.android.material.card.MaterialCardView
+import com.liftpath.helpers.CircuitStore
 import com.liftpath.helpers.JsonHelper
 import com.liftpath.helpers.MuscleActivationHelper
 import com.liftpath.helpers.MuscleMapColorResolver
 import com.liftpath.helpers.MuscleMapRenderer
 import com.liftpath.models.BodyRegion
+import com.liftpath.models.CircuitTemplate
 import com.liftpath.models.ExerciseFamily
 import com.liftpath.models.ExerciseLibraryItem
 import com.liftpath.models.MovementPattern
@@ -68,12 +75,29 @@ class SelectExerciseActivity : AppCompatActivity() {
     // Coroutine scope for background loading
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
+    // Group-mode picking (Superset / Circuit) — opt-in, see EXTRA_ENABLE_GROUP_MODES.
+    private enum class PickMode { EXERCISE, SUPERSET, CIRCUIT }
+    private var enableGroupModes = false
+    private var pickMode = PickMode.EXERCISE
+    private val selectedForSuperset = mutableSetOf<Int>()
+    private var allCircuits: List<CircuitTemplate> = emptyList()
+    private lateinit var circuitAdapter: CircuitPickAdapter
+
     companion object {
         const val EXTRA_EXERCISE_ID = "extra_exercise_id"
         const val EXTRA_EXERCISE_NAME = "extra_exercise_name"
         const val EXTRA_WORKOUT_TYPE = "extra_workout_type"  // Keep for legacy compatibility
         const val EXTRA_PLAN_ID = "extra_plan_id"
         const val EXTRA_ALREADY_ADDED_EXERCISE_IDS = "extra_already_added_exercise_ids"
+        /** Opt-in: shows the Exercise/Superset/Circuit mode chips. Only the active workout's
+         *  regular add-exercise entry point sets this — every other caller of this screen wants
+         *  a plain single-exercise picker and must see no behavior change. */
+        const val EXTRA_ENABLE_GROUP_MODES = "extra_enable_group_modes"
+        /** "EXERCISE" | "SUPERSET" | "CIRCUIT". Absent means "EXERCISE" for legacy callers. */
+        const val EXTRA_RESULT_TYPE = "extra_result_type"
+        const val EXTRA_SUPERSET_EXERCISE_IDS = "extra_superset_exercise_ids"
+        const val EXTRA_SUPERSET_EXERCISE_NAMES = "extra_superset_exercise_names"
+        const val EXTRA_SELECTED_CIRCUIT_ID = "extra_selected_circuit_id"
     }
 
     private val createExerciseLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -93,6 +117,14 @@ class SelectExerciseActivity : AppCompatActivity() {
         }
     }
 
+    // Authoring a brand new circuit from within the picker: on success, reload the list in
+    // place so the circuit just saved is right there to pick — stays on screen, no auto-select.
+    private val editCircuitLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            loadCircuits()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivitySelectExerciseBinding.inflate(layoutInflater)
@@ -105,23 +137,33 @@ class SelectExerciseActivity : AppCompatActivity() {
         // Unpack Intent
         planId = intent.getStringExtra(EXTRA_PLAN_ID)
         alreadyAddedExerciseIds = intent.getIntArrayExtra(EXTRA_ALREADY_ADDED_EXERCISE_IDS)?.toSet() ?: emptySet()
-        
+        enableGroupModes = intent.getBooleanExtra(EXTRA_ENABLE_GROUP_MODES, false)
+
         // Initial Setup
         loadPlanExercises()
         setupRecyclerView()
         setupFilterChips()
         setupAdvancedFilters()
         setupMuscleOverview()
-        
+        if (enableGroupModes) {
+            setupPickModeChips()
+        }
+
         // Load workout exercises and calculate muscle activation (on background thread)
         loadWorkoutExercises()
-        
+
         // Initial Load
         loadExercises()
 
         binding.buttonCreateNewExercise.setOnClickListener {
-            val intent = Intent(this, EditExerciseActivity::class.java)
-            createExerciseLauncher.launch(intent)
+            when (pickMode) {
+                PickMode.EXERCISE -> {
+                    val intent = Intent(this, EditExerciseActivity::class.java)
+                    createExerciseLauncher.launch(intent)
+                }
+                PickMode.SUPERSET -> returnSupersetSelection()
+                PickMode.CIRCUIT -> editCircuitLauncher.launch(Intent(this, EditCircuitActivity::class.java))
+            }
         }
 
         binding.buttonBack.setOnClickListener {
@@ -155,7 +197,163 @@ class SelectExerciseActivity : AppCompatActivity() {
             }
         }
     }
-    
+
+    // --- GROUP MODES: Exercise / Superset / Circuit ---
+
+    private fun setupPickModeChips() {
+        binding.chipGroupPickMode.visibility = View.VISIBLE
+        circuitAdapter = CircuitPickAdapter(emptyList(), emptyList()) { template -> onCircuitSelected(template) }
+        loadCircuits()
+
+        binding.chipGroupPickMode.setOnCheckedStateChangeListener { _, checkedIds ->
+            val newMode = when (checkedIds.firstOrNull()) {
+                binding.chipModeSuperset.id -> PickMode.SUPERSET
+                binding.chipModeCircuit.id -> PickMode.CIRCUIT
+                else -> PickMode.EXERCISE
+            }
+            setPickMode(newMode)
+        }
+    }
+
+    private fun setPickMode(mode: PickMode) {
+        if (pickMode == mode) return
+        pickMode = mode
+        selectedForSuperset.clear()
+
+        when (mode) {
+            PickMode.EXERCISE, PickMode.SUPERSET -> {
+                binding.cardSearch.visibility = View.VISIBLE
+                binding.cardFilter.visibility = View.VISIBLE
+                binding.textCircuitListEmpty.visibility = View.GONE
+                binding.recyclerViewSelectExercise.visibility = View.VISIBLE
+                binding.recyclerViewSelectExercise.adapter = adapter
+                adapter.setSelectionMode(mode == PickMode.SUPERSET)
+                applyFilters()
+            }
+            PickMode.CIRCUIT -> {
+                binding.cardSearch.visibility = View.GONE
+                binding.cardFilter.visibility = View.GONE
+                binding.recyclerViewSelectExercise.adapter = circuitAdapter
+                refreshCircuitEmptyState()
+            }
+        }
+        updateBottomButton()
+    }
+
+    private fun updateBottomButton() {
+        when (pickMode) {
+            PickMode.EXERCISE -> {
+                binding.buttonCreateNewExercise.text = getString(R.string.button_create_new_exercise)
+                binding.buttonCreateNewExercise.isEnabled = true
+            }
+            PickMode.SUPERSET -> {
+                val count = selectedForSuperset.size
+                binding.buttonCreateNewExercise.text = if (count >= 2) {
+                    getString(R.string.button_add_superset_selection, count)
+                } else {
+                    getString(R.string.button_add_superset_selection_empty)
+                }
+                binding.buttonCreateNewExercise.isEnabled = count >= 2
+            }
+            PickMode.CIRCUIT -> {
+                binding.buttonCreateNewExercise.text = getString(R.string.button_create_new_circuit)
+                binding.buttonCreateNewExercise.isEnabled = true
+            }
+        }
+    }
+
+    /** Row tap: Superset mode toggles selection, everything else returns immediately as before. */
+    private fun onExerciseRowTapped(exercise: ExerciseLibraryItem) {
+        if (pickMode == PickMode.SUPERSET) {
+            if (!selectedForSuperset.remove(exercise.id)) {
+                selectedForSuperset.add(exercise.id)
+            }
+            applyFilters()
+            updateBottomButton()
+        } else {
+            onExerciseSelected(exercise)
+        }
+    }
+
+    private fun returnSupersetSelection() {
+        if (selectedForSuperset.size < 2) return
+        val ids = selectedForSuperset.toList()
+        val names = ids.mapNotNull { id -> allExercises.find { it.id == id }?.name }
+        val intent = Intent().apply {
+            putExtra(EXTRA_RESULT_TYPE, "SUPERSET")
+            putExtra(EXTRA_SUPERSET_EXERCISE_IDS, ids.toIntArray())
+            putExtra(EXTRA_SUPERSET_EXERCISE_NAMES, names.toTypedArray())
+        }
+        setResult(Activity.RESULT_OK, intent)
+        finish()
+    }
+
+    private fun onCircuitSelected(template: CircuitTemplate) {
+        val intent = Intent().apply {
+            putExtra(EXTRA_RESULT_TYPE, "CIRCUIT")
+            putExtra(EXTRA_SELECTED_CIRCUIT_ID, template.id)
+        }
+        setResult(Activity.RESULT_OK, intent)
+        finish()
+    }
+
+    private fun loadCircuits() {
+        val data = jsonHelper.readTrainingData()
+        allCircuits = CircuitStore.circuits(data)
+        circuitAdapter.update(allCircuits, data.exerciseLibrary)
+        if (pickMode == PickMode.CIRCUIT) refreshCircuitEmptyState()
+    }
+
+    private fun refreshCircuitEmptyState() {
+        val empty = allCircuits.isEmpty()
+        binding.textCircuitListEmpty.visibility = if (empty) View.VISIBLE else View.GONE
+        binding.recyclerViewSelectExercise.visibility = if (empty) View.GONE else View.VISIBLE
+    }
+
+    /** Inline "which circuit?" list — the active-workout picker used to be a popup for this
+     *  ([com.liftpath.components.CircuitPickerBottomSheet]); this mirrors its row rendering
+     *  ([R.layout.list_item_circuit_pick], [CircuitStore.formatSummary]) as a plain adapter the
+     *  RecyclerView swaps to instead of showing a dialog. */
+    private inner class CircuitPickAdapter(
+        private var circuits: List<CircuitTemplate>,
+        private var library: List<ExerciseLibraryItem>,
+        private val onCircuitClicked: (CircuitTemplate) -> Unit
+    ) : RecyclerView.Adapter<CircuitPickAdapter.ViewHolder>() {
+
+        fun update(newCircuits: List<CircuitTemplate>, newLibrary: List<ExerciseLibraryItem>) {
+            circuits = newCircuits
+            library = newLibrary
+            notifyDataSetChanged()
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder = ViewHolder(
+            LayoutInflater.from(parent.context).inflate(R.layout.list_item_circuit_pick, parent, false)
+        )
+
+        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+            val circuit = circuits[position]
+            val nameById = library.associate { it.id to it.name }
+            holder.name.text = circuit.name
+            holder.summary.text = CircuitStore.formatSummary(circuit.suggestedRounds, circuit.restBetweenRoundsSeconds)
+            val names = circuit.items.mapNotNull { nameById[it.exerciseId] }
+            holder.stations.text = if (names.isEmpty()) {
+                getString(R.string.circuit_no_stations)
+            } else {
+                names.joinToString(" · ")
+            }
+            holder.card.setOnClickListener { onCircuitClicked(circuit) }
+        }
+
+        override fun getItemCount() = circuits.size
+
+        inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+            val card: MaterialCardView = view.findViewById(R.id.card_circuit_pick)
+            val name: TextView = view.findViewById(R.id.text_pick_name)
+            val summary: TextView = view.findViewById(R.id.text_pick_summary)
+            val stations: TextView = view.findViewById(R.id.text_pick_stations)
+        }
+    }
+
     private fun setupBackgroundAnimation() {
         val drawable = binding.imageBgAnimation.drawable
         if (drawable is android.graphics.drawable.Animatable) {
@@ -176,7 +374,7 @@ class SelectExerciseActivity : AppCompatActivity() {
             items = emptyList(),
             planExerciseIds = planExerciseIds,
             onExerciseClicked = { exercise ->
-                onExerciseSelected(exercise)
+                onExerciseRowTapped(exercise)
             }
         )
         binding.recyclerViewSelectExercise.adapter = adapter
@@ -617,7 +815,14 @@ class SelectExerciseActivity : AppCompatActivity() {
 
         // Update Adapter
         try {
-            adapter.updateItems(outputItems)
+            val itemsWithSelection = if (pickMode == PickMode.SUPERSET) {
+                outputItems.map { item ->
+                    if (item is ListItem.ExerciseItem) {
+                        item.copy(isSelected = item.exercise.id in selectedForSuperset)
+                    } else item
+                }
+            } else outputItems
+            adapter.updateItems(itemsWithSelection)
         } catch (e: Exception) {
             android.util.Log.e("SelectExerciseActivity", "Error updating adapter", e)
             adapter.updateItems(emptyList())

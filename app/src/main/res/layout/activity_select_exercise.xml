@@ -69,6 +69,43 @@
                 android:textAppearance="@style/TextAppearance.LP.Title" />
         </LinearLayout>
 
+        <!-- MODE SWITCH: Exercise / Superset / Circuit — only shown when the caller (the active
+             workout's regular add-exercise flow) opts in via EXTRA_ENABLE_GROUP_MODES. -->
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chip_group_pick_mode"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/lp_space_4"
+            android:visibility="gone"
+            app:chipSpacing="@dimen/lp_space_2"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/header_container"
+            app:singleSelection="true">
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_mode_exercise"
+                style="@style/Widget.LP.Chip.Choice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                android:text="@string/tile_exercise" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_mode_superset"
+                style="@style/Widget.LP.Chip.Choice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/tile_superset" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_mode_circuit"
+                style="@style/Widget.LP.Chip.Choice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/tile_circuit" />
+        </com.google.android.material.chip.ChipGroup>
+
         <!-- SEARCH FIELD -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_search"
@@ -78,7 +115,7 @@
             android:layout_marginTop="@dimen/lp_space_4"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/header_container">
+            app:layout_constraintTop_toBottomOf="@id/chip_group_pick_mode">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -336,7 +373,9 @@
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
-                <!-- EXERCISES LIST CARD -->
+                <!-- EXERCISES / CIRCUITS LIST CARD — the RecyclerView's adapter swaps between an
+                     exercise-library adapter and a circuit-template adapter depending on the
+                     active pick mode; the card and its empty state are shared. -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/card_exercises_list"
                     style="@style/Widget.LP.Card"
@@ -345,14 +384,30 @@
                     android:layout_marginTop="@dimen/lp_space_3"
                     android:layout_marginBottom="@dimen/lp_space_3">
 
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/recycler_view_select_exercise"
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:clipChildren="false"
-                        android:clipToPadding="false"
-                        android:nestedScrollingEnabled="false"
-                        android:padding="@dimen/lp_space_3" />
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/text_circuit_list_empty"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:padding="@dimen/lp_card_padding"
+                            android:text="@string/circuits_empty_state"
+                            android:textAppearance="@style/TextAppearance.LP.Body"
+                            android:textColor="?attr/lpInkSecondary"
+                            android:visibility="gone" />
+
+                        <androidx.recyclerview.widget.RecyclerView
+                            android:id="@+id/recycler_view_select_exercise"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:clipChildren="false"
+                            android:clipToPadding="false"
+                            android:nestedScrollingEnabled="false"
+                            android:padding="@dimen/lp_space_3" />
+                    </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
             </LinearLayout>

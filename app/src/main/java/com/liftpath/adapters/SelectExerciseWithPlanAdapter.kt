@@ -13,7 +13,11 @@ import com.liftpath.models.ExerciseFamily
 import com.liftpath.models.ExerciseLibraryItem
 
 sealed class ListItem {
-    data class ExerciseItem(val exercise: ExerciseLibraryItem, val isVisible: Boolean = true) : ListItem()
+    data class ExerciseItem(
+        val exercise: ExerciseLibraryItem,
+        val isVisible: Boolean = true,
+        val isSelected: Boolean = false
+    ) : ListItem()
     data class SectionHeader(
         val title: String,
         val sectionId: String,
@@ -28,6 +32,10 @@ class SelectExerciseWithPlanAdapter(
     private val onExerciseClicked: (ExerciseLibraryItem) -> Unit,
     private var families: List<ExerciseFamily> = emptyList()
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+
+    /** True while Superset mode is active: shows a check indicator instead of returning on tap. */
+    var selectionMode: Boolean = false
+        private set
 
     private var defaultBackground: android.graphics.drawable.Drawable? = null
     private val familyNameMap: Map<String, String> get() = families.associate { it.id to it.name }
@@ -44,6 +52,7 @@ class SelectExerciseWithPlanAdapter(
         val exerciseMeta: TextView = view.findViewById(R.id.text_exercise_meta)
         val planBadge: ImageView = view.findViewById(R.id.image_plan_badge)
         val favoriteStar: ImageView = view.findViewById(R.id.image_favorite_star)
+        val selectCheckbox: android.widget.CheckBox = view.findViewById(R.id.checkbox_select)
     }
 
     class SectionHeaderViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -123,6 +132,9 @@ class SelectExerciseWithPlanAdapter(
                 holder.itemView.visibility = if (item.isVisible) View.VISIBLE else View.GONE
                 holder.itemView.layoutParams.height = if (item.isVisible) ViewGroup.LayoutParams.WRAP_CONTENT else 0
 
+                exerciseHolder.selectCheckbox.visibility = if (selectionMode) View.VISIBLE else View.GONE
+                exerciseHolder.selectCheckbox.isChecked = item.isSelected
+
                 exerciseHolder.itemView.setOnClickListener {
                     onExerciseClicked(exercise)
                 }
@@ -151,6 +163,11 @@ class SelectExerciseWithPlanAdapter(
 
     fun updateFamilies(newFamilies: List<ExerciseFamily>) {
         this.families = newFamilies
+        notifyDataSetChanged()
+    }
+
+    fun setSelectionMode(enabled: Boolean) {
+        selectionMode = enabled
         notifyDataSetChanged()
     }
 }

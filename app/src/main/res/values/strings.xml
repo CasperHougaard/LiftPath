@@ -482,10 +482,13 @@ Leave blank if you\'re not sure.]]></string>
     <string name="subtitle_add_special">Choose an option</string>
     <string name="tile_warmup">Warmup</string>
     <string name="tile_cooldown">Cooldown</string>
+    <string name="tile_exercise">Exercise</string>
     <string name="tile_superset">SuperSet</string>
     <string name="tile_circuit">Circuit</string>
     <string name="tile_circuit_subtitle">A handful of exercises back to back, repeated for rounds</string>
-    <string name="toast_add_exercise_first">Add an exercise first</string>
+    <string name="button_create_new_circuit">Create New Circuit</string>
+    <string name="button_add_superset_selection">Add %1$d exercises as SuperSet</string>
+    <string name="button_add_superset_selection_empty">Select at least 2 exercises</string>
     <string name="warmup_timer_title">Warmup Timer</string>
     <string name="settings_superset_transition_hint">SuperSet transition (seconds)</string>
     <string name="settings_superset_transition_description">Short break after first exercise in superset (default: 35s)</string>
@@ -1110,6 +1113,8 @@ Leave blank if you\'re not sure.]]></string>
     <string name="label_not_recorded">Not recorded</string>
     <string name="format_intent_legacy">%1$s (Legacy)</string>
     <string name="format_exercise_intent_label">Intent: %1$s</string>
+    <string name="format_circuit_rounds_summary">%1$d rounds · %2$s</string>
+    <string name="format_circuit_round_header">Round %1$d</string>
     <string name="hint_duration_format">HH:mm:ss or mm:ss</string>
     <string name="dialog_title_edit_workout_duration">Edit Workout Duration</string>
     <string name="dialog_message_edit_workout_duration">Enter duration in format HH:mm:ss (e.g., 01:30:00) or mm:ss (e.g., 90:00)</string>
@@ -1315,6 +1320,8 @@ Leave blank if you\'re not sure.]]></string>
     <string name="circuit_start_round">Start round</string>
     <string name="circuit_done_round">Done round</string>
     <string name="circuit_finish">Finish circuit</string>
+    <string name="circuit_finish_confirm_title">Finish circuit?</string>
+    <string name="circuit_finish_confirm_message">You\'ve completed %1$d round(s). This ends the circuit and returns to the workout.</string>
     <string name="circuit_picker_title">Which circuit?</string>
     <string name="circuit_picker_subtitle">Pick a saved circuit, or author a new one.</string>
     <string name="btn_start_circuit">Start circuit</string>

@@ -12,6 +12,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.liftpath.databinding.ActivityTrainingDetailBinding
 import com.liftpath.helpers.JsonHelper
+import com.liftpath.adapters.DetailListItem
 import com.liftpath.adapters.TrainingDetailAdapter
 import com.liftpath.models.ExerciseEntry
 import com.liftpath.models.GroupedExercise
@@ -202,17 +203,34 @@ class TrainingDetailActivity : AppCompatActivity() {
     }
 
     private fun setupRecyclerView() {
-        val groupedExercises = trainingSession.exercises
+        val (circuitEntries, regularEntries) = trainingSession.exercises.partition { it.isCircuitEntry() }
+
+        val exerciseItems = regularEntries
             .groupBy { it.exerciseId }
             .map { (exerciseId, sets) ->
                 val sortedSets = sets.sortedBy { it.setNumber }
                 GroupedExercise(exerciseId, sortedSets.first().exerciseName, sortedSets)
             }
             .sortedBy { it.exerciseName }
+            .map { DetailListItem.Exercise(it) }
+
+        val circuitLogsById = (trainingSession.circuitLogs ?: emptyList()).associateBy { it.instanceId }
+        val circuitItems = circuitEntries
+            .groupBy { it.groupId.orEmpty() }
+            .mapNotNull { (instanceId, entries) ->
+                val log = circuitLogsById[instanceId] ?: return@mapNotNull null
+                val rounds = entries.groupBy { it.setNumber }
+                    .toSortedMap()
+                    .map { (round, roundEntries) -> round to roundEntries }
+                DetailListItem.Circuit(log, rounds)
+            }
+            .sortedBy { it.log.name }
+
+        val detailItems = exerciseItems + circuitItems
 
         binding.recyclerViewTrainingDetail.layoutManager = LinearLayoutManager(this)
         binding.recyclerViewTrainingDetail.adapter = TrainingDetailAdapter(
-            groupedExercises,
+            detailItems,
             trainingSession.defaultWorkoutType,
             onEditSetClicked = {
                 currentEditingEntry = it

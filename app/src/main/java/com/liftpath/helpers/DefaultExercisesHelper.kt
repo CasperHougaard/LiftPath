@@ -17,7 +17,7 @@ import com.liftpath.models.Tier
 
 object DefaultExercisesHelper {
 
-    const val CATALOG_VERSION = 6
+    const val CATALOG_VERSION = 7
 
     /**
      * Default-catalog exercise IDs that target TIME rather than reps (isometric holds). Used by the
@@ -1273,7 +1273,8 @@ object DefaultExercisesHelper {
                 tier = Tier.TIER_3,
                 primaryTargets = listOf(TargetMuscle.ABDUCTORS),
                 secondaryTargets = listOf(TargetMuscle.GLUTES),
-                note = "Band above the knees. Kick out to the side, control the return."
+                note = "Band above the knees. Kick out to the side, control the return.",
+                exerciseType = ExerciseType.BODYWEIGHT
             ),
             ExerciseLibraryItem(
                 id = 304,
@@ -1283,7 +1284,8 @@ object DefaultExercisesHelper {
                 tier = Tier.TIER_3,
                 primaryTargets = listOf(TargetMuscle.ABDUCTORS),
                 secondaryTargets = listOf(TargetMuscle.GLUTES),
-                note = "Band around the ankles. Stay low, keep the band taut."
+                note = "Band around the ankles. Stay low, keep the band taut.",
+                exerciseType = ExerciseType.BODYWEIGHT
             ),
             ExerciseLibraryItem(
                 id = 305,
@@ -1315,7 +1317,8 @@ object DefaultExercisesHelper {
                 tier = Tier.TIER_3,
                 primaryTargets = listOf(TargetMuscle.GLUTES),
                 secondaryTargets = listOf(TargetMuscle.HAMSTRINGS),
-                note = "Band around the ankles. Kick straight back, squeeze at the top."
+                note = "Band around the ankles. Kick straight back, squeeze at the top.",
+                exerciseType = ExerciseType.BODYWEIGHT
             ),
             ExerciseLibraryItem(
                 id = 308,

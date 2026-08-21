@@ -12,28 +12,66 @@ import androidx.recyclerview.widget.RecyclerView
 import com.liftpath.R
 import com.liftpath.databinding.ItemSetDetailBinding
 import com.liftpath.databinding.ItemGroupedExerciseBinding
+import com.liftpath.databinding.ItemGroupedCircuitBinding
+import com.liftpath.helpers.CircuitStore
 import com.liftpath.helpers.SetFormatter
 import com.liftpath.helpers.lpColor
+import com.liftpath.models.CircuitLog
 import com.liftpath.models.ExerciseEntry
 import com.liftpath.models.GroupedExercise
-import com.liftpath.models.SetIntent
-import com.liftpath.utils.WorkoutTypeFormatter
+
+/** One row in the training-detail list: either a regular exercise or a finished circuit's
+ *  round-by-round summary. See [com.liftpath.activities.TrainingDetailActivity.setupRecyclerView]
+ *  for how [TrainingSession.exercises] is split into these. */
+sealed class DetailListItem {
+    data class Exercise(val group: GroupedExercise) : DetailListItem()
+    data class Circuit(
+        val log: CircuitLog,
+        /** Round number → the station entries logged for that round, in template order where
+         *  known (falls back to first-seen order for a station whose template got deleted). */
+        val rounds: List<Pair<Int, List<ExerciseEntry>>>
+    ) : DetailListItem()
+}
 
 class TrainingDetailAdapter(
-    private val groupedExercises: List<GroupedExercise>,
+    private val items: List<DetailListItem>,
     private val sessionDefaultType: String?,
     private val onEditSetClicked: (ExerciseEntry) -> Unit,
     private val onEditActivityClicked: (GroupedExercise) -> Unit,
     private val onAddSetClicked: (GroupedExercise) -> Unit
-) : RecyclerView.Adapter<TrainingDetailAdapter.ViewHolder>() {
+) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val binding = ItemGroupedExerciseBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-        return ViewHolder(binding)
+    companion object {
+        private const val VIEW_TYPE_EXERCISE = 0
+        private const val VIEW_TYPE_CIRCUIT = 1
     }
 
-    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val groupedExercise = groupedExercises[position]
+    class ExerciseViewHolder(val binding: ItemGroupedExerciseBinding) : RecyclerView.ViewHolder(binding.root)
+    class CircuitViewHolder(val binding: ItemGroupedCircuitBinding) : RecyclerView.ViewHolder(binding.root)
+
+    override fun getItemViewType(position: Int): Int = when (items[position]) {
+        is DetailListItem.Exercise -> VIEW_TYPE_EXERCISE
+        is DetailListItem.Circuit -> VIEW_TYPE_CIRCUIT
+    }
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder =
+        when (viewType) {
+            VIEW_TYPE_CIRCUIT -> CircuitViewHolder(
+                ItemGroupedCircuitBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+            )
+            else -> ExerciseViewHolder(
+                ItemGroupedExerciseBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+            )
+        }
+
+    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+        when (val item = items[position]) {
+            is DetailListItem.Exercise -> bindExercise(holder as ExerciseViewHolder, item.group)
+            is DetailListItem.Circuit -> bindCircuit(holder as CircuitViewHolder, item)
+        }
+    }
+
+    private fun bindExercise(holder: ExerciseViewHolder, groupedExercise: GroupedExercise) {
         holder.binding.textExerciseName.text = groupedExercise.exerciseName
         // Show dominant intent per exercise instead of workout type
         val dominantIntent = groupedExercise.sets
@@ -58,7 +96,7 @@ class TrainingDetailAdapter(
         for (set in groupedExercise.sets) {
             val setBinding = ItemSetDetailBinding.inflate(LayoutInflater.from(holder.itemView.context))
             setBinding.textSetDetails.text = formatSetDetails(holder.itemView.context, set)
-            
+
             // Set note separately if it exists
             set.note?.let { note ->
                 setBinding.textSetNote.text = note
@@ -70,8 +108,40 @@ class TrainingDetailAdapter(
             } ?: run {
                 setBinding.textSetNote.visibility = android.view.View.GONE
             }
-            
+
             holder.binding.setsContainer.addView(setBinding.root)
+        }
+    }
+
+    private fun bindCircuit(holder: CircuitViewHolder, circuit: DetailListItem.Circuit) {
+        val context = holder.itemView.context
+        holder.binding.textCircuitName.text = circuit.log.name
+        holder.binding.textCircuitSummary.text = context.getString(
+            R.string.format_circuit_rounds_summary,
+            circuit.log.roundsCompleted,
+            CircuitStore.formatSummary(null, circuit.log.restBetweenRoundsSeconds)
+        )
+
+        holder.binding.roundsContainer.removeAllViews()
+        for ((round, entries) in circuit.rounds) {
+            val roundHeader = android.widget.TextView(context).apply {
+                setTextAppearance(R.style.TextAppearance_LP_Caption)
+                setTextColor(context.lpColor(R.attr.lpAccent))
+                text = context.getString(R.string.format_circuit_round_header, round)
+                layoutParams = android.widget.LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
+                ).apply { topMargin = resources.getDimensionPixelSize(R.dimen.lp_space_2) }
+            }
+            holder.binding.roundsContainer.addView(roundHeader)
+
+            for (entry in entries) {
+                val setBinding = ItemSetDetailBinding.inflate(LayoutInflater.from(context))
+                setBinding.textSetDetails.text = SetFormatter.setLine(
+                    context, entry, prefix = "${entry.exerciseName}: ", repsUnit = true
+                )
+                setBinding.textSetNote.visibility = android.view.View.GONE
+                holder.binding.roundsContainer.addView(setBinding.root)
+            }
         }
     }
 
@@ -109,8 +179,5 @@ class TrainingDetailAdapter(
         return b
     }
 
-    override fun getItemCount() = groupedExercises.size
-
-    class ViewHolder(val binding: ItemGroupedExerciseBinding) : RecyclerView.ViewHolder(binding.root)
+    override fun getItemCount() = items.size
 }
-

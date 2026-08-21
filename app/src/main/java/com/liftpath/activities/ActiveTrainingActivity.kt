@@ -32,7 +32,6 @@ import com.liftpath.watch.WatchState
 import com.liftpath.components.MuscleMapDialog
 import com.liftpath.components.AddSpecialBottomSheet
 import com.liftpath.components.ChangeExerciseBottomSheet
-import com.liftpath.components.CircuitPickerBottomSheet
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -79,7 +78,6 @@ class ActiveTrainingActivity : AppCompatActivity(), WatchLink.Host {
     // and persisted in the draft so targets survive app restarts.
     private val planExerciseSnapshots = mutableMapOf<Int, DraftExerciseRow>()
     private var hasRestoredDraft = false
-    private var addAsSupersetPartner = false
     private val selectedForSupersetPositions = mutableSetOf<Int>()
     private val supersetTargetSetsByGroupId = mutableMapOf<String, Int>()
     private val completedSupersetGroupIds = mutableSetOf<String>()
@@ -122,67 +120,59 @@ class ActiveTrainingActivity : AppCompatActivity(), WatchLink.Host {
         if (result.resultCode == Activity.RESULT_OK) {
             try {
                 val data = result.data
-                val exerciseId = data?.getIntExtra(SelectExerciseActivity.EXTRA_EXERCISE_ID, -1) ?: -1
-                val exerciseName = data?.getStringExtra(SelectExerciseActivity.EXTRA_EXERCISE_NAME) ?: ""
+                when (data?.getStringExtra(SelectExerciseActivity.EXTRA_RESULT_TYPE)) {
+                    "SUPERSET" -> {
+                        val ids = data.getIntArrayExtra(SelectExerciseActivity.EXTRA_SUPERSET_EXERCISE_IDS)
+                        val names = data.getStringArrayExtra(SelectExerciseActivity.EXTRA_SUPERSET_EXERCISE_NAMES)
+                        if (ids != null && names != null) {
+                            insertSupersetGroup(ids, names)
+                        }
+                    }
+                    "CIRCUIT" -> {
+                        val circuitId = data.getStringExtra(SelectExerciseActivity.EXTRA_SELECTED_CIRCUIT_ID)
+                        val template = circuitId?.let { CircuitStore.find(jsonHelper.readTrainingData(), it) }
+                        if (template != null) {
+                            addCircuitElement(template)
+                        }
+                    }
+                    else -> {
+                        val exerciseId = data?.getIntExtra(SelectExerciseActivity.EXTRA_EXERCISE_ID, -1) ?: -1
+                        val exerciseName = data?.getStringExtra(SelectExerciseActivity.EXTRA_EXERCISE_NAME) ?: ""
 
-                if (exerciseId != -1 && exerciseName.isNotEmpty()) {
-                    // Don't set default intent when exercise is added
-                    // The adapter will show the last intent used with "(Last + emoji)" label
-                    val existingGroup = groupedExercises.find { it.exerciseId == exerciseId }
-                    if (existingGroup == null) {
-                        // Initialize last workout data for this exercise (for all intents)
-                        if (!lastWorkoutData.containsKey(exerciseId)) {
-                            lastWorkoutData[exerciseId] = mutableMapOf()
-                        }
-                        // Pre-fetch last workout data for all intents to show in adapter
-                        for (intent in listOf(SetIntent.STRENGTH, SetIntent.BUILD, SetIntent.FLUSH)) {
-                            val lastSets = fetchLastWorkoutSets(exerciseId, intent)
-                            lastWorkoutData[exerciseId]!![intent] = lastSets
-                        }
-                        
-                        // Get and store the last intent used for this exercise
-                        val lastIntent = getLastIntentForExercise(exerciseId)
-                        if (lastIntent != null) {
-                            lastIntents[exerciseId] = lastIntent
-                        }
-                        
-                        val newGroup = GroupedExercise(exerciseId, exerciseName, emptyList())
-                        val insertIndex = insertRegularExerciseGroup(newGroup)
+                        if (exerciseId != -1 && exerciseName.isNotEmpty()) {
+                            // Don't set default intent when exercise is added
+                            // The adapter will show the last intent used with "(Last + emoji)" label
+                            val existingGroup = groupedExercises.find { it.exerciseId == exerciseId }
+                            if (existingGroup == null) {
+                                // Initialize last workout data for this exercise (for all intents)
+                                if (!lastWorkoutData.containsKey(exerciseId)) {
+                                    lastWorkoutData[exerciseId] = mutableMapOf()
+                                }
+                                // Pre-fetch last workout data for all intents to show in adapter
+                                for (intent in listOf(SetIntent.STRENGTH, SetIntent.BUILD, SetIntent.FLUSH)) {
+                                    val lastSets = fetchLastWorkoutSets(exerciseId, intent)
+                                    lastWorkoutData[exerciseId]!![intent] = lastSets
+                                }
 
-                        // First time a bodyweight exercise is added with no known body weight: ask for it.
-                        if (isBodyweightExercise(exerciseId) && BodyWeightHelper.needsInitialBodyweight(this)) {
-                            BodyWeightDialogs.showInitialBodyweightPrompt(this)
-                        }
+                                // Get and store the last intent used for this exercise
+                                val lastIntent = getLastIntentForExercise(exerciseId)
+                                if (lastIntent != null) {
+                                    lastIntents[exerciseId] = lastIntent
+                                }
 
-                        // If added as superset partner, link to previous exercise (or existing superset group)
-                        if (addAsSupersetPartner && insertIndex >= 1) {
-                            addAsSupersetPartner = false
-                            val lastIndex = insertIndex
-                            val prevIndex = lastIndex - 1
-                            val prevGroup = groupedExercises[prevIndex]
-                            val lastGroup = groupedExercises[lastIndex]
-                            val supersetGroupId = prevGroup.supersetGroupId ?: UUID.randomUUID().toString()
-                            if (prevGroup.supersetGroupId == null) {
-                                groupedExercises[prevIndex] = prevGroup.copy(supersetGroupId = supersetGroupId, groupType = GroupType.SUPERSET)
-                                adapter.notifyItemChanged(prevIndex)
-                            }
-                            groupedExercises[lastIndex] = lastGroup.copy(supersetGroupId = supersetGroupId, groupType = GroupType.SUPERSET)
-                            adapter.notifyItemChanged(lastIndex)
-                            val groupIndices = groupedExercises.mapIndexed { i, g -> if (g.supersetGroupId == supersetGroupId) i else -1 }.filter { it >= 0 }
-                            if (supersetTargetSetsByGroupId[supersetGroupId] == null) {
-                                showSupersetTargetSetsDialog(supersetGroupId, groupIndices)
-                            } else {
+                                val newGroup = GroupedExercise(exerciseId, exerciseName, emptyList())
+                                insertRegularExerciseGroup(newGroup)
+
+                                // First time a bodyweight exercise is added with no known body weight: ask for it.
+                                if (isBodyweightExercise(exerciseId) && BodyWeightHelper.needsInitialBodyweight(this)) {
+                                    BodyWeightDialogs.showInitialBodyweightPrompt(this)
+                                }
+
                                 persistDraft()
                             }
-                        } else {
-                            persistDraft()
+                            // Exercise added - user can log sets by clicking on the exercise
                         }
-                    } else {
-                        addAsSupersetPartner = false
                     }
-                    // Exercise added - user can log sets by clicking on the exercise
-                } else {
-                    addAsSupersetPartner = false
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error processing result from SelectExerciseActivity", e)
@@ -202,14 +192,6 @@ class ActiveTrainingActivity : AppCompatActivity(), WatchLink.Host {
             if (updatedSets != null) {
                 updateSetsFromEditActivity(updatedSets)
             }
-        }
-    }
-
-    // Authoring a brand new circuit from the active workout: on success, reopen the picker so
-    // the circuit just saved is right there to pick.
-    private val editCircuitLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            showCircuitPicker()
         }
     }
 
@@ -1251,6 +1233,7 @@ class ActiveTrainingActivity : AppCompatActivity(), WatchLink.Host {
             putExtra(SelectExerciseActivity.EXTRA_WORKOUT_TYPE, workoutType)
             putExtra(SelectExerciseActivity.EXTRA_PLAN_ID, appliedPlanId)
             putExtra(SelectExerciseActivity.EXTRA_ALREADY_ADDED_EXERCISE_IDS, alreadyAddedExerciseIds)
+            putExtra(SelectExerciseActivity.EXTRA_ENABLE_GROUP_MODES, true)
         }
         selectExerciseLauncher.launch(intent)
     }
@@ -1262,12 +1245,6 @@ class ActiveTrainingActivity : AppCompatActivity(), WatchLink.Host {
             },
             onCooldownSelected = {
                 addCooldownElement()
-            },
-            onSuperSetSelected = {
-                handleAddExerciseAsSupersetPartner()
-            },
-            onCircuitSelected = {
-                showCircuitPicker()
             }
         )
         bottomSheet.show(supportFragmentManager, "AddSpecialBottomSheet")
@@ -1331,19 +1308,42 @@ class ActiveTrainingActivity : AppCompatActivity(), WatchLink.Host {
         persistDraft()
     }
 
-    private fun handleAddExerciseAsSupersetPartner() {
-        if (groupedExercises.isEmpty()) {
-            Toast.makeText(this, getString(R.string.toast_add_exercise_first), Toast.LENGTH_SHORT).show()
-            return
+    /**
+     * Inserts a batch of brand-new exercises (picked together via [SelectExerciseActivity]'s
+     * Superset mode) as one linked superset group, then prompts for target sets once for the
+     * whole group — mirroring the persistence pattern of the long-press link flow below.
+     */
+    private fun insertSupersetGroup(ids: IntArray, names: Array<String>) {
+        val supersetGroupId = UUID.randomUUID().toString()
+        val insertedIndices = mutableListOf<Int>()
+        ids.forEachIndexed { i, exerciseId ->
+            val exerciseName = names.getOrNull(i) ?: return@forEachIndexed
+            if (groupedExercises.any { it.exerciseId == exerciseId }) return@forEachIndexed
+
+            if (!lastWorkoutData.containsKey(exerciseId)) {
+                lastWorkoutData[exerciseId] = mutableMapOf()
+            }
+            for (intent in listOf(SetIntent.STRENGTH, SetIntent.BUILD, SetIntent.FLUSH)) {
+                lastWorkoutData[exerciseId]!![intent] = fetchLastWorkoutSets(exerciseId, intent)
+            }
+            getLastIntentForExercise(exerciseId)?.let { lastIntents[exerciseId] = it }
+
+            val group = GroupedExercise(
+                exerciseId, exerciseName, emptyList(),
+                supersetGroupId = supersetGroupId, groupType = GroupType.SUPERSET
+            )
+            insertedIndices.add(insertRegularExerciseGroup(group))
+
+            if (isBodyweightExercise(exerciseId) && BodyWeightHelper.needsInitialBodyweight(this)) {
+                BodyWeightDialogs.showInitialBodyweightPrompt(this)
+            }
         }
-        addAsSupersetPartner = true
-        val alreadyAddedExerciseIds = groupedExercises.map { it.exerciseId }.toIntArray()
-        val intent = Intent(this, SelectExerciseActivity::class.java).apply {
-            putExtra(SelectExerciseActivity.EXTRA_WORKOUT_TYPE, workoutType)
-            putExtra(SelectExerciseActivity.EXTRA_PLAN_ID, appliedPlanId)
-            putExtra(SelectExerciseActivity.EXTRA_ALREADY_ADDED_EXERCISE_IDS, alreadyAddedExerciseIds)
+
+        if (insertedIndices.isNotEmpty()) {
+            showSupersetTargetSetsDialog(supersetGroupId, insertedIndices)
+        } else {
+            persistDraft()
         }
-        selectExerciseLauncher.launch(intent)
     }
 
     private fun unlinkSupersetGroup(supersetGroupId: String) {
@@ -1506,16 +1506,6 @@ class ActiveTrainingActivity : AppCompatActivity(), WatchLink.Host {
                 addSpecialElement(COOLDOWN_EXERCISE_ID, getString(R.string.label_cooldown_element), PlanSlotType.COOLDOWN, insertAtFront = false, durationSeconds = selected)
             }
         }
-    }
-
-    private fun showCircuitPicker() {
-        val data = jsonHelper.readTrainingData()
-        CircuitPickerBottomSheet.newInstance(
-            circuits = CircuitStore.circuits(data),
-            library = data.exerciseLibrary,
-            onCircuitSelected = { template -> addCircuitElement(template) },
-            onNewCircuit = { editCircuitLauncher.launch(Intent(this, EditCircuitActivity::class.java)) }
-        ).show(supportFragmentManager, "CircuitPickerBottomSheet")
     }
 
     private fun addCircuitElement(template: CircuitTemplate) {
