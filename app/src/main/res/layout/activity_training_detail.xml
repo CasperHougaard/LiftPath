@@ -14,18 +14,14 @@
     tools:context=".activities.TrainingDetailActivity">
 
     <!-- Background Flow Animation -->
-    <ImageView
-        android:id="@+id/image_bg_animation"
+    <com.liftpath.views.AmbientFlowView
+        android:id="@+id/view_bg_ambient"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:contentDescription="@null"
-        android:scaleType="centerCrop"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/lp_bg_ambient_flow"
-        app:tint="?attr/lpAccent" />
+        app:layout_constraintTop_toTopOf="parent" />
 
     <androidx.core.widget.NestedScrollView
         android:id="@+id/scroll_view"

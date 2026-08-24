@@ -1,0 +1,6 @@
+# Default build: all of source/, all of resources/. There are no per-device or per-language
+# overrides, so the base qualifier is the whole configuration.
+project.manifest = manifest.xml
+
+base.sourcePath = source
+base.resourcePath = resources

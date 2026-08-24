@@ -54,12 +54,13 @@ object AiExportHelper {
 
         val allSessions = trainingData.trainings
         val settings = ProgressionSettingsManager(context).getSettings()
+        val incrementTable = WeightIncrementSettingsManager(context).getTable()
 
         // --- Latest training (full detail) ---
         val latest = sessionsNewestFirst.first()
         sb.append("\n## Latest Training\n")
         appendSessionDetail(
-            sb, latest, allSessions, library, settings, trainingData,
+            sb, latest, allSessions, library, settings, incrementTable, trainingData,
             isLatest = true, dateMs = dateMs
         )
 
@@ -69,7 +70,7 @@ object AiExportHelper {
             sb.append("\n## Recent History (older sessions)\n")
             history.forEach { session ->
                 appendSessionDetail(
-                    sb, session, allSessions, library, settings, trainingData,
+                    sb, session, allSessions, library, settings, incrementTable, trainingData,
                     isLatest = false, dateMs = dateMs
                 )
             }
@@ -154,6 +155,7 @@ object AiExportHelper {
         allSessions: List<TrainingSession>,
         library: List<ExerciseLibraryItem>,
         settings: ProgressionHelper.ProgressionSettings,
+        incrementTable: EquipmentIncrementTable,
         trainingData: TrainingData,
         isLatest: Boolean,
         dateMs: SimpleDateFormat
@@ -226,7 +228,7 @@ object AiExportHelper {
             if (isLatest) {
                 trendsById[exerciseId]?.let { t ->
                     sb.append(trendLine(t)).append("\n")
-                    sb.append(nextSessionLine(exerciseId, intent, t, libItem, trainingData, settings))
+                    sb.append(nextSessionLine(exerciseId, intent, t, libItem, trainingData, settings, incrementTable))
                 }
             }
         }
@@ -393,7 +395,8 @@ object AiExportHelper {
         t: com.liftpath.models.ExerciseTrendData,
         libItem: ExerciseLibraryItem?,
         trainingData: TrainingData,
-        settings: ProgressionHelper.ProgressionSettings
+        settings: ProgressionHelper.ProgressionSettings,
+        incrementTable: EquipmentIncrementTable
     ): String {
         if (t.isTimedExercise || libItem?.isTimeBased == true) {
             val best = t.currentBestHoldSeconds ?: return ""
@@ -403,12 +406,15 @@ object AiExportHelper {
         }
 
         val suggestion = ProgressionHelper.getIntentSuggestion(
-            exerciseId, intent, trainingData, settings
+            exerciseId, intent, trainingData, settings, incrementTable
         )
         if (suggestion.displayText.isBlank()) return ""
         val sb = StringBuilder("Next session: ").append(suggestion.displayText)
-        // Make the units unambiguous: for a bodyweight lift the figure is total load, not plate weight.
-        if (libItem?.isBodyweight == true) sb.append(" (total load = body weight + added)")
+        // Only worth disambiguating when a figure is actually quoted. A bodyweight suggestion
+        // carries reps and RPE but no kg, so there is no load to misread.
+        if (libItem?.isBodyweight == true && suggestion.suggestedWeight != null) {
+            sb.append(" (total load = body weight + added)")
+        }
         suggestion.badge?.let { sb.append(" [").append(it).append("]") }
         return sb.append("\n").toString()
     }

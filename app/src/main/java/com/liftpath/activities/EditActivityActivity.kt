@@ -2,7 +2,6 @@ package com.liftpath.activities
 
 import android.app.Activity
 import android.content.Intent
-import android.graphics.drawable.Animatable
 import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
@@ -90,7 +89,6 @@ class EditActivityActivity : AppCompatActivity() {
                 .toMutableList()
         }
 
-        setupBackgroundAnimation()
         setupHeader()
         setupRecyclerView()
         setupClickListeners()
@@ -99,13 +97,6 @@ class EditActivityActivity : AppCompatActivity() {
     private fun setupHeader() {
         binding.textTitle.text = exerciseName
         binding.textSubtitle.text = getString(R.string.edit_sets_subtitle, sets.size)
-    }
-
-    private fun setupBackgroundAnimation() {
-        val drawable = binding.imageBgAnimation.drawable
-        if (drawable is Animatable) {
-            drawable.start()
-        }
     }
 
     private fun setupRecyclerView() {

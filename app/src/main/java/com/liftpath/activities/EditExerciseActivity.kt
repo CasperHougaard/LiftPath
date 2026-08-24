@@ -2,7 +2,6 @@ package com.liftpath.activities
 
 import android.app.Activity
 import android.content.Intent
-import android.graphics.drawable.Animatable
 import android.os.Bundle
 import android.view.View
 import android.widget.ArrayAdapter
@@ -11,13 +10,17 @@ import androidx.lifecycle.lifecycleScope
 import com.liftpath.R
 import com.liftpath.databinding.ActivityEditExerciseBinding
 import com.liftpath.helpers.DialogHelper
+import com.liftpath.helpers.EquipmentIncrementTable
 import com.liftpath.helpers.JsonHelper
 import com.liftpath.helpers.MuscleMapColorResolver
 import com.liftpath.helpers.MuscleMapRenderer
+import com.liftpath.helpers.WeightIncrementHelper
+import com.liftpath.helpers.WeightIncrementSettingsManager
 import com.liftpath.helpers.showWithTransparentWindow
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.liftpath.models.BodyRegion
+import com.liftpath.models.Equipment
 import com.liftpath.models.ExerciseLibraryItem
 import com.liftpath.models.ExerciseTargetMetric
 import com.liftpath.models.ExerciseType
@@ -39,6 +42,8 @@ class EditExerciseActivity : AppCompatActivity() {
     private var isFavorite: Boolean = false
     private var availableFamilies: List<ExerciseFamily> = emptyList()
     private var selectedFamilyId: String? = null
+    private var selectedEquipment: Equipment? = null
+    private lateinit var incrementTable: EquipmentIncrementTable
 
     companion object {
         const val EXTRA_EXERCISE_ID = "extra_exercise_id"
@@ -54,18 +59,11 @@ class EditExerciseActivity : AppCompatActivity() {
         exerciseId = intent.getIntExtra(EXTRA_EXERCISE_ID, -1)
 
         availableFamilies = jsonHelper.readTrainingData().exerciseFamilies ?: emptyList()
-        setupBackgroundAnimation()
+        incrementTable = WeightIncrementSettingsManager(this).getTable()
         setupDropdowns()
         loadExerciseData()
         setupClickListeners()
         updateMuscleMap()
-    }
-
-    private fun setupBackgroundAnimation() {
-        val drawable = binding.imageBgAnimation.drawable
-        if (drawable is Animatable) {
-            drawable.start()
-        }
     }
 
     private fun setupDropdowns() {
@@ -97,9 +95,53 @@ class EditExerciseActivity : AppCompatActivity() {
             selectedFamilyId = if (position == 0) null else availableFamilies[position - 1].id
         }
 
-        // 6. Setup Target Muscle Chips
+        // 6. Equipment (optional). Tracked in a field rather than reverse-looked-up from the text
+        //    at save time like the dropdowns above, because "Not set" maps to no enum value.
+        val equipmentNames = listOf(getString(R.string.edit_exercise_equipment_not_set)) +
+            Equipment.values().map { it.displayName }
+        binding.dropdownEquipment.setAdapter(
+            ArrayAdapter(this, android.R.layout.simple_list_item_1, equipmentNames)
+        )
+        binding.dropdownEquipment.setOnItemClickListener { _, _, position, _ ->
+            selectedEquipment = if (position == 0) null else Equipment.values()[position - 1]
+            updateInheritedIncrementCaption()
+        }
+
+        // 7. Setup Target Muscle Chips
         setupTargetMuscleChips()
     }
+
+    /**
+     * Spells out the ladder the override fields would replace, so a blank field reads as
+     * "inheriting this" rather than "unset, and who knows what happens".
+     */
+    private fun updateInheritedIncrementCaption() {
+        val rule = selectedEquipment?.let { eq ->
+            incrementTable.ruleFor(eq) ?: WeightIncrementHelper.BUILT_IN[eq]
+        } ?: WeightIncrementHelper.FALLBACK
+
+        binding.textIncrementInherited.text = when {
+            rule == null -> ""
+            !rule.hasLadder -> getString(
+                R.string.edit_exercise_increment_inherited_no_ladder,
+                selectedEquipment?.displayName.orEmpty()
+            )
+            selectedEquipment == null -> getString(
+                R.string.edit_exercise_increment_inherited_unset,
+                WeightIncrementHelper.format(rule.incrementKg)
+            )
+            else -> getString(
+                R.string.edit_exercise_increment_inherited,
+                selectedEquipment!!.displayName,
+                WeightIncrementHelper.format(rule.incrementKg),
+                WeightIncrementHelper.format(rule.minimumKg)
+            )
+        }
+    }
+
+    /** Blank means "inherit", so an unparseable or empty field is null rather than zero. */
+    private fun parseOverride(text: CharSequence?): Float? =
+        text?.toString()?.trim()?.takeIf { it.isNotEmpty() }?.toFloatOrNull()?.takeIf { it >= 0f }
 
     private fun setupTargetMuscleChips() {
         // Create chips for all TargetMuscle values
@@ -161,7 +203,7 @@ class EditExerciseActivity : AppCompatActivity() {
         binding.imageExerciseIllustration.setImageResource(R.drawable.ic_dumbbell)
 
         if (exerciseId != -1) {
-            binding.textEditExerciseTitle.text = "Edit Exercise"
+            binding.textEditExerciseTitle.setText(R.string.title_edit_exercise)
             binding.cardDelete.visibility = View.VISIBLE
 
             val trainingData = jsonHelper.readTrainingData()
@@ -204,16 +246,38 @@ class EditExerciseActivity : AppCompatActivity() {
                 } else "None"
                 binding.dropdownFamily.setText(familyText, false)
 
+                // Equipment + weight-ladder overrides. saveExercise() now *writes* equipment where
+                // it used to preserve it by omission, so this must populate on every path that
+                // reaches a save — otherwise a save would null out a catalog exercise's equipment.
+                selectedEquipment = exercise.equipment
+                binding.dropdownEquipment.setText(
+                    exercise.equipment?.displayName
+                        ?: getString(R.string.edit_exercise_equipment_not_set),
+                    false
+                )
+                exercise.weightIncrementKgOverride?.let {
+                    binding.editTextStepOverride.setText(WeightIncrementHelper.format(it))
+                }
+                exercise.weightMinimumKgOverride?.let {
+                    binding.editTextMinOverride.setText(WeightIncrementHelper.format(it))
+                }
+
                 // updateMuscleMap() is called automatically via onPageFinished or chip listener
             }
         } else {
-            binding.textEditExerciseTitle.text = "Create New Exercise"
+            binding.textEditExerciseTitle.setText(R.string.title_create_exercise)
             binding.cardDelete.visibility = View.GONE
             // New exercises default to Weighted
             setSelectedExerciseType(ExerciseType.WEIGHTED)
             // New exercises default to Reps
             setSelectedTargetMetric(ExerciseTargetMetric.REPS)
+            // "Not set" rather than OTHER: behaviourally identical (both resolve to the 2.5 kg
+            // fallback) but it keeps the library subtitle clean and asserts nothing untrue.
+            binding.dropdownEquipment.setText(
+                getString(R.string.edit_exercise_equipment_not_set), false
+            )
         }
+        updateInheritedIncrementCaption()
     }
 
     private fun setSelectedExerciseType(type: ExerciseType) {
@@ -359,7 +423,10 @@ class EditExerciseActivity : AppCompatActivity() {
                         note = note,
                         exerciseType = selectedType,
                         targetMetric = selectedMetric,
-                        familyId = selectedFamilyId
+                        familyId = selectedFamilyId,
+                        equipment = selectedEquipment,
+                        weightIncrementKgOverride = parseOverride(binding.editTextStepOverride.text),
+                        weightMinimumKgOverride = parseOverride(binding.editTextMinOverride.text)
                     )
                 }
                 // Legacy name update
@@ -384,7 +451,10 @@ class EditExerciseActivity : AppCompatActivity() {
                 note = note,
                 exerciseType = selectedType,
                 targetMetric = selectedMetric,
-                familyId = selectedFamilyId
+                familyId = selectedFamilyId,
+                equipment = selectedEquipment,
+                weightIncrementKgOverride = parseOverride(binding.editTextStepOverride.text),
+                weightMinimumKgOverride = parseOverride(binding.editTextMinOverride.text)
             )
             trainingData.exerciseLibrary.add(newExercise)
             exerciseId = nextId

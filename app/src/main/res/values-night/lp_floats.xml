@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Dark canvas: a light accent at the light-mode ceiling is a much smaller perceptual step
+      than a dark accent on paper, so the field needs roughly half again as much to read as
+      the same amount of tone. See values/lp_floats.xml.
+    -->
+    <item name="lp_ambient_intensity" format="float" type="dimen">0.30</item>
+</resources>

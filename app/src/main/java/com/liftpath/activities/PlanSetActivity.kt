@@ -1,7 +1,6 @@
 package com.liftpath.activities
 
 import android.content.Intent
-import android.graphics.drawable.Animatable
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
@@ -33,7 +32,6 @@ class PlanSetActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         jsonHelper = JsonHelper(this)
-        setupBackgroundAnimation()
         setupRecyclerView()
         setupClickListeners()
     }
@@ -41,11 +39,6 @@ class PlanSetActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         loadData()
-    }
-
-    private fun setupBackgroundAnimation() {
-        val drawable = binding.imageBgAnimation.drawable
-        if (drawable is Animatable) drawable.start()
     }
 
     private fun setupRecyclerView() {

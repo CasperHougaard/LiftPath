@@ -1,16 +1,24 @@
 package com.liftpath.activities
 
-import android.graphics.drawable.Animatable
 import android.os.Bundle
-import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.liftpath.R
 import com.liftpath.databinding.ActivityProgressSettingsBinding
 import com.liftpath.helpers.DialogHelper
+import com.liftpath.helpers.ProgressSettings
 import com.liftpath.helpers.ProgressSettingsManager
 import com.liftpath.helpers.showWithTransparentWindow
 
+/**
+ * 1RM estimation settings, reached from Settings > Training.
+ *
+ * ProgressExercisesFragment reads these on every chart build, so they are live even though
+ * this screen had no entry point for a while — see the layout's header comment.
+ *
+ * No action bar to title: Theme.LiftPath.Base is NoActionBar and this activity never calls
+ * setSupportActionBar, so the header in the layout is the only title.
+ */
 class ProgressSettingsActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityProgressSettingsBinding
@@ -21,26 +29,10 @@ class ProgressSettingsActivity : AppCompatActivity() {
         binding = ActivityProgressSettingsBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        supportActionBar?.title = "Progress Settings"
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-
-        setupBackgroundAnimation()
         settingsManager = ProgressSettingsManager(this)
 
-        setupSpinners()
         loadSettings()
         setupListeners()
-    }
-
-    private fun setupBackgroundAnimation() {
-        val drawable = binding.imageBgAnimation.drawable
-        if (drawable is Animatable) {
-            drawable.start()
-        }
-    }
-
-    private fun setupSpinners() {
-        // No spinners needed anymore (confidence level removed)
     }
 
     private fun loadSettings() {
@@ -54,53 +46,53 @@ class ProgressSettingsActivity : AppCompatActivity() {
 
     private fun setupListeners() {
         binding.buttonBack.setOnClickListener {
-            onBackPressed()
+            onBackPressedDispatcher.onBackPressed()
         }
 
-        binding.buttonSave.setOnClickListener {
-            saveSettings()
-        }
+        binding.buttonSave.setOnClickListener { saveSettings() }
 
         binding.buttonReset.setOnClickListener {
             DialogHelper.createBuilder(this)
-                .setTitle("Reset to Defaults")
-                .setMessage("Are you sure you want to reset all progress settings to default values?")
-                .setPositiveButton("Reset") { _, _ ->
+                .setTitle(R.string.dialog_title_reset_to_defaults)
+                .setMessage(R.string.progress_settings_reset_message)
+                .setPositiveButton(R.string.btn_reset_defaults) { _, _ ->
                     settingsManager.resetToDefaults()
                     loadSettings()
-                    Toast.makeText(this, "Settings reset to defaults", Toast.LENGTH_SHORT).show()
+                    toast(R.string.progress_settings_saved)
                 }
-                .setNegativeButton("Cancel", null)
+                .setNegativeButton(R.string.button_cancel, null)
                 .showWithTransparentWindow()
         }
     }
 
     private fun saveSettings() {
-        try {
-            val estimationPeriod = binding.etEstimationPeriodMonths.text.toString().toIntOrNull() ?: 3
-            val minDataPoints = binding.etMinimumDataPoints.text.toString().toIntOrNull() ?: 4
-            val recentDataWindow = binding.etRecentDataWindowDays.text.toString().toIntOrNull() ?: 30
+        // Existing values are the fallback for a blank or unparseable field, so a stray edit
+        // cannot silently reset a setting to the data-class default.
+        val current = settingsManager.getSettings()
 
-            val settings = com.liftpath.helpers.ProgressSettings(
-                defaultEstimationPeriodMonths = estimationPeriod.coerceIn(1, 12),
-                minimumDataPoints = minDataPoints.coerceIn(2, 20),
-                recentDataWindowDays = recentDataWindow.coerceIn(7, 365),
-                defaultChartType = settingsManager.getSettings().defaultChartType, // Keep existing value
-                estimationMethod = settingsManager.getSettings().estimationMethod, // Keep existing value
+        settingsManager.saveSettings(
+            ProgressSettings(
+                defaultEstimationPeriodMonths = binding.etEstimationPeriodMonths.intOr(
+                    current.defaultEstimationPeriodMonths
+                ).coerceIn(1, 12),
+                minimumDataPoints = binding.etMinimumDataPoints.intOr(
+                    current.minimumDataPoints
+                ).coerceIn(2, 20),
+                recentDataWindowDays = binding.etRecentDataWindowDays.intOr(
+                    current.recentDataWindowDays
+                ).coerceIn(7, 365),
+                defaultChartType = current.defaultChartType,
+                estimationMethod = current.estimationMethod,
                 showWarnings = binding.switchShowWarnings.isChecked
             )
-
-            settingsManager.saveSettings(settings)
-            Toast.makeText(this, "Settings saved", Toast.LENGTH_SHORT).show()
-            finish()
-        } catch (e: Exception) {
-            Toast.makeText(this, "Error saving settings: ${e.message}", Toast.LENGTH_LONG).show()
-        }
+        )
+        toast(R.string.progress_settings_saved)
+        finish()
     }
 
-    override fun onSupportNavigateUp(): Boolean {
-        onBackPressed()
-        return true
-    }
+    private fun android.widget.EditText.intOr(fallback: Int): Int =
+        text.toString().trim().toIntOrNull() ?: fallback
+
+    private fun toast(resId: Int) =
+        Toast.makeText(this, resId, Toast.LENGTH_SHORT).show()
 }
-

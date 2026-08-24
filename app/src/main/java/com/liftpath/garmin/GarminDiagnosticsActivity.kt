@@ -26,7 +26,10 @@ import com.liftpath.watch.WatchLink
 class GarminDiagnosticsActivity : AppCompatActivity() {
 
     private lateinit var log: TextView
-    private lateinit var bridge: GarminBridge
+
+    // Held as a field so onDestroy can detach exactly this sink rather than whatever happens to
+    // be attached — a recreated instance may register before the outgoing one tears down.
+    private val sink: (String) -> Unit = { append(it) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,8 +61,11 @@ class GarminDiagnosticsActivity : AppCompatActivity() {
             }
         )
 
-        bridge = GarminBridge(this) { append(it) }
-        bridge.start()
+        // The bridge belongs to LiftPathApplication now, so this screen only listens. It used to
+        // create its own, which meant the transport existed only while this screen was open —
+        // and the watch cannot tell "nobody listening" from "no workout".
+        append(if (WatchTransport.isStarted()) "bridge: owned by application" else "bridge: NOT STARTED")
+        WatchTransport.observe(sink).forEach { append(it) }
     }
 
     private fun append(line: String) {
@@ -67,10 +73,9 @@ class GarminDiagnosticsActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
-        // Only correct because this screen owns its own bridge. Once LiftPathApplication owns a
-        // long-lived one, drop this and let the application manage the lifecycle — two bridges
-        // attached to WatchLink at once means the second silently replaces the first.
-        bridge.stop()
+        // Detach the log sink only. The bridge outlives this screen by design — stopping it here
+        // is what made the transport exist only while diagnostics were open.
+        WatchTransport.stopObserving(sink)
         super.onDestroy()
     }
 

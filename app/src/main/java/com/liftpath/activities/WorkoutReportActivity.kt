@@ -1,7 +1,6 @@
 package com.liftpath.activities
 
 import android.app.Activity
-import android.graphics.drawable.Animatable
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -58,16 +57,8 @@ class WorkoutReportActivity : AppCompatActivity() {
 
         trainingSession = session
 
-        setupBackgroundAnimation()
         setupClickListeners()
         loadReportData()
-    }
-
-    private fun setupBackgroundAnimation() {
-        val drawable = binding.imageBgAnimation.drawable
-        if (drawable is Animatable) {
-            drawable.start()
-        }
     }
 
     private fun setupClickListeners() {

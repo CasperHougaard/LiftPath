@@ -51,7 +51,9 @@ object BackupManager {
         TriPathConnection.PREFS_NAME,
         // Selected colour palette. Kept in sync with AppearanceManager.PREFS_NAME —
         // it is a user choice, not device wiring, so it should survive a phone swap.
-        "appearance_settings"
+        "appearance_settings",
+        // Per-equipment weight ladders. Describes the user's gym, not this device.
+        WeightIncrementSettingsManager.PREFS_NAME
     )
 
     /**

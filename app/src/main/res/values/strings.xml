@@ -372,7 +372,7 @@
     
     <!-- Dialog Titles -->
     <string name="dialog_title_reset_data">Reset Data</string>
-    <string name="dialog_title_reset_to_defaults">Reset to Defaults</string>
+    <string name="dialog_title_reset_to_defaults">Reset to defaults?</string>
     <string name="dialog_title_cancel_workout">Cancel Workout</string>
     <string name="dialog_title_no_plans_available">No Plans Available</string>
     <string name="dialog_title_apply_workout_plan">Apply Workout Plan</string>
@@ -432,18 +432,18 @@ Leave blank if you\'re not sure.]]></string>
     <string name="button_clear">Clear</string>
     <string name="button_ok">OK</string>
     <string name="button_got_it">Got it</string>
-    <string name="button_add_exercise">Add Exercise</string>
-    <string name="button_change_type">Change Type</string>
+    <string name="button_add_exercise">Add exercise</string>
+    <string name="button_change_type">Change type</string>
     <string name="button_edit">Edit</string>
     <string name="button_add">Add</string>
     <string name="button_change">Change</string>
-    <string name="button_cancel_workout">Cancel Workout</string>
+    <string name="button_cancel_workout">Cancel workout</string>
     <string name="button_continue">Continue</string>
     <string name="button_resume">Resume</string>
     <string name="button_discard">Discard</string>
-    <string name="button_clear_plan">Clear Plan</string>
-    <string name="button_add_note">Add Note</string>
-    <string name="button_edit_note">Edit Note</string>
+    <string name="button_clear_plan">Clear plan</string>
+    <string name="button_add_note">Add note</string>
+    <string name="button_edit_note">Edit note</string>
     <string name="hint_note_optional">Notes (optional)</string>
     <string name="hint_kg">Kg</string>
     <string name="hint_reps">Reps</string>
@@ -478,7 +478,7 @@ Leave blank if you\'re not sure.]]></string>
     <string name="button_return">Return</string>
     <string name="button_complete">Complete</string>
     <string name="button_finish">Finish</string>
-    <string name="button_add_special">Add Special</string>
+    <string name="button_add_special">Add special</string>
     <string name="subtitle_add_special">Choose an option</string>
     <string name="tile_warmup">Warmup</string>
     <string name="tile_cooldown">Cooldown</string>
@@ -486,7 +486,7 @@ Leave blank if you\'re not sure.]]></string>
     <string name="tile_superset">SuperSet</string>
     <string name="tile_circuit">Circuit</string>
     <string name="tile_circuit_subtitle">A handful of exercises back to back, repeated for rounds</string>
-    <string name="button_create_new_circuit">Create New Circuit</string>
+    <string name="button_create_new_circuit">New circuit</string>
     <string name="button_add_superset_selection">Add %1$d exercises as SuperSet</string>
     <string name="button_add_superset_selection_empty">Select at least 2 exercises</string>
     <string name="warmup_timer_title">Warmup Timer</string>
@@ -507,7 +507,7 @@ Leave blank if you\'re not sure.]]></string>
     <string name="dialog_message_superset_sets">How many sets for each exercise in this SuperSet?</string>
     
     <!-- Workout Report -->
-    <string name="workout_complete_title">Workout Complete!</string>
+    <string name="workout_complete_title">Workout complete</string>
     <string name="total_volume_label">Total Volume</string>
     <string name="total_sets_label">Sets</string>
     <string name="total_reps_label">Reps</string>
@@ -533,8 +533,8 @@ Leave blank if you\'re not sure.]]></string>
     <string name="percent_change_format">%+.1f%%</string>
 
     <!-- 1RM estimation logic dialog -->
-    <string name="title_estimation_logic">1RM Estimation Logic</string>
-    <string name="subtitle_estimation_logic">Weighted Linear Regression with Exponential Decay</string>
+    <string name="title_estimation_logic">1RM estimation logic</string>
+    <string name="subtitle_estimation_logic">Weighted linear regression with exponential decay</string>
     <string name="title_estimation_rule_1">1. Workout Type Filtering</string>
     <string name="body_estimation_rule_1">• Heavy workouts: Always included\n• Light workouts: Only with RPE data\n• Prevents skewing the strength curve</string>
     <string name="title_estimation_rule_2">2. RPE Normalization (Effective Reps)</string>
@@ -550,7 +550,7 @@ Leave blank if you\'re not sure.]]></string>
     <string name="summary_estimation_logic">Realistic and scientifically accurate progress predictions based on maximal effort sessions.</string>
 
     <!-- 6-month 1RM extended projection dialog -->
-    <string name="title_extended_projection">6-Month 1RM Projection</string>
+    <string name="title_extended_projection">6-month 1RM projection</string>
     <string name="subtitle_extended_projection">Historical data shown in orange, projected values in gray</string>
 
     <!-- Progress Tabs -->
@@ -650,7 +650,7 @@ Leave blank if you\'re not sure.]]></string>
     <string name="progress_no_exercises">No exercises found</string>
     
     <!-- Progress Sessions -->
-    <string name="progress_sessions_title">Training Sessions</string>
+    <string name="progress_sessions_title">Training sessions</string>
     <string name="progress_compare_mode">Compare Mode</string>
     <string name="progress_select_session">Select session</string>
     <string name="progress_no_sessions">No sessions found</string>
@@ -707,11 +707,11 @@ Leave blank if you\'re not sure.]]></string>
 
     <!-- Exercise library catalog merge -->
     <string name="settings_advanced_section_title">Destructive actions</string>
-    <string name="button_reset_library">Reset Exercise Library</string>
+    <string name="button_reset_library">Reset exercise library</string>
     <string name="dialog_title_reset_library">Reset exercise library?</string>
     <string name="dialog_message_reset_library">Replace your exercise library with the app default catalog. Workout history and plans are kept, but custom exercises will be removed from the library.</string>
     <string name="toast_library_reset">Exercise library reset to defaults</string>
-    <string name="button_export_library">Export Exercise Library</string>
+    <string name="button_export_library">Export exercise library</string>
     <string name="toast_library_exported">Exercise library exported</string>
     <string name="toast_library_export_failed">Export failed: %1$s</string>
     <string name="button_ai_export">AI Export</string>
@@ -732,7 +732,7 @@ Leave blank if you\'re not sure.]]></string>
     <string name="title_update_summary">What\'s changing</string>
 
     <!-- Import remap: matching unknown exercises to the current library -->
-    <string name="title_change_exercise">Change Exercise</string>
+    <string name="title_change_exercise">Change exercise</string>
     <string name="title_remap_exercises">Match imported exercises</string>
     <string name="subtitle_remap_exercises">Some exercises in this file aren\'t in your library. Pick a current exercise for each, or skip it.</string>
     <string name="button_remap_change">Change</string>
@@ -829,11 +829,11 @@ Leave blank if you\'re not sure.]]></string>
     <!-- Warm-up / Cool-down elements -->
     <string name="label_warmup_element">Warm-up</string>
     <string name="label_cooldown_element">Cool-down</string>
-    <string name="btn_mark_complete">Mark Complete</string>
+    <string name="btn_mark_complete">Mark complete</string>
     <string name="btn_mark_incomplete">Undo</string>
     <string name="btn_add_warmup">Warm-up</string>
     <string name="btn_add_cooldown">Cool-down</string>
-    <string name="btn_start_timer">Start Timer</string>
+    <string name="btn_start_timer">Start timer</string>
     <string name="btn_reset_timer">Reset</string>
     <string name="hint_warmup_notes">Notes (optional)</string>
     <string name="warmup_element_subtitle">Prepare your body</string>
@@ -845,7 +845,7 @@ Leave blank if you\'re not sure.]]></string>
     <string name="option_custom">Custom…</string>
 
     <!-- Stretch Cooldown -->
-    <string name="stretch_cooldown_title">Cool Down</string>
+    <string name="stretch_cooldown_title">Cool down</string>
     <string name="stretch_progress_label">Stretch %1$d of %2$d</string>
     <string name="stretch_button_next">Next  →</string>
     <string name="stretch_button_finish">Finish</string>
@@ -917,7 +917,9 @@ Leave blank if you\'re not sure.]]></string>
     <string name="cd_delete_exercise">Remove exercise</string>
 
     <!-- ===== Active workout: screen chrome and the rest-timer bar ===== -->
-    <string name="title_active_workout">Active Workout</string>
+    <string name="title_active_workout">Active workout</string>
+    <!-- Same title with the applied plan appended, set from ActiveTrainingActivity.updateTitle. -->
+    <string name="title_active_workout_with_plan">Active workout — %1$s</string>
     <string name="cd_select_workout_plan">Select workout plan</string>
     <string name="cd_view_muscle_overview">View muscle overview</string>
     <string name="cd_start_pause_timer">Start or pause rest timer</string>
@@ -991,7 +993,7 @@ Leave blank if you\'re not sure.]]></string>
     <string name="subtitle_manage_exercises">Create, edit, and organise your exercises</string>
     <string name="hint_search_exercises">Search exercises</string>
     <string name="btn_add_favourites">Favourites</string>
-    <string name="title_manage_favorites">Add Favourites</string>
+    <string name="title_manage_favorites">Add favourites</string>
     <string name="btn_add_custom_exercise">New exercise</string>
     <string name="btn_use_plan">Use plan</string>
     <string name="btn_delete_plan">Remove plan</string>
@@ -999,6 +1001,10 @@ Leave blank if you\'re not sure.]]></string>
     <string name="cd_edit_exercise">Edit exercise</string>
 
     <!-- ===== Edit exercise screen ===== -->
+    <!-- Set from EditExerciseActivity.loadExerciseData; sentence case, matching
+         title_edit_circuit / title_create_circuit on the sibling authoring screen. -->
+    <string name="title_edit_exercise">Edit exercise</string>
+    <string name="title_create_exercise">New exercise</string>
     <string name="edit_exercise_subtitle">Define exercise details</string>
     <string name="edit_exercise_section_information">Exercise Information</string>
     <string name="edit_exercise_hint_name">Exercise Name</string>
@@ -1007,15 +1013,31 @@ Leave blank if you\'re not sure.]]></string>
     <string name="edit_exercise_hint_tier">Tier (Intensity Level)</string>
     <string name="edit_exercise_hint_mechanics">Mechanics</string>
     <string name="edit_exercise_hint_family">Exercise Family (optional)</string>
+    <string name="edit_exercise_hint_equipment">Equipment</string>
+    <string name="settings_equipment_increments_title">🏋 Weight Increments</string>
+    <string name="settings_equipment_increments_description">What each piece of equipment can actually load. Step is the smallest jump, Min is the lightest possible weight (an empty bar, the first plate on a stack). A step of 0 means no weight ladder — reps and RPE only.</string>
+    <string name="label_equipment_step">Step (kg)</string>
+    <string name="label_equipment_min">Min (kg)</string>
+    <string name="cd_equipment_step">Weight step in kilograms</string>
+    <string name="cd_equipment_min">Minimum weight in kilograms</string>
+    <string name="validation_equipment_step">Weight step must be between 0 and 25 kg</string>
+    <string name="validation_equipment_min">Minimum weight must be between 0 and 100 kg</string>
+    <string name="edit_exercise_equipment_not_set">Not set</string>
+    <string name="edit_exercise_hint_step_override">Step (kg)</string>
+    <string name="edit_exercise_hint_min_override">Min (kg)</string>
+    <!-- %1$s = equipment name, %2$s = step in kg, %3$s = minimum in kg -->
+    <string name="edit_exercise_increment_inherited">Default for %1$s: %2$s kg steps from %3$s kg</string>
+    <string name="edit_exercise_increment_inherited_no_ladder">%1$s has no weight steps — reps and RPE only</string>
+    <string name="edit_exercise_increment_inherited_unset">No equipment set: %1$s kg steps</string>
     <string name="edit_exercise_section_target_muscles">Target Muscles</string>
     <string name="edit_exercise_primary_targets">Primary Targets</string>
     <string name="edit_exercise_secondary_targets">Secondary Targets</string>
     <string name="edit_exercise_section_note">Note</string>
     <string name="edit_exercise_hint_notes">Exercise notes (optional)</string>
-    <string name="button_save_exercise">Save Exercise</string>
+    <string name="button_save_exercise">Save exercise</string>
 
     <!-- ===== Select exercise screen ===== -->
-    <string name="select_exercise_title">Select an Exercise</string>
+    <string name="select_exercise_title">Select an exercise</string>
     <string name="chip_filter_unadded">Unadded</string>
     <string name="chip_filter_missing_primary">Missing Primary</string>
     <string name="chip_filter_missing_secondary">Missing Secondary</string>
@@ -1025,7 +1047,7 @@ Leave blank if you\'re not sure.]]></string>
     <string name="label_muscle_overview">Muscle Overview</string>
     <string name="muscle_overview_badge_default">0/24</string>
     <string name="select_exercise_muscle_overview_empty">Add exercises to see muscle activation</string>
-    <string name="button_create_new_exercise">Create New Exercise</string>
+    <string name="button_create_new_exercise">New exercise</string>
 
     <!-- ===== Plan authoring: exercise slot card ===== -->
     <string name="cd_move_up">Move up</string>
@@ -1094,7 +1116,7 @@ Leave blank if you\'re not sure.]]></string>
     <string name="progress_no_recent_training">No training data in the last 30 days. Time to get back in the gym!</string>
     <string name="cd_muscle_map">Muscle map</string>
     <string name="cd_close_dialog">Close</string>
-    <string name="title_muscle_overview">Muscle Overview</string>
+    <string name="title_muscle_overview">Muscle overview</string>
     <string name="label_muscle_summary_default">0/24</string>
     <string name="body_muscle_overview_empty">Add exercises to see muscle activation</string>
     <string name="progress_no_data_selected_intents">No data available for selected intents</string>
@@ -1106,7 +1128,7 @@ Leave blank if you\'re not sure.]]></string>
     <string name="legend_not_worked">Not worked</string>
 
     <!-- ===== Training detail ===== -->
-    <string name="title_training_detail">Training Details</string>
+    <string name="title_training_detail">Training details</string>
     <string name="title_training_detail_format">Training #%1$d - %2$s</string>
     <string name="label_session_intent">Session Intent</string>
     <string name="label_workout_duration">Workout Duration</string>
@@ -1137,16 +1159,32 @@ Leave blank if you\'re not sure.]]></string>
     <string name="settings_row_progression_settings_subtitle">Rep ranges, RPE targets, rest timer, deload</string>
     <string name="settings_row_readiness">Readiness &amp; Recovery</string>
     <string name="settings_row_readiness_subtitle">Fatigue dashboard, calibration, Health Connect</string>
-    <string name="button_export_data">Export Data</string>
+    <string name="button_export_data">Export data</string>
     <string name="button_export_data_subtitle">Save a full backup as a file</string>
-    <string name="button_import_data">Import Data</string>
+    <string name="button_import_data">Import data</string>
     <string name="button_import_data_subtitle">Replace this device\'s data from a file</string>
     <string name="settings_row_withings_title">Withings Data</string>
     <string name="settings_row_withings_subtitle">View synced body scan information</string>
     <string name="cd_open_screen">Opens a screen</string>
 
+    <!-- ===== 1RM estimation settings (Settings > Training) ===== -->
+    <string name="title_progress_settings">1RM estimation</string>
+    <string name="subtitle_progress_settings">How estimates and projections are calculated</string>
+    <string name="progress_settings_section_estimation">Estimation</string>
+    <string name="progress_settings_period_label">Default projection period (months)</string>
+    <string name="progress_settings_period_description">How far ahead to project your 1RM. 2–3 months keeps estimates realistic.</string>
+    <string name="progress_settings_data_points_label">Minimum data points (sessions)</string>
+    <string name="progress_settings_data_points_description">Sessions needed before an estimate counts as qualified. More sessions, more reliable projection.</string>
+    <string name="progress_settings_window_label">Recent data window (days)</string>
+    <string name="progress_settings_window_description">How long since the last session before data stops counting as recent.</string>
+    <string name="progress_settings_warnings_label">Show data-quality warnings</string>
+    <string name="progress_settings_warnings_description">Warn when there is too little or too old data for a reliable estimate.</string>
+    <string name="progress_settings_saved">Settings saved</string>
+    <string name="progress_settings_reset_message">Reset all 1RM estimation settings to their default values?</string>
+    <string name="settings_row_progress_settings_subtitle">Estimation window, data points, warnings</string>
+
     <!-- ===== Progression settings ===== -->
-    <string name="title_progression_settings">Progression Settings</string>
+    <string name="title_progression_settings">Progression settings</string>
     <string name="subtitle_progression_settings">Configure your workout progression preferences</string>
     <string name="settings_rest_timer_title">⏱️ Rest Timer</string>
     <string name="settings_rest_timer_description">Auto-start rest timer after logging sets</string>
@@ -1190,8 +1228,8 @@ Leave blank if you\'re not sure.]]></string>
     <string name="label_consecutive_hard_sessions">Consecutive Hard Sessions</string>
     <string name="settings_deload_threshold_hint">Trigger deload after N hard sessions (default: 3)</string>
     <string name="settings_deload_rpe_hint">What counts as \'hard\' (default: 9.0)</string>
-    <string name="btn_reset_defaults">Reset to Defaults</string>
-    <string name="btn_save_settings">Save Settings</string>
+    <string name="btn_reset_defaults">Reset to defaults</string>
+    <string name="btn_save_settings">Save settings</string>
 
     <!-- ===== Start workout sheet ===== -->
     <string name="start_workout_title">Start Workout</string>
@@ -1206,12 +1244,12 @@ Leave blank if you\'re not sure.]]></string>
     <string name="label_plan_rotations">Plan rotations</string>
     <string name="label_target_areas">Target areas</string>
     <string name="stretch_area_full_body">Full body</string>
-    <string name="btn_start_stretching">Start Stretching</string>
+    <string name="btn_start_stretching">Start stretching</string>
     <string name="subtitle_choose_an_option">Choose an option</string>
 
     <!-- ===== Readiness dashboard ===== -->
     <string name="placeholder_dash">--</string>
-    <string name="readiness_dashboard_title">Readiness Dashboard</string>
+    <string name="readiness_dashboard_title">Readiness dashboard</string>
     <string name="readiness_dashboard_subtitle">Recovery status for your next activities</string>
     <string name="cd_calibration_settings">Calibration settings</string>
     <string name="readiness_last_workout_summary_title">Last Workout Summary</string>
@@ -1232,7 +1270,7 @@ Leave blank if you\'re not sure.]]></string>
     <string name="readiness_empty_state">No workouts found. Complete a workout to see readiness status.</string>
 
     <!-- ===== Readiness calibration ===== -->
-    <string name="readiness_calibration_title">Readiness Calibration</string>
+    <string name="readiness_calibration_title">Readiness calibration</string>
     <string name="readiness_calibration_subtitle">Customize recovery calculations for your body</string>
     <string name="readiness_physiology_title">My Physiology</string>
     <string name="readiness_recovery_speed_label">Recovery Speed</string>
@@ -1252,7 +1290,7 @@ Leave blank if you\'re not sure.]]></string>
     <string name="readiness_strict_run_blocking_description">If ON, strictly block Running when Leg Fatigue is high to prevent injury. If OFF, allow \'Easy Runs\' even with fatigue.</string>
     <string name="readiness_ignore_weekends_title">Ignore Fatigue on Weekends</string>
     <string name="readiness_ignore_weekends_description">Disable warnings on Saturday/Sunday (allows overreaching).</string>
-    <string name="btn_reset_to_recommended">Reset to Recommended</string>
+    <string name="btn_reset_to_recommended">Reset to recommended</string>
 
     <!-- ===== Health Connect ===== -->
     <string name="health_connect_title">Health Connect</string>
@@ -1326,7 +1364,8 @@ Leave blank if you\'re not sure.]]></string>
     <string name="circuit_picker_subtitle">Pick a saved circuit, or author a new one.</string>
     <string name="btn_start_circuit">Start circuit</string>
     <string name="btn_continue_circuit">Continue circuit</string>
-    <string name="circuit_log_hint_bodyweight">Bodyweight</string>
+    <string name="circuit_log_label_added_kg">Added kg</string>
+    <string name="circuit_log_label_added_kg_bw">Added kg · BW %1$s</string>
     <string name="cd_station_timer">Time this station</string>
     <string name="circuit_station_last_round">Last round: %1$s</string>
     <string name="circuit_rounds_done">%1$d rounds</string>
@@ -1337,6 +1376,8 @@ Leave blank if you\'re not sure.]]></string>
     <string name="button_save_round">Save round</string>
     <string name="button_round_later">Later</string>
     <string name="circuit_preview_rounds">~%1$d rounds</string>
+    <string name="cd_expand_circuit">Expand or collapse circuit</string>
+    <string name="cd_circuit_complete">Circuit finished</string>
     <string name="circuit_preview_open">circuit</string>
 </resources>
 

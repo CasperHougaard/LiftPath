@@ -79,8 +79,7 @@
                 style="@style/Widget.LP.EditText.Boxed"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="@string/circuit_log_hint_bodyweight"
-                android:inputType="numberDecimal" />
+                android:inputType="numberSigned|numberDecimal" />
         </LinearLayout>
 
         <LinearLayout

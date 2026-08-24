@@ -25,7 +25,11 @@
 
     <!-- ================= PROSE + CHROME (Archivo) ================= -->
 
-    <!-- Screen titles. One per screen, ideally. -->
+    <!--
+      Title of a TOP-LEVEL destination — the four bottom-nav tabs, and nothing else.
+      A tab has no back button and no parent, so its title is the only thing establishing
+      where you are; at 32sp it reads as a place rather than a step.
+    -->
     <style name="TextAppearance.LP.Display" parent="TextAppearance.MaterialComponents.Headline4">
         <item name="android:fontFamily">@font/archivo</item>
         <item name="fontFamily">@font/archivo</item>
@@ -36,7 +40,15 @@
         <item name="android:textStyle">normal</item>
     </style>
 
-    <!-- Section headings that need to carry weight. -->
+    <!--
+      Title of a PUSHED screen — anything reached from a tab (edit screens, pickers, the
+      active workout, dialogs and bottom sheets), plus section headings that need to carry
+      weight. Pushed screens arrive with a 48dp back control beside the title, which does
+      half the "where am I" work, so they sit a step down from Display.
+
+      One per screen. The pair below it is always TextAppearance.LP.Body at
+      @dimen/lp_space_1 — see any activity_*.xml header for the shape.
+    -->
     <style name="TextAppearance.LP.Title" parent="TextAppearance.MaterialComponents.Headline6">
         <item name="android:fontFamily">@font/archivo</item>
         <item name="fontFamily">@font/archivo</item>
@@ -124,7 +136,7 @@
       72sp, not the 44sp the rest of this scale would suggest, because the only consumer is
       RestTimerDialogActivity — which shows over the lock screen and gets read from a few feet
       away with a bar on your back, not from phone-in-hand distance. "9:59" at 72sp mono is
-      ~173sp wide, so it still fits a 360dp phone with the 24dp dialog padding.
+      ~173sp wide, so it still fits a 360dp phone with the @dimen/lp_gutter dialog padding.
     -->
     <style name="TextAppearance.LP.Metric.XL" parent="android:TextAppearance">
         <item name="android:fontFamily">@font/jetbrains_mono</item>

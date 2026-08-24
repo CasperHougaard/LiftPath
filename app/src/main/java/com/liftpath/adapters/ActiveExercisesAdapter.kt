@@ -17,9 +17,11 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.liftpath.R
 import com.liftpath.helpers.DialogHelper
+import com.liftpath.helpers.EquipmentIncrementTable
 import com.liftpath.helpers.JsonHelper
 import com.liftpath.helpers.ProgressionHelper
 import com.liftpath.helpers.ProgressionSettingsManager
+import com.liftpath.helpers.WeightIncrementSettingsManager
 import com.liftpath.helpers.RestTimerHelper
 import com.liftpath.helpers.CircuitStore
 import com.liftpath.helpers.SetFormatter
@@ -68,7 +70,8 @@ class ActiveExercisesAdapter(
     private val onSpecialTimerReset: (exerciseId: Int) -> Unit = {},
     private val onStartCircuitClicked: (position: Int) -> Unit = {},
     private val onDeleteCircuitClicked: (exerciseId: Int) -> Unit = {},
-    private val onCircuitSettingsClicked: (position: Int) -> Unit = {}
+    private val onCircuitSettingsClicked: (position: Int) -> Unit = {},
+    private val circuitEntriesProvider: (instanceId: String) -> List<com.liftpath.models.ExerciseEntry> = { emptyList() }
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     
     companion object {
@@ -105,11 +108,38 @@ class ActiveExercisesAdapter(
     /** Held only so expansion can scroll the newly-opened card into view. */
     private var attachedRecyclerView: RecyclerView? = null
 
+    /**
+     * Circuit cards expand independently of the single-exercise accordion above (there's
+     * usually at most one or two in a session, and each needs its Start/Continue button
+     * reachable regardless of expansion). Default is "expanded until finished" — only an
+     * explicit chevron tap is remembered here, in whichever set matches the tap.
+     */
+    private val expandedCircuitIds = mutableSetOf<String>()
+    private val collapsedCircuitIds = mutableSetOf<String>()
+
+    private fun isCircuitExpanded(circuit: com.liftpath.models.CircuitInstance): Boolean = when {
+        circuit.instanceId in expandedCircuitIds -> true
+        circuit.instanceId in collapsedCircuitIds -> false
+        else -> !circuit.isFinished
+    }
+
+    private fun toggleCircuitExpanded(circuit: com.liftpath.models.CircuitInstance) {
+        val id = circuit.instanceId
+        if (isCircuitExpanded(circuit)) {
+            expandedCircuitIds.remove(id)
+            collapsedCircuitIds.add(id)
+        } else {
+            collapsedCircuitIds.remove(id)
+            expandedCircuitIds.add(id)
+        }
+    }
+
     /** Rebuilt when exercise list layout / superset membership changes (not when only sets change). */
     private var cachedSupersetLayoutKey: Int = Int.MIN_VALUE
     private var supersetPositionsByGroupId: Map<String, List<Int>> = emptyMap()
 
     private var progressionSettingsCache: ProgressionHelper.ProgressionSettings? = null
+    private var incrementTableCache: EquipmentIncrementTable? = null
 
     private fun ensureSupersetPositionCache() {
         var key = groupedExercises.size
@@ -125,6 +155,47 @@ class ActiveExercisesAdapter(
             .mapValues { (_, indices) -> indices.sorted() }
     }
 
+    private fun workingSetCount(g: GroupedExercise): Int = g.sets.count { !it.isWarmup }
+
+    /** Whose turn it is within one superset group, derived fresh from set counts each call. */
+    private class SupersetTurnState(val activeExerciseId: Int?, val nextExerciseId: Int?, val reachedTarget: Boolean)
+
+    /**
+     * Round-robins to whichever member has logged the fewest working sets so far — ties break
+     * to the earliest position, which is what makes a 2-exercise superset alternate cleanly and
+     * an N-exercise one cycle in list order. Returns no active member once the group's shared
+     * target is met: past that point every exercise is free to log against, so nothing is "on
+     * the clock" any more.
+     */
+    private fun supersetTurnState(groupId: String?): SupersetTurnState {
+        if (groupId == null) return SupersetTurnState(null, null, false)
+        ensureSupersetPositionCache()
+        val indices = supersetPositionsByGroupId[groupId] ?: return SupersetTurnState(null, null, false)
+        val target = getSupersetTargetSets(groupId)
+        val counts = indices.map { workingSetCount(groupedExercises[it]) }
+        if (target != null && counts.all { it >= target }) return SupersetTurnState(null, null, true)
+        val minCount = counts.min()
+        val activeLocalIndex = counts.indexOfFirst { it == minCount }
+        val activeId = groupedExercises[indices[activeLocalIndex]].exerciseId
+        val nextId = if (indices.size > 1) {
+            groupedExercises[indices[(activeLocalIndex + 1) % indices.size]].exerciseId
+        } else null
+        return SupersetTurnState(activeId, nextId, false)
+    }
+
+    /**
+     * Hands the single expansion to whichever superset partner is now on the clock, mirroring
+     * [advanceExpansionPast] but keyed off sets just logged rather than a manual "done" tap.
+     * Called by the host right after it appends a new set to a superset exercise, so the card
+     * that just went idle collapses and the one whose turn it is opens automatically. No-op
+     * once the group has met its shared target, so it never fights a user who is now free to
+     * work either exercise.
+     */
+    fun advanceSupersetTurn(groupId: String) {
+        val active = supersetTurnState(groupId).activeExerciseId ?: return
+        if (active != expandedExerciseId) setExpanded(active)
+    }
+
     private fun progressionSettings(context: Context): ProgressionHelper.ProgressionSettings {
         progressionSettingsCache?.let { return it }
         val s = try {
@@ -136,9 +207,22 @@ class ActiveExercisesAdapter(
         return s
     }
 
+    /** Cached for the same reason as the settings: this is read on every row bind. */
+    private fun incrementTable(context: Context): EquipmentIncrementTable {
+        incrementTableCache?.let { return it }
+        val t = try {
+            WeightIncrementSettingsManager(context.applicationContext).getTable()
+        } catch (e: Exception) {
+            EquipmentIncrementTable()
+        }
+        incrementTableCache = t
+        return t
+    }
+
     /** Call when progression settings may have changed (e.g. activity resumed). */
     fun invalidateProgressionSettingsCache() {
         progressionSettingsCache = null
+        incrementTableCache = null
     }
 
     // ------------------------------------------------------------------ completion state
@@ -278,11 +362,17 @@ class ActiveExercisesAdapter(
     }
 
     class CircuitViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val cardCircuit: MaterialCardView = view as MaterialCardView
+        val header: View = view.findViewById(R.id.layout_header)
         val name: TextView = view.findViewById(R.id.text_circuit_name)
         val summary: TextView = view.findViewById(R.id.text_circuit_summary)
         val roundsBadge: TextView = view.findViewById(R.id.text_rounds_badge)
+        val completionCheck: ImageView = view.findViewById(R.id.image_circuit_complete)
+        val chevron: ImageView = view.findViewById(R.id.image_expand_chevron)
         val stations: TextView = view.findViewById(R.id.text_circuit_stations)
+        val body: View = view.findViewById(R.id.layout_body)
         val pending: TextView = view.findViewById(R.id.text_circuit_pending)
+        val stationsContainer: android.widget.LinearLayout = view.findViewById(R.id.layout_circuit_stations)
         val deleteButton: android.widget.ImageButton = view.findViewById(R.id.button_delete_circuit)
         val runCard: MaterialCardView = view.findViewById(R.id.card_run_circuit)
         val runText: TextView = view.findViewById(R.id.text_run_circuit)
@@ -328,6 +418,10 @@ class ActiveExercisesAdapter(
         val group = groupedExercises[position]
         val circuit = group.circuit ?: return
         val ctx = holder.itemView.context
+        val library = jsonHelper.readTrainingData().exerciseLibrary
+        val entries = circuitEntriesProvider(circuit.instanceId)
+        val entriesByExerciseId = entries.groupBy { it.exerciseId }
+        val isExpanded = isCircuitExpanded(circuit)
 
         holder.name.text = group.exerciseName
         holder.summary.text = CircuitStore.formatSummary(circuit.suggestedRounds, circuit.restBetweenRoundsSeconds)
@@ -342,14 +436,23 @@ class ActiveExercisesAdapter(
         } else {
             holder.roundsBadge.visibility = View.GONE
         }
+        holder.completionCheck.visibility = if (circuit.isFinished) View.VISIBLE else View.GONE
 
-        val library = jsonHelper.readTrainingData().exerciseLibrary
-        val nameById = library.associate { it.id to it.name }
-        val stationNames = circuit.items.mapNotNull { nameById[it.exerciseId] }
-        holder.stations.text = if (stationNames.isEmpty()) {
+        // Collapsed-only glance: each station's most recent round, else its target.
+        holder.stations.text = if (circuit.items.isEmpty()) {
             ctx.getString(R.string.circuit_no_stations)
         } else {
-            stationNames.joinToString(" · ")
+            circuit.items.joinToString(" · ") { item ->
+                val exercise = library.find { it.id == item.exerciseId }
+                val exerciseName = exercise?.name ?: ctx.getString(R.string.circuit_unknown_exercise, item.exerciseId)
+                val latest = entriesByExerciseId[item.exerciseId]?.maxByOrNull { it.setNumber }
+                val detail = if (latest != null) {
+                    SetFormatter.plain(SetFormatter.segments(latest, compact = true))
+                } else {
+                    CircuitStore.formatTarget(item, exercise)
+                }
+                if (detail.isBlank()) exerciseName else "$exerciseName $detail"
+            }
         }
 
         val pendingRounds = circuit.pendingRounds
@@ -358,6 +461,54 @@ class ActiveExercisesAdapter(
             holder.pending.visibility = View.VISIBLE
         } else {
             holder.pending.visibility = View.GONE
+        }
+
+        // Outline: same hairline/accent/positive vocabulary as the exercise card.
+        val outlineAttr = when {
+            circuit.isFinished -> R.attr.lpPositive
+            circuit.completedRounds > 0 -> R.attr.lpAccent
+            else -> R.attr.lpHairline
+        }
+        val emphasisedStrokePx = (2 * ctx.resources.displayMetrics.density).toInt()
+        val hairlineStrokePx = ctx.resources.getDimensionPixelSize(R.dimen.lp_hairline_width)
+        holder.cardCircuit.strokeColor = ctx.lpColor(outlineAttr)
+        holder.cardCircuit.strokeWidth = if (outlineAttr == R.attr.lpHairline) hairlineStrokePx else emphasisedStrokePx
+
+        holder.body.visibility = if (isExpanded) View.VISIBLE else View.GONE
+        holder.chevron.rotation = if (isExpanded) 180f else 0f
+        holder.header.setOnClickListener {
+            toggleCircuitExpanded(circuit)
+            val pos = holder.bindingAdapterPosition
+            if (pos >= 0) notifyItemChanged(pos)
+        }
+
+        if (isExpanded) {
+            holder.stationsContainer.removeAllViews()
+            val inflater = LayoutInflater.from(ctx)
+            circuit.items.forEachIndexed { index, item ->
+                val exercise = library.find { it.id == item.exerciseId }
+                val row = inflater.inflate(R.layout.list_item_active_circuit_station, holder.stationsContainer, false)
+                row.findViewById<TextView>(R.id.text_station_number).text = (index + 1).toString()
+                row.findViewById<TextView>(R.id.text_station_name).text = exercise?.name
+                    ?: ctx.getString(R.string.circuit_unknown_exercise, item.exerciseId)
+
+                val trail = row.findViewById<TextView>(R.id.text_station_trail)
+                val rounds = entriesByExerciseId[item.exerciseId]?.sortedBy { it.setNumber } ?: emptyList()
+                if (rounds.isEmpty()) {
+                    trail.setTextColor(ctx.lpColor(R.attr.lpInkTertiary))
+                    trail.text = CircuitStore.formatTarget(item, exercise)
+                } else {
+                    trail.setTextColor(ctx.lpColor(R.attr.lpInk))
+                    trail.text = SpannableStringBuilder().apply {
+                        rounds.forEachIndexed { index, entry ->
+                            if (index > 0) append(" · ")
+                            append("R${entry.setNumber} ")
+                            append(SetFormatter.compact(ctx, entry))
+                        }
+                    }
+                }
+                holder.stationsContainer.addView(row)
+            }
         }
 
         holder.deleteButton.setOnClickListener { onDeleteCircuitClicked(group.exerciseId) }
@@ -564,10 +715,28 @@ class ActiveExercisesAdapter(
         ensureSupersetPositionCache()
         val groupId = groupedExercise.supersetGroupId
         val groupIndices = groupId?.let { supersetPositionsByGroupId[it] } ?: emptyList()
-        val positionInGroup = groupIndices.indexOf(position)
         val isInSuperset = groupId != null && groupIndices.isNotEmpty()
         val hasSupersetAbove = isInSuperset && position > 0 && groupedExercises[position - 1].supersetGroupId == groupId
         val hasSupersetBelow = isInSuperset && position < groupedExercises.size - 1 && groupedExercises[position + 1].supersetGroupId == groupId
+
+        // Bracket a superset pair as one coupled block: the cards sit flush against each other
+        // with their touching corners squared off, instead of reading as two separate cards
+        // that happen to have a link icon between them.
+        val cardParams = holder.itemView.layoutParams as ViewGroup.MarginLayoutParams
+        val defaultCardGapPx = ctx.resources.getDimensionPixelSize(R.dimen.lp_card_gap_dense)
+        cardParams.topMargin = if (hasSupersetAbove) 0 else defaultCardGapPx
+        cardParams.bottomMargin = if (hasSupersetBelow) 0 else defaultCardGapPx
+        holder.itemView.layoutParams = cardParams
+
+        val fullCornerRadius = ctx.resources.getDimension(R.dimen.lp_radius_sm)
+        val topCornerRadius = if (hasSupersetAbove) 0f else fullCornerRadius
+        val bottomCornerRadius = if (hasSupersetBelow) 0f else fullCornerRadius
+        holder.cardExercise.shapeAppearanceModel = holder.cardExercise.shapeAppearanceModel.toBuilder()
+            .setTopLeftCornerSize(topCornerRadius)
+            .setTopRightCornerSize(topCornerRadius)
+            .setBottomLeftCornerSize(bottomCornerRadius)
+            .setBottomRightCornerSize(bottomCornerRadius)
+            .build()
 
         holder.supersetLinkTop.visibility = if (hasSupersetAbove) View.VISIBLE else View.GONE
         holder.supersetLinkBottom.visibility = if (hasSupersetBelow) View.VISIBLE else View.GONE
@@ -579,11 +748,6 @@ class ActiveExercisesAdapter(
             holder.supersetLinkTop.setOnClickListener(null)
             holder.supersetLinkBottom.setOnClickListener(null)
         }
-
-        val workingSetCount = { g: GroupedExercise ->
-            g.sets.count { !it.isWarmup }
-        }
-        val supersetTarget = getSupersetTargetSets(groupId)
 
         val currentIntent = exerciseIntents[groupedExercise.exerciseId]
         val lastWorkoutSets = if (currentIntent != null) {
@@ -609,15 +773,11 @@ class ActiveExercisesAdapter(
         // Card outline: target met, or the user said so by tapping the check.
         val outlineComplete = isComplete || isMarkedDone
 
-        val hasSupersetReachedTarget = groupId != null && supersetTarget != null &&
-            groupIndices.all { workingSetCount(groupedExercises[it]) >= supersetTarget }
+        val turnState = supersetTurnState(groupId)
+        val hasSupersetReachedTarget = turnState.reachedTarget
         val timerRunning = isRestTimerRunning()
-        val setCounts = groupIndices.map { workingSetCount(groupedExercises[it]) }
-        val minCount = setCounts.minOrNull() ?: 0
-        val activePositionInGroup = if (groupIndices.isNotEmpty()) setCounts.indexOfFirst { it == minCount } else -1
-        val nextPositionInGroup = if (activePositionInGroup >= 0 && groupIndices.size > 1) (activePositionInGroup + 1) % groupIndices.size else -1
-        val isActive = isInSuperset && !hasSupersetReachedTarget && positionInGroup >= 0 && positionInGroup == activePositionInGroup
-        val isWaitingForTimer = isInSuperset && !hasSupersetReachedTarget && timerRunning && nextPositionInGroup >= 0 && positionInGroup == nextPositionInGroup
+        val isActive = isInSuperset && turnState.activeExerciseId == groupedExercise.exerciseId
+        val isWaitingForTimer = isInSuperset && !isActive && timerRunning && turnState.nextExerciseId == groupedExercise.exerciseId
         val canAddSet = !isInSuperset || hasSupersetReachedTarget || isActive || isWaitingForTimer
 
         val isSelectedForSuperset = position in selectedForSupersetPositions()
@@ -636,10 +796,14 @@ class ActiveExercisesAdapter(
         val (outlineAttr, cardAlpha) = when {
             isSupersetComplete -> R.attr.lpPositive to 1f
             isSelectedForSuperset -> R.attr.lpAccent to 1f
+            outlineComplete -> R.attr.lpPositive to 1f
+            // "Your turn" is the one state a superset card must never leave ambiguous, so it
+            // wins over the generic "has this card logged anything yet" outline below even
+            // when nothing has been logged on it yet.
+            isActive -> R.attr.lpAccent to 1f
+            isWaitingForTimer -> R.attr.lpIntentBuild to 1f
             // Queued behind a superset partner: dimmed, but never left with no edge at all.
-            isInSuperset && !canAddSet && !hasSupersetReachedTarget && !isActive && !isWaitingForTimer ->
-                R.attr.lpHairline to 0.5f
-            isWaitingForTimer && !outlineComplete && hasAnyRegisteredSet -> R.attr.lpIntentBuild to 1f
+            isInSuperset && !canAddSet -> R.attr.lpHairline to 0.5f
             else -> restingOutlineAttr to 1f
         }
         holder.cardExercise.strokeColor = ctx.lpColor(outlineAttr)
@@ -1258,7 +1422,8 @@ class ActiveExercisesAdapter(
             exerciseId = exerciseId,
             intent = intent,
             trainingData = trainingData,
-            settings = settings
+            settings = settings,
+            incrementTable = incrementTable(context)
         )
         
         // Don't show suggestion if no action needed

@@ -14,7 +14,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:paddingHorizontal="@dimen/lp_space_5"
+    android:paddingHorizontal="@dimen/lp_gutter"
     android:paddingTop="@dimen/lp_space_5"
     android:paddingBottom="@dimen/lp_space_3">
 
@@ -24,7 +24,7 @@
         android:layout_height="wrap_content"
         android:gravity="center"
         android:text="@string/dialog_title_rest_duration"
-        android:textAppearance="@style/TextAppearance.LP.Heading" />
+        android:textAppearance="@style/TextAppearance.LP.Title" />
 
     <LinearLayout
         android:layout_width="match_parent"

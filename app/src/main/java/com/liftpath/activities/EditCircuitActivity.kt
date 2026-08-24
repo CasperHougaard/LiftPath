@@ -2,7 +2,6 @@ package com.liftpath.activities
 
 import android.app.Activity
 import android.content.Intent
-import android.graphics.drawable.Animatable
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -56,8 +55,6 @@ class EditCircuitActivity : AppCompatActivity() {
 
         jsonHelper = JsonHelper(this)
         circuitId = intent.getStringExtra(EXTRA_CIRCUIT_ID)
-
-        (binding.imageBgAnimation.drawable as? Animatable)?.start()
 
         setupRecyclerView()
         setupClickListeners()

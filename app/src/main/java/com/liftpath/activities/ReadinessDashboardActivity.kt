@@ -1,7 +1,6 @@
 package com.liftpath.activities
 
 import android.content.Intent
-import android.graphics.drawable.Animatable
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
@@ -81,7 +80,6 @@ class ReadinessDashboardActivity : AppCompatActivity() {
         settingsManager = ReadinessSettingsManager(this)
         healthConnectPrefs = getSharedPreferences("health_connect_settings", MODE_PRIVATE)
 
-        setupBackgroundAnimation()
         setupClickListeners()
         setupHealthConnectToggle()
         loadReadinessData()
@@ -107,13 +105,6 @@ class ReadinessDashboardActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         stopCountdownUpdates()
-    }
-
-    private fun setupBackgroundAnimation() {
-        val drawable = binding.imageBgAnimation.drawable
-        if (drawable is Animatable) {
-            drawable.start()
-        }
     }
 
     private fun setupClickListeners() {

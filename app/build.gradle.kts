@@ -27,8 +27,8 @@ android {
         applicationId = "com.liftpath"
         minSdk = 35
         targetSdk = 36
-        versionCode = 13
-        versionName = "3.00.002"
+        versionCode = 14
+        versionName = "4.00.004"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -118,6 +118,10 @@ dependencies {
     // Google Drive backup destination: Play Services' Authorization API only, no Drive client
     // library — DriveBackupHelper talks to the REST API directly.
     implementation("com.google.android.gms:play-services-auth:21.2.0")
+    // Connect IQ companion SDK — the transport behind WatchLink, for live logging from the
+    // Fenix. On Maven Central since 2.x, so no `.aar` in app/libs/ and no flatDir repository
+    // (settings.gradle sets FAIL_ON_PROJECT_REPOS, which would reject one).
+    implementation("com.garmin.connectiq:ciq-companion-app-sdk:2.4.0")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

@@ -1,6 +1,5 @@
 package com.liftpath.activities
 
-import android.graphics.drawable.Animatable
 import android.os.Bundle
 import android.view.View
 import android.widget.AdapterView
@@ -24,7 +23,6 @@ class ReadinessCalibrationActivity : AppCompatActivity() {
 
         settingsManager = ReadinessSettingsManager(this)
 
-        setupBackgroundAnimation()
         setupSpinner()
         loadSettings()
         setupListeners()
@@ -34,13 +32,6 @@ class ReadinessCalibrationActivity : AppCompatActivity() {
         super.onPause()
         // Auto-save settings when leaving the activity
         saveSettings()
-    }
-
-    private fun setupBackgroundAnimation() {
-        val drawable = binding.imageBgAnimation.drawable
-        if (drawable is Animatable) {
-            drawable.start()
-        }
     }
 
     private fun setupSpinner() {

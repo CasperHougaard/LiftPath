@@ -9,7 +9,7 @@ import Toybox.Lang;
 //! which turns a skew into a visible message instead of wrong numbers on your wrist.
 module Protocol {
 
-    const VERSION = 1;
+    const VERSION = 2;
 
     // --- state: phone -> watch ---
     const KEY_VERSION = "v";
@@ -25,6 +25,9 @@ module Protocol {
     const EX_REPS_TARGET = 4;
     const EX_KG = 5;
     const EX_BODYWEIGHT = 6;
+    //! Kilograms per +/- press, resolved on the phone from the exercise's equipment.
+    //! 0 or absent means no ladder; SessionModel falls back to a generic 2.5 kg.
+    const EX_KG_STEP = 7;
 
     // --- commands: watch -> phone ---
     const KEY_COMMAND = "c";

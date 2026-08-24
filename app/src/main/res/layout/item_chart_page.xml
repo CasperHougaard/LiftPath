@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="@dimen/lp_space_4">
 
     <TextView
         android:id="@+id/text_chart_title"
@@ -15,7 +15,7 @@
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginTop="8dp">
+        android:layout_marginTop="@dimen/lp_space_2">
 
         <com.github.mikephil.charting.charts.LineChart
             android:id="@+id/chart_line"

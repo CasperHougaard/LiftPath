@@ -10,26 +10,26 @@
         android:layout_width="40dp"
         android:layout_height="4dp"
         android:layout_gravity="center_horizontal"
-        android:layout_marginTop="12dp"
-        android:layout_marginBottom="8dp"
+        android:layout_marginTop="@dimen/lp_space_3"
+        android:layout_marginBottom="@dimen/lp_space_2"
         android:background="?attr/lpInkSecondary"
         android:alpha="0.4" />
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
+        android:paddingStart="@dimen/lp_gutter"
+        android:paddingEnd="@dimen/lp_gutter"
         android:text="@string/title_remap_exercises"
         android:textAppearance="@style/TextAppearance.LP.Title" />
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:paddingTop="4dp"
-        android:paddingBottom="8dp"
+        android:paddingStart="@dimen/lp_space_4"
+        android:paddingEnd="@dimen/lp_space_4"
+        android:paddingTop="@dimen/lp_space_1"
+        android:paddingBottom="@dimen/lp_space_2"
         android:text="@string/subtitle_remap_exercises"
         android:textAppearance="@style/TextAppearance.LP.Body" />
 
@@ -44,10 +44,10 @@
         android:id="@+id/button_remap_apply"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="16dp"
+        android:layout_marginStart="@dimen/lp_space_4"
+        android:layout_marginEnd="@dimen/lp_space_4"
+        android:layout_marginTop="@dimen/lp_space_2"
+        android:layout_marginBottom="@dimen/lp_space_4"
         android:text="@string/button_remap_apply"
         app:backgroundTint="?attr/lpAccent" />
 

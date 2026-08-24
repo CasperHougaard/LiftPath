@@ -1,5 +1,6 @@
 *.iml
 .gradle
+.kotlin/
 /local.properties
 /.idea/
 .DS_Store
@@ -19,3 +20,7 @@ garmin/liftpath-ciq/bin/
 *.prg
 *.prg.debug.xml
 *.iq
+# monkeyc intermediates, written next to the jungle file rather than into bin/.
+garmin/liftpath-ciq/gen/
+garmin/liftpath-ciq/internal-mir/
+garmin/liftpath-ciq/external-mir/

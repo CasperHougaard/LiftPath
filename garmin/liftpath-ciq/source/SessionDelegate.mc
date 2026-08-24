@@ -38,6 +38,10 @@ class SessionDelegate extends WatchUi.BehaviorDelegate {
             Protocol.KEY_KG => _model.kg()
         }, "logged");
 
+        // Before resetDeltas: advanceIfComplete reads the same pre-log numbers that decided
+        // what was just sent, to judge whether this set fills the exercise's target.
+        _model.advanceIfComplete();
+
         // The phone's next projection carries the load we just used as the new suggestion, so
         // keeping the offset would apply it twice.
         _model.resetDeltas();
@@ -66,30 +70,44 @@ class SessionDelegate extends WatchUi.BehaviorDelegate {
         return true;
     }
 
+    //! Mark it in flight *before* transmitting, so the screen stops looking loggable the instant
+    //! the button goes down rather than a round trip later.
     private function send(payload as Dictionary, confirmation as String) as Void {
-        Communications.transmit(payload, null, new CommandListener(_view, confirmation));
+        _view.pending(confirmation);
+        Communications.transmit(payload, null, new CommandListener(_view));
     }
 }
 
+//! Listener for a command that mutates the session.
+//!
+//! It reports failure only. Success is not knowable here: `onComplete` means Garmin Connect
+//! accepted the handoff, and nothing more — the phone may be uninstalled, killed, or simply not
+//! listening. The confirmation is the state push the phone sends after applying the change, so
+//! `SessionView.confirmPending` owns the green message and this class never shows one.
 class CommandListener extends Communications.ConnectionListener {
 
-    private var _view as SessionView;
-    private var _confirmation as String;
+    // Nullable because the startup probe is sent from the app, which holds the view as an
+    // optional. A probe with nothing to draw on is still worth sending: it is what sets
+    // SessionModel.stale, and that lives on the model rather than the view.
+    private var _view as SessionView or Null;
 
-    function initialize(view as SessionView, confirmation as String) {
+    function initialize(view as SessionView or Null) {
         ConnectionListener.initialize();
         _view = view;
-        _confirmation = confirmation;
     }
 
     function onComplete() as Void {
-        _view.toast(_confirmation);
+        // Accepted for delivery. Says nothing about whether it was applied, so nothing to do:
+        // the pending indicator stays up until a state push confirms it or it times out.
     }
 
     //! Garmin Connect Mobile refused the handoff, so the phone never saw this. Say so loudly —
     //! silently dropping a logged set is the one failure that makes the watch worse than not
     //! having it at all.
     function onError() as Void {
-        _view.toast("NOT SENT");
+        var view = _view;
+        if (view != null) {
+            view.failPending("NOT SENT");
+        }
     }
 }

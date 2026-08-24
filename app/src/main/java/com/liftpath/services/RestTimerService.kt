@@ -16,6 +16,7 @@ import com.liftpath.activities.ActiveTrainingActivity
 import com.liftpath.activities.RestTimerDialogActivity
 import com.liftpath.helpers.BluetoothBeepHelper
 import com.liftpath.helpers.ProgressionSettingsManager
+import com.liftpath.watch.WatchLink
 
 class RestTimerService : Service() {
 
@@ -168,8 +169,11 @@ class RestTimerService : Service() {
                     // Beep over Bluetooth (if that's the active audio route) without ducking music
                     BluetoothBeepHelper.playIfBluetoothActive(this@RestTimerService)
 
-                    // Show completion notification that auto-dismisses after 5 seconds
-                    showCompletionNotification()
+                    // Skip the phone banner when the watch is connected — it already vibrated
+                    // the wrist off its own local rest countdown, so this would be a duplicate.
+                    if (!WatchLink.isWatchConnected()) {
+                        showCompletionNotification()
+                    }
                     
                     // Broadcast completion (activity will handle UI updates)
                     sendBroadcast(Intent("com.liftpath.REST_TIMER_COMPLETE").apply {

@@ -8,14 +8,10 @@
     android:background="?attr/lpCanvas"
     android:fitsSystemWindows="true">
 
-    <ImageView
-        android:id="@+id/image_bg_animation"
+    <com.liftpath.views.AmbientFlowView
+        android:id="@+id/view_bg_ambient"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:contentDescription="@null"
-        android:scaleType="centerCrop"
-        app:srcCompat="@drawable/lp_bg_ambient_flow"
-        app:tint="?attr/lpAccent" />
+        android:layout_height="match_parent" />
 
     <androidx.core.widget.NestedScrollView
         android:id="@+id/scroll_view"
@@ -78,6 +74,7 @@
                         android:id="@+id/text_date"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/lp_space_1"
                         android:textAppearance="@style/TextAppearance.LP.Body"
                         tools:text="2024/01/15" />
                 </LinearLayout>
@@ -429,7 +426,7 @@
                         <View
                             android:layout_width="12dp"
                             android:layout_height="12dp"
-                            android:layout_marginEnd="4dp"
+                            android:layout_marginEnd="@dimen/lp_space_1"
                             android:background="@drawable/bg_circle_decoration"
                             android:backgroundTint="?attr/lpPositive" />
 
@@ -443,7 +440,7 @@
                         <View
                             android:layout_width="12dp"
                             android:layout_height="12dp"
-                            android:layout_marginEnd="4dp"
+                            android:layout_marginEnd="@dimen/lp_space_1"
                             android:background="@drawable/bg_circle_decoration"
                             android:backgroundTint="?attr/lpAccent" />
 
@@ -457,7 +454,7 @@
                         <View
                             android:layout_width="12dp"
                             android:layout_height="12dp"
-                            android:layout_marginEnd="4dp"
+                            android:layout_marginEnd="@dimen/lp_space_1"
                             android:background="@drawable/bg_circle_decoration"
                             android:backgroundTint="?attr/lpHairlineStrong" />
 

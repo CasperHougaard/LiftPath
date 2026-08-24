@@ -9,18 +9,14 @@
     tools:context=".activities.EditActivityActivity">
 
     <!-- Background Flow Animation -->
-    <ImageView
-        android:id="@+id/image_bg_animation"
+    <com.liftpath.views.AmbientFlowView
+        android:id="@+id/view_bg_ambient"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:alpha="1.0"
-        android:scaleType="centerCrop"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/lp_bg_ambient_flow"
-        app:tint="?attr/lpAccent" />
+        app:layout_constraintTop_toTopOf="parent" />
 
     <!-- HEADER WITH BACK BUTTON -->
     <LinearLayout
@@ -29,9 +25,9 @@
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingStart="@dimen/lp_space_6"
-        android:paddingTop="@dimen/lp_space_6"
-        android:paddingEnd="@dimen/lp_space_6"
+        android:paddingStart="@dimen/lp_gutter"
+        android:paddingTop="@dimen/lp_gutter"
+        android:paddingEnd="@dimen/lp_gutter"
         android:paddingBottom="@dimen/lp_space_3"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -83,9 +79,9 @@
         style="@style/Widget.LP.Card"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_marginStart="@dimen/lp_space_6"
+        android:layout_marginStart="@dimen/lp_gutter"
         android:layout_marginTop="@dimen/lp_space_2"
-        android:layout_marginEnd="@dimen/lp_space_6"
+        android:layout_marginEnd="@dimen/lp_gutter"
         android:clickable="false"
         android:focusable="false"
         app:layout_constraintBottom_toTopOf="@id/button_container"
@@ -124,10 +120,10 @@
         android:clipChildren="false"
         android:clipToPadding="false"
         android:orientation="horizontal"
-        android:paddingStart="@dimen/lp_space_6"
+        android:paddingStart="@dimen/lp_gutter"
         android:paddingTop="@dimen/lp_space_3"
-        android:paddingEnd="@dimen/lp_space_6"
-        android:paddingBottom="@dimen/lp_space_6"
+        android:paddingEnd="@dimen/lp_gutter"
+        android:paddingBottom="@dimen/lp_gutter"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent">

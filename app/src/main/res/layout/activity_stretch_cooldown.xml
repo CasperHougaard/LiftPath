@@ -7,14 +7,10 @@
     android:fitsSystemWindows="true">
 
     <!-- Background animation -->
-    <ImageView
-        android:id="@+id/image_bg_animation"
+    <com.liftpath.views.AmbientFlowView
+        android:id="@+id/view_bg_ambient"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:alpha="1.0"
-        android:scaleType="centerCrop"
-        app:srcCompat="@drawable/lp_bg_ambient_flow"
-        app:tint="?attr/lpAccent" />
+        android:layout_height="match_parent" />
 
     <!-- Header -->
     <LinearLayout
@@ -22,8 +18,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:paddingStart="@dimen/lp_space_6"
-        android:paddingEnd="@dimen/lp_space_6"
+        android:paddingStart="@dimen/lp_gutter"
+        android:paddingEnd="@dimen/lp_gutter"
         android:paddingTop="@dimen/lp_space_4"
         android:paddingBottom="@dimen/lp_space_2"
         app:layout_constraintTop_toTopOf="parent"
@@ -40,6 +36,7 @@
             android:id="@+id/text_progress_label"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/lp_space_1"
             android:textAppearance="@style/TextAppearance.LP.Body" />
     </LinearLayout>
 
@@ -49,8 +46,8 @@
         style="?android:attr/progressBarStyleHorizontal"
         android:layout_width="0dp"
         android:layout_height="4dp"
-        android:layout_marginStart="@dimen/lp_space_6"
-        android:layout_marginEnd="@dimen/lp_space_6"
+        android:layout_marginStart="@dimen/lp_gutter"
+        android:layout_marginEnd="@dimen/lp_gutter"
         android:progressTint="?attr/lpAccent"
         android:progressBackgroundTint="?attr/lpInkSecondary"
         android:progressBackgroundTintMode="src_over"
@@ -65,8 +62,8 @@
         style="@style/Widget.LP.Card"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginStart="@dimen/lp_space_6"
-        android:layout_marginEnd="@dimen/lp_space_6"
+        android:layout_marginStart="@dimen/lp_gutter"
+        android:layout_marginEnd="@dimen/lp_gutter"
         android:layout_marginTop="@dimen/lp_space_3"
         android:layout_marginBottom="@dimen/lp_space_3"
         android:clickable="false"
@@ -89,7 +86,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:gravity="center"
-                android:textAppearance="@style/TextAppearance.LP.Title" />
+                android:textAppearance="@style/TextAppearance.LP.Heading" />
 
             <TextView
                 android:id="@+id/text_target_muscle"
@@ -260,9 +257,9 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:layout_marginStart="@dimen/lp_space_6"
-        android:layout_marginEnd="@dimen/lp_space_6"
-        android:layout_marginBottom="@dimen/lp_space_6"
+        android:layout_marginStart="@dimen/lp_gutter"
+        android:layout_marginEnd="@dimen/lp_gutter"
+        android:layout_marginBottom="@dimen/lp_gutter"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">

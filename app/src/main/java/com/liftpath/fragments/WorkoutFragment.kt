@@ -84,6 +84,14 @@ class WorkoutFragment : Fragment() {
     /** What the hero will do when tapped. Rebuilt on every [refresh]. */
     private var heroAction: (() -> Unit)? = null
 
+    /**
+     * The entrance cascade, prepared but not yet run. Null once it has gone, which is also how
+     * a late body-status card knows it missed it. See [startEntranceIfReady].
+     */
+    private var pendingWaves: List<List<View>>? = null
+    private var revealHandedOver = false
+    private var bodyStatusResolved = false
+
     companion object {
         /** Days in the momentum strip. One dot per day, so it has to fit the gutter. */
         private const val MOMENTUM_DAYS = 21
@@ -100,6 +108,17 @@ class WorkoutFragment : Fragment() {
 
         /** Muscles named in the body status card's summary line. */
         private const val BODY_STATUS_SUMMARY_MUSCLES = 3
+
+        /**
+         * How long the entrance cascade will wait for the body-status muscle map before going
+         * without it.
+         *
+         * The cascade holds for that card so everything arrives as one wave rather than one
+         * straggler. Comfortably longer than the render normally takes, and still inside the
+         * cold-start reveal, so in practice nobody waits — but a slow render must not be able
+         * to hold the whole screen back.
+         */
+        private const val BODY_STATUS_WAIT_CAP_MS = 600L
 
         private const val SESSION_DATE_PATTERN = "yyyy/MM/dd"
 
@@ -166,18 +185,78 @@ class WorkoutFragment : Fragment() {
     /**
      * Staggered spring entrance. Timings and the spring itself live in [Motion] so every
      * screen shares one motion vocabulary; this method only declares the order.
+     *
+     * The cascade does not run here. It runs when **both** of these have happened, whichever
+     * is later — see [startEntranceIfReady]:
+     *
+     * 1. the host's cold-start reveal hands over ([MainActivity.onEntranceReady]). Without
+     *    that, the cascade plays out entirely underneath the opaque splash view, so the one
+     *    animation on this screen written to be seen never was.
+     * 2. the body-status card has resolved. Its muscle map renders off the main thread, so it
+     *    cannot be *in* a cascade that has already run — and letting it animate separately
+     *    afterwards is what made it look like a straggler.
+     *
+     * The order below is editorial: title, then the hero, then the body, then what is next,
+     * then what happened last.
      */
     private fun runEntranceAnimations() {
-        Motion.springInWaves(
-            listOf(
-                listOf(binding.textWorkoutDate, binding.textWorkoutTitle, binding.cardSettings),
-                listOf(binding.cardStartWorkout),
-                listOf(binding.layoutModes),
-                listOf(binding.cardUpNext),
-                listOf(binding.cardLastSession),
-                listOf(binding.cardMomentum)
-            )
+        val waves = listOf(
+            listOf(binding.textWorkoutDate, binding.textWorkoutTitle, binding.cardSettings),
+            listOf(binding.cardStartWorkout),
+            listOf(binding.layoutModes),
+            // Holds its slot whether or not it ends up visible. Springing a GONE view is a
+            // no-op that costs nothing, and it means the card does not need a second code
+            // path to arrive with everyone else.
+            listOf(binding.cardBodyStatus),
+            listOf(binding.cardUpNext),
+            listOf(binding.cardLastSession),
+            listOf(binding.cardMomentum)
         )
+        pendingWaves = waves
+        // Hidden up front, always. Otherwise a deferred cascade shows the cards at full
+        // opacity until the hand-off and then blinks them out to rise.
+        Motion.prepareEntrance(waves)
+
+        afterEntrance {
+            revealHandedOver = true
+            startEntranceIfReady()
+        }
+
+        // The whole cascade is waiting on a background render. If that render is slow the
+        // screen must not be — past this point the entrance goes without it, and the card
+        // arrives on its own afterwards.
+        binding.root.postDelayed({
+            if (_binding == null) return@postDelayed
+            bodyStatusResolved = true
+            startEntranceIfReady()
+        }, BODY_STATUS_WAIT_CAP_MS)
+    }
+
+    /**
+     * Runs [action] when the host's cold-start reveal hands over, or immediately if none is in
+     * flight — a tab revisit, a returning activity, a configuration change.
+     */
+    private fun afterEntrance(action: () -> Unit) {
+        val host = activity as? MainActivity
+        if (host == null) action() else host.onEntranceReady(action)
+    }
+
+    /** Marks the body-status card settled — visible with its map, or established as absent. */
+    private fun onBodyStatusResolved() {
+        bodyStatusResolved = true
+        startEntranceIfReady()
+    }
+
+    /**
+     * Runs the cascade once nothing is still being waited on. Idempotent — [pendingWaves] is
+     * cleared on the way through, and all three callers can fire in any order.
+     */
+    private fun startEntranceIfReady() {
+        if (_binding == null) return
+        if (!revealHandedOver || !bodyStatusResolved) return
+        val waves = pendingWaves ?: return
+        pendingWaves = null
+        Motion.springInWaves(waves)
     }
 
     private fun setupClickListeners() {
@@ -582,6 +661,8 @@ class WorkoutFragment : Fragment() {
         )
         if (effort.isEmpty()) {
             binding.cardBodyStatus.visibility = View.GONE
+            // Resolved: there is nothing to wait for, so the cascade should not.
+            onBodyStatusResolved()
             return
         }
 
@@ -609,10 +690,17 @@ class WorkoutFragment : Fragment() {
 
             if (binding.cardBodyStatus.visibility != View.VISIBLE) {
                 binding.cardBodyStatus.visibility = View.VISIBLE
-                // Same spring as the entrance waves, so a card that arrives later arrives the
-                // same way as the ones that were there on launch.
-                Motion.springIn(binding.cardBodyStatus)
+                if (pendingWaves == null) {
+                    // The cascade has already gone — either this is a later refresh, or the
+                    // render blew past BODY_STATUS_WAIT_CAP_MS. Arrive alone, with the same
+                    // spring, so it at least matches how the others arrived.
+                    Motion.prepareEntrance(binding.cardBodyStatus)
+                    Motion.springIn(binding.cardBodyStatus)
+                }
+                // Otherwise it is already hidden and holding its slot in the cascade, which
+                // is about to run now that this resolved.
             }
+            onBodyStatusResolved()
         }
     }
 

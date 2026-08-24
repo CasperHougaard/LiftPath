@@ -6,7 +6,6 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.graphics.drawable.Animatable
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -262,7 +261,6 @@ class ActiveTrainingActivity : AppCompatActivity(), WatchLink.Host {
         val isCustomWorkout = workoutType == "custom"
 
         updateTitle()
-        setupBackgroundAnimation()
         setupRecyclerView()
         setupClickListeners()
         setupBackButtonInterceptor()
@@ -775,22 +773,12 @@ class ActiveTrainingActivity : AppCompatActivity(), WatchLink.Host {
     }
 
     private fun updateTitle() {
-        val title = if (appliedPlanName != null) {
-            "Active Workout - $appliedPlanName"
-        } else {
-            "Active Workout"
-        }
-        supportActionBar?.title = title
+        supportActionBar?.title = appliedPlanName
+            ?.let { getString(R.string.title_active_workout_with_plan, it) }
+            ?: getString(R.string.title_active_workout)
     }
 
     // --- EXISTING FUNCTIONALITY ---
-
-    private fun setupBackgroundAnimation() {
-        val drawable = binding.imageBgAnimation.drawable
-        if (drawable is Animatable) {
-            drawable.start()
-        }
-    }
 
     private fun setupRecyclerView() {
         adapter = ActiveExercisesAdapter(
@@ -806,6 +794,9 @@ class ActiveTrainingActivity : AppCompatActivity(), WatchLink.Host {
             lastWorkoutData,
             lastIntents,
             planSnapshots = planExerciseSnapshots,
+            circuitEntriesProvider = { instanceId ->
+                currentExerciseEntries.filter { it.groupId == instanceId && it.groupType == GroupType.CIRCUIT }
+            },
             onAddSetClicked = { exerciseId, exerciseName ->
                 launchLogSetActivity(exerciseId, exerciseName)
             },
@@ -1117,6 +1108,7 @@ class ActiveTrainingActivity : AppCompatActivity(), WatchLink.Host {
                     if (g.supersetGroupId == gid && i != groupIndex) adapter.notifyItemChanged(i)
                 }
                 checkSupersetCompletionAndHighlight(gid)
+                adapter.advanceSupersetTurn(gid)
             }
         }
         persistDraft()
@@ -2159,6 +2151,7 @@ class ActiveTrainingActivity : AppCompatActivity(), WatchLink.Host {
      */
     override fun buildWatchState(): WatchState {
         val library = jsonHelper.readTrainingData().exerciseLibrary
+        val incrementTable = WeightIncrementSettingsManager(this).getTable()
         val exercises = groupedExercises
             .filter { it.slotType == PlanSlotType.EXERCISE }
             .map { group ->
@@ -2173,7 +2166,12 @@ class ActiveTrainingActivity : AppCompatActivity(), WatchLink.Host {
                     setsTarget = snapshot?.plannedSetsTarget ?: 0,
                     repsTarget = parseWatchRepsTarget(snapshot?.plannedRepsTarget),
                     suggestedKg = lastLoggedKg[id] ?: 0f,
-                    isBodyweight = ExerciseModeResolver.isBodyweight(library, id)
+                    isBodyweight = ExerciseModeResolver.isBodyweight(library, id),
+                    // So the wrist's +/- moves by the same amount the phone's does. The watch
+                    // applies this as a delta to suggestedKg, which is already on-grid.
+                    kgStep = WeightIncrementHelper.resolve(
+                        library.find { it.id == id }, incrementTable
+                    ).incrementKg
                 )
             }
         return WatchState(

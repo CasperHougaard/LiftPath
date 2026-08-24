@@ -2,7 +2,6 @@ package com.liftpath.activities
 
 import android.app.Activity
 import android.content.Intent
-import android.graphics.drawable.Animatable
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -124,8 +123,6 @@ class CircuitRunnerActivity : AppCompatActivity() {
         library = jsonHelper.readTrainingData().exerciseLibrary
         bodyweightKg = BodyWeightHelper.getCurrentBodyweightKg(this)
 
-        (binding.imageBgAnimation.drawable as? Animatable)?.start()
-
         binding.textCircuitName.text = instance.name
         stationAdapter = CircuitStationAdapter(instance.items, library) { item -> toggleStationTimer(item) }
         binding.recyclerViewStations.layoutManager = LinearLayoutManager(this)
@@ -221,6 +218,7 @@ class CircuitRunnerActivity : AppCompatActivity() {
             library = library,
             round = round,
             prefill = prefill,
+            bodyweightKg = bodyweightKg,
             onSaved = { inputs -> completeRound(round, elapsed, inputs, logged = true) },
             onLater = { completeRound(round, elapsed, prefill, logged = false) }
         ).show(supportFragmentManager, "CircuitRoundLog")
@@ -263,6 +261,7 @@ class CircuitRunnerActivity : AppCompatActivity() {
             library = library,
             round = round,
             prefill = prefill,
+            bodyweightKg = bodyweightKg,
             onSaved = { inputs ->
                 val entries = CircuitStore.entriesForRound(instance, round, inputs, library, bodyweightKg, workoutType)
                 sessionEntries.removeAll { it.groupId == instance.instanceId && it.setNumber == round }

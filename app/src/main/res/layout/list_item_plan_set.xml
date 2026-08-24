@@ -55,7 +55,7 @@
             android:id="@+id/text_next_plan"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
+            android:layout_marginTop="@dimen/lp_space_half"
             android:textAppearance="@style/TextAppearance.LP.Label"
             android:textColor="?attr/lpInkTertiary"
             android:visibility="gone"

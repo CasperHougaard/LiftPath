@@ -216,9 +216,6 @@ class SettingsActivity : AppCompatActivity() {
         binding = ActivitySettingsBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Setup background animation
-        setupBackgroundAnimation()
-
         jsonHelper = JsonHelper(this)
         bodyWeightSettingsManager = BodyWeightSettingsManager(this)
         backupSettings = BackupSettingsManager(this)
@@ -335,13 +332,6 @@ class SettingsActivity : AppCompatActivity() {
         updateTriPathStatus()
     }
 
-    private fun setupBackgroundAnimation() {
-        val drawable = binding.imageBgAnimation.drawable
-        if (drawable is android.graphics.drawable.Animatable) {
-            drawable.start()
-        }
-    }
-
     private fun setupClickListeners() {
         binding.buttonResetData.setOnClickListener {
             showResetDataConfirmationDialog()
@@ -378,6 +368,10 @@ class SettingsActivity : AppCompatActivity() {
         binding.buttonProgressionSettings.setOnClickListener {
             val intent = Intent(this, com.liftpath.activities.ProgressionSettingsActivity::class.java)
             startActivity(intent)
+        }
+
+        binding.buttonProgressSettings.setOnClickListener {
+            startActivity(Intent(this, com.liftpath.activities.ProgressSettingsActivity::class.java))
         }
 
         binding.buttonReadiness.setOnClickListener {

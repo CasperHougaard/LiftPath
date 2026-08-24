@@ -2,7 +2,6 @@ package com.liftpath.activities
 
 import android.app.Activity
 import android.content.Intent
-import android.graphics.drawable.AnimatedVectorDrawable
 import android.os.Build
 import android.os.Bundle
 import android.text.Editable
@@ -34,10 +33,6 @@ class EditSetActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityEditSetBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
-        // Start background animation
-        val bgAnimation = binding.imageBgAnimation.drawable as? AnimatedVectorDrawable
-        bgAnimation?.start()
 
         exerciseEntry = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             intent.getParcelableExtra(EXTRA_EXERCISE_ENTRY, ExerciseEntry::class.java)

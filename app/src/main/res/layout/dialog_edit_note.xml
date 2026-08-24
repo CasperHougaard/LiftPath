@@ -4,10 +4,10 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:paddingStart="24dp"
-    android:paddingEnd="24dp"
-    android:paddingTop="8dp"
-    android:paddingBottom="4dp">
+    android:paddingStart="@dimen/lp_gutter"
+    android:paddingEnd="@dimen/lp_gutter"
+    android:paddingTop="@dimen/lp_space_2"
+    android:paddingBottom="@dimen/lp_space_1">
 
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/text_input_layout_note"

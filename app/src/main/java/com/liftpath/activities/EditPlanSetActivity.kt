@@ -1,7 +1,6 @@
 package com.liftpath.activities
 
 import android.app.Activity
-import android.graphics.drawable.Animatable
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
@@ -44,7 +43,6 @@ class EditPlanSetActivity : AppCompatActivity() {
         planSetId = intent.getStringExtra(EXTRA_PLAN_SET_ID)
         isEditing = planSetId != null
 
-        setupBackgroundAnimation()
         binding.textHeaderTitle.setText(if (isEditing) R.string.title_edit_rotation else R.string.title_create_rotation)
 
         allPlans = jsonHelper.readTrainingData().workoutPlans
@@ -52,11 +50,6 @@ class EditPlanSetActivity : AppCompatActivity() {
         setupRecyclerView()
         setupClickListeners()
         loadIfEditing()
-    }
-
-    private fun setupBackgroundAnimation() {
-        val drawable = binding.imageBgAnimation.drawable
-        if (drawable is Animatable) drawable.start()
     }
 
     private fun setupRecyclerView() {

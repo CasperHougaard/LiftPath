@@ -26,8 +26,9 @@ class WatchProtocolTest {
         setsTarget: Int = 4,
         repsTarget: Int = 8,
         suggestedKg: Float = 60f,
-        isBodyweight: Boolean = false
-    ) = WatchExercise(id, name, setsDone, setsTarget, repsTarget, suggestedKg, isBodyweight)
+        isBodyweight: Boolean = false,
+        kgStep: Float = 2.5f
+    ) = WatchExercise(id, name, setsDone, setsTarget, repsTarget, suggestedKg, isBodyweight, kgStep)
 
     /**
      * The positional contract. If this breaks, `Protocol.mc` must change in the same commit —
@@ -50,6 +51,29 @@ class WatchProtocolTest {
         assertEquals(8, row[WatchProtocol.EX_REPS_TARGET])
         assertEquals(60f, row[WatchProtocol.EX_SUGGESTED_KG])
         assertEquals(0, row[WatchProtocol.EX_BODYWEIGHT])
+        assertEquals(2.5f, row[WatchProtocol.EX_KG_STEP])
+    }
+
+    /**
+     * The per-exercise step is what stops the wrist stepping by 2.5 kg on a 5 kg cable stack.
+     * It rides at the end of the row, so a watch built against the old layout reads a shorter
+     * array — which is exactly why VERSION moved to 2 alongside it.
+     */
+    @Test
+    fun `each exercise carries its own weight step`() {
+        val wire = WatchState(
+            true, 0,
+            listOf(
+                exercise(id = 1, kgStep = 2.5f),   // barbell
+                exercise(id = 2, kgStep = 5f),     // cable stack
+                exercise(id = 3, kgStep = 0f)      // bands: no ladder, watch falls back
+            )
+        ).toWire()
+
+        @Suppress("UNCHECKED_CAST")
+        val rows = wire[WatchProtocol.KEY_EXERCISES] as List<List<Any>>
+
+        assertEquals(listOf(2.5f, 5f, 0f), rows.map { it[WatchProtocol.EX_KG_STEP] })
     }
 
     @Test

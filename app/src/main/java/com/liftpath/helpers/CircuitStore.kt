@@ -194,10 +194,24 @@ object CircuitStore {
 
     // ───────────────────────────────────────────────────────── display
 
-    /** `60kg × 12` · `×12 / side` · `0:45` — what a station is aiming for, from the template. */
+    /**
+     * `60kg × 12` · `×12 / side` · `0:45` — what a station is aiming for, from the template.
+     *
+     * A bodyweight station's [CircuitItem.targetKg] is *added* load, not the total, so it renders
+     * signed (`+10kg` / `−5kg` for assisted) — otherwise it reads exactly like a weighted
+     * exercise's total load and the two are indistinguishable.
+     */
     fun formatTarget(item: CircuitItem, exercise: ExerciseLibraryItem?): String {
         val parts = mutableListOf<String>()
-        item.targetKg?.takeIf { it > 0f }?.let { parts.add("${SetFormatter.trimNum(it)}kg ×") }
+        item.targetKg?.takeIf { it != 0f }?.let { kg ->
+            val label = if (exercise?.isBodyweight == true) {
+                val sign = if (kg > 0f) "+" else "−"
+                "$sign${SetFormatter.trimNum(kotlin.math.abs(kg))}kg"
+            } else {
+                "${SetFormatter.trimNum(kg)}kg"
+            }
+            parts.add("$label ×")
+        }
         when {
             exercise?.isTimeBased == true && item.targetDurationSeconds != null ->
                 return RestTimerHelper.formatDuration(item.targetDurationSeconds)

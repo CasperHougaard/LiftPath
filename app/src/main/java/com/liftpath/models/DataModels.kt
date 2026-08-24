@@ -335,6 +335,11 @@ data class ExerciseLibraryItem(
 
     var familyId: String? = null,
     var equipment: Equipment? = null,
+    // Per-exercise weight-ladder overrides for the odd machine that does not move in its
+    // equipment's usual steps. Null means "inherit from the equipment table", which is why these
+    // are boxed: an absent key in older JSON deserialises to null, i.e. inherit.
+    val weightIncrementKgOverride: Float? = null,
+    val weightMinimumKgOverride: Float? = null,
     val angle: ExerciseAngle? = null,
     val grip: GripType? = null,
     val laterality: Laterality? = null,

@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="20dp">
+    android:padding="@dimen/lp_gutter">
 
     <TextView
         android:id="@+id/text_dialog_title"
@@ -16,7 +16,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="@dimen/lp_space_2"
         android:text="@string/subtitle_extended_projection"
         android:textAppearance="@style/TextAppearance.LP.Body" />
 
@@ -24,7 +24,7 @@
         android:id="@+id/chart_extended_projection"
         android:layout_width="match_parent"
         android:layout_height="400dp"
-        android:layout_marginTop="16dp"
-        android:padding="8dp" />
+        android:layout_marginTop="@dimen/lp_space_4"
+        android:padding="@dimen/lp_space_2" />
 
 </LinearLayout>

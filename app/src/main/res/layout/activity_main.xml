@@ -19,39 +19,14 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <ImageView
-        android:id="@+id/image_bg_animation"
+    <com.liftpath.views.AmbientFlowView
+        android:id="@+id/view_bg_ambient"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:contentDescription="@null"
-        android:importantForAccessibility="no"
-        android:scaleType="centerCrop"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/lp_bg_ambient_flow"
-        app:tint="?attr/lpAccent" />
-
-    <!--
-      Splash exit reveal. Hidden (alpha 0) until MainActivity's splashScreen exit-animation
-      listener cross-fades it in over the system splash icon's position, tinted with the
-      resolved palette's accent, then fades it back out — the moment the loading screen
-      actually shows the user's chosen theme. See MainActivity.onCreate.
-    -->
-    <ImageView
-        android:id="@+id/image_splash_logo"
-        android:layout_width="72dp"
-        android:layout_height="72dp"
-        android:alpha="0"
-        android:contentDescription="@null"
-        android:importantForAccessibility="no"
-        android:src="@drawable/ic_app_logo"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:tint="?attr/lpAccent" />
+        app:layout_constraintTop_toTopOf="parent" />
 
     <FrameLayout
         android:id="@+id/nav_host_container"
@@ -81,5 +56,59 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:menu="@menu/menu_bottom_nav" />
+
+    <!--
+      ==================================================================
+      COLD-START REVEAL
+      ==================================================================
+
+      These two are declared LAST on purpose. In a ConstraintLayout declaration order is
+      z-order, and both have to sit above the fragment container: the system splash view is
+      opaque and gets faded out early in the sequence, so from that moment on the reveal is
+      playing over live, already-themed app content. When the logo was declared above the
+      container it was painted over by whatever the Workout tab drew, which is why the
+      previous version of this animation could not actually be seen.
+
+      Neither is interactive, and neither is inset — they are centred on the window, which
+      is where the OS drew the splash icon they hand over from.
+    -->
+
+    <!--
+      Bloom. Fires as the traced mark completes: a radial accent wash pushing out from the
+      logo, which is what visually *causes* the cards to rise. Reuses lp_hero_glow rather
+      than adding a second radial gradient — same falloff, tinted at the point of use.
+    -->
+    <View
+        android:id="@+id/view_reveal_bloom"
+        android:layout_width="@dimen/lp_reveal_bloom_size"
+        android:layout_height="@dimen/lp_reveal_bloom_size"
+        android:alpha="0"
+        android:background="@drawable/lp_hero_glow"
+        android:backgroundTint="?attr/lpAccent"
+        android:importantForAccessibility="no"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!--
+      The brand mark, drawing itself. lp_logo_trace is a stroked path whose completed form is
+      pixel-identical to ic_app_logo, so the trace lands exactly on the mark rather than
+      cross-fading into it. Tinted with the resolved palette's accent — this stroke is the
+      moment the app first shows the user's chosen theme.
+    -->
+    <ImageView
+        android:id="@+id/image_splash_logo"
+        android:layout_width="@dimen/lp_reveal_logo_size"
+        android:layout_height="@dimen/lp_reveal_logo_size"
+        android:alpha="0"
+        android:contentDescription="@null"
+        android:importantForAccessibility="no"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@drawable/lp_logo_trace"
+        app:tint="?attr/lpAccent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -99,7 +99,7 @@
                         android:id="@+id/text_continue_plan_set_name"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
+                        android:layout_marginTop="@dimen/lp_space_half"
                         android:textAppearance="@style/TextAppearance.LP.Heading"
                         android:textColor="?attr/lpInkInverse" />
 
@@ -107,7 +107,7 @@
                         android:id="@+id/text_continue_next_plan"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
+                        android:layout_marginTop="@dimen/lp_space_half"
                         android:textAppearance="@style/TextAppearance.LP.Label"
                         android:textColor="?attr/lpInkInverseSecondary" />
                 </LinearLayout>

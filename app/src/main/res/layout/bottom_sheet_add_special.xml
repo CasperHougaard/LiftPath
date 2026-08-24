@@ -9,7 +9,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="24dp"
+        android:padding="@dimen/lp_gutter"
         android:fitsSystemWindows="false">
 
         <!-- Header -->
@@ -24,8 +24,8 @@
             android:id="@+id/text_header_subtitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:layout_marginBottom="24dp"
+            android:layout_marginTop="@dimen/lp_space_1"
+            android:layout_marginBottom="@dimen/lp_space_6"
             android:text="@string/subtitle_choose_an_option"
             android:textAppearance="@style/TextAppearance.LP.Body" />
 

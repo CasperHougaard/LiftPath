@@ -41,9 +41,7 @@ object Motion {
      * they appeared to be mid-flight.
      */
     fun springIn(view: View, delayMs: Long = 0L) {
-        val risePx = ENTRANCE_RISE_DP * view.resources.displayMetrics.density
-        view.alpha = 0f
-        view.translationY = risePx
+        hide(view)
         view.postDelayed({
             view.animate()
                 .alpha(1f)
@@ -69,6 +67,29 @@ object Motion {
         waves.forEachIndexed { index, views ->
             views.forEach { springIn(it, index * ENTRANCE_STAGGER_MS) }
         }
+    }
+
+    /**
+     * Puts [waves] into their pre-entrance state — invisible and offset — without scheduling
+     * anything.
+     *
+     * Exists for the cold start, where the cascade is deferred until `MainActivity`'s reveal
+     * hands over. Deferring the whole [springInWaves] call instead would leave the cards at
+     * full opacity until the hand-off and then blink them out to rise, which is worse than
+     * not animating at all. A caller that prepares must therefore guarantee a later
+     * [springInWaves] — which is why the reveal's hand-off carries a timeout rather than
+     * trusting its own animation to complete.
+     */
+    fun prepareEntrance(waves: List<List<View>>) {
+        waves.forEach { wave -> wave.forEach(::hide) }
+    }
+
+    /** Single-view [prepareEntrance], for a card that arrives on its own schedule. */
+    fun prepareEntrance(view: View) = hide(view)
+
+    private fun hide(view: View) {
+        view.alpha = 0f
+        view.translationY = ENTRANCE_RISE_DP * view.resources.displayMetrics.density
     }
 
     /**

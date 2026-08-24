@@ -1,34 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<!--
+  One logged set in a per-exercise list (ExerciseStatsAdapter).
+
+  Nothing constructs that adapter right now, so this row is not on screen anywhere — it is
+  kept on the design system rather than left in raw dp so it does not reappear as the one
+  shadowed, off-scale card if it ever gets wired up again.
+
+  The date is a fixed value, so it stays in Archivo (Caption) rather than mono; only numbers
+  that CHANGE get JetBrains Mono. The set line reads as a sentence, so it is Archivo too.
+-->
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    style="@style/Widget.LP.Card"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="12dp"
-    app:cardBackgroundColor="?attr/lpSurface"
-    app:cardCornerRadius="16dp"
-    app:cardElevation="2dp">
+    android:layout_marginBottom="@dimen/lp_card_gap"
+    android:clickable="false"
+    android:focusable="false">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="@dimen/lp_card_padding">
 
         <TextView
             android:id="@+id/text_date"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="2025-01-15"
-            android:textColor="?attr/lpInkSecondary"
-            android:textSize="12sp" />
+            android:textAppearance="@style/TextAppearance.LP.Caption"
+            tools:text="2025-01-15" />
 
         <TextView
             android:id="@+id/text_set_info"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="Set 1: 100kg × 5 reps"
-            android:textColor="?attr/lpInk"
-            android:textSize="16sp" />
+            android:layout_marginTop="@dimen/lp_space_half"
+            android:textAppearance="@style/TextAppearance.LP.Heading"
+            tools:text="Set 1: 100kg × 5 reps" />
     </LinearLayout>
-</androidx.cardview.widget.CardView>
+</com.google.android.material.card.MaterialCardView>

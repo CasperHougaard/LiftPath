@@ -5,14 +5,14 @@
     style="@style/Widget.LP.Card"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="8dp"
+    android:layout_marginBottom="@dimen/lp_space_2"
     app:cardCornerRadius="@dimen/lp_radius_sm">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="12dp">
+        android:padding="@dimen/lp_space_3">
 
         <!-- Name row with info icon -->
         <LinearLayout
@@ -46,7 +46,7 @@
             android:id="@+id/text_badge"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="@dimen/lp_space_1"
             android:text="@string/label_conflict_exercise_badge"
             android:textAppearance="@style/TextAppearance.LP.Label"
             android:textColor="?attr/lpAccent" />
@@ -55,7 +55,7 @@
             android:id="@+id/text_conflict_hint"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="@dimen/lp_space_2"
             android:text="@string/subtitle_library_update_conflict"
             android:textAppearance="@style/TextAppearance.LP.Body" />
 

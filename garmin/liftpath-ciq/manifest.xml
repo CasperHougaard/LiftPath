@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<!--
+  Hand-written rather than wizard-generated. manifest.reference.xml warned against that because
+  product-id strings are SDK-version-specific and a hand-typed one fails obscurely — but the
+  installed SDK states them itself: every directory under
+  %APPDATA%\Garmin\ConnectIQ\Devices\ is a valid product id, and
+  Devices\fenix847mm\compiler.json confirms "deviceId": "fenix847mm" for
+  "fēnix® 8 47mm / 51mm / tactix® 8 47mm / 51mm / quatix® 8 47mm / 51mm".
+  Verified against SDK 9.2.0 (connectiq-sdk-win-9.2.0-2026-06-09-92a1605b2).
+
+  `id` is written WITHOUT dashes and must stay byte-identical to GarminBridge.APP_ID
+  (app/src/main/java/com/liftpath/garmin/GarminBridge.kt). A mismatch drops every message
+  silently, with no error on either end.
+-->
+<iq:manifest xmlns:iq="http://www.garmin.com/xml/connectiq" version="3">
+    <iq:application
+        entry="LiftPathApp"
+        id="672412e7d04c4f2fb161521358b4010f"
+        launcherIcon="@Drawables.LauncherIcon"
+        minApiLevel="3.1.0"
+        name="@Strings.AppName"
+        type="watch-app">
+
+        <iq:products>
+            <iq:product id="fenix847mm"/>
+        </iq:products>
+
+        <!--
+          Communications covers both Communications.transmit and
+          registerForPhoneAppMessages, which is all the transport needs.
+
+          Deliberately not requested yet: Fit (ActivityRecording, so the watch writes its own
+          strength FIT session) and Sensor (live heart rate). Each one adds a line to the
+          install prompt, so they go in when something actually uses them.
+        -->
+        <iq:permissions>
+            <iq:uses-permission id="Communications"/>
+        </iq:permissions>
+
+        <iq:languages>
+            <iq:language>eng</iq:language>
+        </iq:languages>
+    </iq:application>
+</iq:manifest>

@@ -6,13 +6,16 @@
   The search field is a plain hairline card rather than TextInputLayout: it has no label to
   float (the hint IS the only label it will ever show), so a floating-label field would just
   add an empty top inset for nothing.
+
+  TRANSPARENT, not ?attr/lpCanvas — see fragment_plan for why: an opaque fill here paints out
+  activity_main's AmbientFlowView. The canvas colour comes from the window background.
 -->
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?attr/lpCanvas"
+    android:background="@android:color/transparent"
     tools:context="com.liftpath.fragments.LibraryFragment">
 
     <androidx.core.widget.NestedScrollView
@@ -78,11 +81,12 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/title_manage_exercises"
-                        android:textAppearance="@style/TextAppearance.LP.Title" />
+                        android:textAppearance="@style/TextAppearance.LP.Display" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/lp_space_1"
                         android:text="@string/subtitle_manage_exercises"
                         android:textAppearance="@style/TextAppearance.LP.Body" />
                 </LinearLayout>

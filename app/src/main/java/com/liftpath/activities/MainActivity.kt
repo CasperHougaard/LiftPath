@@ -3,6 +3,7 @@ package com.liftpath.activities
 import android.content.Context
 import android.graphics.drawable.Animatable
 import android.os.Bundle
+import android.view.animation.DecelerateInterpolator
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.splashscreen.SplashScreenViewProvider
@@ -10,9 +11,6 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
-import androidx.dynamicanimation.animation.DynamicAnimation
-import androidx.dynamicanimation.animation.SpringAnimation
-import androidx.dynamicanimation.animation.SpringForce
 import androidx.fragment.app.Fragment
 import com.liftpath.R
 import com.liftpath.adapters.ProgressPagerAdapter
@@ -64,6 +62,19 @@ class MainActivity : AppCompatActivity() {
      */
     private var pendingProgressTab: Int? = null
 
+    /**
+     * Cold-start reveal gate. False only between [onCreate] and the moment
+     * [animateSplashExit] hands over, so a screen with an entrance animation can wait for
+     * the reveal instead of playing behind it. See [onEntranceReady].
+     */
+    /**
+     * Opens ~60% of the way through the traced stroke. The entrance cascade overlaps the
+     * reveal deliberately — waiting for a clear screen would put a beat of empty canvas
+     * between the mark landing and the first card arriving, which reads as two animations
+     * instead of one.
+     */
+    private val cascadeGate = Gate()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         // Must be called before super.onCreate(). The system-drawn splash it hands back is
         // neutral (see Theme.Fitness) since it was drawn before this process existed; the
@@ -81,13 +92,20 @@ class MainActivity : AppCompatActivity() {
 
         splashScreen.setOnExitAnimationListener(::animateSplashExit)
         applyWindowInsets()
-        startAmbientBackground()
         setupBottomNav()
 
         // Restore the last tab, but only on a cold start. On a configuration change the
         // FragmentManager has already restored its fragments, and re-selecting would stack
         // a second copy on top.
         if (savedInstanceState == null) {
+            // A cold start is the only case with a reveal to wait for, and the gates have to
+            // close before the first fragment is added — the fragment asks on the way up.
+            cascadeGate.close()
+            // Safety net. A gated caller drops its views to alpha = 0 immediately, so a reveal
+            // that never hands over (an exit listener that does not fire, a window that never
+            // draws) would leave them permanently invisible. Late beats never.
+            binding.root.postDelayed(cascadeGate::release, ENTRANCE_TIMEOUT_MS)
+
             selectTab(restoreSelectedTabId())
             RestoreCoordinator.consumePendingRestoreBundle()?.let {
                 RestorePromptDialogFragment.newInstance(it).show(supportFragmentManager, TAG_RESTORE_PROMPT)
@@ -116,50 +134,105 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun startAmbientBackground() {
-        (binding.imageBgAnimation.drawable as? Animatable)?.start()
-    }
-
     /**
-     * The system splash icon is neutral and fixed (drawn before this process existed — see
-     * Theme.Fitness). This is the moment that actually shows the chosen palette: the neutral
-     * icon scales/fades out while the same mark, now tinted with the resolved theme's
-     * ?attr/lpAccent, springs in at the same spot and holds briefly before fading away to
-     * reveal the already-themed home screen underneath.
+     * The cold-start reveal: one continuous move from the OS splash badge to a settled home
+     * screen.
+     *
+     *   0ms    the whole splash view cross-dissolves out (background and icon together)
+     *   90ms   the mark begins tracing itself in the resolved palette's accent
+     *   330ms  the cards start rising, while the stroke turns its corner
+     *   490ms  the stroke lands, a bloom pushes out from it and the mark dissolves
+     *   ~950ms settled
+     *
+     * Two things about this are load-bearing rather than decorative.
+     *
+     * **The splash view goes early.** `windowSplashScreenBackground` is opaque and the splash
+     * sits above this activity's content, so anything animated underneath it cannot be seen.
+     * The previous version of this method faded a tinted mark in beneath the splash and only
+     * called `provider.remove()` at the *end* — so the palette reveal it was written to
+     * perform was invisible on every launch. Fading `provider.view` rather than
+     * `provider.iconView` is what turns the hand-off into something the user actually sees.
+     *
+     * **The cards are released before the stroke finishes.** Waiting for the bloom leaves a
+     * beat of empty canvas between the mark landing and the first card arriving, which reads
+     * as three separate animations. Overlapping them reads as one.
      */
     private fun animateSplashExit(provider: SplashScreenViewProvider) {
         val logo = binding.imageSplashLogo
-        logo.scaleX = 0.7f
-        logo.scaleY = 0.7f
+        val bloom = binding.viewRevealBloom
 
-        provider.iconView.animate()
+        provider.view.animate()
             .alpha(0f)
-            .scaleX(0.8f)
-            .scaleY(0.8f)
-            .setDuration(Motion.ENTRANCE_FADE_MS)
+            .setDuration(SPLASH_FADE_MS)
+            .withEndAction { provider.remove() }
             .start()
 
-        logo.animate()
-            .alpha(1f)
-            .setDuration(Motion.ENTRANCE_FADE_MS)
-            .start()
+        // Visible from the outset, but lp_logo_trace draws nothing until it is started, so
+        // there is no mark on screen until the stroke begins under the tail of that fade.
+        logo.alpha = 1f
+        logo.postDelayed({ (logo.drawable as? Animatable)?.start() }, TRACE_START_DELAY_MS)
 
-        SpringAnimation(logo, DynamicAnimation.SCALE_X, 1f).apply {
-            spring.stiffness = SpringForce.STIFFNESS_LOW
-            spring.dampingRatio = SpringForce.DAMPING_RATIO_LOW_BOUNCY
-        }.start()
-        SpringAnimation(logo, DynamicAnimation.SCALE_Y, 1f).apply {
-            spring.stiffness = SpringForce.STIFFNESS_LOW
-            spring.dampingRatio = SpringForce.DAMPING_RATIO_LOW_BOUNCY
-            addEndListener { _, _, _, _ ->
-                logo.animate()
-                    .alpha(0f)
-                    .setStartDelay(180L)
-                    .setDuration(260L)
-                    .withEndAction { provider.remove() }
-                    .start()
-            }
-        }.start()
+        logo.postDelayed({
+            bloom.scaleX = BLOOM_SCALE_FROM
+            bloom.scaleY = BLOOM_SCALE_FROM
+            bloom.alpha = BLOOM_ALPHA_PEAK
+            bloom.animate()
+                .scaleX(BLOOM_SCALE_TO)
+                .scaleY(BLOOM_SCALE_TO)
+                .alpha(0f)
+                .setDuration(BLOOM_MS)
+                // Light spreads fast and thins out; accelerating into it would read as a
+                // shockwave, which is a different and much cheaper-looking idea.
+                .setInterpolator(DecelerateInterpolator(1.6f))
+                .start()
+
+            logo.animate()
+                .alpha(0f)
+                .setDuration(LOGO_FADE_MS)
+                .start()
+        }, TRACE_START_DELAY_MS + TRACE_MS)
+
+        binding.root.postDelayed(cascadeGate::release, TRACE_START_DELAY_MS + CASCADE_HANDOVER_MS)
+    }
+
+    /**
+     * Runs [action] when the reveal hands over to the entrance cascade — or immediately, if
+     * there is no reveal in flight (a returning activity, a configuration change, a tab opened
+     * later).
+     *
+     * A gated screen is responsible for its *whole* entrance, including anything that resolves
+     * asynchronously. Do not hand a late-arriving view its own separate timing; hold the
+     * cascade for it, as `WorkoutFragment` does for the body-status card. A card animating on
+     * its own schedule next to a fading mark reads as a straggler.
+     */
+    fun onEntranceReady(action: () -> Unit) = cascadeGate.await(action)
+
+    /**
+     * Holds actions until released, then runs them and stays open.
+     *
+     * Releasing is idempotent, since both the reveal and its backstop timeout call it and
+     * whichever lands first wins.
+     */
+    private class Gate {
+        private val pending = mutableListOf<() -> Unit>()
+        private var released = true
+
+        fun close() {
+            released = false
+        }
+
+        fun await(action: () -> Unit) {
+            if (released) action() else pending += action
+        }
+
+        fun release() {
+            if (released) return
+            released = true
+            // Copied before running: an action is free to register another.
+            val actions = pending.toList()
+            pending.clear()
+            actions.forEach { it() }
+        }
     }
 
     private fun setupBottomNav() {
@@ -278,5 +351,43 @@ class MainActivity : AppCompatActivity() {
         val TAB_TAGS = listOf(TAG_WORKOUT, TAG_PLAN, TAG_PROGRESS, TAG_LIBRARY)
 
         const val TAG_RESTORE_PROMPT = "restore_prompt"
+
+        // ------------------------------------------------- cold-start reveal timings
+
+        /** Cross-dissolve from the OS badge to the themed canvas. */
+        const val SPLASH_FADE_MS = 180L
+
+        /** The stroke starts under the tail of that fade rather than after it. */
+        const val TRACE_START_DELAY_MS = 90L
+
+        /**
+         * MUST match the `objectAnimator` duration in `lp_logo_trace.xml`. The framework gives
+         * no completion callback for an `AnimatedVectorDrawable` loaded through `srcCompat`,
+         * so the bloom is timed rather than chained — and if these two drift, the bloom fires
+         * either over an unfinished stroke or after a visible pause.
+         */
+        const val TRACE_MS = 400L
+
+        /** ~60% into the stroke: the cards rise as it turns the corner. */
+        const val CASCADE_HANDOVER_MS = 240L
+
+        const val BLOOM_MS = 420L
+        const val BLOOM_SCALE_FROM = 0.35f
+        const val BLOOM_SCALE_TO = 2.4f
+
+        /**
+         * lp_hero_glow already peaks at 40% in its centre, so this is a second multiplier on
+         * top of that — past ~0.4 the bloom stops reading as light and starts reading as a
+         * coloured flash.
+         */
+        const val BLOOM_ALPHA_PEAK = 0.34f
+
+        const val LOGO_FADE_MS = 260L
+
+        /**
+         * Backstop for [releaseEntrance]. Comfortably longer than the reveal, short enough
+         * that a launch which somehow skips the exit animation still shows its cards quickly.
+         */
+        const val ENTRANCE_TIMEOUT_MS = 1_500L
     }
 }

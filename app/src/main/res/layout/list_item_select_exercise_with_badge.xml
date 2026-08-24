@@ -7,10 +7,10 @@
     android:gravity="center_vertical"
     android:minHeight="48dp"
     android:orientation="horizontal"
-    android:paddingStart="16dp"
-    android:paddingEnd="16dp"
-    android:paddingTop="12dp"
-    android:paddingBottom="12dp"
+    android:paddingStart="@dimen/lp_space_4"
+    android:paddingEnd="@dimen/lp_space_4"
+    android:paddingTop="@dimen/lp_space_3"
+    android:paddingBottom="@dimen/lp_space_3"
     android:background="?android:attr/selectableItemBackground"
     android:clickable="true"
     android:focusable="true">
@@ -36,7 +36,7 @@
         android:id="@+id/image_favorite_star"
         android:layout_width="20dp"
         android:layout_height="20dp"
-        android:layout_marginStart="12dp"
+        android:layout_marginStart="@dimen/lp_space_3"
         android:src="@drawable/ic_star"
         android:visibility="gone"
         android:contentDescription="Favorite"
@@ -45,7 +45,7 @@
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="12dp"
+        android:layout_marginStart="@dimen/lp_space_3"
         android:layout_weight="1"
         android:orientation="vertical"
         android:gravity="center_vertical">
@@ -61,7 +61,7 @@
             android:id="@+id/text_exercise_meta"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
+            android:layout_marginTop="@dimen/lp_space_half"
             android:textAppearance="@style/TextAppearance.LP.Label"
             android:textColor="?attr/lpInkSecondary"
             android:visibility="gone" />
@@ -73,7 +73,7 @@
         android:id="@+id/checkbox_select"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
+        android:layout_marginStart="@dimen/lp_space_2"
         android:clickable="false"
         android:focusable="false"
         android:visibility="gone" />

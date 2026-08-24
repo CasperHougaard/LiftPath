@@ -33,6 +33,21 @@ class BackupManagerTest {
         )
     }
 
+    /**
+     * Same contract, same reasoning: the per-equipment weight ladders describe the user's gym,
+     * not this device, so they must survive a phone swap rather than silently reverting every
+     * exercise to the built-in defaults.
+     */
+    @Test
+    fun `equipment increment prefs are covered by the backup contract`() {
+        assertTrue(
+            "WeightIncrementSettingsManager.PREFS_NAME " +
+                "('${WeightIncrementSettingsManager.PREFS_NAME}') is missing from " +
+                "BackupManager.BACKED_UP_PREFS. See the Backup Coverage Contract in CLAUDE.md.",
+            BackupManager.BACKED_UP_PREFS.contains(WeightIncrementSettingsManager.PREFS_NAME)
+        )
+    }
+
     private fun bundleWithTrainingData(
         formatVersion: Int = BackupBundle.CURRENT_FORMAT_VERSION
     ): BackupBundle = BackupBundle(

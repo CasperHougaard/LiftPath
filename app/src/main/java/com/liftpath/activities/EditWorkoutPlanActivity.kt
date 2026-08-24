@@ -2,7 +2,6 @@
 
 import android.app.Activity
 import android.content.Intent
-import android.graphics.drawable.Animatable
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -66,16 +65,10 @@ class EditWorkoutPlanActivity : AppCompatActivity() {
         planId = intent.getStringExtra(EXTRA_PLAN_ID)
         isEditing = planId != null
 
-        setupBackgroundAnimation()
         updateHeaderTitle()
         setupRecyclerView()
         setupClickListeners()
         loadPlanIfEditing()
-    }
-
-    private fun setupBackgroundAnimation() {
-        val drawable = binding.imageBgAnimation.drawable
-        if (drawable is Animatable) drawable.start()
     }
 
     private fun updateHeaderTitle() {

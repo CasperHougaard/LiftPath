@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  One station's history inside the expanded circuit card (list_item_active_circuit.xml).
+
+  Inflated per station into a plain LinearLayout by
+  ActiveExercisesAdapter.bindCircuitViewHolder, the same "handful of rows, no RecyclerView"
+  convention list_item_circuit_round_log.xml uses. Read-only: this is a summary of what was
+  logged, not an input.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingVertical="@dimen/lp_space_2">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:baselineAligned="false"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/text_station_number"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:background="@drawable/lp_badge_ink"
+            android:gravity="center"
+            android:textAppearance="@style/TextAppearance.LP.Metric.S"
+            android:textColor="?attr/lpInkInverse"
+            tools:text="1" />
+
+        <TextView
+            android:id="@+id/text_station_name"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/lp_space_3"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textAppearance="@style/TextAppearance.LP.Label"
+            tools:text="Hip Thrust (Barbell)" />
+    </LinearLayout>
+
+    <!-- Target only, before the first round is logged; replaced by the round-by-round trail once
+         at least one round exists (set by ActiveExercisesAdapter, not switched here). -->
+    <TextView
+        android:id="@+id/text_station_trail"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="30dp"
+        android:layout_marginTop="@dimen/lp_space_half"
+        android:ellipsize="end"
+        android:maxLines="2"
+        android:textAppearance="@style/TextAppearance.LP.Metric.S"
+        tools:text="R1 60×12 · R2 65×10 · R3 65×10" />
+
+</LinearLayout>

@@ -7,19 +7,14 @@
     android:fitsSystemWindows="true"
     tools:context=".activities.EditExerciseActivity">
 
-    <ImageView
-        android:id="@+id/image_bg_animation"
+    <com.liftpath.views.AmbientFlowView
+        android:id="@+id/view_bg_ambient"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:alpha="1.0"
-        android:contentDescription="@null"
-        android:scaleType="centerCrop"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/lp_bg_ambient_flow"
-        app:tint="?attr/lpAccent" />
+        app:layout_constraintTop_toTopOf="parent" />
 
     <androidx.core.widget.NestedScrollView
         android:id="@+id/scroll_view_content"
@@ -310,6 +305,91 @@
                             android:inputType="none"
                             android:textColor="?attr/lpInk" />
                     </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- Equipment drives the weight ladder: what "go heavier" means on this
+                         exercise, and what the +/- stepper moves by. -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/lp_space_3"
+                        android:hint="@string/edit_exercise_hint_equipment"
+                        app:boxCornerRadiusBottomEnd="@dimen/lp_radius_sm"
+                        app:boxCornerRadiusBottomStart="@dimen/lp_radius_sm"
+                        app:boxCornerRadiusTopEnd="@dimen/lp_radius_sm"
+                        app:boxCornerRadiusTopStart="@dimen/lp_radius_sm"
+                        app:boxStrokeColor="?attr/lpAccent"
+                        app:hintTextColor="?attr/lpAccent">
+
+                        <AutoCompleteTextView
+                            android:id="@+id/dropdown_equipment"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="none"
+                            android:textColor="?attr/lpInk" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- Optional per-exercise override for the odd machine that does not move in
+                         its equipment's usual steps. Blank means inherit. -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/lp_space_3"
+                        android:orientation="horizontal"
+                        android:baselineAligned="false">
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginEnd="@dimen/lp_space_2"
+                            android:hint="@string/edit_exercise_hint_step_override"
+                            app:boxCornerRadiusBottomEnd="@dimen/lp_radius_sm"
+                            app:boxCornerRadiusBottomStart="@dimen/lp_radius_sm"
+                            app:boxCornerRadiusTopEnd="@dimen/lp_radius_sm"
+                            app:boxCornerRadiusTopStart="@dimen/lp_radius_sm"
+                            app:boxStrokeColor="?attr/lpAccent"
+                            app:hintTextColor="?attr/lpAccent">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/edit_text_step_override"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="numberDecimal"
+                                android:textColor="?attr/lpInk" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:hint="@string/edit_exercise_hint_min_override"
+                            app:boxCornerRadiusBottomEnd="@dimen/lp_radius_sm"
+                            app:boxCornerRadiusBottomStart="@dimen/lp_radius_sm"
+                            app:boxCornerRadiusTopEnd="@dimen/lp_radius_sm"
+                            app:boxCornerRadiusTopStart="@dimen/lp_radius_sm"
+                            app:boxStrokeColor="?attr/lpAccent"
+                            app:hintTextColor="?attr/lpAccent">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/edit_text_min_override"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="numberDecimal"
+                                android:textColor="?attr/lpInk" />
+                        </com.google.android.material.textfield.TextInputLayout>
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/text_increment_inherited"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/lp_space_1"
+                        android:textAppearance="@style/TextAppearance.LP.Caption"
+                        android:textColor="?attr/lpInkTertiary"
+                        tools:text="Default for Barbell: 2.5 kg steps from 20 kg" />
 
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>

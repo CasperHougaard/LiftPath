@@ -130,8 +130,6 @@ class SelectExerciseActivity : AppCompatActivity() {
         binding = ActivitySelectExerciseBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        setupBackgroundAnimation()
-
         jsonHelper = JsonHelper(this)
         
         // Unpack Intent
@@ -351,13 +349,6 @@ class SelectExerciseActivity : AppCompatActivity() {
             val name: TextView = view.findViewById(R.id.text_pick_name)
             val summary: TextView = view.findViewById(R.id.text_pick_summary)
             val stations: TextView = view.findViewById(R.id.text_pick_stations)
-        }
-    }
-
-    private fun setupBackgroundAnimation() {
-        val drawable = binding.imageBgAnimation.drawable
-        if (drawable is android.graphics.drawable.Animatable) {
-            drawable.start()
         }
     }
 

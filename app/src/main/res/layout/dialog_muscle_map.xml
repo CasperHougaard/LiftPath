@@ -14,7 +14,7 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:padding="16dp"
+        android:padding="@dimen/lp_gutter"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:clickable="false"
         android:focusable="false">
@@ -33,7 +33,7 @@
             android:layout_height="wrap_content"
             android:text="@string/label_muscle_summary_default"
             android:textAppearance="@style/TextAppearance.LP.Metric.S"
-            android:layout_marginEnd="8dp"
+            android:layout_marginEnd="@dimen/lp_space_2"
             tools:text="12/24 muscles activated" />
 
         <ImageButton
@@ -53,7 +53,7 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:gravity="center"
-        android:padding="32dp"
+        android:padding="@dimen/lp_space_8"
         android:visibility="gone">
 
         <TextView

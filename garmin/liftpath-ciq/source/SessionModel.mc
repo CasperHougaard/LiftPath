@@ -1,4 +1,5 @@
 import Toybox.Lang;
+import Toybox.Time;
 
 //! The watch's copy of the phone's session, plus the bits of state the phone deliberately does
 //! not track.
@@ -9,10 +10,11 @@ import Toybox.Lang;
 //! of a session cursor at all.
 class SessionModel {
 
-    // Which value the up/down buttons currently adjust.
+    // Which value the up/down buttons currently adjust. Kg first: you decide the load before
+    // the reps, and landing on a fresh exercise (resetDeltas) always starts here.
     enum {
-        FIELD_REPS = 0,
-        FIELD_KG = 1,
+        FIELD_KG = 0,
+        FIELD_REPS = 1,
         FIELD_EXERCISE = 2
     }
 
@@ -21,8 +23,19 @@ class SessionModel {
     public var exercises as Array = [];
     public var versionMismatch as Boolean = false;
 
+    //! Epoch seconds of the last message from the phone; 0 means we have never heard from it.
+    //!
+    //! Silence on its own means nothing — the phone publishes on mutation, not on a clock, so a
+    //! quiet minute mid-set is normal and a plain timeout would cry wolf constantly. Staleness is
+    //! only ever concluded from an *unanswered probe*; see LiftPathApp's watchdog.
+    public var lastHeardAt as Number = 0;
+
+    //! Set by the watchdog when a probe went unanswered. While true the view must not show a
+    //! prescription: numbers that look current are what invite logging into a dead session.
+    public var stale as Boolean = false;
+
     public var cursor as Number = 0;
-    public var field as Number = FIELD_REPS;
+    public var field as Number = FIELD_KG;
 
     // Offsets from whatever the phone suggested, reset when the cursor moves — a new exercise
     // has its own baseline and carrying an old ±10 kg across would be actively dangerous.
@@ -31,9 +44,18 @@ class SessionModel {
 
     // Used when the phone has no plan target to offer, i.e. a manually added exercise.
     private const DEFAULT_REPS = 8;
+    //! Fallback only. The real step arrives per exercise at Protocol.EX_KG_STEP; see kgStep().
     private const KG_STEP = 2.5;
 
     function initialize() {
+    }
+
+    //! Any well-formed message from the phone, including one we go on to reject for a version
+    //! skew — a skewed message still proves something is listening, which is the fact this
+    //! records. Session semantics are applyState's business.
+    function markHeard() as Void {
+        lastHeardAt = Time.now().value();
+        stale = false;
     }
 
     //! Replaces everything the phone owns. Returns false on a version skew, in which case the
@@ -52,12 +74,30 @@ class SessionModel {
         var rest = data[Protocol.KEY_REST];
         restRemaining = (rest instanceof Number) ? rest : 0;
 
+        // Captured before exercises is overwritten: this is how the cursor survives a reorder
+        // between two pushes (superset formation, warmup/cooldown pinning both reorder the
+        // phone's list in place), not just a resize. A pure index clamp would otherwise silently
+        // repoint the cursor at whatever now sits at that index — a different exercise than the
+        // one being looked at, with no sign anything changed.
+        var previousId = exerciseId();
+
         var list = data[Protocol.KEY_EXERCISES];
         exercises = (list instanceof Array) ? list : [];
 
-        // The exercise under the cursor may have been deleted on the phone while we were
-        // looking at it.
-        if (cursor >= exercises.size()) {
+        var found = -1;
+        if (previousId >= 0) {
+            for (var i = 0; i < exercises.size(); i += 1) {
+                if (numberAt(exercises[i] as Array, Protocol.EX_ID, -1) == previousId) {
+                    found = i;
+                    break;
+                }
+            }
+        }
+
+        if (found >= 0) {
+            cursor = found;
+        } else if (cursor >= exercises.size()) {
+            // The exercise under the cursor was actually removed on the phone (not just moved).
             cursor = exercises.size() > 0 ? exercises.size() - 1 : 0;
             resetDeltas();
         }
@@ -126,12 +166,27 @@ class SessionModel {
         return value < 0.0 ? 0.0 : value;
     }
 
+    //! Kilograms one press of +/- moves, for the exercise under the cursor.
+    //!
+    //! The phone resolves this from the exercise's equipment and sends it per exercise, so the
+    //! wrist steps by 2.5 on a barbell and 5 on a cable stack rather than by one hardcoded
+    //! number. Falls back to KG_STEP when the value is missing (an older phone build) or zero
+    //! (equipment with no weight ladder, e.g. bands) — a 0 step would freeze the control.
+    function kgStep() as Float {
+        var ex = current();
+        if (ex == null) {
+            return KG_STEP;
+        }
+        var step = floatAt(ex, Protocol.EX_KG_STEP, KG_STEP);
+        return step > 0.0 ? step : KG_STEP;
+    }
+
     //! delta is +1 or -1; what it means depends on the active field.
     function adjust(delta as Number) as Void {
         if (field == FIELD_REPS) {
             _repsDelta += delta;
         } else if (field == FIELD_KG) {
-            _kgDelta += delta * KG_STEP;
+            _kgDelta += delta * kgStep();
         } else {
             moveCursor(delta);
         }
@@ -150,6 +205,35 @@ class SessionModel {
         return "exercise";
     }
 
+    //! Called by SessionDelegate right after sending a log, before resetDeltas clears the
+    //! numbers that decided it. If that log fills the current exercise's target, moves the
+    //! cursor to the next incomplete one so the common straight-through-the-plan case never
+    //! needs a manual MENU-cycle to advance.
+    //!
+    //! Deliberately not run from applyState / on every incoming push — see SessionDelegate.mc
+    //! for why. This is a one-shot, locally-triggered guess: if the log is later NOT CONFIRMED,
+    //! the cursor has already moved and will not roll back on its own.
+    function advanceIfComplete() as Void {
+        var target = setsTarget();
+        if (target <= 0 || setsDone() + 1 < target) {
+            return;
+        }
+
+        var n = exercises.size();
+        for (var step = 1; step <= n; step += 1) {
+            var idx = (cursor + step) % n;
+            var row = exercises[idx] as Array;
+            var rowTarget = numberAt(row, Protocol.EX_SETS_TARGET, 0);
+            var rowDone = numberAt(row, Protocol.EX_SETS_DONE, 0);
+            if (rowTarget <= 0 || rowDone < rowTarget) {
+                cursor = idx;
+                resetDeltas();
+                return;
+            }
+        }
+        // Every exercise is complete (or there is only the one) — nothing to advance to.
+    }
+
     private function moveCursor(delta as Number) as Void {
         if (exercises.size() == 0) {
             return;
@@ -166,9 +250,14 @@ class SessionModel {
 
     //! Called after a successful log too: the phone's next projection carries the load we just
     //! used as the new suggestion, so holding the delta would double-count it.
+    //!
+    //! Also resets `field` to kg. "Starting fresh" means starting the same way every time — kg
+    //! first, per the workflow this app is built around — whether that fresh start is a new
+    //! exercise or just the next set of the same one.
     function resetDeltas() as Void {
         _repsDelta = 0;
         _kgDelta = 0.0;
+        field = FIELD_KG;
     }
 
     private function numberAt(row as Array, index as Number, fallback as Number) as Number {

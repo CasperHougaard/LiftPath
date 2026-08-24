@@ -3,7 +3,6 @@ package com.liftpath.activities
 import android.app.Activity
 import android.content.Intent
 import android.content.res.ColorStateList
-import android.graphics.drawable.Animatable
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -24,10 +23,13 @@ import com.liftpath.R
 import com.liftpath.databinding.ActivityLogSetBinding
 import com.liftpath.helpers.BodyWeightHelper
 import com.liftpath.helpers.DialogHelper
+import com.liftpath.helpers.EquipmentIncrementTable
 import com.liftpath.helpers.JsonHelper
 import com.liftpath.helpers.ProgressionHelper
 import com.liftpath.helpers.ProgressionSettingsManager
 import com.liftpath.helpers.RestTimerHelper
+import com.liftpath.helpers.WeightIncrementHelper
+import com.liftpath.helpers.WeightIncrementSettingsManager
 import com.liftpath.helpers.showWithTransparentWindow
 import com.liftpath.models.ExerciseEntry
 import com.liftpath.models.SetIntent
@@ -69,8 +71,10 @@ class LogSetActivity : AppCompatActivity() {
     private var shouldFinishAfterTimer = false
     private var originalRpeHint: CharSequence? = null
 
-    // Stepper state
-    private val weightStep = 2.5f
+    // Stepper state. The weight ladder is resolved from the exercise's equipment in onCreate;
+    // until then it is the generic 2.5 kg fallback, which is what this used to be unconditionally.
+    private var weightRule = WeightIncrementHelper.FALLBACK
+    private var incrementTable: EquipmentIncrementTable? = null
     private val rpeStep = 0.5f
     private var isNoteExpanded = false
 
@@ -129,16 +133,18 @@ class LogSetActivity : AppCompatActivity() {
             SetIntent.BUILD
         }
         binding.textLogSetTitle.text = exerciseName
-        val illustrationRes = jsonHelper.readTrainingData().exerciseLibrary.find { it.id == exerciseId }?.illustrationRes
-        binding.imageLogSetIllustration.setImageResource(illustrationRes ?: R.drawable.ic_dumbbell)
+        val libraryItem = jsonHelper.readTrainingData().exerciseLibrary.find { it.id == exerciseId }
+        // Resolved once, here, because both the steppers and the suggestion prefill need it and
+        // it cannot change while this screen is open.
+        incrementTable = WeightIncrementSettingsManager(this).getTable()
+        weightRule = WeightIncrementHelper.resolve(libraryItem, incrementTable)
+        binding.imageLogSetIllustration.setImageResource(libraryItem?.illustrationRes ?: R.drawable.ic_dumbbell)
         binding.textSetNumberBadge.text = "SET $setNumber"
         binding.textIntentLabel.text = displayIntent.displayName
         val intentColor = getIntentColor(displayIntent)
         binding.textSetNumberBadge.setTextColor(intentColor)
         binding.textIntentLabel.setTextColor(intentColor)
         binding.viewSuggestionStripe.setBackgroundColor(intentColor)
-
-        setupBackgroundAnimation()
 
         binding.btnRpeHelp.setOnClickListener {
             showRpeHelpDialog()
@@ -150,8 +156,11 @@ class LogSetActivity : AppCompatActivity() {
         if (isBodyweight) setupBodyweightMode()
         if (!isTimeBased && !isBodyweight) {
             prefillLastSetFallback()
-            showWeightSuggestion()
         }
+        // Rep and RPE guidance applies to every rep-based exercise, bodyweight included — those
+        // simply get a suggestion with no kg in it. Timed holds progress on seconds, so they are
+        // still excluded; a rep target would be nonsense on a plank.
+        if (!isTimeBased) showWeightSuggestion()
         if (!isTimeBased) prefillRepsFromPreviousSet()
 
         binding.buttonSaveSet.setOnClickListener {
@@ -179,13 +188,6 @@ class LogSetActivity : AppCompatActivity() {
 
         setupSteppers()
         setupNoteToggle()
-    }
-
-    private fun setupBackgroundAnimation() {
-        val drawable = binding.imageBgAnimation.drawable
-        if (drawable is Animatable) {
-            drawable.start()
-        }
     }
 
     private fun prefillLastSetFallback() {
@@ -223,7 +225,9 @@ class LogSetActivity : AppCompatActivity() {
             val repsToUse = suggestion.suggestedReps ?: suggestion.lastReps
             val rpeToUse = suggestion.suggestedRpe ?: suggestion.lastRpe
             if (weightToUse != null && weightToUse > 0f) {
-                binding.editTextKg.setText(weightToUse.toString())
+                // Never raw toString(): a derived weight can arrive as 68.333332 and the field is
+                // what the user saves.
+                binding.editTextKg.setText(formatStepperValue(weightToUse))
             }
             if (repsToUse != null && repsToUse > 0 && binding.editTextReps.text.isNullOrBlank()) {
                 binding.editTextReps.setText(repsToUse.toString())
@@ -381,7 +385,8 @@ class LogSetActivity : AppCompatActivity() {
         binding.textInputLayoutKg.visibility = View.GONE
         binding.textInputLayoutExtra.visibility = View.VISIBLE
         binding.bodyweightContainer.visibility = View.VISIBLE
-        binding.cardSuggestionHint.visibility = View.GONE
+        // The hint card stays: a bodyweight suggestion carries no kg, but its rep and RPE targets
+        // are as valid as any other exercise's. showWeightSuggestion() populates and shows it.
 
         // Resolve the body weight to snapshot onto this set.
         loggedBodyweight = BodyWeightHelper.getCurrentBodyweightKg(this)
@@ -506,7 +511,8 @@ class LogSetActivity : AppCompatActivity() {
                 exerciseId = exerciseId,
                 intent = setIntent,
                 trainingData = trainingData,
-                settings = userSettings
+                settings = userSettings,
+                incrementTable = incrementTable
             )
             if (suggestion.displayText.isNotEmpty()) {
                 binding.textSuggestionContent.text = suggestion.displayText
@@ -516,7 +522,9 @@ class LogSetActivity : AppCompatActivity() {
             val repsToUse = suggestion.suggestedReps ?: suggestion.lastReps
             val rpeToUse = suggestion.suggestedRpe ?: suggestion.lastRpe
             if (weightToUse != null && weightToUse > 0f && binding.editTextKg.text.isNullOrBlank()) {
-                binding.editTextKg.setText(weightToUse.toString())
+                // Never raw toString(): a derived weight can arrive as 68.333332 and the field is
+                // what the user saves.
+                binding.editTextKg.setText(formatStepperValue(weightToUse))
             }
             if (repsToUse != null && repsToUse > 0 && binding.editTextReps.text.isNullOrBlank()) {
                 binding.editTextReps.setText(repsToUse.toString())
@@ -537,7 +545,8 @@ class LogSetActivity : AppCompatActivity() {
             exerciseId = exerciseId,
             intent = setIntent,
             trainingData = trainingData,
-            settings = userSettings
+            settings = userSettings,
+            incrementTable = incrementTable
         )
 
         // Get target RPE from settings
@@ -546,36 +555,12 @@ class LogSetActivity : AppCompatActivity() {
         if (!suggestion.isFirstTime) {
             val suggestedReps = suggestion.suggestedReps
 
-            // Build hint text based on intent suggestion
+            // ProgressionHelper formats the whole line now — including the target weight, which
+            // this screen could never name when it was assembling the sentence itself from a
+            // WeightAction. Rebuilding it here would be a second, worse copy of that formatter.
             val hintText = buildString {
-                when (suggestion.weightAction) {
-                    ProgressionHelper.WeightAction.INCREASE -> {
-                        append("Increase weight, ")
-                        if (suggestedReps != null) {
-                            append("aim for $suggestedReps reps")
-                        }
-                    }
-                    ProgressionHelper.WeightAction.MAINTAIN -> {
-                        if (suggestedReps != null) {
-                            append("Aim for $suggestedReps reps")
-                        } else {
-                            append("Same weight")
-                        }
-                    }
-                    ProgressionHelper.WeightAction.DECREASE -> {
-                        append("Reduce weight, ")
-                        if (suggestedReps != null) {
-                            append("aim for $suggestedReps reps")
-                        }
-                    }
-                    else -> {}
-                }
-                
-                append(" @ RPE ${String.format(Locale.US, "%.1f", suggestedRpe)}")
-                
-                suggestion.badge?.let {
-                    append(" [$it]")
-                }
+                append(suggestion.displayText)
+                suggestion.badge?.let { append(" [$it]") }
             }
 
             binding.textSuggestionContent.text = hintText
@@ -852,13 +837,26 @@ class LogSetActivity : AppCompatActivity() {
     // ── Stepper helpers ────────────────────────────────────────────
 
     private fun setupSteppers() {
+        // Steps along the equipment's ladder rather than by a flat delta, so an off-grid value
+        // (a stale prefill, a typo) is pulled back onto loadable weights instead of staying off
+        // it forever. Falls back to a plain ±2.5 for equipment with no ladder, e.g. bands.
         binding.btnWeightMinus.setOnClickListener {
             val v = binding.editTextKg.text.toString().toFloatOrNull() ?: 0f
-            setStepperText(binding.editTextKg, formatStepperValue((v - weightStep).coerceAtLeast(0f)))
+            val next = if (weightRule.hasLadder) {
+                WeightIncrementHelper.prevDown(v, weightRule)
+            } else {
+                (v - WeightIncrementHelper.FALLBACK.incrementKg).coerceAtLeast(0f)
+            }
+            setStepperText(binding.editTextKg, formatStepperValue(next))
         }
         binding.btnWeightPlus.setOnClickListener {
             val v = binding.editTextKg.text.toString().toFloatOrNull() ?: 0f
-            setStepperText(binding.editTextKg, formatStepperValue(v + weightStep))
+            val next = if (weightRule.hasLadder) {
+                WeightIncrementHelper.nextUp(v, weightRule)
+            } else {
+                v + WeightIncrementHelper.FALLBACK.incrementKg
+            }
+            setStepperText(binding.editTextKg, formatStepperValue(next))
         }
         binding.btnRepsMinus.setOnClickListener {
             val v = binding.editTextReps.text.toString().toIntOrNull() ?: 0

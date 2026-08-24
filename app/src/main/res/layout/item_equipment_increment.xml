@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  One row of the per-equipment weight-ladder table. Inflated ten times (once per Equipment
+  value) rather than written out statically: ten hand-written rows would be ~300 lines of XML
+  and twenty view ids, and an eleventh Equipment value would silently go missing from the
+  screen instead of appearing on its own.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:baselineAligned="false"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingVertical="@dimen/lp_space_1">
+
+    <TextView
+        android:id="@+id/text_equipment_name"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textAppearance="@style/TextAppearance.LP.Body"
+        tools:text="Barbell" />
+
+    <EditText
+        android:id="@+id/et_step"
+        style="@style/Widget.LP.EditText.Boxed"
+        android:layout_width="76dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/lp_space_2"
+        android:autofillHints=""
+        android:contentDescription="@string/cd_equipment_step"
+        android:inputType="numberDecimal"
+        tools:text="2.5" />
+
+    <EditText
+        android:id="@+id/et_min"
+        style="@style/Widget.LP.EditText.Boxed"
+        android:layout_width="76dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/lp_space_2"
+        android:autofillHints=""
+        android:contentDescription="@string/cd_equipment_min"
+        android:inputType="numberDecimal"
+        tools:text="20" />
+</LinearLayout>

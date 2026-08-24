@@ -5,13 +5,20 @@
   AIRY spacing — this is a browsing surface, not a working one. "Create plan" stays ink
   (Widget.LP.Button) as the one thing on this screen worth spending the darkest colour on;
   "Plan rotations" is a secondary destination and stays outlined.
+
+  TRANSPARENT, not ?attr/lpCanvas. A tab fragment sits on top of the AmbientFlowView in
+  activity_main, so an opaque fill here paints the ambient field out — and because the
+  fragment container is inset below the status bar, it did so everywhere except a strip at
+  the very top, which reads as "the background only works on the home tab". The canvas
+  colour comes from the window background; this must stay see-through, as fragment_workout
+  always has.
 -->
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?attr/lpCanvas"
+    android:background="@android:color/transparent"
     tools:context="com.liftpath.fragments.PlanFragment">
 
     <androidx.core.widget.NestedScrollView
@@ -51,24 +58,23 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="@dimen/lp_space_2"
-                android:gravity="center_vertical"
                 android:orientation="vertical"
-                app:layout_constraintBottom_toBottomOf="@id/button_more_options"
                 app:layout_constraintEnd_toStartOf="@id/button_more_options"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="@id/button_more_options">
+                app:layout_constraintTop_toTopOf="parent">
 
                 <TextView
                     android:id="@+id/text_plans_title"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/title_workout_plans"
-                    android:textAppearance="@style/TextAppearance.LP.Title" />
+                    android:textAppearance="@style/TextAppearance.LP.Display" />
 
                 <TextView
                     android:id="@+id/text_plans_subtitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/lp_space_1"
                     android:text="@string/subtitle_workout_plans"
                     android:textAppearance="@style/TextAppearance.LP.Body" />
             </LinearLayout>
@@ -103,7 +109,7 @@
                         android:id="@+id/text_active_routine_title"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
+                        android:layout_marginTop="@dimen/lp_space_half"
                         android:ellipsize="end"
                         android:maxLines="1"
                         android:textAppearance="@style/TextAppearance.LP.Heading"
@@ -113,7 +119,7 @@
                         android:id="@+id/text_active_routine_sub"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
+                        android:layout_marginTop="@dimen/lp_space_half"
                         android:textAppearance="@style/TextAppearance.LP.Label"
                         android:textColor="?attr/lpInkTertiary"
                         tools:text="Next: Push Day" />

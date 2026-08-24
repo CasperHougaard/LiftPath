@@ -25,9 +25,9 @@ layout changes: one `lp_palette_*.xml` pair, one overlay, one `LiftPathTheme` en
 
 **Two things that are deliberately not theme attributes**, and why:
 
-- `avd_background_flow` was deleted; animated-vectors loaded via `srcCompat` do not resolve
-  theme attributes reliably. `lp_bg_ambient_flow` is drawn white and tinted at the point of
-  use with `app:tint="?attr/lpAccent"`. Same trick for `lp_hero_glow`.
+- Animated-vectors loaded via `srcCompat` do not resolve theme attributes reliably, so
+  `lp_logo_trace` is drawn white and tinted at the point of use with
+  `app:tint="?attr/lpAccent"`. Same trick for `lp_hero_glow` and `lp_dot`.
 - The swatches in the Appearance picker reference `paper_*` / `chalk_*` / … directly. They
   must show all four palettes at once, and `?attr/` only ever resolves the *active* one.
 
@@ -47,6 +47,40 @@ not a full theme — `setTheme` merges, so a full theme would clobber the dialog
 | `app/src/main/res/values/lp_dimens.xml` | Radii + the airy/dense spacing scales |
 | `app/src/main/java/com/liftpath/helpers/AppearanceManager.kt` | Palette enum + persistence |
 | `app/src/main/java/com/liftpath/helpers/Motion.kt` | Shared entrance/press motion |
+| `app/src/main/java/com/liftpath/views/AmbientFlowView.kt` | The ambient background: an AGSL flow field. Hosted by 23 layouts. |
+| `app/src/main/res/values/lp_floats.xml` (+ `values-night/`) | Non-colour tunables that still need a day/night split |
+
+## Motion Contract
+
+Two pieces of motion are shared rather than per-screen, and both have a failure mode worth
+knowing about.
+
+**The ambient background** is `AmbientFlowView` — a full-screen AGSL fragment shader, not a
+drawable. It reads `?attr/lpAccent` through `lpColor` and its alpha ceiling from
+`lp_ambient_intensity`, which has a `values-night` override because the same alpha is a much
+smaller perceptual step for a light accent on a dark canvas than the reverse. It starts and
+stops itself from `onVisibilityAggregated`; **never add a `start()` call for it** — needing one
+is exactly what the old animated-vector got wrong, and two of its 23 host layouts silently
+shipped a frozen background as a result. `RuntimeShader` throws on a shader error, so
+construction is guarded: a broken shader degrades to a flat wash and logs, rather than killing
+every screen that hosts it.
+
+**The cold-start reveal** lives in `MainActivity.animateSplashExit` and spans three files that
+must stay in step:
+
+- `lp_logo_trace.xml`'s stroke is *pixel-identical* to the filled `ic_app_logo` — a 12-wide
+  stroke down the mark's centrelines with butt caps and a miter join. Change the width, caps or
+  join and the trace still animates but no longer lands on the mark.
+- Its `objectAnimator` duration is mirrored by `MainActivity.TRACE_MS`. `srcCompat` gives no
+  completion callback for an `<animated-vector>`, so the bloom is timed against that number.
+- The splash view is faded out *first*, not last. `windowSplashScreenBackground` is opaque and
+  the splash sits above this activity's content, so anything animated underneath it is
+  invisible — which is why the previous version of this reveal could not be seen at all.
+
+`WorkoutFragment`'s entrance waits on `MainActivity.onEntranceReady` so the cascade plays after
+the reveal instead of behind it. A gated caller must call `Motion.prepareEntrance` first (or the
+cards sit at full opacity and then blink out to rise), and the gate carries a timeout — a
+hand-off that never arrives would otherwise leave a permanently blank home screen.
 
 ## Navigation Contract
 

@@ -22,8 +22,21 @@
 
     <!-- ============ HAIRLINE ============ -->
     <dimen name="lp_hairline_width">1dp</dimen>
+    <!--
+      Start inset for a divider between icon-led rows (Widget.LP.Row in Settings), so the
+      rule begins at the row's text rather than under its icon: 24dp icon + lp_space_3 gap
+      + the gutter it sits in.
+    -->
+    <dimen name="lp_divider_inset">60dp</dimen>
 
     <!-- ============ SPACING (4dp grid) ============ -->
+    <!--
+      The one deliberate half-step. A label and the value or description directly under it
+      read as ONE unit, and 4dp is already enough air to break that pairing — so the ~24
+      title/subtitle pairs in tiles and list rows sit at 2dp. It was a bare "2dp" repeated
+      in 19 layouts before it was named; anything that is not such a pair uses the grid.
+    -->
+    <dimen name="lp_space_half">2dp</dimen>
     <dimen name="lp_space_1">4dp</dimen>
     <dimen name="lp_space_2">8dp</dimen>
     <dimen name="lp_space_3">12dp</dimen>
@@ -61,6 +74,13 @@
     <dimen name="lp_icon_action_size">40dp</dimen>
     <dimen name="lp_icon_action_padding">10dp</dimen>
     <!--
+      An emoji used as a row icon (the circuit and warmup/cooldown slots in a plan), sized to
+      match the 26dp numbered badge the exercise rows put in the same position. It is an
+      android:textSize because the glyph comes from a font, but it is sizing an icon, not
+      type — which is why it lives here and not in the type scale.
+    -->
+    <dimen name="lp_icon_glyph_size">16sp</dimen>
+    <!--
       −/+ steppers on the set-entry screens. 52dp rather than the 48dp a11y floor because
       these are hit repeatedly, one-handed, with chalk on your fingers — the extra 4dp is
       the difference between adjusting a weight and fighting the phone.
@@ -72,5 +92,21 @@
       cap the sheet's list height, since RecyclerView ignores android:maxHeight.
     -->
     <dimen name="lp_circuit_picker_row_height">104dp</dimen>
+
+    <!-- ============ COLD-START REVEAL ============ -->
+    <!--
+      The traced mark in activity_main. Larger than a normal icon because it has to hand
+      over from the OS splash icon, which API 31+ draws into a 240dp area at roughly
+      two-thirds fill. An exact match is impossible — the OS sizing is not queryable and
+      varies by launcher — so this is deliberately close rather than equal, and the trace
+      covers the difference: the eye follows a stroke being drawn and does not measure it
+      against the static badge that just faded.
+    -->
+    <dimen name="lp_reveal_logo_size">104dp</dimen>
+    <!--
+      The bloom behind it. Big enough to read as light spilling past the mark, small enough
+      that it never becomes a full-screen flash — it is scaled up from here at runtime.
+    -->
+    <dimen name="lp_reveal_bloom_size">220dp</dimen>
 
 </resources>

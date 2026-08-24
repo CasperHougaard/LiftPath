@@ -160,7 +160,7 @@
             android:layout_marginStart="@dimen/lp_space_2"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/content_desc_view_report"
-            android:padding="4dp"
+            android:padding="@dimen/lp_space_1"
             android:src="@drawable/ic_graph"
             app:tint="?attr/lpInkSecondary" />
 

@@ -2,7 +2,6 @@ package com.liftpath.activities
 
 import android.app.Activity
 import android.content.Intent
-import android.graphics.drawable.Animatable
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -28,9 +27,6 @@ class ManageFavoritesActivity : AppCompatActivity() {
         binding = ActivityManageFavoritesBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Setup background animation
-        setupBackgroundAnimation()
-
         jsonHelper = JsonHelper(this)
         
         // Get current favorite IDs
@@ -42,13 +38,6 @@ class ManageFavoritesActivity : AppCompatActivity() {
         setupClickListeners()
         setupSearchField()
         updateSelectedCount()
-    }
-    
-    private fun setupBackgroundAnimation() {
-        val drawable = binding.imageBgAnimation.drawable
-        if (drawable is Animatable) {
-            drawable.start()
-        }
     }
 
     private fun setupRecyclerView(preselectedIds: Set<Int>) {

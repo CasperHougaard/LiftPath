@@ -36,6 +36,7 @@ class CircuitRoundLogBottomSheet : DialogFragment() {
     private var library: List<ExerciseLibraryItem> = emptyList()
     private var round: Int = 1
     private var prefill: List<CircuitStore.StationInput> = emptyList()
+    private var bodyweightKg: Float? = null
     private var onSaved: ((List<CircuitStore.StationInput>) -> Unit)? = null
     private var onLater: (() -> Unit)? = null
 
@@ -55,6 +56,7 @@ class CircuitRoundLogBottomSheet : DialogFragment() {
             library: List<ExerciseLibraryItem>,
             round: Int,
             prefill: List<CircuitStore.StationInput>,
+            bodyweightKg: Float?,
             onSaved: (List<CircuitStore.StationInput>) -> Unit,
             onLater: () -> Unit
         ): CircuitRoundLogBottomSheet = CircuitRoundLogBottomSheet().apply {
@@ -62,6 +64,7 @@ class CircuitRoundLogBottomSheet : DialogFragment() {
             this.library = library
             this.round = round
             this.prefill = prefill
+            this.bodyweightKg = bodyweightKg
             this.onSaved = onSaved
             this.onLater = onLater
         }
@@ -122,6 +125,13 @@ class CircuitRoundLogBottomSheet : DialogFragment() {
             row.findViewById<TextView>(R.id.text_log_name).text = exercise?.name
                 ?: getString(R.string.circuit_unknown_exercise, item.exerciseId)
             row.findViewById<TextView>(R.id.text_log_target).text = CircuitStore.formatTarget(item, exercise)
+
+            row.findViewById<TextView>(R.id.label_log_kg).text = if (exercise?.isBodyweight == true) {
+                bodyweightKg?.let { getString(R.string.circuit_log_label_added_kg_bw, SetFormatter.trimNum(it)) }
+                    ?: getString(R.string.circuit_log_label_added_kg)
+            } else {
+                getString(R.string.circuit_station_hint_kg)
+            }
 
             val kgEdit = row.findViewById<EditText>(R.id.edit_log_kg)
             val repsLayout = row.findViewById<View>(R.id.layout_log_reps)

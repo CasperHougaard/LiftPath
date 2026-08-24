@@ -5,7 +5,14 @@
       "Bash(python -c ' *)",
       "Read(//c/Projects/TriPath/app/src/main/**)",
       "Bash(./gradlew :app:testDebugUnitTest -q)",
-      "Bash(./gradlew :app:compileDebugKotlin)"
+      "Bash(./gradlew :app:compileDebugKotlin)",
+      "Bash(grep -n \"class \\\\|fun \\\\|/\\\\*\\\\*\" app/src/main/java/com/liftpath/helpers/PlanRotationHelper.kt)",
+      "Bash(grep -n \"fun \\\\|/\\\\*\\\\*\" app/src/main/java/com/liftpath/helpers/WorkoutGenerator.kt)",
+      "Bash(git rm *)",
+      "PowerShell($adb = \"$env:LOCALAPPDATA\\\\Android\\\\Sdk\\\\platform-tools\\\\adb.exe\"; if \\(Test-Path $adb\\) { & $adb devices -l } else { Write-Output \"adb not at $adb\"; Get-Command adb -ErrorAction SilentlyContinue | Select-Object Source })",
+      "Bash(python -)",
+      "Bash(javap -classpath classes.jar com.garmin.android.connectiq.ConnectIQ)",
+      "Bash(cd \"/c/Users/CasperEgholmHougaard/projects/LiftPath\"; echo \"=== dependencies block ===\"; sed -n '/^dependencies/,$p' app/build.gradle.kts; echo \"=== libs.versions.toml? ===\"; ls gradle/libs.versions.toml 2>/dev/null && echo present || echo absent)"
     ],
     "additionalDirectories": [
       "C:\\Projects\\TriPath\\app\\src\\main\\java\\com\\tripath\\domain\\health",

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The brand mark, drawing itself. Used once, by MainActivity's splash-exit listener.
+
+  The trick here is that this is not a stroked *approximation* of ic_app_logo — it is the
+  same shape. That logo is a filled polygon: a 12-wide stem at x 34..46 running y 30..82,
+  and a 12-tall foot at y 70..82 running x 34..66. A 12-wide stroke down the stem's
+  centreline (x=40) and along the foot's centreline (y=76), with BUTT caps and a MITER join,
+  covers exactly that union — the caps keep the two free ends flat and the miter fills the
+  outer corner at (34,82). So when trimPathEnd reaches 1 the traced line *is* the logo, and
+  no cross-fade into a second drawable is needed.
+
+  Change the stroke width, the caps or the join and that identity breaks silently: the trace
+  will still look fine on its own but will no longer land on the mark it shares a screen with.
+
+  Drawn WHITE and tinted at the point of use with app:tint="?attr/lpAccent", the same
+  contract as ic_app_logo / lp_hero_glow / lp_dot — one drawable for all eight palettes, and
+  no reliance on theme-attribute resolution inside an <animated-vector>, which is the one
+  place it is genuinely unreliable.
+-->
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt">
+
+    <aapt:attr name="android:drawable">
+        <vector
+            android:width="108dp"
+            android:height="108dp"
+            android:viewportWidth="108"
+            android:viewportHeight="108">
+            <path
+                android:name="mark"
+                android:pathData="M40,30 V76 H66"
+                android:strokeColor="#FFFFFF"
+                android:strokeLineCap="butt"
+                android:strokeLineJoin="miter"
+                android:strokeWidth="12"
+                android:trimPathEnd="0" />
+        </vector>
+    </aapt:attr>
+
+    <!--
+      One confident stroke. fast_out_slow_in rather than a plain decelerate: the pen should
+      commit and then arrive, and a trace is the one case where arriving and stopping is
+      correct rather than abrupt — it is a line finishing, not an element settling.
+
+      Path length is 72 units (46 down, 26 across), so the stem takes ~64% of the duration.
+      That is uniform pen speed, which is what reads as handwriting.
+
+      The duration is mirrored by MainActivity.TRACE_MS, because srcCompat gives no
+      completion callback for an <animated-vector> and the bloom that follows is timed
+      against this number. Change one and you must change the other.
+    -->
+    <target android:name="mark">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:duration="400"
+                android:interpolator="@android:interpolator/fast_out_slow_in"
+                android:propertyName="trimPathEnd"
+                android:valueFrom="0"
+                android:valueTo="1"
+                android:valueType="floatType" />
+        </aapt:attr>
+    </target>
+
+</animated-vector>

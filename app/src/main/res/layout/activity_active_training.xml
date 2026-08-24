@@ -16,18 +16,14 @@
     android:background="?attr/lpCanvas"
     tools:context=".activities.ActiveTrainingActivity">
 
-    <ImageView
-        android:id="@+id/image_bg_animation"
+    <com.liftpath.views.AmbientFlowView
+        android:id="@+id/view_bg_ambient"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:contentDescription="@null"
-        android:scaleType="centerCrop"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/lp_bg_ambient_flow"
-        app:tint="?attr/lpAccent" />
+        app:layout_constraintTop_toTopOf="parent" />
 
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
@@ -39,6 +35,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:title="@string/title_active_workout"
+        app:titleTextAppearance="@style/TextAppearance.LP.Title"
         app:titleTextColor="?attr/lpInk" />
 
     <!-- DATE + SESSION CLOCK + SHORTCUTS -->
@@ -190,7 +187,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="2dp"
+                    android:layout_marginStart="@dimen/lp_space_half"
                     android:text="15"
                     android:textAppearance="@style/TextAppearance.LP.Metric.S"
                     android:textColor="?attr/lpInkTertiary" />
@@ -232,7 +229,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="2dp"
+                    android:layout_marginStart="@dimen/lp_space_half"
                     android:text="15"
                     android:textAppearance="@style/TextAppearance.LP.Metric.S"
                     android:textColor="?attr/lpInkTertiary" />

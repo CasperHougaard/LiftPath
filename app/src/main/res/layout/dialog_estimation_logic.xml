@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:padding="20dp">
+    android:padding="@dimen/lp_gutter">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -21,8 +21,8 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:layout_marginBottom="16dp"
+            android:layout_marginTop="@dimen/lp_space_1"
+            android:layout_marginBottom="@dimen/lp_space_4"
             android:text="@string/subtitle_estimation_logic"
             android:textAppearance="@style/TextAppearance.LP.Body" />
 
@@ -30,13 +30,13 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
+            android:layout_marginBottom="@dimen/lp_space_4"
             android:orientation="horizontal">
 
             <ImageView
                 android:layout_width="24dp"
                 android:layout_height="24dp"
-                android:layout_marginEnd="12dp"
+                android:layout_marginEnd="@dimen/lp_space_3"
                 android:layout_gravity="center_vertical"
                 android:src="@drawable/ic_fitness_center_24"
                 app:tint="?attr/lpInk" />
@@ -56,7 +56,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
+                    android:layout_marginTop="@dimen/lp_space_1"
                     android:text="@string/body_estimation_rule_1"
                     android:textAppearance="@style/TextAppearance.LP.Body" />
             </LinearLayout>
@@ -66,13 +66,13 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
+            android:layout_marginBottom="@dimen/lp_space_4"
             android:orientation="horizontal">
 
             <ImageView
                 android:layout_width="24dp"
                 android:layout_height="24dp"
-                android:layout_marginEnd="12dp"
+                android:layout_marginEnd="@dimen/lp_space_3"
                 android:layout_gravity="center_vertical"
                 android:src="@drawable/ic_info_outline_24"
                 app:tint="?attr/lpInk" />
@@ -92,7 +92,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
+                    android:layout_marginTop="@dimen/lp_space_1"
                     android:text="@string/body_estimation_rule_2"
                     android:textAppearance="@style/TextAppearance.LP.Body" />
             </LinearLayout>
@@ -102,13 +102,13 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
+            android:layout_marginBottom="@dimen/lp_space_4"
             android:orientation="horizontal">
 
             <ImageView
                 android:layout_width="24dp"
                 android:layout_height="24dp"
-                android:layout_marginEnd="12dp"
+                android:layout_marginEnd="@dimen/lp_space_3"
                 android:layout_gravity="center_vertical"
                 android:src="@drawable/ic_check"
                 app:tint="?attr/lpInk" />
@@ -128,7 +128,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
+                    android:layout_marginTop="@dimen/lp_space_1"
                     android:text="@string/body_estimation_rule_3"
                     android:textAppearance="@style/TextAppearance.LP.Body" />
             </LinearLayout>
@@ -138,13 +138,13 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
+            android:layout_marginBottom="@dimen/lp_space_4"
             android:orientation="horizontal">
 
             <ImageView
                 android:layout_width="24dp"
                 android:layout_height="24dp"
-                android:layout_marginEnd="12dp"
+                android:layout_marginEnd="@dimen/lp_space_3"
                 android:layout_gravity="center_vertical"
                 android:src="@drawable/ic_graph"
                 app:tint="?attr/lpInk" />
@@ -164,7 +164,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
+                    android:layout_marginTop="@dimen/lp_space_1"
                     android:text="@string/body_estimation_rule_4"
                     android:textAppearance="@style/TextAppearance.LP.Body" />
             </LinearLayout>
@@ -174,13 +174,13 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
+            android:layout_marginBottom="@dimen/lp_space_4"
             android:orientation="horizontal">
 
             <ImageView
                 android:layout_width="24dp"
                 android:layout_height="24dp"
-                android:layout_marginEnd="12dp"
+                android:layout_marginEnd="@dimen/lp_space_3"
                 android:layout_gravity="center_vertical"
                 android:src="@drawable/ic_graph"
                 app:tint="?attr/lpInk" />
@@ -200,7 +200,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
+                    android:layout_marginTop="@dimen/lp_space_1"
                     android:text="@string/body_estimation_rule_5"
                     android:textAppearance="@style/TextAppearance.LP.Body" />
             </LinearLayout>
@@ -210,13 +210,13 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
+            android:layout_marginBottom="@dimen/lp_space_4"
             android:orientation="horizontal">
 
             <ImageView
                 android:layout_width="24dp"
                 android:layout_height="24dp"
-                android:layout_marginEnd="12dp"
+                android:layout_marginEnd="@dimen/lp_space_3"
                 android:layout_gravity="center_vertical"
                 android:src="@drawable/ic_calendar_today_24"
                 app:tint="?attr/lpInk" />
@@ -236,7 +236,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
+                    android:layout_marginTop="@dimen/lp_space_1"
                     android:text="@string/body_estimation_rule_6"
                     android:textAppearance="@style/TextAppearance.LP.Body" />
             </LinearLayout>
@@ -246,7 +246,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="@dimen/lp_space_2"
             android:text="@string/summary_estimation_logic"
             android:textAppearance="@style/TextAppearance.LP.Body"
             android:textColor="?attr/lpInk"

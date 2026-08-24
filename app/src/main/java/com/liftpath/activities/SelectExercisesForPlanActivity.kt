@@ -38,9 +38,6 @@ class SelectExercisesForPlanActivity : AppCompatActivity() {
         binding = ActivitySelectExercisesForPlanBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Setup background animation
-        setupBackgroundAnimation()
-
         jsonHelper = JsonHelper(this)
         
         val preselectedIds = intent.getIntArrayExtra(EXTRA_PRESELECTED_IDS)?.toSet() ?: emptySet()
@@ -50,13 +47,6 @@ class SelectExercisesForPlanActivity : AppCompatActivity() {
         setupClickListeners()
         setupSearchField()
         updateSelectedCount()
-    }
-    
-    private fun setupBackgroundAnimation() {
-        val drawable = binding.imageBgAnimation.drawable
-        if (drawable is android.graphics.drawable.Animatable) {
-            drawable.start()
-        }
     }
 
     private fun setupRecyclerView(preselectedIds: Set<Int>) {

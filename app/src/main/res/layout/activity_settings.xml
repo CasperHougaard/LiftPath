@@ -20,18 +20,14 @@
     android:fitsSystemWindows="true"
     tools:context=".activities.SettingsActivity">
 
-    <ImageView
-        android:id="@+id/image_bg_animation"
+    <com.liftpath.views.AmbientFlowView
+        android:id="@+id/view_bg_ambient"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:contentDescription="@null"
-        android:scaleType="centerCrop"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/lp_bg_ambient_flow"
-        app:tint="?attr/lpAccent" />
+        app:layout_constraintTop_toTopOf="parent" />
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
@@ -103,7 +99,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
+                        android:layout_marginTop="@dimen/lp_space_half"
                         android:text="@string/settings_appearance_subtitle"
                         android:textAppearance="@style/TextAppearance.LP.Caption" />
 
@@ -236,7 +232,49 @@
                             app:tint="?attr/lpInkTertiary" />
                     </LinearLayout>
 
-                    <View style="@style/Widget.LP.Divider" android:layout_marginStart="60dp" />
+                    <View style="@style/Widget.LP.Divider" android:layout_marginStart="@dimen/lp_divider_inset" />
+
+                    <LinearLayout
+                        android:id="@+id/button_progress_settings"
+                        style="@style/Widget.LP.Row"
+                        android:gravity="center_vertical">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_graph"
+                            app:tint="?attr/lpAccent" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="@dimen/lp_space_3"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/title_progress_settings"
+                                android:textAppearance="@style/TextAppearance.LP.Label" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/settings_row_progress_settings_subtitle"
+                                android:textAppearance="@style/TextAppearance.LP.Caption" />
+                        </LinearLayout>
+
+                        <ImageView
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:contentDescription="@string/cd_open_screen"
+                            android:src="@drawable/ic_arrow_forward_24"
+                            app:tint="?attr/lpInkTertiary" />
+                    </LinearLayout>
+
+                    <View style="@style/Widget.LP.Divider" android:layout_marginStart="@dimen/lp_divider_inset" />
 
                     <LinearLayout
                         android:id="@+id/button_readiness"
@@ -384,7 +422,7 @@
                         </LinearLayout>
                     </LinearLayout>
 
-                    <View style="@style/Widget.LP.Divider" android:layout_marginStart="60dp" />
+                    <View style="@style/Widget.LP.Divider" android:layout_marginStart="@dimen/lp_divider_inset" />
 
                     <LinearLayout
                         android:id="@+id/button_import_data"
@@ -419,7 +457,7 @@
                         </LinearLayout>
                     </LinearLayout>
 
-                    <View style="@style/Widget.LP.Divider" android:layout_marginStart="60dp" />
+                    <View style="@style/Widget.LP.Divider" android:layout_marginStart="@dimen/lp_divider_inset" />
 
                     <LinearLayout
                         android:id="@+id/button_export_library"
@@ -443,7 +481,7 @@
                             android:textAppearance="@style/TextAppearance.LP.Label" />
                     </LinearLayout>
 
-                    <View style="@style/Widget.LP.Divider" android:layout_marginStart="60dp" />
+                    <View style="@style/Widget.LP.Divider" android:layout_marginStart="@dimen/lp_divider_inset" />
 
                     <LinearLayout
                         android:id="@+id/button_ai_export"
@@ -478,7 +516,7 @@
                         </LinearLayout>
                     </LinearLayout>
 
-                    <View style="@style/Widget.LP.Divider" android:layout_marginStart="60dp" />
+                    <View style="@style/Widget.LP.Divider" android:layout_marginStart="@dimen/lp_divider_inset" />
 
                     <LinearLayout
                         android:id="@+id/button_withings_data"
@@ -525,7 +563,7 @@
                         but the dialog behind it explains itself differently depending on whether
                         TriPath is installed at all.
                     -->
-                    <View style="@style/Widget.LP.Divider" android:layout_marginStart="60dp" />
+                    <View style="@style/Widget.LP.Divider" android:layout_marginStart="@dimen/lp_divider_inset" />
 
                     <LinearLayout
                         android:id="@+id/button_tripath"
@@ -782,7 +820,7 @@
                             android:textColor="?attr/lpNegative" />
                     </LinearLayout>
 
-                    <View style="@style/Widget.LP.Divider" android:layout_marginStart="60dp" />
+                    <View style="@style/Widget.LP.Divider" android:layout_marginStart="@dimen/lp_divider_inset" />
 
                     <LinearLayout
                         android:id="@+id/button_reset_library"

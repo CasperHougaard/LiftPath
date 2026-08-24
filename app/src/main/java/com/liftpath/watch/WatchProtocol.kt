@@ -20,7 +20,7 @@ package com.liftpath.watch
 object WatchProtocol {
 
     /** Bumped when key names or the `EX_*` order change. The watch drops states it cannot read. */
-    const val VERSION = 1
+    const val VERSION = 2
 
     // --- state: phone -> watch ---
 
@@ -37,7 +37,17 @@ object WatchProtocol {
     const val EX_REPS_TARGET = 4
     const val EX_SUGGESTED_KG = 5
     const val EX_BODYWEIGHT = 6
-    const val EX_FIELD_COUNT = 7
+
+    /**
+     * Kilograms per press of the watch's +/- control, resolved from the exercise's equipment.
+     *
+     * Sent per exercise because the right jump is 2.5 kg on a barbell, 5 on a cable stack and 4
+     * on a dumbbell pair. Only the step travels, not the ladder's minimum: the watch always
+     * applies its delta to a phone-supplied base that is already on-grid, so step-sized moves
+     * stay on-grid without the watch needing to know where the ladder starts.
+     */
+    const val EX_KG_STEP = 7
+    const val EX_FIELD_COUNT = 8
 
     // --- commands: watch -> phone ---
 
@@ -74,7 +84,9 @@ data class WatchExercise(
     val repsTarget: Int,
     /** Best guess to pre-fill on the watch: last logged for this exercise, else the plan's. */
     val suggestedKg: Float,
-    val isBodyweight: Boolean
+    val isBodyweight: Boolean,
+    /** Loadable step for this exercise. 0 means no ladder (bands); the watch falls back to 2.5. */
+    val kgStep: Float = 2.5f
 )
 
 /** Everything the watch knows about the session. Replaced wholesale on every publish. */
@@ -97,7 +109,8 @@ data class WatchState(
                     ex.setsTarget,
                     ex.repsTarget,
                     ex.suggestedKg,
-                    if (ex.isBodyweight) 1 else 0
+                    if (ex.isBodyweight) 1 else 0,
+                    ex.kgStep
                 )
             }
     )

@@ -15,12 +15,12 @@ import com.liftpath.watch.WatchState
  * The Connect IQ transport: turns [WatchState] into messages for the Fenix 8, and messages
  * from it into [WatchCommand]s.
  *
- * This is the only file in the app that mentions Garmin, which is deliberate — it is also the
- * only file that cannot compile until the Connect IQ Mobile SDK `.aar` is in `app/libs/`. Once
- * it is, move this into `app/src/main/java/com/liftpath/garmin/` and wire [start] into
- * `LiftPathApplication`. See `garmin/README.md`.
+ * Nothing here knows what a workout is. It talks to [WatchLink] and nothing else — that seam is
+ * what keeps every Connect IQ import inside this package.
  *
- * Nothing here knows what a workout is. It talks to [WatchLink] and nothing else.
+ * **Do not construct this directly.** [WatchTransport] owns the single process-wide instance;
+ * two bridges attached to [WatchLink] at once means the second silently replaces the first, so
+ * the older one goes deaf with no error anywhere.
  */
 class GarminBridge(
     context: Context,
@@ -38,7 +38,12 @@ class GarminBridge(
         ConnectIQ.getInstance(appContext, ConnectIQ.IQConnectType.WIRELESS)
 
     private val iqApp = IQApp(APP_ID)
+
+    /** The device we are currently mirroring to, or null when none is connected. */
     private var device: IQDevice? = null
+
+    /** Paired devices we hold a status subscription on, so [stop] can release them. */
+    private val watched = mutableListOf<IQDevice>()
 
     private var pendingState: WatchState? = null
     private var sendScheduled = false
@@ -48,7 +53,7 @@ class GarminBridge(
         connectIQ.initialize(appContext, true, object : ConnectIQ.ConnectIQListener {
             override fun onSdkReady() {
                 event("SDK ready")
-                attachToFirstDevice()
+                watchForDevices()
             }
 
             override fun onInitializeError(status: ConnectIQ.IQSdkErrorStatus?) {
@@ -62,27 +67,96 @@ class GarminBridge(
         })
     }
 
-    private fun attachToFirstDevice() {
-        val devices = try {
-            connectIQ.connectedDevices
+    /**
+     * Subscribe to every *paired* device and attach when one actually connects.
+     *
+     * The previous version took a single snapshot of [ConnectIQ.getConnectedDevices] at
+     * `onSdkReady` and gave up permanently if it came back empty. That is empty far more often
+     * than it sounds: while the watch is plugged into USB for a sideload, before Bluetooth has
+     * settled after a phone reboot, any time the watch is simply out of range. Because the bridge
+     * is created in `Application.onCreate`, "give up permanently" meant until the process was
+     * cold-started — and closing the app does not do that, so there was no way to recover from
+     * the UI at all.
+     *
+     * [ConnectIQ.getKnownDevices] lists paired devices regardless of whether they are connected
+     * right now, which is what makes a subscription possible in the first place.
+     */
+    private fun watchForDevices() {
+        val known = try {
+            // Known, not connected: we want to hear about the watch arriving later, and a device
+            // that is out of range does not appear in the connected list at all.
+            connectIQ.knownDevices?.takeIf { it.isNotEmpty() } ?: connectIQ.connectedDevices
         } catch (e: Exception) {
             // InvalidStateException / ServiceUnavailableException both land here, and both mean
             // Garmin Connect Mobile is not in a state to talk to us.
             event("device query failed: ${e.javaClass.simpleName}")
-            Log.e(TAG, "connectedDevices failed", e)
+            Log.e(TAG, "device query failed", e)
             return
         }
 
-        if (devices.isNullOrEmpty()) {
+        if (known.isNullOrEmpty()) {
             // Nearly always the missing <queries> entry for com.garmin.android.apps.connectmobile:
             // package visibility hides Garmin Connect and this looks exactly like an unpaired watch.
-            event("no devices — check the <queries> entry, then the pairing")
+            event("no paired devices — check the <queries> entry, then the pairing")
             return
         }
 
-        val target = devices.first()
+        event("watching ${known.size} paired device(s)")
+        known.forEach { candidate ->
+            runCatching {
+                connectIQ.registerForDeviceEvents(candidate) { changed, status ->
+                    onDeviceStatus(changed, status)
+                }
+                watched.add(candidate)
+            }.onFailure {
+                event("registerForDeviceEvents failed for ${candidate.friendlyName}")
+                Log.w(TAG, "registerForDeviceEvents failed", it)
+            }
+
+            // Already connected at startup, so no status change is coming and waiting for one
+            // would hang forever.
+            if (candidate.status == IQDevice.IQDeviceStatus.CONNECTED) {
+                attach(candidate)
+            }
+        }
+    }
+
+    /**
+     * The [IQDevice] handed to a status callback is a bare identifier — `friendlyName` comes back
+     * empty and `status` as `UNKNOWN`, which makes the log read as if a nameless device appeared.
+     * The instances from [ConnectIQ.getKnownDevices] are populated, so resolve against those.
+     */
+    private fun nameOf(target: IQDevice): String =
+        watched.firstOrNull { it.deviceIdentifier == target.deviceIdentifier }
+            ?.friendlyName
+            ?.takeIf { it.isNotBlank() }
+            ?: target.friendlyName?.takeIf { it.isNotBlank() }
+            ?: "device ${target.deviceIdentifier}"
+
+    private fun onDeviceStatus(changed: IQDevice?, status: IQDevice.IQDeviceStatus?) {
+        if (changed == null) return
+        event("${nameOf(changed)} -> $status")
+
+        if (status == IQDevice.IQDeviceStatus.CONNECTED) {
+            attach(changed)
+            return
+        }
+
+        // Only tear down for the device we are actually using; a second paired watch going out of
+        // range must not take the live one's transport with it.
+        if (device?.deviceIdentifier == changed.deviceIdentifier) {
+            runCatching { connectIQ.unregisterForApplicationEvents(changed, iqApp) }
+            device = null
+            WatchLink.detachTransport(this)
+        }
+    }
+
+    private fun attach(target: IQDevice) {
+        // Re-attaching the same device would register a second app-event listener for it.
+        if (device?.deviceIdentifier == target.deviceIdentifier) return
+
         device = target
-        event("device ${target.friendlyName} (${target.status})")
+        event("attaching ${nameOf(target)}")
 
         try {
             connectIQ.registerForAppEvents(target, iqApp) { _, _, message, status ->
@@ -91,6 +165,9 @@ class GarminBridge(
         } catch (e: Exception) {
             event("registerForAppEvents failed: ${e.javaClass.simpleName}")
             Log.e(TAG, "registerForAppEvents failed", e)
+            // Undo the assignment above, or the identity guard at the top of this method would
+            // treat a half-attached device as attached and never retry when it reconnects.
+            device = null
             return
         }
 
@@ -163,8 +240,10 @@ class GarminBridge(
         val target = device
         runCatching {
             if (target != null) connectIQ.unregisterForApplicationEvents(target, iqApp)
+            watched.forEach { connectIQ.unregisterForDeviceEvents(it) }
             connectIQ.shutdown(appContext)
         }.onFailure { Log.w(TAG, "shutdown failed", it) }
+        watched.clear()
         device = null
     }
 

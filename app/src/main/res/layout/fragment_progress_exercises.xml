@@ -242,7 +242,7 @@
                         android:id="@+id/text_strength_1rm"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
+                        android:layout_marginTop="@dimen/lp_space_half"
                         android:textAppearance="@style/TextAppearance.LP.Metric.M"
                         tools:text="100kg" />
 
@@ -293,7 +293,7 @@
                         android:id="@+id/text_build_volume"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
+                        android:layout_marginTop="@dimen/lp_space_half"
                         android:textAppearance="@style/TextAppearance.LP.Metric.M"
                         tools:text="2,400kg" />
 
@@ -345,7 +345,7 @@
                         android:id="@+id/text_flush_reps"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
+                        android:layout_marginTop="@dimen/lp_space_half"
                         android:textAppearance="@style/TextAppearance.LP.Metric.M"
                         tools:text="180" />
 
@@ -403,7 +403,7 @@
                         android:layout_marginStart="@dimen/lp_space_2"
                         android:background="?attr/selectableItemBackgroundBorderless"
                         android:contentDescription="@string/progress_estimation_info"
-                        android:padding="4dp"
+                        android:padding="@dimen/lp_space_1"
                         android:src="@drawable/ic_info_outline_24"
                         app:tint="?attr/lpInkTertiary" />
                 </LinearLayout>

@@ -121,4 +121,7 @@ object WatchLink {
 
     /** True when a workout screen is listening. Lets the transport answer the watch honestly. */
     fun hasActiveSession(): Boolean = host != null
+
+    /** True when a Garmin transport is attached. Lets phone-side code skip alerts the watch already gives. */
+    fun isWatchConnected(): Boolean = transport != null
 }

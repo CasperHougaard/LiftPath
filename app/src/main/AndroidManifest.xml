@@ -21,7 +21,7 @@
         <activity android:exported="false" android:name="com.liftpath.activities.WorkoutReportActivity" android:screenOrientation="portrait"/>
         <activity android:exported="false" android:name="com.liftpath.activities.StretchCooldownActivity" android:screenOrientation="portrait"/>
         <activity android:exported="false" android:name="com.liftpath.activities.SettingsActivity" android:screenOrientation="portrait"/>
-        <activity android:exported="false" android:label="Progression Settings" android:name="com.liftpath.activities.ProgressionSettingsActivity" android:parentActivityName="com.liftpath.activities.SettingsActivity" android:screenOrientation="portrait"/>
+        <activity android:exported="false" android:label="@string/title_progression_settings" android:name="com.liftpath.activities.ProgressionSettingsActivity" android:parentActivityName="com.liftpath.activities.SettingsActivity" android:screenOrientation="portrait"/>
         <!-- A Dialog theme (so the window stays a floating dialog over the lock screen) but a
              MaterialComponents one, because the layout uses MaterialButton. The palette
              overlay LiftPathApplication applies on top only carries colour, so it merges
@@ -29,7 +29,7 @@
         <activity android:exported="false" android:name="com.liftpath.activities.RestTimerDialogActivity" android:showOnLockScreen="true" android:theme="@style/Theme.MaterialComponents.DayNight.Dialog" android:turnScreenOn="true" android:screenOrientation="portrait"/>
         <activity android:exported="false" android:name="com.liftpath.activities.TrainingDetailActivity" android:screenOrientation="portrait"/>
         <!-- Parent is the nav host now; ProgressActivity became the Progress tab. -->
-        <activity android:exported="false" android:label="Progress Settings" android:name="com.liftpath.activities.ProgressSettingsActivity" android:parentActivityName="com.liftpath.activities.MainActivity" android:screenOrientation="portrait"/>
+        <activity android:exported="false" android:label="@string/title_progress_settings" android:name="com.liftpath.activities.ProgressSettingsActivity" android:parentActivityName="com.liftpath.activities.MainActivity" android:screenOrientation="portrait"/>
         <activity android:exported="false" android:name="com.liftpath.activities.EditActivityActivity" android:screenOrientation="portrait"/>
         <activity android:exported="false" android:name="com.liftpath.activities.EditExerciseActivity" android:screenOrientation="portrait"/>
         <activity android:exported="false" android:name="com.liftpath.activities.LogSetActivity" android:windowSoftInputMode="adjustResize" android:screenOrientation="portrait"/>
@@ -43,8 +43,8 @@
         <activity android:exported="false" android:name="com.liftpath.activities.EditPlanSetActivity" android:screenOrientation="portrait"/>
         <activity android:exported="false" android:name="com.liftpath.activities.SelectExercisesForPlanActivity" android:screenOrientation="portrait"/>
         <activity android:exported="false" android:name="com.liftpath.activities.ReadinessDashboardActivity" android:screenOrientation="portrait"/>
-        <activity android:exported="false" android:label="Readiness Calibration" android:name="com.liftpath.activities.ReadinessCalibrationActivity" android:parentActivityName="com.liftpath.activities.ReadinessDashboardActivity" android:screenOrientation="portrait"/>
-        <activity android:exported="false" android:label="Health Connect" android:name="com.liftpath.activities.HealthConnectActivity" android:parentActivityName="com.liftpath.activities.ReadinessDashboardActivity" android:screenOrientation="portrait"/>
+        <activity android:exported="false" android:label="@string/readiness_calibration_title" android:name="com.liftpath.activities.ReadinessCalibrationActivity" android:parentActivityName="com.liftpath.activities.ReadinessDashboardActivity" android:screenOrientation="portrait"/>
+        <activity android:exported="false" android:label="@string/health_connect_title" android:name="com.liftpath.activities.HealthConnectActivity" android:parentActivityName="com.liftpath.activities.ReadinessDashboardActivity" android:screenOrientation="portrait"/>
         <activity-alias
             android:name="ViewPermissionUsageActivity"
             android:exported="true"
@@ -86,6 +86,9 @@
                 <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION"/>
             </intent-filter>
         </receiver>
+        <!-- Connect IQ transport bring-up screen: enumerates devices, runs the catalogue
+             lookup and echoes WatchLink traffic. Launched by adb, not from the UI. -->
+        <activity android:exported="false" android:name="com.liftpath.garmin.GarminDiagnosticsActivity" android:screenOrientation="portrait"/>
     </application>
 
     <queries>
@@ -93,5 +96,10 @@
         <!-- Package visibility for the TriPath share provider; without this its content
              authority is invisible to us and the integration silently never connects. -->
         <package android:name="com.tripath"/>
+        <!-- Package visibility for Garmin Connect Mobile, which relays Connect IQ messages to
+             the watch. The ciq-companion-app-sdk manifest declares this too and the merger
+             would contribute it, but it is stated here as well: without it the SDK reports no
+             devices, which is indistinguishable from an unpaired watch. -->
+        <package android:name="com.garmin.android.apps.connectmobile"/>
     </queries>
 </manifest>

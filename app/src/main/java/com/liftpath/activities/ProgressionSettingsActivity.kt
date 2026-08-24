@@ -11,16 +11,27 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.animation.doOnEnd
 import com.liftpath.R
 import com.liftpath.databinding.ActivityProgressionSettingsBinding
+import android.widget.EditText
+import com.liftpath.databinding.ItemEquipmentIncrementBinding
 import com.liftpath.helpers.DialogHelper
+import com.liftpath.helpers.EquipmentIncrementTable
 import com.liftpath.helpers.ProgressionHelper
 import com.liftpath.helpers.ProgressionSettingsManager
+import com.liftpath.helpers.WeightIncrementHelper
+import com.liftpath.helpers.WeightIncrementRule
+import com.liftpath.helpers.WeightIncrementSettingsManager
 import com.liftpath.helpers.showWithTransparentWindow
+import com.liftpath.models.Equipment
 
 class ProgressionSettingsActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityProgressionSettingsBinding
     private lateinit var settingsManager: ProgressionSettingsManager
-    
+    private lateinit var incrementManager: WeightIncrementSettingsManager
+
+    /** One (step, min) field pair per Equipment value, in enum order. */
+    private val equipmentRows = LinkedHashMap<Equipment, Pair<EditText, EditText>>()
+
     // Track expanded state for each section
     private val expandedSections = mutableSetOf<String>()
 
@@ -29,20 +40,26 @@ class ProgressionSettingsActivity : AppCompatActivity() {
         binding = ActivityProgressionSettingsBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        supportActionBar?.title = "Progression Settings"
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-
-        setupBackgroundAnimation()
+        // No action bar to title: Theme.LiftPath.Base is NoActionBar and this activity never
+        // calls setSupportActionBar, so the header in the layout is the only title. It reads
+        // @string/title_progression_settings and wires its own back control below.
 
         settingsManager = ProgressionSettingsManager(this)
+        incrementManager = WeightIncrementSettingsManager(this)
+
+        // Build the equipment rows *before* the first collapse: collapseViewImmediate/expandView
+        // work off the measured height, so a section populated afterwards animates open to zero.
+        buildEquipmentRows()
 
         // Initialize sections as collapsed
         binding.iconExpandCore.rotation = 270f
         binding.iconExpandRestTimer.rotation = 270f
+        binding.iconExpandEquipment.rotation = 270f
         binding.iconExpandDeload.rotation = 270f
-        
+
         collapseViewImmediate(binding.contentCoreSettings)
         collapseViewImmediate(binding.contentRestTimer)
+        collapseViewImmediate(binding.contentEquipmentIncrements)
         collapseViewImmediate(binding.contentDeload)
 
         loadSettings()
@@ -54,14 +71,7 @@ class ProgressionSettingsActivity : AppCompatActivity() {
             onBackPressedDispatcher.onBackPressed()
         }
     }
-    
-    private fun setupBackgroundAnimation() {
-        val drawable = binding.imageBgAnimation.drawable
-        if (drawable is android.graphics.drawable.Animatable) {
-            drawable.start()
-        }
-    }
-    
+
     private fun updateTimerCalculationInfo() {
         try {
             val settings = settingsManager.getSettings()
@@ -85,6 +95,7 @@ class ProgressionSettingsActivity : AppCompatActivity() {
 
     private fun loadSettings() {
         val settings = settingsManager.getSettings()
+        loadEquipmentIncrements()
 
         // 1. Intent Progression settings (NEW)
         // STRENGTH
@@ -176,9 +187,78 @@ class ProgressionSettingsActivity : AppCompatActivity() {
             toggleSection("rest_timer", binding.contentRestTimer, binding.iconExpandRestTimer)
         }
         
+        binding.headerEquipmentIncrements.setOnClickListener {
+            toggleSection("equipment", binding.contentEquipmentIncrements, binding.iconExpandEquipment)
+        }
+
         binding.headerDeload.setOnClickListener {
             toggleSection("deload", binding.contentDeload, binding.iconExpandDeload)
         }
+    }
+
+    // ── Equipment weight ladders ───────────────────────────────────────────
+
+    /** Inflates one row per [Equipment] value under the (already-present) column header row. */
+    private fun buildEquipmentRows() {
+        equipmentRows.clear()
+        for (equipment in Equipment.values()) {
+            val row = ItemEquipmentIncrementBinding.inflate(
+                layoutInflater, binding.contentEquipmentIncrements, true
+            )
+            row.textEquipmentName.text = equipment.displayName
+            equipmentRows[equipment] = row.etStep to row.etMin
+        }
+    }
+
+    /**
+     * Fills every row with its effective value — stored override if there is one, built-in
+     * otherwise. Deliberately not a blank-means-inherit tri-state: that belongs on the
+     * per-exercise override in Edit Exercise, where "inherit" has something to inherit *from*.
+     */
+    private fun loadEquipmentIncrements() {
+        val table = incrementManager.getTable()
+        for ((equipment, fields) in equipmentRows) {
+            val rule = table.ruleFor(equipment)
+                ?: WeightIncrementHelper.BUILT_IN[equipment]
+                ?: WeightIncrementHelper.FALLBACK
+            fields.first.setText(WeightIncrementHelper.format(rule.incrementKg))
+            fields.second.setText(WeightIncrementHelper.format(rule.minimumKg))
+        }
+    }
+
+    /**
+     * Reads the table back, or null if anything is out of range (the caller aborts the save).
+     *
+     * Stored separately from [ProgressionSettings] on purpose: `saveSettings` rebuilds that
+     * object from only the fields this screen binds, so anything living there would be wiped by
+     * an unrelated save.
+     */
+    private fun collectEquipmentIncrements(): EquipmentIncrementTable? {
+        val rules = LinkedHashMap<String, WeightIncrementRule>()
+        for ((equipment, fields) in equipmentRows) {
+            // A blank field means zero, not "leave it alone" — every row is always populated.
+            val step = fields.first.text.toString().trim().toFloatOrNull() ?: 0f
+            val min = fields.second.text.toString().trim().toFloatOrNull() ?: 0f
+            // 0 is a legal step: it is the "no weight ladder" sentinel that bands use.
+            if (step < 0f || step > 25f) {
+                Toast.makeText(
+                    this,
+                    "${equipment.displayName}: ${getString(R.string.validation_equipment_step)}",
+                    Toast.LENGTH_LONG
+                ).show()
+                return null
+            }
+            if (min < 0f || min > 100f) {
+                Toast.makeText(
+                    this,
+                    "${equipment.displayName}: ${getString(R.string.validation_equipment_min)}",
+                    Toast.LENGTH_LONG
+                ).show()
+                return null
+            }
+            rules[equipment.name] = WeightIncrementRule(step, min)
+        }
+        return EquipmentIncrementTable(rules)
     }
     
     private fun toggleSection(sectionId: String, contentView: ViewGroup, iconView: View) {
@@ -248,9 +328,12 @@ class ProgressionSettingsActivity : AppCompatActivity() {
 
     private fun saveSettings() {
         try {
-            // Create settings with new intent-based progression fields
+            // Copy over the stored settings rather than constructing a fresh object: this screen
+            // binds ~25 of the ~50 fields, and a fresh ProgressionSettings() would silently reset
+            // every unbound one (flushWeightIncrementKg, timeDecay*, strength1RMPercent, the flush
+            // targets) to its default on every save.
             @Suppress("DEPRECATION")
-            val settings = ProgressionHelper.ProgressionSettings(
+            val settings = settingsManager.getSettings().copy(
                 // Intent Progression Settings (NEW)
                 strengthMinReps = binding.etStrengthMinReps.text.toString().toInt(),
                 strengthMaxReps = binding.etStrengthMaxReps.text.toString().toInt(),
@@ -295,7 +378,12 @@ class ProgressionSettingsActivity : AppCompatActivity() {
                 return
             }
 
+            // Collected before anything is written so a bad increment aborts the whole save
+            // rather than leaving the two prefs files disagreeing.
+            val incrementTable = collectEquipmentIncrements() ?: return
+
             settingsManager.saveSettings(settings)
+            incrementManager.saveTable(incrementTable)
             Toast.makeText(this, getString(R.string.toast_settings_saved), Toast.LENGTH_SHORT).show()
             finish()
 
@@ -380,6 +468,7 @@ class ProgressionSettingsActivity : AppCompatActivity() {
             .setMessage(getString(R.string.dialog_message_reset_to_defaults))
             .setPositiveButton(getString(R.string.button_reset)) { _, _ ->
                 settingsManager.resetToDefaults()
+                incrementManager.resetToDefaults()
                 loadSettings()
                 Toast.makeText(this, getString(R.string.toast_settings_reset), Toast.LENGTH_SHORT).show()
             }

@@ -1,8 +1,6 @@
 package com.liftpath.helpers
 
-import com.liftpath.models.ExerciseEntry
 import com.liftpath.models.ExerciseLibraryItem
-import com.liftpath.models.Tier
 import com.liftpath.models.TrainingData
 import com.liftpath.models.UserLevel
 import com.liftpath.models.SetIntent
@@ -24,18 +22,7 @@ object ProgressionHelper {
         START_LIGHT,    // First time - no history, start conservatively
         MAINTAIN,       // Keep same weight
         INCREASE,       // Go heavier (user picks increment)
-        DECREASE,       // Deload / failed reps
         NONE            // No suggestion (FLUSH intent or warmup)
-    }
-    
-    /**
-     * @deprecated Use WeightAction instead for intent-based progression
-     */
-    @Deprecated("Use WeightAction and intent-based progression instead")
-    enum class ProgressionScheme {
-        LINEAR_RPE,          // Adjust weight based on difficulty (Best for Tier 1)
-        DOUBLE_PROGRESSION,  // Increase reps until target hit, then increase weight (Best for Tier 2/3)
-        MAINTENANCE          // Keep same
     }
     
     /**
@@ -137,20 +124,6 @@ object ProgressionHelper {
         val userLevel: UserLevel = UserLevel.NOVICE,
         @Deprecated("Not used")
         val lookbackCount: Int = 3,
-        @Deprecated("Not suggesting specific kg anymore")
-        val roundTo: Float = 1.25f,
-        @Deprecated("Not suggesting specific kg anymore")
-        val increaseStep: Float = 2.5f,
-        @Deprecated("Not suggesting specific kg anymore")
-        val smallStep: Float = 1.25f,
-        @Deprecated("Use strengthMinReps/strengthMaxReps instead")
-        val heavySets: Int = 3,
-        @Deprecated("Use strengthMinReps/strengthMaxReps instead")
-        val heavyReps: Int = 5,
-        @Deprecated("Use buildMinReps/buildMaxReps instead")
-        val lightSets: Int = 4,
-        @Deprecated("Use buildMinReps/buildMaxReps instead")
-        val lightReps: Int = 10,
         @Deprecated("Use strengthRestSeconds instead")
         val heavyRestSeconds: Int = 150,
         @Deprecated("Use buildRestSeconds instead")
@@ -171,51 +144,145 @@ object ProgressionHelper {
         exerciseId: Int,
         intent: SetIntent,
         trainingData: TrainingData,
-        settings: ProgressionSettings = ProgressionSettings()
+        settings: ProgressionSettings = ProgressionSettings(),
+        incrementTable: EquipmentIncrementTable? = null
     ): IntentSuggestion {
         // WARMUP and UNKNOWN - no progression suggestions
         if (intent == SetIntent.WARMUP || intent == SetIntent.UNKNOWN) {
             return createNoSuggestion(exerciseId, intent)
         }
+
+        val libItem = trainingData.exerciseLibrary.find { it.id == exerciseId }
+        val rule = WeightIncrementHelper.resolve(libItem, incrementTable)
+        val ctx = WeightContext(
+            rule = rule,
+            // Three kinds of exercise get reps and RPE but never a kg, because any number would
+            // be wrong rather than merely imprecise: a band has no ladder, a bodyweight lift
+            // progresses on `addedKg` (which the history pipeline does not yet separate from body
+            // weight), and a timed hold progresses on seconds.
+            canSuggestWeight = rule.hasLadder &&
+                libItem?.isBodyweight != true &&
+                libItem?.isTimeBased != true
+        )
+
         // FLUSH - dedicated suggestion logic
         if (intent == SetIntent.FLUSH) {
-            return calculateFlushSuggestion(exerciseId, trainingData, settings)
+            return calculateFlushSuggestion(exerciseId, trainingData, settings, ctx)
         }
-        
+
         // Get history with cross-intent fallback
-        val aggregatedSessions = getHistoryWithFallback(exerciseId, intent, trainingData, settings)
-        
+        val aggregatedSessions = getHistoryWithFallback(exerciseId, intent, trainingData, settings, ctx)
+
         if (aggregatedSessions.isEmpty()) {
             return createIntentFirstTimeSuggestion(exerciseId, intent, settings)
         }
-        
+
         // Select best session from last 2-3 workouts (with bad day detection)
         val selectedSession = selectBestSession(aggregatedSessions)
         val daysSince = calculateDaysSince(selectedSession.date) ?: 0
-        
+
         // Check for time decay (long break)
         if (daysSince >= settings.timeDecayThresholds.firstOrNull() ?: 14) {
             return createTimeDecaySuggestion(
-                exerciseId, 
-                intent, 
-                selectedSession, 
-                daysSince, 
+                exerciseId,
+                intent,
+                selectedSession,
+                daysSince,
                 settings,
                 trainingData,  // Pass trainingData for muscle group activity check
+                libItem,
+                ctx,
                 selectedSession.isEstimated
             )
         }
-        
+
         // Check for failure
         if (selectedSession.hadFailure) {
-            return createRetrySuggestion(exerciseId, intent, selectedSession, settings, selectedSession.isEstimated)
+            return createRetrySuggestion(exerciseId, intent, selectedSession, settings, ctx, selectedSession.isEstimated)
         }
-        
+
         // Normal progression based on intent
         return when (intent) {
-            SetIntent.STRENGTH -> calculateStrengthProgression(exerciseId, selectedSession, settings, selectedSession.isEstimated)
-            SetIntent.BUILD -> calculateBuildProgression(exerciseId, selectedSession, settings, selectedSession.isEstimated)
+            SetIntent.STRENGTH, SetIntent.BUILD ->
+                calculateProgression(exerciseId, intent, selectedSession, settings, ctx, selectedSession.isEstimated)
             else -> createNoSuggestion(exerciseId, intent)
+        }
+    }
+
+    /**
+     * Everything the progression math needs to know about the exercise itself, resolved once at
+     * the top of [getIntentSuggestion] so the leaf strategies never re-derive it.
+     */
+    private data class WeightContext(
+        val rule: WeightIncrementRule,
+        /** False => emit reps and RPE only, never a kg. */
+        val canSuggestWeight: Boolean
+    )
+
+    private const val DEFAULT_SUGGESTED_SETS = 3
+
+    /** RPE at or above which STRENGTH stops adding reps and consolidates instead. */
+    private const val STRENGTH_CONSOLIDATE_RPE = 9.5f
+
+    /** BUILD's equivalent. Lower than STRENGTH's on purpose — see [IntentTuning]. */
+    private const val BUILD_CONSOLIDATE_RPE = 9.0f
+
+    /**
+     * The per-intent constants that used to be the *only* difference between two ~90-line copies
+     * of the same three-branch decision.
+     *
+     * [consolidateRpe] deliberately stays a hardcoded constant rather than a settings field:
+     * `ProgressionSettings` is Gson-deserialized, so a newly added `Float` arrives as `0f` on
+     * every existing install, and `lastRpe >= 0f` would turn every suggestion into CONSOLIDATE.
+     */
+    private data class IntentTuning(
+        val minReps: Int,
+        val maxReps: Int,
+        val targetRpe: Float,
+        val increaseRpeThreshold: Float,
+        val consolidateRpe: Float
+    )
+
+    private fun tuningFor(intent: SetIntent, s: ProgressionSettings): IntentTuning = when (intent) {
+        SetIntent.STRENGTH -> IntentTuning(
+            minReps = s.strengthMinReps,
+            maxReps = s.strengthMaxReps,
+            targetRpe = s.strengthTargetRpe,
+            increaseRpeThreshold = s.strengthIncreaseRpeThreshold,
+            consolidateRpe = STRENGTH_CONSOLIDATE_RPE
+        )
+        else -> IntentTuning(
+            minReps = s.buildMinReps,
+            maxReps = s.buildMaxReps,
+            targetRpe = s.buildTargetRpe,
+            increaseRpeThreshold = s.buildIncreaseRpeThreshold,
+            consolidateRpe = BUILD_CONSOLIDATE_RPE
+        )
+    }
+
+    /**
+     * Renders a suggestion as the one line the user reads, in the active-workout row, the log
+     * screen's hint card and the AI export alike.
+     *
+     * Consumers render [IntentSuggestion.displayText] verbatim and append the badge themselves,
+     * so the weight has to live in here — which is also why this is the single place that decides
+     * how a suggestion reads.
+     */
+    private fun formatSuggestion(
+        weightKg: Float?,
+        reps: Int?,
+        rpe: Float?,
+        isEstimated: Boolean,
+        sets: Int? = null
+    ): String {
+        val suffix = if (isEstimated) " (est.)" else ""
+        val rpePart = rpe?.let { " @ RPE ${WeightIncrementHelper.format(it)}" } ?: ""
+        val setsPrefix = sets?.let { "${it}×" } ?: ""
+        return when {
+            weightKg != null && reps != null ->
+                "$setsPrefix${WeightIncrementHelper.format(weightKg)} kg × $reps$rpePart$suffix"
+            reps != null -> "aim for $reps reps$rpePart$suffix"
+            else -> ""
         }
     }
     
@@ -322,194 +389,97 @@ object ProgressionHelper {
         return false
     }
     
-    // --- STRENGTH Progression (3-6 reps, weight-focused) ---
-    private fun calculateStrengthProgression(
+    /**
+     * The shared STRENGTH/BUILD decision: increase the load, hold it and shed a little RPE, or
+     * hold it and add a rep.
+     *
+     * This was two near-identical functions differing only in the constants now carried by
+     * [IntentTuning]. The one asymmetry worth preserving is the consolidate ceiling — 9.5 for
+     * STRENGTH, 9.0 for BUILD — so an RPE of 9.2 adds a rep on a heavy triple but backs off on a
+     * hypertrophy set.
+     *
+     * Weight handling follows one rule: **snap what the app computed, never what the user lifted.**
+     * A BUILD session's representative weight is an average across sets and can land anywhere, so
+     * it is snapped onto the equipment's ladder; a STRENGTH session's is a real logged set, so it
+     * is left exactly as lifted — somebody running 1 kg microplates at 61 kg must not be told 60.
+     */
+    private fun calculateProgression(
         exerciseId: Int,
+        intent: SetIntent,
         last: AggregatedSession,
         settings: ProgressionSettings,
+        ctx: WeightContext,
         isEstimated: Boolean = false
     ): IntentSuggestion {
-        val minReps = settings.strengthMinReps
-        val maxReps = settings.strengthMaxReps
-        val targetRpe = settings.strengthTargetRpe
-        val increaseThreshold = settings.strengthIncreaseRpeThreshold
-        
+        val tuning = tuningFor(intent, settings)
         val lastRpe = last.representativeRpe
         val lastReps = last.representativeReps
-        
+
+        // A derived weight (a BUILD average, a cross-intent estimate) is snapped; a measured one
+        // is passed through untouched.
+        val heldWeight = if (last.isWeightDerived) {
+            WeightIncrementHelper.snap(last.representativeWeight, ctx.rule)
+        } else {
+            last.representativeWeight
+        }
+
+        fun suggestion(
+            action: WeightAction,
+            weight: Float?,
+            reps: Int,
+            badge: String?
+        ) = IntentSuggestion(
+            exerciseId = exerciseId,
+            intent = intent,
+            suggestedSets = DEFAULT_SUGGESTED_SETS,
+            suggestedReps = reps,
+            suggestedRpe = tuning.targetRpe,
+            weightAction = action,
+            displayText = formatSuggestion(weight, reps, tuning.targetRpe, isEstimated),
+            badge = badge,
+            isFirstTime = false,
+            isEstimated = isEstimated,
+            lastWeight = last.representativeWeight,
+            lastReps = lastReps,
+            lastRpe = lastRpe,
+            suggestedWeight = weight
+        )
+
         return when {
-            // Hit max reps AND RPE is manageable -> INCREASE WEIGHT
-            lastReps >= maxReps && lastRpe < increaseThreshold -> {
-                val suffix = if (isEstimated) " (est.)" else ""
-                val displayText = if (isEstimated) {
-                    "Increase weight, reset to $minReps reps$suffix"
-                } else {
-                    "Increase weight, reset to $minReps reps"
-                }
-                IntentSuggestion(
-                    exerciseId = exerciseId,
-                    intent = SetIntent.STRENGTH,
-                    suggestedSets = 3,
-                    suggestedReps = minReps,
-                    suggestedRpe = targetRpe,
-                    weightAction = WeightAction.INCREASE,
-                    displayText = displayText,
-                    badge = "LEVEL UP",
-                    isFirstTime = false,
-                    isEstimated = isEstimated,
-                    lastWeight = last.representativeWeight,
-                    lastReps = lastReps,
-                    lastRpe = lastRpe
+            // Hit the top of the rep range with RPE to spare -> next rung up, reps back to the bottom.
+            lastReps >= tuning.maxReps && lastRpe < tuning.increaseRpeThreshold ->
+                suggestion(
+                    action = WeightAction.INCREASE,
+                    weight = ctx.weightOrNull(WeightIncrementHelper.nextUp(heldWeight, ctx.rule)),
+                    reps = tuning.minReps,
+                    badge = "LEVEL UP"
                 )
-            }
-            // RPE too high -> suggest same weight, lower RPE
-            lastRpe >= 9.5f -> {
-                val suffix = if (isEstimated) " (est.)" else ""
-                val weightStr = formatWeight(last.representativeWeight)
-                val displayText = if (isEstimated) {
-                    "Same weight, aim for lower RPE$suffix"
-                } else {
-                    "${weightStr}kg × $lastReps reps, aim for lower RPE"
-                }
-                IntentSuggestion(
-                    exerciseId = exerciseId,
-                    intent = SetIntent.STRENGTH,
-                    suggestedSets = 3,
-                    suggestedReps = lastReps,
-                    suggestedRpe = targetRpe,
-                    weightAction = WeightAction.MAINTAIN,
-                    displayText = displayText,
-                    badge = "CONSOLIDATE",
-                    isFirstTime = false,
-                    isEstimated = isEstimated,
-                    lastWeight = last.representativeWeight,
-                    lastReps = lastReps,
-                    lastRpe = lastRpe
+
+            // Ground it out -> same load, same reps, chase a lower RPE.
+            lastRpe >= tuning.consolidateRpe ->
+                suggestion(
+                    action = WeightAction.MAINTAIN,
+                    weight = ctx.weightOrNull(heldWeight),
+                    reps = lastReps,
+                    badge = "CONSOLIDATE"
                 )
-            }
-            // In range -> add rep
+
+            // Mid-range -> same load, one more rep (badge drops once the range is capped).
             else -> {
-                val nextReps = minOf(lastReps + 1, maxReps)
-                val suffix = if (isEstimated) " (est.)" else ""
-                val weightStr = formatWeight(last.representativeWeight)
-                val displayText = if (isEstimated) {
-                    "Aim for $nextReps reps$suffix"
-                } else {
-                    "${weightStr}kg × $nextReps reps"
-                }
-                IntentSuggestion(
-                    exerciseId = exerciseId,
-                    intent = SetIntent.STRENGTH,
-                    suggestedSets = 3,
-                    suggestedReps = nextReps,
-                    suggestedRpe = targetRpe,
-                    weightAction = WeightAction.MAINTAIN,
-                    displayText = displayText,
-                    badge = if (nextReps > lastReps) "ADD REP" else null,
-                    isFirstTime = false,
-                    isEstimated = isEstimated,
-                    lastWeight = last.representativeWeight,
-                    lastReps = lastReps,
-                    lastRpe = lastRpe
+                val nextReps = minOf(lastReps + 1, tuning.maxReps)
+                suggestion(
+                    action = WeightAction.MAINTAIN,
+                    weight = ctx.weightOrNull(heldWeight),
+                    reps = nextReps,
+                    badge = if (nextReps > lastReps) "ADD REP" else null
                 )
             }
         }
     }
-    
-    // --- BUILD Progression (8-12 reps, double progression) ---
-    private fun calculateBuildProgression(
-        exerciseId: Int,
-        last: AggregatedSession,
-        settings: ProgressionSettings,
-        isEstimated: Boolean = false
-    ): IntentSuggestion {
-        val minReps = settings.buildMinReps
-        val maxReps = settings.buildMaxReps
-        val targetRpe = settings.buildTargetRpe
-        val increaseThreshold = settings.buildIncreaseRpeThreshold
-        
-        val lastRpe = last.representativeRpe
-        val lastReps = last.representativeReps
-        
-        return when {
-            // Hit max reps AND RPE is manageable -> INCREASE WEIGHT
-            lastReps >= maxReps && lastRpe < increaseThreshold -> {
-                val suffix = if (isEstimated) " (est.)" else ""
-                val displayText = if (isEstimated) {
-                    "Increase weight, reset to $minReps reps$suffix"
-                } else {
-                    "Increase weight, reset to $minReps reps"
-                }
-                IntentSuggestion(
-                    exerciseId = exerciseId,
-                    intent = SetIntent.BUILD,
-                    suggestedSets = 3,
-                    suggestedReps = minReps,
-                    suggestedRpe = targetRpe,
-                    weightAction = WeightAction.INCREASE,
-                    displayText = displayText,
-                    badge = "LEVEL UP",
-                    isFirstTime = false,
-                    isEstimated = isEstimated,
-                    lastWeight = last.representativeWeight,
-                    lastReps = lastReps,
-                    lastRpe = lastRpe
-                )
-            }
-            // RPE too high -> consolidate
-            lastRpe >= 9.0f -> {
-                val suffix = if (isEstimated) " (est.)" else ""
-                val weightStr = formatWeight(last.representativeWeight)
-                val displayText = if (isEstimated) {
-                    "Same weight, aim for lower RPE$suffix"
-                } else {
-                    "${weightStr}kg × $lastReps reps, aim for lower RPE"
-                }
-                IntentSuggestion(
-                    exerciseId = exerciseId,
-                    intent = SetIntent.BUILD,
-                    suggestedSets = 3,
-                    suggestedReps = lastReps,
-                    suggestedRpe = targetRpe,
-                    weightAction = WeightAction.MAINTAIN,
-                    displayText = displayText,
-                    badge = "CONSOLIDATE",
-                    isFirstTime = false,
-                    isEstimated = isEstimated,
-                    lastWeight = last.representativeWeight,
-                    lastReps = lastReps,
-                    lastRpe = lastRpe
-                )
-            }
-            // In range -> add rep
-            else -> {
-                val nextReps = minOf(lastReps + 1, maxReps)
-                val suffix = if (isEstimated) " (est.)" else ""
-                val weightStr = formatWeight(last.representativeWeight)
-                val displayText = if (isEstimated) {
-                    "Aim for $nextReps reps$suffix"
-                } else {
-                    "${weightStr}kg × $nextReps reps"
-                }
-                IntentSuggestion(
-                    exerciseId = exerciseId,
-                    intent = SetIntent.BUILD,
-                    suggestedSets = 3,
-                    suggestedReps = nextReps,
-                    suggestedRpe = targetRpe,
-                    weightAction = WeightAction.MAINTAIN,
-                    displayText = displayText,
-                    badge = if (nextReps > lastReps) "ADD REP" else null,
-                    isFirstTime = false,
-                    isEstimated = isEstimated,
-                    lastWeight = last.representativeWeight,
-                    lastReps = lastReps,
-                    lastRpe = lastRpe
-                )
-            }
-        }
-    }
-    
+
+    /** [kg] when this exercise can carry a numeric target, null when it can only carry reps/RPE. */
+    private fun WeightContext.weightOrNull(kg: Float): Float? = if (canSuggestWeight) kg else null
+
     // --- Helper: No suggestion (WARMUP, etc.) ---
     private fun createNoSuggestion(exerciseId: Int, intent: SetIntent): IntentSuggestion {
         return IntentSuggestion(
@@ -530,7 +500,8 @@ object ProgressionHelper {
     private fun calculateFlushSuggestion(
         exerciseId: Int,
         trainingData: TrainingData,
-        settings: ProgressionSettings
+        settings: ProgressionSettings,
+        ctx: WeightContext
     ): IntentSuggestion {
         val targetReps = settings.flushTargetReps
         val targetSets = settings.flushTargetSets
@@ -554,8 +525,9 @@ object ProgressionHelper {
             )
         }
 
-        // 2. Base suggestion: 50% of 1RM, rounded to nearest 0.5kg
-        var suggestedWeight = roundToIncrement(estimated1RM * settings.flush1RMPercent, 0.5f)
+        // 2. Base suggestion: 50% of 1RM, on whatever this equipment can actually load. This used
+        //    to round to a flat 0.5 kg, which is a weight no cable stack or dumbbell rack offers.
+        var suggestedWeight = WeightIncrementHelper.snap(estimated1RM * settings.flush1RMPercent, ctx.rule)
 
         // 3. FLUSH-only progression: if last session 25+ reps @ 7 RPE and 1RM unchanged → increase
         val flushHistory = getFlushHistory(exerciseId, trainingData)
@@ -575,12 +547,13 @@ object ProgressionHelper {
             val rpeMet = lastSession.representativeRpe <= 7.0f
             val oneRMUnchanged = prevInferred1RM == null || kotlin.math.abs(lastInferred1RM - prevInferred1RM) / prevInferred1RM < 0.02f
             if (repsMet && rpeMet && oneRMUnchanged) {
-                suggestedWeight += settings.flushWeightIncrementKg
+                // One rung rather than settings.flushWeightIncrementKg: a flat +2.5 on top of a
+                // snapped value lands between pins on a 5 kg stack.
+                suggestedWeight = WeightIncrementHelper.nextUp(suggestedWeight, ctx.rule)
             }
         }
 
-        val weightStr = formatWeight(suggestedWeight)
-        val displayText = "2×${weightStr}kg × $targetReps reps @ RPE 6-7"
+        val offeredWeight = ctx.weightOrNull(suggestedWeight)
 
         return IntentSuggestion(
             exerciseId = exerciseId,
@@ -589,14 +562,14 @@ object ProgressionHelper {
             suggestedReps = targetReps,
             suggestedRpe = targetRpe,
             weightAction = WeightAction.MAINTAIN,
-            displayText = displayText,
+            displayText = formatSuggestion(offeredWeight, targetReps, targetRpe, isEstimated = false, sets = targetSets),
             badge = null,
             isFirstTime = false,
             isEstimated = false,
-            lastWeight = suggestedWeight,
+            lastWeight = offeredWeight,
             lastReps = targetReps,
             lastRpe = targetRpe,
-            suggestedWeight = suggestedWeight
+            suggestedWeight = offeredWeight
         )
     }
 
@@ -664,14 +637,17 @@ object ProgressionHelper {
         val (minReps, maxReps) = getRepRange(intent, settings)
         val targetRpe = getTargetRpe(intent, settings)
         
+        // No weight, deliberately. There is no history to derive one from, and prefilling the
+        // equipment minimum would drop "5 kg" into the field for a first machine exercise where
+        // it would get saved without a second look. An empty field forces a considered entry.
         return IntentSuggestion(
             exerciseId = exerciseId,
             intent = intent,
-            suggestedSets = 3,
+            suggestedSets = DEFAULT_SUGGESTED_SETS,
             suggestedReps = minReps,
             suggestedRpe = targetRpe,
             weightAction = WeightAction.START_LIGHT,
-            displayText = "Start light, aim for $minReps reps",
+            displayText = "Start light, ${formatSuggestion(null, minReps, targetRpe, isEstimated = false)}",
             badge = "NEW",
             isFirstTime = true,
             isEstimated = false
@@ -682,11 +658,12 @@ object ProgressionHelper {
      * Check if muscle groups for this exercise have been worked by other exercises since the given date
      */
     private fun hasMuscleGroupActivity(
-        exerciseId: Int,
+        exercise: ExerciseLibraryItem?,
         sinceDate: String,
         trainingData: TrainingData
     ): Boolean {
-        val exercise = trainingData.exerciseLibrary.find { it.id == exerciseId } ?: return false
+        if (exercise == null) return false
+        val exerciseId = exercise.id
         val targetMuscles = exercise.primaryTargets + exercise.secondaryTargets
         if (targetMuscles.isEmpty()) return false
         
@@ -719,13 +696,13 @@ object ProgressionHelper {
         daysSince: Int,
         settings: ProgressionSettings,
         trainingData: TrainingData,
+        libItem: ExerciseLibraryItem?,
+        ctx: WeightContext,
         isEstimated: Boolean = false
     ): IntentSuggestion {
-        val suffix = if (isEstimated) " (est.)" else ""
-        
         // Check if muscle groups have been worked
-        val muscleGroupsWorked = hasMuscleGroupActivity(exerciseId, last.date, trainingData)
-        
+        val muscleGroupsWorked = hasMuscleGroupActivity(libItem, last.date, trainingData)
+
         // Calculate decay multiplier
         val decayMultiplier = if (muscleGroupsWorked) {
             // Minimal decay: 5% reduction
@@ -734,26 +711,19 @@ object ProgressionHelper {
             // Normal time decay based on days
             calculateTimeDecay(daysSince, settings)
         }
-        
-        // Apply decay to weight
-        val suggestedWeight = last.representativeWeight * decayMultiplier
-        val (minReps, maxReps) = getRepRange(intent, settings)
+
+        // Apply decay, then put it back on the ladder: a multiplier produces arbitrary floats
+        // (72.5 × 0.9 = 65.25) and the result is a load the user has to actually rack.
+        val decayedWeight = WeightIncrementHelper.snap(
+            last.representativeWeight * decayMultiplier, ctx.rule
+        )
+        val (minReps, _) = getRepRange(intent, settings)
         val targetRpe = getTargetRpe(intent, settings)
-        
+
         // For old data, suggest starting at min reps with decayed weight
         val suggestedReps = minReps
-        val suggestedSets = 3
-        
-        // Format weight (remove decimals if whole number)
-        val weightString = if (suggestedWeight % 1 == 0f) {
-            suggestedWeight.toInt().toString()
-        } else {
-            String.format(Locale.US, "%.1f", suggestedWeight)
-        }
-        
-        // Build display text with specific values
-        val displayText = "${suggestedSets}×${weightString}kg × $suggestedReps reps$suffix"
-        
+        val suggestedSets = DEFAULT_SUGGESTED_SETS
+
         return IntentSuggestion(
             exerciseId = exerciseId,
             intent = intent,
@@ -761,13 +731,20 @@ object ProgressionHelper {
             suggestedReps = suggestedReps,
             suggestedRpe = targetRpe,
             weightAction = WeightAction.MAINTAIN,  // Using decayed weight, not increasing
-            displayText = displayText,
+            displayText = formatSuggestion(
+                ctx.weightOrNull(decayedWeight), suggestedReps, targetRpe, isEstimated, suggestedSets
+            ),
             badge = null,  // No special badge for old data
             isFirstTime = false,
             isEstimated = isEstimated,
+            // lastWeight stays undecayed: it is what was actually lifted. The decayed figure goes
+            // in suggestedWeight, which is what callers prefill from. Previously the decay reached
+            // only the display text, so the kg field was filled with the *undecayed* weight while
+            // the hint above it advised a lighter one.
             lastWeight = last.representativeWeight,
             lastReps = last.representativeReps,
-            lastRpe = last.representativeRpe
+            lastRpe = last.representativeRpe,
+            suggestedWeight = ctx.weightOrNull(decayedWeight)
         )
     }
     
@@ -777,25 +754,34 @@ object ProgressionHelper {
         intent: SetIntent,
         last: AggregatedSession,
         settings: ProgressionSettings,
+        ctx: WeightContext,
         isEstimated: Boolean = false
     ): IntentSuggestion {
         val targetRpe = getTargetRpe(intent, settings)
-        val suffix = if (isEstimated) " (est.)" else ""
-        
+        // Same policy as elsewhere: only snap a weight the app computed.
+        val retryWeight = if (last.isWeightDerived) {
+            WeightIncrementHelper.snap(last.representativeWeight, ctx.rule)
+        } else {
+            last.representativeWeight
+        }
+
         return IntentSuggestion(
             exerciseId = exerciseId,
             intent = intent,
-            suggestedSets = 3,
+            suggestedSets = DEFAULT_SUGGESTED_SETS,
             suggestedReps = last.representativeReps,
             suggestedRpe = targetRpe,
             weightAction = WeightAction.MAINTAIN,
-            displayText = "Retry same weight$suffix",
+            displayText = formatSuggestion(
+                ctx.weightOrNull(retryWeight), last.representativeReps, targetRpe, isEstimated
+            ),
             badge = "RETRY",
             isFirstTime = false,
             isEstimated = isEstimated,
             lastWeight = last.representativeWeight,
             lastReps = last.representativeReps,
-            lastRpe = last.representativeRpe
+            lastRpe = last.representativeRpe,
+            suggestedWeight = ctx.weightOrNull(retryWeight)
         )
     }
     
@@ -810,7 +796,8 @@ object ProgressionHelper {
         exerciseId: Int,
         primaryIntent: SetIntent,
         data: TrainingData,
-        settings: ProgressionSettings
+        settings: ProgressionSettings,
+        ctx: WeightContext
     ): List<AggregatedSession> {
         // Extract and aggregate primary intent history
         val primaryRawSets = extractRawSets(exerciseId, primaryIntent, data)
@@ -850,9 +837,9 @@ object ProgressionHelper {
         // Convert fallback data to primary intent
         val fallbackSessions = fallbackRawSets
             .groupBy { it.date }
-            .map { (date, sets) -> 
+            .map { (date, sets) ->
                 val aggregated = aggregateSessionSets(sets, fallbackIntent)
-                convertSession(aggregated, fromIntent = fallbackIntent, toIntent = primaryIntent, settings)
+                convertSession(aggregated, fromIntent = fallbackIntent, toIntent = primaryIntent, settings, ctx)
             }
             .sortedBy { it.date }
         
@@ -866,7 +853,8 @@ object ProgressionHelper {
         session: AggregatedSession,
         fromIntent: SetIntent,
         toIntent: SetIntent,
-        settings: ProgressionSettings
+        settings: ProgressionSettings,
+        ctx: WeightContext
     ): AggregatedSession {
         // Get 1RM from source data
         val source1RM = session.estimated1RM
@@ -879,241 +867,18 @@ object ProgressionHelper {
         }
         val (targetMinReps, _) = getRepRange(toIntent, settings)
         
-        val estimatedWeight = source1RM * targetPercent
-        
+        // Snap here rather than downstream: a raw `1RM × percent` is an arbitrary float (116.67 ×
+        // 0.70 = 81.67) that used to be prefilled verbatim into the kg field. Fixing it at the
+        // source means every branch that consumes this session already has a loadable number.
+        val estimatedWeight = WeightIncrementHelper.snap(source1RM * targetPercent, ctx.rule)
+
         return session.copy(
             representativeWeight = estimatedWeight,
             representativeReps = targetMinReps,
             estimated1RM = source1RM,  // Keep original 1RM for comparison
             isEstimated = true,
-            sourceIntent = fromIntent
-        )
-    }
-
-    // ============================================================================================
-    // LEGACY API (kept for backward compatibility during migration)
-    // ============================================================================================
-
-    @Deprecated("Use IntentSuggestion instead", ReplaceWith("getIntentSuggestion()"))
-    data class ProgressionSuggestion(
-        val exerciseId: Int,
-        val exerciseName: String,
-        val requestedType: String,
-
-        // The core suggestion
-        val proposedWeight: Float?,
-        val proposedReps: Int?,
-
-        // Context
-        val reasoning: String,
-        val humanExplanation: String,
-        val isFirstTime: Boolean,
-        val badge: String? = null,
-
-        // Legacy / Extra info
-        val lastWeight: Float? = null,
-        val lastRpe: Float? = null,
-        val daysSinceLastWorkout: Int? = null
-    ) {
-        val proposedHeavyWeight: Float?
-            get() = if (requestedType == "heavy") proposedWeight else null
-
-        val proposedLightWeight: Float?
-            get() = if (requestedType == "light") proposedWeight else null
-
-        val lastHeavyRpe: Float?
-            get() = lastRpe
-    }
-
-    @Deprecated("Use getIntentSuggestion() instead")
-    fun getSuggestion(
-        exerciseId: Int,
-        requestedType: String,
-        trainingData: TrainingData,
-        settings: ProgressionSettings = ProgressionSettings()
-    ): ProgressionSuggestion {
-
-        val exercise = trainingData.exerciseLibrary.find { it.id == exerciseId }
-        val exerciseName = exercise?.name ?: "Unknown"
-
-        // 1. DETERMINE SCHEME BASED ON TIER
-        val scheme = when (exercise?.tier) {
-            Tier.TIER_1 -> ProgressionScheme.LINEAR_RPE
-            Tier.TIER_2, Tier.TIER_3 -> ProgressionScheme.DOUBLE_PROGRESSION
-            else -> ProgressionScheme.LINEAR_RPE // Default / Fallback
-        }
-
-        // 2. FETCH HISTORY - Map requestedType to intent for filtering
-        val targetIntent = when (requestedType.lowercase()) {
-            "heavy" -> SetIntent.STRENGTH
-            "light" -> SetIntent.BUILD
-            else -> SetIntent.BUILD
-        }
-        val history = extractHistory(exerciseId, targetIntent, trainingData)
-            .sortedBy { it.date }
-
-        if (history.isEmpty()) {
-            return createFirstTimeSuggestion(exerciseName, requestedType, scheme)
-        }
-
-        val lastSession = history.last()
-        val daysSince = calculateDaysSince(lastSession.date)
-
-        // 3. CALCULATE SUGGESTION
-        return when (scheme) {
-            ProgressionScheme.LINEAR_RPE -> calculateLinearProgression(lastSession, settings, exerciseName, requestedType, daysSince)
-            ProgressionScheme.DOUBLE_PROGRESSION -> calculateDoubleProgression(lastSession, exerciseName, requestedType, settings, daysSince)
-            ProgressionScheme.MAINTENANCE -> createMaintenanceSuggestion(lastSession, exerciseName, requestedType, daysSince)
-        }
-    }
-
-    // ============================================================================================
-    // STRATEGY 1: LINEAR RPE (For Main Lifts)
-    // ============================================================================================
-    private fun calculateLinearProgression(
-        last: SessionData,
-        settings: ProgressionSettings,
-        name: String,
-        type: String,
-        daysSince: Int?
-    ): ProgressionSuggestion {
-
-        val safeDays = daysSince ?: 0
-        var adjustment = 0f
-        var badge: String? = null
-        val reasoningParts = mutableListOf<String>()
-
-        // 1. Check Time Decay
-        val decayMult = calculateTimeDecay(safeDays, settings)
-        if (decayMult < 1.0f) {
-            val decayed = last.weight * decayMult
-            adjustment = decayed - last.weight
-            badge = "🕐 TIME DECAY"
-            reasoningParts.add("$safeDays days off. -${((1 - decayMult) * 100).toInt()}% reset")
-        }
-        // 2. Check Failure
-        else if (last.hadFailure) {
-            adjustment = -settings.increaseStep
-            badge = "⚠️ FAILED REPS"
-            reasoningParts.add("Failed last time. -${settings.increaseStep}kg to reset")
-        }
-        // 3. Standard RPE Logic
-        else {
-            val rpe = last.rpe
-            adjustment = when {
-                rpe <= 7.0f -> settings.increaseStep     // Easy -> Add 2.5kg
-                rpe <= 8.5f -> settings.smallStep        // Moderate -> Add 1.25kg
-                rpe < 9.5f -> 0f                         // Hard -> Maintain
-                else -> -settings.smallStep              // Grinding -> Back off slightly
-            }
-            reasoningParts.add("Last RPE ${String.format(Locale.US, "%.1f", rpe)}")
-        }
-
-        val finalWeight = roundToIncrement(last.weight + adjustment, settings.roundTo)
-        val finalReps = last.reps // Keep reps same for Linear
-
-        return ProgressionSuggestion(
-            exerciseId = -1,
-            exerciseName = name,
-            requestedType = type,
-            proposedWeight = finalWeight,
-            proposedReps = finalReps,
-            reasoning = reasoningParts.joinToString(". "),
-            humanExplanation = if (adjustment > 0) "Strong work! Add weight. 💪" else "Let's stabilize here.",
-            isFirstTime = false,
-            badge = badge,
-            lastWeight = last.weight,
-            lastRpe = last.rpe,
-            daysSinceLastWorkout = daysSince
-        )
-    }
-
-    // ============================================================================================
-    // STRATEGY 2: DOUBLE PROGRESSION (For Accessories)
-    // ============================================================================================
-    private fun calculateDoubleProgression(
-        last: SessionData,
-        name: String,
-        type: String,
-        settings: ProgressionSettings,
-        daysSince: Int?
-    ): ProgressionSuggestion {
-
-        // Use settings reps as target baseline
-        val (minReps, maxReps) = if (type == "heavy") {
-            (settings.heavyReps - 2) to (settings.heavyReps + 2)
-        } else {
-            settings.lightReps to (settings.lightReps + 5)
-        }
-
-        var newWeight = last.weight
-        var newReps = last.reps
-        var badge: String? = null
-        val reasoning: String
-
-        if (last.hadFailure) {
-            reasoning = "Missed reps last time. Retry same weight."
-            badge = "🔁 RETRY"
-        } else if (last.reps >= maxReps) {
-            // Hit Top Range -> LEVEL UP
-            newWeight = roundToIncrement(last.weight + settings.smallStep, settings.roundTo)
-            newReps = minReps
-            reasoning = "Hit $maxReps reps! Increasing weight, resetting to $minReps reps."
-            badge = "🚀 LEVEL UP"
-        } else {
-            // In Range -> Add Reps
-            newReps = last.reps + 1
-            reasoning = "Build volume. Aim for $newReps reps today."
-            badge = "➕ ADD REP"
-        }
-
-        return ProgressionSuggestion(
-            exerciseId = -1,
-            exerciseName = name,
-            requestedType = type,
-            proposedWeight = newWeight,
-            proposedReps = newReps,
-            reasoning = reasoning,
-            humanExplanation = if (newWeight > last.weight) "You earned a weight increase!" else "Focus on getting that extra rep.",
-            isFirstTime = false,
-            badge = badge,
-            lastWeight = last.weight,
-            lastRpe = last.rpe,
-            daysSinceLastWorkout = daysSince
-        )
-    }
-
-    private fun createMaintenanceSuggestion(
-        last: SessionData,
-        name: String,
-        type: String,
-        daysSince: Int?
-    ): ProgressionSuggestion {
-        return ProgressionSuggestion(
-            exerciseId = -1, exerciseName = name, requestedType = type,
-            proposedWeight = last.weight, proposedReps = last.reps,
-            reasoning = "Maintenance Mode", humanExplanation = "Just get the work done.",
-            isFirstTime = false, lastWeight = last.weight, daysSinceLastWorkout = daysSince
-        )
-    }
-
-    // ============================================================================================
-    // HELPERS
-    // ============================================================================================
-
-    private fun createFirstTimeSuggestion(name: String, type: String, scheme: ProgressionScheme): ProgressionSuggestion {
-        val (reps, desc) = when (scheme) {
-            ProgressionScheme.LINEAR_RPE -> 5 to "Start light. Aim for 5 clean reps."
-            else -> 12 to "Start light. Aim for 12 controlled reps."
-        }
-
-        return ProgressionSuggestion(
-            exerciseId = -1, exerciseName = name, requestedType = type,
-            proposedWeight = null, proposedReps = reps,
-            reasoning = "New Exercise",
-            humanExplanation = "First time! $desc",
-            isFirstTime = true,
-            daysSinceLastWorkout = null
+            sourceIntent = fromIntent,
+            isWeightDerived = true
         )
     }
 
@@ -1140,22 +905,15 @@ object ProgressionHelper {
         val estimated1RM: Float,          // For comparison across sessions
         val hadFailure: Boolean,
         val isEstimated: Boolean = false, // True if from different intent
-        val sourceIntent: SetIntent? = null
+        val sourceIntent: SetIntent? = null,
+        /**
+         * True when [representativeWeight] was computed rather than lifted — a BUILD average or a
+         * cross-intent estimate. Only a derived weight gets snapped onto the equipment ladder;
+         * snapping a real logged set would overwrite what the user actually put on the bar.
+         */
+        val isWeightDerived: Boolean = false
     )
     
-    /**
-     * Legacy SessionData - kept for backward compatibility
-     * @deprecated Use AggregatedSession instead
-     */
-    @Deprecated("Use AggregatedSession instead")
-    private data class SessionData(
-        val date: String,
-        val weight: Float,
-        val reps: Int,
-        val rpe: Float,
-        val hadFailure: Boolean
-    )
-
     /**
      * Extract raw sets from training data for a specific exercise and intent
      */
@@ -1176,23 +934,6 @@ object ProgressionHelper {
                         hadFailure = entry.completed == false
                     )
                 }
-        }
-    }
-    
-    /**
-     * Legacy extractHistory - kept for backward compatibility
-     * @deprecated Use extractRawSets and aggregateSessionSets instead
-     */
-    @Deprecated("Use extractRawSets and aggregateSessionSets instead")
-    private fun extractHistory(id: Int, targetIntent: SetIntent, data: TrainingData): List<SessionData> {
-        return extractRawSets(id, targetIntent, data).map {
-            SessionData(
-                date = it.date,
-                weight = it.weight,
-                reps = it.reps,
-                rpe = it.rpe,
-                hadFailure = it.hadFailure
-            )
         }
     }
     
@@ -1237,7 +978,10 @@ object ProgressionHelper {
                     representativeReps = avgReps,
                     representativeRpe = avgRpe,
                     estimated1RM = estimate1RM(avgKg, avgReps),
-                    hadFailure = sets.any { it.hadFailure }
+                    hadFailure = sets.any { it.hadFailure },
+                    // A mean across sets lands anywhere (65/70/70 -> 68.333…), so it must be
+                    // snapped before it can be offered as a load.
+                    isWeightDerived = true
                 )
             }
             SetIntent.FLUSH -> {
@@ -1300,21 +1044,6 @@ object ProgressionHelper {
         return 1.0f
     }
 
-    private fun roundToIncrement(valIn: Float, inc: Float): Float {
-        return (valIn / inc).roundToInt() * inc
-    }
-    
-    /**
-     * Format weight for display (remove decimals if whole number)
-     */
-    private fun formatWeight(weight: Float): String {
-        return if (weight % 1 == 0f) {
-            weight.toInt().toString()
-        } else {
-            String.format(Locale.US, "%.1f", weight)
-        }
-    }
-    
     // ============================================================================================
     // 1RM ESTIMATION
     // ============================================================================================
@@ -1326,14 +1055,6 @@ object ProgressionHelper {
         return weight * (1 + reps / 30f)
     }
     
-    /**
-     * Calculate weight for target reps from 1RM
-     * Reverse of Epley: weight = 1RM × (30 / (30 + targetReps))
-     */
-    private fun weightFrom1RM(oneRM: Float, targetReps: Int): Float {
-        return oneRM * (30f / (30f + targetReps))
-    }
-
     // ============================================================================================
     // RPE SUGGESTION HELPERS
     // ============================================================================================
@@ -1345,30 +1066,4 @@ object ProgressionHelper {
         return getTargetRpe(intent, settings)
     }
     
-    /**
-     * Legacy: Get suggested RPE based on user level (deprecated)
-     */
-    @Deprecated("Use suggestRpe(intent, settings) instead")
-    fun suggestRpe(userLevel: UserLevel, intent: SetIntent): Float {
-        return when (intent) {
-            SetIntent.STRENGTH -> if (userLevel == UserLevel.NOVICE) 8.0f else 8.5f
-            SetIntent.BUILD -> if (userLevel == UserLevel.NOVICE) 7.5f else 8.0f
-            SetIntent.FLUSH -> if (userLevel == UserLevel.NOVICE) 7.0f else 7.5f
-            else -> 7.5f
-        }
-    }
-    
-    /**
-     * Legacy: Get suggested RPE based on workout type string (deprecated)
-     */
-    @Deprecated("Use suggestRpe(intent, settings) instead")
-    fun suggestRpe(userLevel: UserLevel, type: String): Float {
-        val intent = when (type.lowercase()) {
-            "heavy" -> SetIntent.STRENGTH
-            "light" -> SetIntent.BUILD
-            else -> SetIntent.BUILD
-        }
-        @Suppress("DEPRECATION")
-        return suggestRpe(userLevel, intent)
-    }
 }

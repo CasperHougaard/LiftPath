@@ -213,7 +213,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
+                            android:layout_marginTop="@dimen/lp_space_half"
                             android:text="@string/progress_total_volume_kg"
                             android:textAppearance="@style/TextAppearance.LP.Caption" />
                     </LinearLayout>
@@ -235,7 +235,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
+                            android:layout_marginTop="@dimen/lp_space_half"
                             android:text="@string/progress_avg_weekly"
                             android:textAppearance="@style/TextAppearance.LP.Caption" />
                     </LinearLayout>
@@ -259,7 +259,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
+                            android:layout_marginTop="@dimen/lp_space_half"
                             android:text="@string/progress_trend"
                             android:textAppearance="@style/TextAppearance.LP.Caption" />
                     </LinearLayout>

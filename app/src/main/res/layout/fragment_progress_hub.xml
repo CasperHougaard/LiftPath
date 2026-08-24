@@ -11,13 +11,17 @@
   card_back stays in the tree collapsed to GONE rather than removed, matching Train and
   Library — a tab has nowhere to go back to, but deleting the view would mean re-deriving
   every constraint anchored to it.
+
+  TRANSPARENT, not ?attr/lpCanvas — see fragment_plan for why: an opaque fill here paints out
+  activity_main's AmbientFlowView. The six pager pages are already transparent, so this one
+  attribute is what stood between the field and the whole Progress tab.
 -->
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?attr/lpCanvas"
+    android:background="@android:color/transparent"
     tools:context="com.liftpath.fragments.ProgressHubFragment">
 
     <!-- HEADER -->
@@ -67,12 +71,13 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/progress_header_title"
-                android:textAppearance="@style/TextAppearance.LP.Title" />
+                android:textAppearance="@style/TextAppearance.LP.Display" />
 
             <TextView
                 android:id="@+id/text_progress_subtitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/lp_space_1"
                 android:text="@string/progress_header_subtitle"
                 android:textAppearance="@style/TextAppearance.LP.Body" />
         </LinearLayout>

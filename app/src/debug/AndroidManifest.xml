@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Debug-only override for the Connect IQ bring-up screen.
+
+  GarminDiagnosticsActivity is declared exported="false" in the main manifest, which is
+  correct for a shipped build — but it also means `adb shell am start` cannot launch it
+  ("Permission Denial: ... not exported"), and adb launch is the whole point of the screen.
+  Rooting around it is not an option on a production emulator image.
+
+  So the activity is exported here, in the debug source set only. Release builds keep the
+  main manifest's exported="false".
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application>
+        <activity
+            android:name="com.liftpath.garmin.GarminDiagnosticsActivity"
+            android:exported="true"
+            tools:replace="android:exported"/>
+    </application>
+
+</manifest>

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Non-colour tunables that still have to vary by day/night.
+
+  Colour roles live in lp_attrs.xml and are bound per palette; these are not colours, so
+  they do not belong there. But they DO need the same day/night split the palettes get, and
+  the palettes handle that one level down in values-night/ rather than by doubling the number
+  of themes — so these follow the same pattern.
+-->
+<resources>
+
+    <!--
+      Alpha ceiling of the ambient flow field (views/AmbientFlowView.kt).
+
+      **This is the knob.** Turn it down if the field is too present, up if it is too shy;
+      nothing else needs touching, and the shader needs no edit.
+
+      Two things to know before changing it.
+
+      First, it is a CEILING, not an average. The shader windows the field, so a typical
+      pixel lands near half this and only the strongest bands near the bottom of the screen
+      approach it. Judge it on a real phone in real light — a low-alpha wash over a large
+      smooth area is far easier to see in a screenshot on a monitor than in the hand, and
+      trusting the screenshot is how the first version of this shipped at an effective ~1%
+      and read as no background at all.
+
+      Second, the waves this replaced used one fixed alpha for light and dark alike, which is
+      why they all but vanished at night: the same alpha is a dark accent over a near-white
+      canvas in light mode and a light accent over a near-black one in dark, and the second
+      is a much smaller perceptual step. Hence the values-night override.
+    -->
+    <item name="lp_ambient_intensity" format="float" type="dimen">0.26</item>
+
+</resources>

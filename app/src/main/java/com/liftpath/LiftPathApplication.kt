@@ -7,6 +7,7 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
+import com.liftpath.garmin.WatchTransport
 import com.liftpath.helpers.AppearanceManager
 import com.liftpath.helpers.CloudSnapshotStore
 import com.liftpath.helpers.RestoreCoordinator
@@ -40,6 +41,12 @@ class LiftPathApplication : Application() {
         // this check resolves would overwrite a just-restored snapshot with a fresh, empty
         // one before the user ever sees the restore prompt (MainActivity reads the result).
         RestoreCoordinator.checkOnAppStart(this)
+
+        // One process-wide Connect IQ bridge. It must be owned here rather than by a screen:
+        // when the diagnostics activity owned the only bridge, the watch could talk to Garmin
+        // Connect successfully while nothing on the phone was listening, which reads on the
+        // wrist as a successful sync into a session that never answers.
+        WatchTransport.start(this)
 
         ProcessLifecycleOwner.get().lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onStop(owner: LifecycleOwner) {

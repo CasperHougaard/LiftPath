@@ -1,4 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  1RM estimation settings — how Progress > Exercises turns logged sets into an estimated
+  1RM and projects it forward. ProgressSettingsManager holds these; ProgressExercisesFragment
+  reads them on every chart build.
+
+  Reached from Settings > Training. It had no entry point at all for a while, which is why
+  this file was the last one in the app still written in raw dp and textSize: nobody saw it.
+  Now on tokens like every other screen — Widget.LP.Card (hairline, never shadowed),
+  Widget.LP.TextInputLayout.Numeric for the three figures, and the ink/outlined button pair.
+
+  AIRY spacing: this is a screen you visit once to reason about estimation, not mid-set.
+-->
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -8,18 +20,14 @@
     android:fitsSystemWindows="true"
     tools:context=".activities.ProgressSettingsActivity">
 
-    <ImageView
-        android:id="@+id/image_bg_animation"
+    <com.liftpath.views.AmbientFlowView
+        android:id="@+id/view_bg_ambient"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:alpha="1.0"
-        android:scaleType="centerCrop"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/lp_bg_ambient_flow"
-        app:tint="?attr/lpAccent" />
+        app:layout_constraintTop_toTopOf="parent" />
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
@@ -34,7 +42,7 @@
             android:clipChildren="false"
             android:clipToPadding="false"
             android:orientation="vertical"
-            android:padding="24dp">
+            android:padding="@dimen/lp_gutter">
 
             <!-- HEADER -->
             <LinearLayout
@@ -44,258 +52,213 @@
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
-                <androidx.cardview.widget.CardView
+                <com.google.android.material.card.MaterialCardView
                     android:id="@+id/button_back"
+                    style="@style/Widget.LP.Card.Control"
                     android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:foreground="?attr/selectableItemBackground"
-                    app:cardBackgroundColor="?attr/lpSurface"
-                    app:cardCornerRadius="24dp"
-                    app:cardElevation="0dp">
+                    android:layout_height="48dp">
 
-                    <ImageButton
+                    <ImageView
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
-                        android:background="@android:color/transparent"
                         android:contentDescription="@string/progress_back_content_description"
-                        android:padding="12dp"
+                        android:padding="@dimen/lp_space_3"
                         android:src="@drawable/ic_arrow_back_24"
                         app:tint="?attr/lpInk" />
-                </androidx.cardview.widget.CardView>
+                </com.google.android.material.card.MaterialCardView>
 
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="16dp"
+                    android:layout_marginStart="@dimen/lp_space_4"
                     android:layout_weight="1"
                     android:orientation="vertical">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="1RM Progression Settings"
-                        android:textColor="?attr/lpInk"
-                        android:textSize="26sp"
-                        android:textStyle="bold" />
+                        android:text="@string/title_progress_settings"
+                        android:textAppearance="@style/TextAppearance.LP.Title" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="Configure 1RM estimation and projection preferences"
-                        android:textColor="?attr/lpInkSecondary"
-                        android:textSize="14sp" />
+                        android:layout_marginTop="@dimen/lp_space_1"
+                        android:text="@string/subtitle_progress_settings"
+                        android:textAppearance="@style/TextAppearance.LP.Body" />
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- ESTIMATION SETTINGS CARD -->
-            <androidx.cardview.widget.CardView
+            <!-- ESTIMATION -->
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.LP.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                app:cardBackgroundColor="?attr/lpSurface"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="4dp">
+                android:layout_marginTop="@dimen/lp_space_6"
+                android:clickable="false"
+                android:focusable="false">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="20dp">
+                    android:padding="@dimen/lp_card_padding">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="1RM Estimation Settings"
-                        android:textColor="?attr/lpInk"
-                        android:textSize="18sp"
-                        android:textStyle="bold" />
+                        android:text="@string/progress_settings_section_estimation"
+                        android:textAppearance="@style/TextAppearance.LP.Heading" />
 
-                    <!-- Default Estimation Period -->
+                    <!-- Projection period -->
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
-                        android:text="Default Projection Period (months)"
-                        android:textColor="?attr/lpInk"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
+                        android:layout_marginTop="@dimen/lp_space_5"
+                        android:text="@string/progress_settings_period_label"
+                        android:textAppearance="@style/TextAppearance.LP.Label" />
 
                     <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="How far into the future to project your 1RM. Recommended: 2-3 months for realistic estimates."
-                        android:textColor="?attr/lpInkSecondary"
-                        android:textSize="12sp" />
-
-                    <EditText
-                        android:id="@+id/et_estimation_period_months"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:background="@drawable/spinner_background"
-                        android:hint="3"
-                        android:inputType="number"
-                        android:padding="12dp"
-                        android:textColor="?attr/lpInk"
-                        android:textSize="16sp" />
+                        android:layout_marginTop="@dimen/lp_space_1"
+                        android:text="@string/progress_settings_period_description"
+                        android:textAppearance="@style/TextAppearance.LP.Caption" />
 
-                    <!-- Minimum Data Points -->
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
-                        android:text="Minimum Data Points (sessions)"
-                        android:textColor="?attr/lpInk"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="Minimum number of training sessions required for a qualified estimation. More sessions = more reliable projections."
-                        android:textColor="?attr/lpInkSecondary"
-                        android:textSize="12sp" />
-
-                    <EditText
-                        android:id="@+id/et_minimum_data_points"
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.LP.TextInputLayout.Numeric"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:background="@drawable/spinner_background"
-                        android:hint="4"
-                        android:inputType="number"
-                        android:padding="12dp"
-                        android:textColor="?attr/lpInk"
-                        android:textSize="16sp" />
+                        android:layout_marginTop="@dimen/lp_space_2">
 
-                    <!-- Recent Data Window -->
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/et_estimation_period_months"
+                            style="@style/Widget.LP.TextInputEditText.Numeric"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="number"
+                            tools:text="3" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- Minimum data points -->
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
-                        android:text="Recent Data Window (days)"
-                        android:textColor="?attr/lpInk"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
+                        android:layout_marginTop="@dimen/lp_space_6"
+                        android:text="@string/progress_settings_data_points_label"
+                        android:textAppearance="@style/TextAppearance.LP.Label" />
 
                     <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="Maximum days since last session for data to be considered 'recent'. Older data may not reflect current progress."
-                        android:textColor="?attr/lpInkSecondary"
-                        android:textSize="12sp" />
-
-                    <EditText
-                        android:id="@+id/et_recent_data_window_days"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:background="@drawable/spinner_background"
-                        android:hint="30"
-                        android:inputType="number"
-                        android:padding="12dp"
-                        android:textColor="?attr/lpInk"
-                        android:textSize="16sp" />
+                        android:layout_marginTop="@dimen/lp_space_1"
+                        android:text="@string/progress_settings_data_points_description"
+                        android:textAppearance="@style/TextAppearance.LP.Caption" />
 
-                    <!-- Show Warnings -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.LP.TextInputLayout.Numeric"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/lp_space_2">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/et_minimum_data_points"
+                            style="@style/Widget.LP.TextInputEditText.Numeric"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="number"
+                            tools:text="4" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- Recent data window -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/lp_space_6"
+                        android:text="@string/progress_settings_window_label"
+                        android:textAppearance="@style/TextAppearance.LP.Label" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/lp_space_1"
+                        android:text="@string/progress_settings_window_description"
+                        android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.LP.TextInputLayout.Numeric"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/lp_space_2">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/et_recent_data_window_days"
+                            style="@style/Widget.LP.TextInputEditText.Numeric"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="number"
+                            tools:text="30" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- Data-quality warnings -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
-                        android:orientation="vertical">
+                        android:layout_marginTop="@dimen/lp_space_6"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
 
                         <LinearLayout
-                            android:layout_width="match_parent"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal">
+                            android:layout_weight="1"
+                            android:orientation="vertical">
 
                             <TextView
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:text="Show Data Quality Warnings"
-                                android:textColor="?attr/lpInk"
-                                android:textSize="14sp"
-                                android:textStyle="bold" />
-
-                            <androidx.appcompat.widget.SwitchCompat
-                                android:id="@+id/switch_show_warnings"
                                 android:layout_width="wrap_content"
-                                android:layout_height="wrap_content" />
+                                android:layout_height="wrap_content"
+                                android:text="@string/progress_settings_warnings_label"
+                                android:textAppearance="@style/TextAppearance.LP.Label" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/lp_space_1"
+                                android:text="@string/progress_settings_warnings_description"
+                                android:textAppearance="@style/TextAppearance.LP.Caption" />
                         </LinearLayout>
 
-                        <TextView
+                        <com.google.android.material.materialswitch.MaterialSwitch
+                            android:id="@+id/switch_show_warnings"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:text="Display warnings when data quality is insufficient for reliable estimation (e.g., too few sessions, old data)."
-                            android:textColor="?attr/lpInkSecondary"
-                            android:textSize="12sp" />
+                            android:layout_marginStart="@dimen/lp_space_4"
+                            app:showText="false" />
                     </LinearLayout>
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
 
-            <!-- ACTION BUTTONS -->
-            <LinearLayout
+            <!--
+              Save is the one action worth the darkest colour on the screen; reset is a
+              secondary destination and stays outlined. Same pairing as every other
+              authoring screen — never an accent fill, which is reserved for state.
+            -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/button_save"
+                style="@style/Widget.LP.Button"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                android:orientation="horizontal">
+                android:layout_marginTop="@dimen/lp_space_6"
+                android:text="@string/btn_save_settings" />
 
-                <androidx.cardview.widget.CardView
-                    android:id="@+id/button_reset"
-                    android:layout_width="0dp"
-                    android:layout_height="56dp"
-                    android:layout_marginEnd="8dp"
-                    android:layout_weight="1"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:foreground="?attr/selectableItemBackground"
-                    app:cardBackgroundColor="?attr/lpSurface"
-                    app:cardCornerRadius="16dp"
-                    app:cardElevation="2dp">
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/button_reset"
+                style="@style/Widget.LP.Button.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/lp_space_2"
+                android:text="@string/btn_reset_defaults" />
 
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:text="Reset to Defaults"
-                        android:textColor="?attr/lpInk"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
-                </androidx.cardview.widget.CardView>
-
-                <androidx.cardview.widget.CardView
-                    android:id="@+id/button_save"
-                    android:layout_width="0dp"
-                    android:layout_height="56dp"
-                    android:layout_marginStart="8dp"
-                    android:layout_weight="1"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:foreground="?attr/selectableItemBackground"
-                    app:cardBackgroundColor="?attr/lpAccent"
-                    app:cardCornerRadius="16dp"
-                    app:cardElevation="2dp">
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:text="Save"
-                        android:textColor="@color/white"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
-                </androidx.cardview.widget.CardView>
-            </LinearLayout>
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 </androidx.constraintlayout.widget.ConstraintLayout>
-

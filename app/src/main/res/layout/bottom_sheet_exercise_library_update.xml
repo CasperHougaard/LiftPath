@@ -9,7 +9,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="24dp">
+        android:padding="@dimen/lp_gutter">
 
         <!-- Title row -->
         <TextView
@@ -23,8 +23,8 @@
             android:id="@+id/text_header_subtitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:layout_marginBottom="16dp"
+            android:layout_marginTop="@dimen/lp_space_1"
+            android:layout_marginBottom="@dimen/lp_space_4"
             android:text="@string/subtitle_library_update"
             android:textAppearance="@style/TextAppearance.LP.Body" />
 
@@ -33,12 +33,12 @@
             android:layout_width="match_parent"
             android:layout_height="380dp"
             android:clipToPadding="false"
-            android:paddingBottom="8dp" />
+            android:paddingBottom="@dimen/lp_space_2" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="@dimen/lp_space_2"
             android:gravity="end"
             android:orientation="horizontal">
 
@@ -55,7 +55,7 @@
                 android:id="@+id/button_apply_updates"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="@dimen/lp_space_2"
                 android:text="@string/button_apply_updates"
                 android:textAllCaps="false"
                 android:textColor="?attr/lpInkInverse"

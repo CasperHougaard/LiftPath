@@ -7,7 +7,7 @@
     <!--
       In-app brand mark — the same "L" glyph as ic_launcher_foreground, drawn flat white
       so it can be recoloured with app:tint at the point of use (same contract as
-      lp_hero_glow.xml / lp_bg_ambient_flow.xml). This is what lets one drawable serve all
+      lp_hero_glow.xml / lp_logo_trace.xml). This is what lets one drawable serve all
       eight palettes instead of eight near-identical variants.
     -->
     <group
