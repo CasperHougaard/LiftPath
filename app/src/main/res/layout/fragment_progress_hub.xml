@@ -81,6 +81,22 @@
                 android:text="@string/progress_header_subtitle"
                 android:textAppearance="@style/TextAppearance.LP.Body" />
         </LinearLayout>
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_settings"
+            style="@style/Widget.LP.Card.Control"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="@dimen/lp_space_2">
+
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="@string/settings"
+                android:padding="@dimen/lp_space_3"
+                android:src="@drawable/ic_settings"
+                app:tint="?attr/lpInkSecondary" />
+        </com.google.android.material.card.MaterialCardView>
     </LinearLayout>
 
     <com.google.android.material.tabs.TabLayout

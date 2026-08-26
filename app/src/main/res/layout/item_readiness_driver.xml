@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  One reason the readiness score is what it is.
+
+  Without these the score is just another magic number, which is the thing TriPath's verdict is
+  supposed to replace. Only negative-impact drivers are shown, worst first — that is what there is
+  to act on.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:paddingVertical="@dimen/lp_space_half">
+
+    <!-- A drawn dot rather than a "• " prefix in the string, so the second line of a long driver
+         wraps under the text and not under the bullet. -->
+    <View
+        android:layout_width="4dp"
+        android:layout_height="4dp"
+        android:layout_marginTop="9dp"
+        android:layout_marginEnd="@dimen/lp_space_2"
+        android:background="@drawable/lp_dot"
+        android:backgroundTint="?attr/lpInkTertiary" />
+
+    <TextView
+        android:id="@+id/text_driver"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textAppearance="@style/TextAppearance.LP.Body"
+        tools:text="Slept 5h 40m — 1h 20m below your average" />
+</LinearLayout>

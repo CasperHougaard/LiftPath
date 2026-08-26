@@ -1,14 +1,19 @@
 package com.liftpath.activities
 
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.os.Bundle
+import android.text.format.DateUtils
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 import com.liftpath.R
 import com.liftpath.databinding.ActivityReadinessDashboardBinding
+import com.liftpath.databinding.ItemReadinessChannelRowBinding
+import com.liftpath.databinding.ItemReadinessDayBinding
+import com.liftpath.databinding.ItemReadinessDriverBinding
+import com.liftpath.databinding.ItemReadinessFatigueRowBinding
 import com.liftpath.helpers.JsonHelper
 import com.liftpath.helpers.ReadinessConfig
 import com.liftpath.helpers.ReadinessHelper
@@ -21,7 +26,13 @@ import com.liftpath.helpers.ReadinessSettingsManager
 import com.liftpath.helpers.HealthConnectHelper
 import com.liftpath.helpers.ExternalActivity
 import com.liftpath.helpers.ExternalLoadProvider
+import com.liftpath.helpers.ReadinessPresentation
 import com.liftpath.helpers.TriPathConnection
+import com.liftpath.helpers.TriPathContract
+import com.liftpath.helpers.TriPathDay
+import com.liftpath.helpers.TriPathReadiness
+import com.liftpath.helpers.TriPathStorage
+import com.liftpath.helpers.TriPathStorageHelper
 import com.liftpath.helpers.TriPathSyncHelper
 import com.liftpath.models.TrainingSession
 import com.liftpath.models.TrainingData
@@ -39,10 +50,8 @@ import com.github.mikephil.charting.formatter.ValueFormatter
 import android.graphics.Color
 import android.net.Uri
 import android.util.Log
-import android.view.LayoutInflater
 import android.widget.LinearLayout
 import android.widget.TextView
-import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import java.io.IOException
 import java.text.SimpleDateFormat
@@ -130,6 +139,11 @@ class ReadinessDashboardActivity : AppCompatActivity() {
             startActivity(intent)
         }
 
+        // The switch is small and the row is 56dp tall; tapping anywhere on it toggles.
+        binding.rowUseHealthConnect.setOnClickListener {
+            binding.switchUseHealthConnect.toggle()
+        }
+
         binding.switchUseHealthConnect.setOnCheckedChangeListener { _, isChecked ->
             healthConnectPrefs.edit().putBoolean(HEALTH_CONNECT_ENABLED_KEY, isChecked).apply()
             // Reload data when toggle changes
@@ -167,17 +181,17 @@ class ReadinessDashboardActivity : AppCompatActivity() {
 
             withContext(Dispatchers.Main) {
                 fatigueTimeline = timeline
-                updateCalendarWithTimeline(timeline)
                 // Update activity readiness tiles with timeline that includes Health Connect data
                 val settings = settingsManager.getSettings()
                 val config = ExternalLoadProvider.readinessConfig(applicationContext, settings)
+                updateCalendarWithTimeline(timeline, config)
                 val currentFatigue = ReadinessHelper.getCurrentFatigueFromTimeline(timeline, config)
                 updateActivityReadiness(currentFatigue, config)
             }
         }
     }
 
-    private fun updateCalendarWithTimeline(timeline: FatigueTimeline) {
+    private fun updateCalendarWithTimeline(timeline: FatigueTimeline, config: ReadinessConfig) {
         // Extract daily end values for calendar
         val dailyEndValues = timeline.dailyEndValues
 
@@ -203,27 +217,33 @@ class ReadinessDashboardActivity : AppCompatActivity() {
 
         // Create day cells
         binding.layoutCalendarDays.removeAllViews()
-        days.forEach { pair ->
-            val dateStr = pair.first
-            val fatigue = pair.second
-            val dayCell = createDayCell(dateStr, fatigue)
-            binding.layoutCalendarDays.addView(dayCell)
+        days.forEach { (dateStr, fatigue) ->
+            binding.layoutCalendarDays.addView(createDayCell(dateStr, fatigue, config.thresholds))
         }
 
         // Always show calendar (even if no workouts, shows empty days)
         binding.cardCalendar.visibility = View.VISIBLE
     }
 
-    private fun createDayCell(dateStr: String, fatigue: Float): View {
-        // Parse date to get day of week and day number
+    /**
+     * One day of the 7-day strip.
+     *
+     * The dot was an HSV interpolation from hue 120 to hue 0, with saturation and brightness
+     * branched on dark mode. That produced the same green in all four palettes and read as a
+     * different app's colour in three of them — and it scored against a fixed 0-80 range rather
+     * than the athlete's calibrated thresholds, so a novice's normal Tuesday came out red. It is
+     * now a token, picked by [ReadinessPresentation.fatigueColorAttr] against those thresholds.
+     */
+    private fun createDayCell(
+        dateStr: String,
+        fatigue: Float,
+        thresholds: ReadinessConfig.Thresholds
+    ): View {
         val date = dateFormat.parse(dateStr) ?: Date()
         val cal = Calendar.getInstance().apply { time = date }
-        val dayOfWeek = cal.get(Calendar.DAY_OF_WEEK)
-        val dayNumber = cal.get(Calendar.DAY_OF_MONTH)
         val isToday = dateStr == dateFormat.format(Date())
 
-        // Day abbreviation
-        val dayAbbr = when (dayOfWeek) {
+        val dayAbbr = when (cal.get(Calendar.DAY_OF_WEEK)) {
             Calendar.SUNDAY -> "S"
             Calendar.MONDAY -> "M"
             Calendar.TUESDAY -> "T"
@@ -234,90 +254,33 @@ class ReadinessDashboardActivity : AppCompatActivity() {
             else -> ""
         }
 
-        // Create layout for the cell
-        val cellLayout = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = android.view.Gravity.CENTER
-            layoutParams = LinearLayout.LayoutParams(
-                0,
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                1f
-            ).apply {
-                setMargins(4, 8, 4, 8)
-            }
-        }
+        val cell = ItemReadinessDayBinding.inflate(layoutInflater, binding.layoutCalendarDays, false)
+        cell.root.layoutParams = LinearLayout.LayoutParams(
+            0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f
+        )
 
-        // Day abbreviation
-        val dayText = TextView(this).apply {
-            text = dayAbbr
-            textSize = 12f
-            setTextColor(lpColor(if (isToday) R.attr.lpAccent else R.attr.lpInkSecondary))
-            gravity = android.view.Gravity.CENTER
-        }
-        cellLayout.addView(dayText)
+        cell.textDayLetter.text = dayAbbr
+        cell.textDayNumber.text = cal.get(Calendar.DAY_OF_MONTH).toString()
+        cell.textDayFatigue.text = String.format(Locale.getDefault(), "%.0f", fatigue)
 
-        // Day number
-        val dayNumText = TextView(this).apply {
-            text = dayNumber.toString()
-            textSize = 14f
-            setTypeface(null, android.graphics.Typeface.BOLD)
-            setTextColor(lpColor(if (isToday) R.attr.lpInk else R.attr.lpInkSecondary))
-            gravity = android.view.Gravity.CENTER
-        }
-        cellLayout.addView(dayNumText)
+        // Today is the only cell that gets the accent, and only on its letter — it marks *where*
+        // you are, which is a different job from the dot's "how bad is it".
+        cell.textDayLetter.setTextColor(lpColor(if (isToday) R.attr.lpAccent else R.attr.lpInkTertiary))
+        cell.textDayNumber.setTextColor(lpColor(if (isToday) R.attr.lpInk else R.attr.lpInkSecondary))
+        cell.viewDayDot.backgroundTintList = ColorStateList.valueOf(
+            lpColor(ReadinessPresentation.fatigueColorAttr(fatigue, thresholds))
+        )
 
-        // Fatigue number
-        val fatigueText = TextView(this).apply {
-            text = String.format("%.0f", fatigue)
-            textSize = 12f
-            setTextColor(this@ReadinessDashboardActivity.lpColor(R.attr.lpInkSecondary))
-            gravity = android.view.Gravity.CENTER
-        }
-        cellLayout.addView(fatigueText)
-
-        // Colored circle based on fatigue (red to green)
-        val circleView = View(this).apply {
-            val size = resources.getDimensionPixelSize(android.R.dimen.app_icon_size) / 3
-            layoutParams = LinearLayout.LayoutParams(size, size).apply {
-                gravity = android.view.Gravity.CENTER
-                setMargins(0, 4, 0, 0)
-            }
-            background = createFatigueCircle(fatigue)
-        }
-        cellLayout.addView(circleView)
-
-        return cellLayout
-    }
-
-    private fun createFatigueCircle(fatigue: Float): android.graphics.drawable.Drawable {
-        // Map fatigue to color: 0 = green, 80+ = red
-        val normalized = (fatigue / 80f).coerceIn(0f, 1f)
-        
-        // Detect dark mode
-        val isDarkMode = com.liftpath.helpers.AppearanceManager.isNightActive(this)
-        
-        // Use HSV color space for better control
-        // Hue: 0 (red) to 120 (green)
-        // Saturation: 80-100% for visibility
-        // Value/Brightness: Adjust based on theme
-        val hue = 120f * (1f - normalized) // 120 = green, 0 = red
-        val saturation = if (isDarkMode) 0.85f else 0.75f // More saturated in dark mode
-        val brightness = if (isDarkMode) 0.85f else 0.70f // Brighter in dark mode
-        
-        val hsv = floatArrayOf(hue, saturation, brightness)
-        val color = Color.HSVToColor(hsv)
-        
-        val drawable = android.graphics.drawable.GradientDrawable().apply {
-            shape = android.graphics.drawable.GradientDrawable.OVAL
-            setColor(color)
-        }
-        
-        return drawable
+        return cell.root
     }
 
     private fun toggleCalendarChart() {
         isCalendarExpanded = !isCalendarExpanded
         binding.layoutChartExpanded.visibility = if (isCalendarExpanded) View.VISIBLE else View.GONE
+        binding.textCalendarHint.setText(
+            if (isCalendarExpanded) R.string.readiness_calendar_hint_collapse
+            else R.string.readiness_calendar_hint
+        )
 
         if (isCalendarExpanded) {
             setupFatigueChart()
@@ -409,7 +372,7 @@ class ReadinessDashboardActivity : AppCompatActivity() {
         if (pastEntries.isNotEmpty()) {
             val pastDataSet = LineDataSet(pastEntries, "Systemic Fatigue").apply {
                 color = primaryColor
-                valueTextColor = Color.DKGRAY
+                valueTextColor = this@ReadinessDashboardActivity.lpColor(R.attr.lpInkSecondary)
                 setCircleColor(primaryColor)
                 circleRadius = 0f
                 setDrawCircles(false)
@@ -429,7 +392,7 @@ class ReadinessDashboardActivity : AppCompatActivity() {
         if (futureEntries.isNotEmpty()) {
             val futureDataSet = LineDataSet(futureEntries, "Projected Fatigue").apply {
                 color = primaryColor
-                valueTextColor = Color.DKGRAY
+                valueTextColor = this@ReadinessDashboardActivity.lpColor(R.attr.lpInkSecondary)
                 setCircleColor(primaryColor)
                 circleRadius = 0f
                 setDrawCircles(false)
@@ -595,51 +558,29 @@ class ReadinessDashboardActivity : AppCompatActivity() {
             calendar.add(Calendar.DAY_OF_YEAR, -i)
             val dateStr = dateFormat.format(calendar.time)
             val date = dateFormat.parse(dateStr) ?: Date()
-            val dateDisplay = displayDateFormat.format(date)
-            
+
             val rawFatigue = rawFatigueByDate[dateStr] ?: 0f
             val endOfDayFatigueValues = timeline.dailyEndValues[dateStr] ?: FatigueValues(0f, 0f, 0f)
             val endOfDayFatigue = endOfDayFatigueValues.systemicFatigue
 
-            val rowLayout = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                ).apply {
-                    setMargins(0, 4, 0, 4)
-                }
+            val row = ItemReadinessFatigueRowBinding.inflate(
+                layoutInflater, binding.layoutFatigueList, false
+            )
+            row.textRowDate.text = displayDateFormat.format(date)
+            row.textRowRaw.text = if (rawFatigue > 0) {
+                getString(R.string.readiness_fatigue_row_raw, String.format(Locale.getDefault(), "%.0f", rawFatigue))
+            } else {
+                getString(R.string.placeholder_dash)
             }
+            row.textRowEnd.text = getString(
+                R.string.readiness_fatigue_row_end,
+                String.format(Locale.getDefault(), "%.1f", endOfDayFatigue)
+            )
+            row.textRowEnd.setTextColor(
+                lpColor(ReadinessPresentation.fatigueColorAttr(endOfDayFatigue, config.thresholds))
+            )
 
-            // Date
-            val dateText = TextView(this).apply {
-                text = dateDisplay
-                textSize = 12f
-                setTextColor(this@ReadinessDashboardActivity.lpColor(R.attr.lpInk))
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-            }
-            rowLayout.addView(dateText)
-
-            // Raw fatigue (sum added on that date)
-            val rawText = TextView(this).apply {
-                text = if (rawFatigue > 0) String.format("Raw: %.0f", rawFatigue) else "--"
-                textSize = 12f
-                setTextColor(this@ReadinessDashboardActivity.lpColor(R.attr.lpInkSecondary))
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-            }
-            rowLayout.addView(rawText)
-
-            // End of day fatigue (from timeline)
-            val endText = TextView(this).apply {
-                text = String.format("End: %.1f", endOfDayFatigue)
-                textSize = 12f
-                setTextColor(this@ReadinessDashboardActivity.lpColor(R.attr.lpAccent))
-                setTypeface(null, android.graphics.Typeface.BOLD)
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-            }
-            rowLayout.addView(endText)
-
-            binding.layoutFatigueList.addView(rowLayout)
+            binding.layoutFatigueList.addView(row.root)
         }
     }
 
@@ -702,24 +643,23 @@ class ReadinessDashboardActivity : AppCompatActivity() {
         return trainings.sortedByDescending { it.date }.firstOrNull()
     }
 
-    private fun showEmptyState() {
-        binding.cardLastWorkout.visibility = View.GONE
-        binding.textEmptyState.visibility = View.VISIBLE
-        // Hide all activity cards
-        binding.cardRunCycle.visibility = View.GONE
-        binding.cardSwim.visibility = View.GONE
-        binding.cardLowerLift.visibility = View.GONE
-        binding.cardUpperLift.visibility = View.GONE
-    }
+    private fun showEmptyState() = setEmptyState(empty = true)
 
-    private fun hideEmptyState() {
-        binding.cardLastWorkout.visibility = View.VISIBLE
-        binding.textEmptyState.visibility = View.GONE
-        // Show all activity cards
-        binding.cardRunCycle.visibility = View.VISIBLE
-        binding.cardSwim.visibility = View.VISIBLE
-        binding.cardLowerLift.visibility = View.VISIBLE
-        binding.cardUpperLift.visibility = View.VISIBLE
+    private fun hideEmptyState() = setEmptyState(empty = false)
+
+    /**
+     * The four activity cards and the last-workout summary have nothing to say before the first
+     * session, so the empty-state card replaces them rather than joining them — four dashes and an
+     * explanation underneath is worse than one sentence.
+     */
+    private fun setEmptyState(empty: Boolean) {
+        val contentVisibility = if (empty) View.GONE else View.VISIBLE
+        binding.cardEmptyState.visibility = if (empty) View.VISIBLE else View.GONE
+        binding.cardLastWorkout.visibility = contentVisibility
+        binding.cardRunCycle.visibility = contentVisibility
+        binding.cardSwim.visibility = contentVisibility
+        binding.cardLowerLift.visibility = contentVisibility
+        binding.cardUpperLift.visibility = contentVisibility
     }
 
     private fun updateLastWorkoutSummary(
@@ -727,11 +667,11 @@ class ReadinessDashboardActivity : AppCompatActivity() {
         rawFatigueScores: FatigueScores,
         decayedFatigueScores: FatigueScores
     ) {
-        binding.textWorkoutDate.text = "Date: ${workout.date}"
+        binding.textWorkoutDate.text = workout.date
         // Show decayed scores (current effective fatigue)
-        binding.textLowerFatigue.text = String.format("%.1f", decayedFatigueScores.lowerFatigue)
-        binding.textUpperFatigue.text = String.format("%.1f", decayedFatigueScores.upperFatigue)
-        binding.textSystemicFatigue.text = String.format("%.1f", decayedFatigueScores.systemicFatigue)
+        binding.textLowerFatigue.text = String.format(Locale.getDefault(), "%.1f", decayedFatigueScores.lowerFatigue)
+        binding.textUpperFatigue.text = String.format(Locale.getDefault(), "%.1f", decayedFatigueScores.upperFatigue)
+        binding.textSystemicFatigue.text = String.format(Locale.getDefault(), "%.1f", decayedFatigueScores.systemicFatigue)
     }
 
     /**
@@ -752,82 +692,74 @@ class ReadinessDashboardActivity : AppCompatActivity() {
         config: ReadinessConfig
     ) {
         // Run / Cycle
-        val runCycleReadiness = ReadinessHelper.getRunCycleStatus(fatigueScores, config)
         updateActivityCard(
-            binding.cardRunCycle,
+            binding.dotRunCycle,
             binding.textRunCycleStatus,
             binding.textRunCycleMessage,
             binding.textRunCycleCountdown,
-            runCycleReadiness
+            ReadinessHelper.getRunCycleStatus(fatigueScores, config)
         )
 
         // Swim
-        val swimReadiness = ReadinessHelper.getSwimStatus(fatigueScores, config)
         updateActivityCard(
-            binding.cardSwim,
+            binding.dotSwim,
             binding.textSwimStatus,
             binding.textSwimMessage,
             binding.textSwimCountdown,
-            swimReadiness
+            ReadinessHelper.getSwimStatus(fatigueScores, config)
         )
 
         // Lower Body Lift
-        val lowerLiftReadiness = ReadinessHelper.getLowerLiftStatus(fatigueScores, config)
         updateActivityCard(
-            binding.cardLowerLift,
+            binding.dotLowerLift,
             binding.textLowerLiftStatus,
             binding.textLowerLiftMessage,
             binding.textLowerLiftCountdown,
-            lowerLiftReadiness
+            ReadinessHelper.getLowerLiftStatus(fatigueScores, config)
         )
 
         // Upper Body Lift
-        val upperLiftReadiness = ReadinessHelper.getUpperLiftStatus(fatigueScores, config)
         updateActivityCard(
-            binding.cardUpperLift,
+            binding.dotUpperLift,
             binding.textUpperLiftStatus,
             binding.textUpperLiftMessage,
             binding.textUpperLiftCountdown,
-            upperLiftReadiness
+            ReadinessHelper.getUpperLiftStatus(fatigueScores, config)
         )
     }
 
+    /**
+     * One activity verdict.
+     *
+     * The card used to be recoloured per status on top of an already-coloured status label. A
+     * coloured panel plus a coloured label is the same signal twice, and at four cards it made the
+     * grid the loudest thing on the page — louder than the verdict card that actually decides the
+     * day. The panel stays the neutral hairline card every other surface uses; the dot and the
+     * status word carry the state.
+     */
     private fun updateActivityCard(
-        card: androidx.cardview.widget.CardView,
-        statusText: android.widget.TextView,
-        messageText: android.widget.TextView,
-        countdownText: android.widget.TextView,
+        statusDot: View,
+        statusText: TextView,
+        messageText: TextView,
+        countdownText: TextView,
         readiness: ActivityReadiness
     ) {
-        // Status colour is now an @AttrRes pair rather than @ColorRes, so it follows the
-        // selected palette. The card background is a neutral raised panel in all three
-        // states, with the status carried by the label colour: a coloured panel plus a
-        // coloured label doubles the signal and reads louder than it needs to.
-        val (statusLabel, statusAttr) = when (readiness.status) {
-            ActivityStatus.GREEN -> "Ready" to R.attr.lpPositive
-            ActivityStatus.YELLOW -> "Caution" to R.attr.lpAccent
-            ActivityStatus.RED -> "Blocked" to R.attr.lpNegative
-        }
+        val statusColor = lpColor(ReadinessPresentation.statusColorAttr(readiness.status))
 
-        statusText.text = statusLabel
-        statusText.setTextColor(lpColor(statusAttr))
-        card.setCardBackgroundColor(lpColor(R.attr.lpSurfaceAlt))
+        statusText.setText(ReadinessPresentation.statusLabelRes(readiness.status))
+        statusText.setTextColor(statusColor)
+        statusDot.backgroundTintList = ColorStateList.valueOf(statusColor)
 
-        // Update message - use primary text color for better contrast on colored backgrounds
         messageText.text = readiness.message
-        messageText.setTextColor(this.lpColor(R.attr.lpInk))
 
-        // Update countdown if recovery time is set - use primary text color for better contrast
         if (readiness.timeUntilFresh != null) {
             updateCountdown(countdownText, readiness.timeUntilFresh)
-            countdownText.visibility = View.VISIBLE
-            countdownText.setTextColor(this.lpColor(R.attr.lpInk))
         } else {
             countdownText.visibility = View.GONE
         }
     }
 
-    private fun updateCountdown(textView: android.widget.TextView, timeUntilFresh: Long) {
+    private fun updateCountdown(textView: TextView, timeUntilFresh: Long) {
         val now = System.currentTimeMillis()
         val trainingData = jsonHelper.readTrainingData()
         val lastWorkout = getLastCompletedWorkout(trainingData.trainings)
@@ -840,7 +772,7 @@ class ReadinessDashboardActivity : AppCompatActivity() {
             val remaining = recoveryCompleteTime - now
 
             if (remaining <= 0) {
-                textView.text = "Ready now"
+                textView.setText(R.string.readiness_ready_now)
                 textView.visibility = View.GONE
                 return
             }
@@ -849,9 +781,9 @@ class ReadinessDashboardActivity : AppCompatActivity() {
             val minutes = ((remaining % 3600_000L) / 60_000L).toInt()
 
             textView.text = when {
-                hours > 0 -> "Ready in ${hours}h ${minutes}m"
-                minutes > 0 -> "Ready in ${minutes}m"
-                else -> "Ready now"
+                hours > 0 -> getString(R.string.readiness_ready_in_hours, hours, minutes)
+                minutes > 0 -> getString(R.string.readiness_ready_in_minutes, minutes)
+                else -> getString(R.string.readiness_ready_now)
             }
             textView.visibility = View.VISIBLE
         } catch (e: Exception) {
@@ -1087,9 +1019,15 @@ class ReadinessDashboardActivity : AppCompatActivity() {
     }
 
     /**
-     * Shows what TriPath contributed: form, last night's recovery, and the multiplier those
-     * produced. Hidden entirely when the integration is off, so the screen is unchanged for
-     * anyone without TriPath.
+     * Renders TriPath's readiness verdict, or says plainly that it is showing LiftPath's own.
+     *
+     * TriPath owns readiness now: it sees every discipline, sleep, fuelling and body composition,
+     * where LiftPath sees lifting. So this displays a verdict rather than computing one — and the
+     * source line is not optional, because an athlete must never be quietly switched between two
+     * models that can disagree.
+     *
+     * When TriPath is absent, disconnected, or too old to advertise
+     * [TriPathContract.CAP_READINESS_V1], the local model still runs and the card says so.
      */
     private fun updateTriPathCard() {
         val card = binding.cardTripath
@@ -1099,36 +1037,165 @@ class ReadinessDashboardActivity : AppCompatActivity() {
         }
 
         lifecycleScope.launch {
-            val modifier = withContext(Dispatchers.IO) {
-                ExternalLoadProvider.triPathModifier(applicationContext)
+            val storage = withContext(Dispatchers.IO) {
+                TriPathStorageHelper(applicationContext).read()
             }
-            val day = modifier.latest
-            if (day == null) {
-                card.visibility = View.GONE
+            val readiness = storage.readiness
+            if (readiness == null) {
+                showLocalFallbackCard(storage)
                 return@launch
             }
 
             card.visibility = View.VISIBLE
-            binding.textTripathForm.text = String.format(
-                Locale.getDefault(),
-                "Form %+.0f · Fitness %.0f · Fatigue %.0f",
-                day.tsb, day.ctl, day.atl
+            binding.textTripathScore.text = readiness.score.toString()
+            binding.textTripathScore.setTextColor(
+                lpColor(ReadinessPresentation.bandColorAttr(readiness.band))
             )
+            binding.textTripathBand.text = ReadinessPresentation.humanise(readiness.band)
+            binding.textTripathGuidance.text =
+                readiness.guidance ?: ReadinessPresentation.humanise(readiness.action)
 
-            val recovery = buildList {
-                day.sleepScore?.let { add("Sleep $it") }
-                    ?: day.sleepMinutes?.let { add("Sleep ${it / 60}h ${it % 60}m") }
-                day.hrvRmssd?.let { add(String.format(Locale.getDefault(), "HRV %.0f", it)) }
-                day.soreness?.let { add("Soreness $it/10") }
-            }.joinToString(" · ").ifEmpty { "No recovery data logged" }
-            binding.textTripathRecovery.text = recovery
+            renderChannels(readiness)
+            renderDrivers(readiness)
+            updateDetailVisibility()
 
-            binding.textTripathEffect.text = String.format(
-                Locale.getDefault(),
-                "Recovery ×%.2f · Thresholds ×%.2f",
-                modifier.recoveryFactor, modifier.thresholdScale
+            binding.textTripathEffect.text = readiness.weeklyLoadRampPct
+                ?.let { getString(R.string.readiness_ramp, it) }
+                .orEmpty()
+            binding.textTripathEffect.visibility =
+                if (readiness.weeklyLoadRampPct == null) View.GONE else View.VISIBLE
+
+            binding.textTripathSource.text = getString(
+                R.string.readiness_source_tripath,
+                DateUtils.getRelativeTimeSpanString(
+                    readiness.computedAt,
+                    System.currentTimeMillis(),
+                    DateUtils.MINUTE_IN_MILLIS
+                )
             )
         }
     }
-}
 
+    /**
+     * TriPath is connected but has not handed over a verdict — an older build, or a sync that has
+     * not run yet. Show what it did send and label the readiness numbers as locally computed.
+     *
+     * Reuses the verdict card's shape rather than a second layout: form takes the headline slot,
+     * fitness and fatigue take two of the channel rows. The card must not change size or position
+     * between the two modes, or a TriPath update would rearrange the page under the reader.
+     */
+    private fun showLocalFallbackCard(storage: TriPathStorage) {
+        val card = binding.cardTripath
+        val day = storage.days.maxByOrNull { it.date }
+        if (day == null) {
+            card.visibility = View.GONE
+            return
+        }
+
+        card.visibility = View.VISIBLE
+        binding.textTripathScore.text = String.format(Locale.getDefault(), "%+.0f", day.tsb)
+        binding.textTripathScore.setTextColor(lpColor(R.attr.lpInk))
+        binding.textTripathBand.setText(R.string.readiness_form_label)
+        binding.textTripathGuidance.text = recoverySummary(day)
+
+        binding.layoutTripathChannels.removeAllViews()
+        addChannelRow(
+            label = getString(R.string.readiness_fitness_label),
+            value = String.format(Locale.getDefault(), "%.0f", day.ctl),
+            colorAttr = R.attr.lpInk,
+            clears = null
+        )
+        addChannelRow(
+            label = getString(R.string.readiness_fatigue_label),
+            value = String.format(Locale.getDefault(), "%.0f", day.atl),
+            colorAttr = R.attr.lpInk,
+            clears = null
+        )
+
+        binding.layoutTripathDrivers.removeAllViews()
+        updateDetailVisibility()
+        binding.textTripathEffect.visibility = View.GONE
+        binding.textTripathSource.setText(R.string.readiness_source_local)
+    }
+
+    /**
+     * Hides the channel strip, the driver list and the rule above them when they are empty.
+     *
+     * Each carries a top margin, so an empty container is not free — it leaves a gap that reads as
+     * a row that failed to load, which is exactly the wrong impression for an integration whose
+     * whole failure mode is "TriPath sent less than expected".
+     */
+    private fun updateDetailVisibility() {
+        val hasChannels = binding.layoutTripathChannels.childCount > 0
+        val hasDrivers = binding.layoutTripathDrivers.childCount > 0
+        binding.layoutTripathChannels.visibility = if (hasChannels) View.VISIBLE else View.GONE
+        binding.layoutTripathDrivers.visibility = if (hasDrivers) View.VISIBLE else View.GONE
+        binding.viewTripathDivider.visibility =
+            if (hasChannels || hasDrivers) View.VISIBLE else View.GONE
+    }
+
+    /** "Sleep 82 · HRV 46 · Soreness 3/10" — whichever of the three TriPath actually has. */
+    private fun recoverySummary(day: TriPathDay): String = buildList {
+        day.sleepScore?.let { add(getString(R.string.readiness_sleep_score, it)) }
+            ?: day.sleepMinutes?.let {
+                add(getString(R.string.readiness_sleep_duration, it / 60, it % 60))
+            }
+        day.hrvRmssd?.let { add(getString(R.string.readiness_hrv, it)) }
+        day.soreness?.let { add(getString(R.string.readiness_soreness, it)) }
+    }.joinToString(" · ").ifEmpty { getString(R.string.readiness_no_recovery_data) }
+
+    /**
+     * One row per strain channel. The point of showing four rather than one number is that they
+     * disagree usefully: legs can be wrecked while the upper body is untouched.
+     */
+    private fun renderChannels(readiness: TriPathReadiness) {
+        binding.layoutTripathChannels.removeAllViews()
+
+        ReadinessPresentation.CHANNELS.forEach { channel ->
+            val freshness = channel.freshness(readiness) ?: return@forEach
+            addChannelRow(
+                label = getString(channel.labelRes),
+                value = getString(R.string.readiness_percent, freshness),
+                colorAttr = ReadinessPresentation.freshnessColorAttr(freshness),
+                clears = readiness.hoursToFresh[channel.key]
+                    ?.takeIf { it > 0 }
+                    ?.let { getString(R.string.readiness_channel_clears, ReadinessPresentation.formatHours(it)) }
+            )
+        }
+    }
+
+    private fun addChannelRow(label: String, value: String, colorAttr: Int, clears: String?) {
+        val row = ItemReadinessChannelRowBinding.inflate(
+            layoutInflater, binding.layoutTripathChannels, false
+        )
+        row.textChannelLabel.text = label
+        row.textChannelValue.text = value
+        row.textChannelValue.setTextColor(lpColor(colorAttr))
+        row.viewChannelDot.backgroundTintList =
+            ColorStateList.valueOf(lpColor(colorAttr))
+        row.textChannelClears.text = clears.orEmpty()
+        row.textChannelClears.visibility = if (clears == null) View.GONE else View.VISIBLE
+        binding.layoutTripathChannels.addView(row.root)
+    }
+
+    /** The ranked reasons behind the score — worst first, because that is what to act on. */
+    private fun renderDrivers(readiness: TriPathReadiness) {
+        val container = binding.layoutTripathDrivers
+        container.removeAllViews()
+
+        readiness.drivers
+            .filter { it.impact < 0 }
+            .sortedBy { it.impact }
+            .take(MAX_DRIVERS_SHOWN)
+            .forEach { driver ->
+            val row = ItemReadinessDriverBinding.inflate(layoutInflater, container, false)
+            row.textDriver.text = driver.detail
+            container.addView(row.root)
+        }
+    }
+
+    private companion object {
+        /** Enough drivers to explain the score without turning the card into a report. */
+        const val MAX_DRIVERS_SHOWN = 3
+    }
+}

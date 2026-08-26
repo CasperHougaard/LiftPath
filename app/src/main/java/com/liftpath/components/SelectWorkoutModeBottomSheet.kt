@@ -1,7 +1,6 @@
 package com.liftpath.components
 
 import android.app.Dialog
-import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
@@ -13,7 +12,6 @@ import android.view.Window
 import android.view.WindowManager
 import android.widget.ImageView
 import android.widget.TextView
-import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.DialogFragment
@@ -26,7 +24,7 @@ import com.liftpath.adapters.PlanSelectionAdapter
 import com.liftpath.helpers.DefaultStretchesHelper
 import com.liftpath.helpers.JsonHelper
 import com.liftpath.helpers.PlanRotationHelper
-import com.liftpath.helpers.lpColor
+import com.liftpath.helpers.applyChoiceChipStyle
 import com.liftpath.models.PlanSet
 import com.liftpath.models.TargetMuscle
 import com.liftpath.models.TrainingData
@@ -268,14 +266,14 @@ class SelectWorkoutModeBottomSheet : DialogFragment() {
             text = getString(R.string.stretch_area_full_body)
             isCheckable = true
             isChecked = true
-            styleAsChoiceChip()
+            applyChoiceChipStyle()
         }
         val areaChips = DefaultStretchesHelper.STRETCH_AREAS.keys.map { area ->
             Chip(requireContext()).apply {
                 id = View.generateViewId()
                 text = area
                 isCheckable = true
-                styleAsChoiceChip()
+                applyChoiceChipStyle()
             }
         }
 
@@ -312,21 +310,6 @@ class SelectWorkoutModeBottomSheet : DialogFragment() {
             dismiss()
             onStretchSelected?.invoke(muscles)
         }
-    }
-
-    /**
-     * Applies [R.style.Widget_LP_Chip_Choice] to a programmatically-created chip. XML-inflated
-     * chips get this via `style="@style/Widget.LP.Chip.Choice"`, but that attribute set only
-     * applies at inflation time, so chips built in code need it mirrored here.
-     */
-    private fun Chip.styleAsChoiceChip() {
-        setTextAppearance(R.style.TextAppearance_LP_Label)
-        chipBackgroundColor = ContextCompat.getColorStateList(context, R.color.lp_chip_background)
-        setTextColor(ContextCompat.getColorStateList(context, R.color.lp_chip_text))
-        chipStrokeColor = ColorStateList.valueOf(context.lpColor(R.attr.lpHairline))
-        chipStrokeWidth = resources.getDimension(R.dimen.lp_hairline_width)
-        chipCornerRadius = resources.getDimension(R.dimen.lp_radius_sm)
-        rippleColor = ColorStateList.valueOf(context.lpColor(R.attr.lpRipple))
     }
 
     /** Inline adapter for showing plan sets (rotations) in the plan list. */

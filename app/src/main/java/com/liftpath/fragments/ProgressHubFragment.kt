@@ -1,13 +1,13 @@
 package com.liftpath.fragments
 
+import android.content.Intent
 import android.os.Bundle
 import com.google.android.material.tabs.TabLayoutMediator
 import com.liftpath.R
 import com.liftpath.activities.MainActivity
+import com.liftpath.activities.SettingsActivity
 import com.liftpath.adapters.ProgressPagerAdapter
 import com.liftpath.databinding.FragmentProgressHubBinding
-import com.liftpath.helpers.TriPathConnection
-import com.liftpath.helpers.TriPathStorageHelper
 import com.liftpath.helpers.WithingsStorageHelper
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
@@ -39,12 +39,9 @@ class ProgressHubFragment : Fragment() {
 
     private fun setupViewPager() {
         val hasWithingsData = WithingsStorageHelper(requireContext()).hasData()
-        // Fuel only exists when TriPath is connected and has actually handed something over.
-        val hasTriPathData = TriPathConnection.isActive(requireContext()) &&
-            TriPathStorageHelper(requireContext()).hasData()
         // Fragment-based adapter, not activity-based: the pages must live in this fragment's
         // child FragmentManager or they would be orphaned when the tab is hidden.
-        val adapter = ProgressPagerAdapter(this, hasWithingsData, hasTriPathData)
+        val adapter = ProgressPagerAdapter(this, hasWithingsData)
         binding.viewPagerProgress.adapter = adapter
 
         // Connect TabLayout with ViewPager2. Titles come from the adapter's page list, since two
@@ -70,6 +67,10 @@ class ProgressHubFragment : Fragment() {
     }
 
     private fun setupClickListeners() {
+        binding.cardSettings.setOnClickListener {
+            startActivity(Intent(requireContext(), SettingsActivity::class.java))
+        }
+
         // A tab has nowhere to go back to; collapse the header's back button.
         binding.cardBack.visibility = View.GONE
     }

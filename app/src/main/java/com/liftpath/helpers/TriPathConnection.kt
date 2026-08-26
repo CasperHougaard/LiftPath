@@ -28,6 +28,8 @@ object TriPathConnection {
     /** What the provider reported about itself. */
     data class Handshake(
         val contractVersion: Int,
+        val schemaHash: String?,
+        val capabilities: List<String>,
         val appVersionName: String?,
         val workoutCount: Int,
         val latestWorkoutDate: String?,
@@ -39,6 +41,21 @@ object TriPathConnection {
          * which is why Settings surfaces the mismatch rather than failing silently.
          */
         val versionMatches: Boolean get() = contractVersion == TriPathContract.CONTRACT_VERSION
+
+        /**
+         * True when the column-level schemas agree too.
+         *
+         * The version number only catches drift somebody remembered to declare. A rename or a
+         * re-type made without bumping it still changes this hash, which is the whole point of
+         * carrying one.
+         */
+        val schemaMatches: Boolean get() = schemaHash == TriPathContract.schemaHash()
+
+        /**
+         * Whether TriPath advertises a feature. Consumers negotiate on these rather than on the
+         * version, so an unknown token hides a card instead of crashing on a missing column.
+         */
+        fun hasCapability(token: String): Boolean = capabilities.contains(token)
     }
 
     private fun prefs(context: Context) =
@@ -96,6 +113,12 @@ object TriPathConnection {
                     }
                     val result = Handshake(
                         contractVersion = cursor.optInt(TriPathContract.Handshake.CONTRACT_VERSION) ?: 0,
+                        schemaHash = cursor.optString(TriPathContract.Handshake.SCHEMA_HASH),
+                        capabilities = cursor.optString(TriPathContract.Handshake.CAPABILITIES)
+                            ?.split(",")
+                            ?.map { it.trim() }
+                            ?.filter { it.isNotEmpty() }
+                            ?: emptyList(),
                         appVersionName = cursor.optString(TriPathContract.Handshake.APP_VERSION_NAME),
                         workoutCount = cursor.optInt(TriPathContract.Handshake.WORKOUT_COUNT) ?: 0,
                         latestWorkoutDate = cursor.optString(TriPathContract.Handshake.LATEST_WORKOUT_DATE),

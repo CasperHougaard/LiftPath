@@ -1789,20 +1789,17 @@ class ActiveTrainingActivity : AppCompatActivity(), WatchLink.Host {
             currentExerciseEntries.clear()
             groupedExercises.clear()
 
-            val stretches = DefaultStretchesHelper.getStretchesFor(workedMuscles)
-            if (stretches.isEmpty()) {
-                startActivity(Intent(this, WorkoutReportActivity::class.java).apply {
-                    putExtra(WorkoutReportActivity.EXTRA_TRAINING_SESSION, newSession)
-                })
-            } else {
-                startActivity(Intent(this, StretchCooldownActivity::class.java).apply {
-                    putExtra(StretchCooldownActivity.EXTRA_TRAINING_SESSION, newSession)
-                    putStringArrayListExtra(
-                        StretchCooldownActivity.EXTRA_WORKED_MUSCLES,
-                        ArrayList(workedMuscles.map { it.name })
-                    )
-                })
-            }
+            // Always the setup screen, never the cool-down directly: it is where the athlete
+            // picks scope and hold time, and it is the only route to the report for someone who
+            // opts out. It shows even when this session worked no muscles — "Full body" is still
+            // a valid answer there — and forwards to the report itself when nothing resolves.
+            startActivity(Intent(this, StretchSetupActivity::class.java).apply {
+                putExtra(StretchSetupActivity.EXTRA_TRAINING_SESSION, newSession)
+                putStringArrayListExtra(
+                    StretchSetupActivity.EXTRA_WORKED_MUSCLES,
+                    ArrayList(workedMuscles.map { it.name })
+                )
+            })
 
             setResult(Activity.RESULT_OK)
             finish()

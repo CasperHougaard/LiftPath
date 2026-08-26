@@ -26,6 +26,7 @@ import android.view.View
 import com.liftpath.activities.EditCircuitActivity
 import com.liftpath.activities.EditExerciseActivity
 import com.liftpath.activities.ManageFavoritesActivity
+import com.liftpath.activities.SettingsActivity
 
 class LibraryFragment : Fragment() {
 
@@ -109,6 +110,10 @@ class LibraryFragment : Fragment() {
 
         binding.buttonAddCircuit.setOnClickListener {
             editCircuitLauncher.launch(Intent(requireContext(), EditCircuitActivity::class.java))
+        }
+
+        binding.cardSettings.setOnClickListener {
+            startActivity(Intent(requireContext(), SettingsActivity::class.java))
         }
 
         // A tab has nowhere to go back to; collapse the header's back button.

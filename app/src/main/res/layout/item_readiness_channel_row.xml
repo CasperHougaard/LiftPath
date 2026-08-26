@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  One strain channel on the readiness dashboard: what it is, when it clears, how fresh it is.
+
+  Four of these rather than one number because they disagree usefully — legs can be wrecked while
+  the upper body is untouched, and a single "readiness: 62" hides exactly that.
+
+  Inflated by ReadinessDashboardActivity.renderChannels rather than declared four times in the
+  dashboard layout: the channel set is TriPath's, not ours, so it can change with the contract
+  without touching a layout.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:baselineAligned="false"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingVertical="@dimen/lp_space_2">
+
+    <!-- Tinted at bind time from ReadinessPresentation.freshnessColorAttr. -->
+    <View
+        android:id="@+id/view_channel_dot"
+        android:layout_width="8dp"
+        android:layout_height="8dp"
+        android:layout_marginEnd="@dimen/lp_space_3"
+        android:background="@drawable/lp_dot"
+        android:backgroundTint="?attr/lpInkTertiary" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/text_channel_label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="@style/TextAppearance.LP.Label"
+            tools:text="Legs · impact" />
+
+        <!-- Hidden when the channel is already back at baseline; "0h to clear" is noise. -->
+        <TextView
+            android:id="@+id/text_channel_clears"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/lp_space_half"
+            android:textAppearance="@style/TextAppearance.LP.Caption"
+            android:visibility="gone"
+            tools:text="~14h to clear"
+            tools:visibility="visible" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/text_channel_value"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/lp_space_3"
+        android:textAppearance="@style/TextAppearance.LP.Metric.M"
+        tools:text="72%" />
+</LinearLayout>

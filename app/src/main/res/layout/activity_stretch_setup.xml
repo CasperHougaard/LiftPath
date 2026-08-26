@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The page that greets you the moment a workout is completed, between ActiveTrainingActivity
+  and the cool-down itself. Scope first (Auto is preselected, so Continue reproduces the old
+  behaviour of jumping straight into the stretches), then hold time, then a summary of what
+  Continue is actually about to do.
+
+  The summary and the button sit outside the scroll view: the count and estimate react to every
+  chip tap, and a figure you have to scroll to find cannot do that job.
+-->
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?attr/lpCanvas"
+    android:fitsSystemWindows="true"
+    tools:context=".activities.StretchSetupActivity">
+
+    <com.liftpath.views.AmbientFlowView
+        android:id="@+id/view_bg_ambient"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/scroll_content"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@android:color/transparent"
+        android:clipToPadding="false"
+        android:fillViewport="true"
+        app:layout_constraintBottom_toTopOf="@id/layout_footer"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="@dimen/lp_gutter">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/stretch_setup_title"
+                android:textAppearance="@style/TextAppearance.LP.Title" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/lp_space_half"
+                android:text="@string/stretch_setup_subtitle"
+                android:textAppearance="@style/TextAppearance.LP.Body" />
+
+            <!-- SCOPE -->
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.LP.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/lp_section_gap">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/lp_card_padding">
+
+                    <com.google.android.material.chip.ChipGroup
+                        android:id="@+id/chip_group_scope"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:chipSpacing="@dimen/lp_card_gap_dense"
+                        app:selectionRequired="true"
+                        app:singleSelection="true">
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chip_scope_auto"
+                            style="@style/Widget.LP.Chip.Choice"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/stretch_scope_auto" />
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chip_scope_full"
+                            style="@style/Widget.LP.Chip.Choice"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/stretch_scope_full" />
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chip_scope_specific"
+                            style="@style/Widget.LP.Chip.Choice"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/stretch_scope_specific" />
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chip_scope_none"
+                            style="@style/Widget.LP.Chip.Choice"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/stretch_scope_none" />
+                    </com.google.android.material.chip.ChipGroup>
+
+                    <TextView
+                        android:id="@+id/text_scope_caption"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/lp_space_3"
+                        android:textAppearance="@style/TextAppearance.LP.Caption"
+                        tools:text="One stretch per muscle group you trained today." />
+
+                    <!-- Areas: only meaningful for the Specific scope, so hidden otherwise
+                         rather than shown disabled. Chips are built in code from
+                         DefaultStretchesHelper.STRETCH_AREAS so the two cannot drift. -->
+                    <com.google.android.material.chip.ChipGroup
+                        android:id="@+id/chip_group_areas"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/lp_space_4"
+                        android:visibility="gone"
+                        app:chipSpacing="@dimen/lp_card_gap_dense"
+                        app:singleSelection="false" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- HOLD TIME -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_hold"
+                style="@style/Widget.LP.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/lp_card_gap">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/lp_card_padding">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/stretch_setup_hold_title"
+                        android:textAppearance="@style/TextAppearance.LP.Heading" />
+
+                    <TextView
+                        android:id="@+id/text_hold_caption"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/lp_space_half"
+                        android:textAppearance="@style/TextAppearance.LP.Caption"
+                        tools:text="25–45s per stretch, as written." />
+
+                    <com.google.android.material.chip.ChipGroup
+                        android:id="@+id/chip_group_hold"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/lp_space_3"
+                        app:chipSpacing="@dimen/lp_card_gap_dense"
+                        app:selectionRequired="true"
+                        app:singleSelection="true" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <LinearLayout
+        android:id="@+id/layout_footer"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/lp_gutter"
+        android:layout_marginEnd="@dimen/lp_gutter"
+        android:layout_marginBottom="@dimen/lp_gutter"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <TextView
+            android:id="@+id/text_summary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/lp_space_2"
+            android:gravity="center"
+            android:textAppearance="@style/TextAppearance.LP.Label"
+            android:textColor="?attr/lpInkSecondary"
+            tools:text="8 stretches · ≈ 7 min" />
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/button_continue"
+            style="@style/Widget.LP.Card.Action"
+            android:layout_width="match_parent"
+            android:layout_height="52dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="@string/stretch_setup_button_continue"
+                android:textAppearance="@style/TextAppearance.LP.Button"
+                android:textColor="?attr/lpInkInverse" />
+        </com.google.android.material.card.MaterialCardView>
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -71,6 +71,11 @@ data class TriPathDay(
     /** TDEE: resting baseline + training burn. */
     val expenditureKcal: Float? = null,
     val balanceKcal: Float? = null,
+    /** Goal- and training-aware targets from TriPath's fuel model. Null before contract v2. */
+    val targetKcal: Float? = null,
+    val targetProteinG: Float? = null,
+    /** (intake − exercise) / kg fat-free mass. A screening signal, never a diagnosis. */
+    val energyAvailability: Float? = null,
     val weightKg: Float? = null,
     val sleepMinutes: Int? = null,
     val sleepScore: Int? = null,
@@ -104,5 +109,57 @@ data class TriPathWorkout(
 data class TriPathStorage(
     var lastSyncTime: Long = 0L,
     var days: List<TriPathDay> = emptyList(),
-    var workouts: List<TriPathWorkout> = emptyList()
+    var workouts: List<TriPathWorkout> = emptyList(),
+    /** TriPath's readiness verdict. Null until a sync against a contract-v2 TriPath has run. */
+    var readiness: TriPathReadiness? = null
+)
+
+/**
+ * TriPath's readiness verdict, as handed over rather than recomputed.
+ *
+ * TriPath sees every discipline, plus sleep, fuelling and body composition; LiftPath sees lifting.
+ * So the verdict is TriPath's to make, and this is a carrier for it — nothing here interprets or
+ * adjusts the numbers.
+ *
+ * [drivers] is what makes it usable: a score with no explanation is the thing this replaces.
+ */
+data class TriPathReadiness(
+    val score: Int,
+    /** FRESH / READY / COMPROMISED / DEPLETED. */
+    val band: String,
+    /** GO / MODERATE / EASY / REST. */
+    val action: String,
+    /** 0-100 per strain channel, where 100 is back at the athlete's habitual load. */
+    val lowerImpactFreshness: Int? = null,
+    val lowerMuscularFreshness: Int? = null,
+    val upperMuscularFreshness: Int? = null,
+    val systemicFreshness: Int? = null,
+    /** Channel name to hours until it returns to baseline. */
+    val hoursToFresh: Map<String, Int> = emptyMap(),
+    val drivers: List<TriPathDriver> = emptyList(),
+    val disciplineVerdicts: List<TriPathDisciplineVerdict> = emptyList(),
+    /** Muscle-group name to freshness 0-100. */
+    val muscleFreshness: Map<String, Int> = emptyMap(),
+    val guidance: String? = null,
+    /**
+     * This week's load against last week's, as a percentage. Descriptive only — TriPath is explicit
+     * that a recent-to-chronic load ratio is not a validated injury predictor, so it is shown and
+     * never acted on.
+     */
+    val weeklyLoadRampPct: Float? = null,
+    val computedAt: Long = 0L
+)
+
+/** One reason the score is what it is. Negative [impact] means it is pulling the score down. */
+data class TriPathDriver(
+    val label: String,
+    val detail: String,
+    val impact: Double
+)
+
+/** Whether one discipline is a good idea today, in TriPath's judgement. */
+data class TriPathDisciplineVerdict(
+    val discipline: String,
+    val action: String,
+    val reason: String
 )

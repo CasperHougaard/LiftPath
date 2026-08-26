@@ -53,7 +53,10 @@ object BackupManager {
         // it is a user choice, not device wiring, so it should survive a phone swap.
         "appearance_settings",
         // Per-equipment weight ladders. Describes the user's gym, not this device.
-        WeightIncrementSettingsManager.PREFS_NAME
+        WeightIncrementSettingsManager.PREFS_NAME,
+        // Cool-down scope, chosen areas and hold multiplier. How this athlete stretches,
+        // not anything about this handset.
+        StretchSettingsManager.PREFS_NAME
     )
 
     /**

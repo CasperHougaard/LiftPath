@@ -48,6 +48,21 @@ class BackupManagerTest {
         )
     }
 
+    /**
+     * Same contract again: the cool-down scope, chosen areas and hold multiplier are how this
+     * athlete stretches, not anything about the handset, so they must survive a phone swap
+     * rather than resetting everyone to Auto at 1×.
+     */
+    @Test
+    fun `stretch prefs are covered by the backup contract`() {
+        assertTrue(
+            "StretchSettingsManager.PREFS_NAME ('${StretchSettingsManager.PREFS_NAME}') is " +
+                "missing from BackupManager.BACKED_UP_PREFS. See the Backup Coverage Contract " +
+                "in CLAUDE.md.",
+            BackupManager.BACKED_UP_PREFS.contains(StretchSettingsManager.PREFS_NAME)
+        )
+    }
+
     private fun bundleWithTrainingData(
         formatVersion: Int = BackupBundle.CURRENT_FORMAT_VERSION
     ): BackupBundle = BackupBundle(

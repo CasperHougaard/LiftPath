@@ -26,6 +26,7 @@ import android.view.ViewGroup
 import android.view.View
 import com.liftpath.activities.EditWorkoutPlanActivity
 import com.liftpath.activities.PlanSetActivity
+import com.liftpath.activities.SettingsActivity
 import com.liftpath.helpers.TrainingDataTransfer
 
 class PlanFragment : Fragment() {
@@ -185,6 +186,10 @@ class PlanFragment : Fragment() {
 
         binding.buttonPlanRotations.setOnClickListener {
             startActivity(Intent(requireContext(), PlanSetActivity::class.java))
+        }
+
+        binding.cardSettings.setOnClickListener {
+            startActivity(Intent(requireContext(), SettingsActivity::class.java))
         }
 
         binding.buttonMoreOptions.setOnClickListener { anchor ->

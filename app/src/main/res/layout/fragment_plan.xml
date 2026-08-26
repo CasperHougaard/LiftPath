@@ -53,13 +53,31 @@
                     app:tint="?attr/lpInk" />
             </com.google.android.material.card.MaterialCardView>
 
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_settings"
+                style="@style/Widget.LP.Card.Control"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginEnd="@dimen/lp_space_2"
+                app:layout_constraintEnd_toStartOf="@id/button_more_options"
+                app:layout_constraintTop_toTopOf="parent">
+
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:contentDescription="@string/settings"
+                    android:padding="@dimen/lp_space_3"
+                    android:src="@drawable/ic_settings"
+                    app:tint="?attr/lpInkSecondary" />
+            </com.google.android.material.card.MaterialCardView>
+
             <LinearLayout
                 android:id="@+id/header_container"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="@dimen/lp_space_2"
                 android:orientation="vertical"
-                app:layout_constraintEnd_toStartOf="@id/button_more_options"
+                app:layout_constraintEnd_toStartOf="@id/card_settings"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent">
 

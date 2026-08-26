@@ -560,10 +560,41 @@ Leave blank if you\'re not sure.]]></string>
     <string name="tab_sessions">Sessions</string>
     <string name="tab_prs">PRs</string>
     <string name="tab_body_scan">Body Scan</string>
-    <string name="tab_fuel">Fuel</string>
 
     <!-- TriPath integration (only visible when the TriPath app is connected) -->
     <string name="tripath_card_title">FROM TRIPATH</string>
+    <!-- Which model produced the readiness numbers. Always shown, so an athlete is never silently
+         switched between TriPath's verdict and LiftPath's own offline model. -->
+    <string name="readiness_source_tripath">Source: TriPath · updated %1$s</string>
+    <string name="readiness_source_local">Source: LiftPath (local fallback) — connect TriPath for the full picture</string>
+    <string name="readiness_ramp">Load this week %1$+.0f%% vs last week (for information only)</string>
+
+    <!-- The four strain channels TriPath reports. Shown as rows on the dashboard and as a tile
+         strip on the Workout tab's readiness card; the wording has to work at both sizes. -->
+    <!-- No middot: on the home card these sit in four ~70dp columns and wrap onto a second line,
+         and a separator stranded at the end of line one reads as a typo. -->
+    <string name="readiness_channel_lower_impact">Legs impact</string>
+    <string name="readiness_channel_lower_muscular">Legs muscular</string>
+    <string name="readiness_channel_upper">Upper body</string>
+    <string name="readiness_channel_systemic">Systemic</string>
+    <string name="readiness_channel_clears">~%1$s to clear</string>
+    <!-- 0-100, where 100 is back at the athlete's habitual load. -->
+    <string name="readiness_percent">%1$d%%</string>
+
+    <!-- The Workout tab's readiness card. Only present when TriPath is connected — see
+         TriPathConnection.isActive. -->
+    <string name="readiness_home_eyebrow">Readiness</string>
+    <string name="readiness_home_hint">Dashboard</string>
+    <string name="cd_readiness_open_dashboard">Open the readiness dashboard</string>
+    <!-- Shown instead of a verdict when a connected TriPath is too old to send one. -->
+    <string name="readiness_form_label">Form</string>
+    <string name="readiness_fitness_label">Fitness</string>
+    <string name="readiness_fatigue_label">Fatigue</string>
+    <string name="readiness_no_recovery_data">No recovery data logged</string>
+    <string name="readiness_sleep_score">Sleep %1$d</string>
+    <string name="readiness_sleep_duration">Sleep %1$dh %2$dm</string>
+    <string name="readiness_hrv">HRV %1$.0f</string>
+    <string name="readiness_soreness">Soreness %1$d/10</string>
     <string name="tripath_settings_title">TriPath</string>
     <string name="tripath_not_installed">TriPath is not installed on this device.\n\nInstall it to let its cardio load, sleep and HRV data sharpen LiftPath\'s fatigue model.</string>
     <string name="tripath_disabled">TriPath is installed but not connected.\n\nConnecting lets LiftPath read your training load, recovery and energy figures. Nothing is sent back.</string>
@@ -579,15 +610,6 @@ Leave blank if you\'re not sure.]]></string>
     <string name="tripath_sync_success">Synced %1$d days from TriPath</string>
 
     <!-- Progress: Fuel page -->
-    <string name="fuel_title">Energy balance</string>
-    <string name="fuel_intake">Intake</string>
-    <string name="fuel_expenditure">Expenditure</string>
-    <string name="fuel_balance">Balance</string>
-    <string name="fuel_window_label">Last %1$d days</string>
-    <string name="fuel_under_fueled">%1$d of %2$d days more than 300 kcal under expenditure</string>
-    <string name="fuel_lift_burn_title">Lifting burn — cross-check</string>
-    <string name="fuel_lift_burn_explainer">LiftPath estimates your lifting sessions from duration and bodyweight; TriPath counts what its own sources recorded. Large gaps mean one of them is not seeing your sessions.</string>
-    <string name="fuel_no_data">No TriPath energy data for this window yet.</string>
 
     <!-- Progress Overview -->
     <string name="progress_recent_prs">Recent PRs</string>
@@ -860,6 +882,26 @@ Leave blank if you\'re not sure.]]></string>
     <string name="stretch_side_right">Right Side</string>
     <string name="stretch_pause_content_description">Pause</string>
     <string name="stretch_resume_content_description">Resume</string>
+
+    <!-- Stretch setup (shown once, right after a workout is completed) -->
+    <string name="stretch_setup_title">Cool down</string>
+    <string name="stretch_setup_subtitle">Nice work. How much stretching?</string>
+    <string name="stretch_scope_auto">Auto</string>
+    <string name="stretch_scope_auto_caption">One stretch per muscle group you trained today.</string>
+    <string name="stretch_scope_full">Full body</string>
+    <string name="stretch_scope_full_caption">Every stretch in the catalogue, head to toe.</string>
+    <string name="stretch_scope_specific">Specific</string>
+    <string name="stretch_scope_specific_caption">Pick the areas you want to stretch.</string>
+    <string name="stretch_scope_none">No stretching</string>
+    <string name="stretch_scope_none_caption">Skip the cool-down and go straight to your report.</string>
+    <string name="stretch_setup_hold_title">Hold time</string>
+    <string name="stretch_setup_hold_scale">%1$s×</string>
+    <string name="stretch_setup_hold_caption">%1$d–%2$ds per stretch</string>
+    <string name="stretch_setup_hold_caption_single">%1$ds per stretch</string>
+    <string name="stretch_setup_summary">%1$d stretches · ≈ %2$d min</string>
+    <string name="stretch_setup_summary_one">1 stretch · ≈ %1$d min</string>
+    <string name="stretch_setup_summary_empty">No stretches — straight to your report.</string>
+    <string name="stretch_setup_button_continue">Continue</string>
 
     <!-- Backup &amp; Sync -->
     <string name="backup_section_title">Backup &amp; Sync</string>
@@ -1252,22 +1294,36 @@ Leave blank if you\'re not sure.]]></string>
     <string name="readiness_dashboard_title">Readiness dashboard</string>
     <string name="readiness_dashboard_subtitle">Recovery status for your next activities</string>
     <string name="cd_calibration_settings">Calibration settings</string>
-    <string name="readiness_last_workout_summary_title">Last Workout Summary</string>
-    <string name="readiness_workout_date_placeholder">Date: --</string>
-    <string name="readiness_lower_fatigue_label">Lower Fatigue</string>
-    <string name="readiness_upper_fatigue_label">Upper Fatigue</string>
-    <string name="readiness_systemic_fatigue_label">Systemic Fatigue</string>
-    <string name="readiness_activity_readiness_title">Activity Readiness</string>
+    <string name="readiness_last_workout_summary_title">Last workout</string>
+    <string name="readiness_workout_date_placeholder">--</string>
+    <string name="readiness_lower_fatigue_label">Lower</string>
+    <string name="readiness_upper_fatigue_label">Upper</string>
+    <string name="readiness_systemic_fatigue_label">Systemic</string>
+    <string name="readiness_activity_readiness_title">Activity readiness</string>
     <string name="readiness_use_health_connect_label">Use Health Connect</string>
-    <string name="readiness_run_cycle_title">🏃 Run / Cycle</string>
-    <string name="readiness_swim_title">🏊 Swim</string>
-    <string name="readiness_lower_lift_title">🏋️‍♂️ Lower Body Lift</string>
-    <string name="readiness_upper_lift_title">💪 Upper Body Lift</string>
-    <string name="readiness_calendar_title">7-Day Fatigue Calendar</string>
-    <string name="readiness_current_fatigue_decay_label">Current Fatigue (with decay)</string>
-    <string name="readiness_export_fatigue_data">📊 Export Fatigue Data to JSON</string>
-    <string name="readiness_sync_health_connect">🔗 Sync Health Connect Activities</string>
-    <string name="readiness_empty_state">No workouts found. Complete a workout to see readiness status.</string>
+    <!-- The four activity verdicts. Plain names, no emoji: status is carried by the coloured dot
+         and label beside each title, and a glyph on top of that doubles the signal. -->
+    <string name="readiness_run_cycle_title">Run / cycle</string>
+    <string name="readiness_swim_title">Swim</string>
+    <string name="readiness_lower_lift_title">Lower body lift</string>
+    <string name="readiness_upper_lift_title">Upper body lift</string>
+    <string name="readiness_status_ready">Ready</string>
+    <string name="readiness_status_caution">Caution</string>
+    <string name="readiness_status_blocked">Blocked</string>
+    <string name="readiness_ready_now">Ready now</string>
+    <string name="readiness_ready_in_hours">Ready in %1$dh %2$dm</string>
+    <string name="readiness_ready_in_minutes">Ready in %1$dm</string>
+    <string name="readiness_calendar_title">7-day fatigue</string>
+    <string name="readiness_calendar_hint">Tap for the full curve</string>
+    <string name="readiness_calendar_hint_collapse">Tap to collapse</string>
+    <string name="readiness_current_fatigue_decay_label">Current fatigue, with decay</string>
+    <string name="readiness_fatigue_row_raw">Raw %1$s</string>
+    <string name="readiness_fatigue_row_end">End %1$s</string>
+    <string name="readiness_data_sources_title">Data sources</string>
+    <string name="readiness_export_fatigue_data">Export fatigue data</string>
+    <string name="readiness_sync_health_connect">Sync Health Connect activities</string>
+    <string name="readiness_empty_state_title">No workouts yet</string>
+    <string name="readiness_empty_state">Complete a workout and this page will start tracking what it cost you.</string>
 
     <!-- ===== Readiness calibration ===== -->
     <string name="readiness_calibration_title">Readiness calibration</string>

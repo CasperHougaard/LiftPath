@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  One day in the readiness dashboard's 7-day fatigue strip.
+
+  Replaces a cell that was assembled in Kotlin with raw textSize / Typeface.BOLD calls and an
+  HSV-interpolated circle colour. Neither followed the selected palette: an HSV red is the same red
+  in all four, and a hard-coded 12sp is not on the type scale. The dot is now tinted from
+  ReadinessPresentation.fatigueColorAttr, which reads the athlete's calibrated thresholds.
+
+  layout_width is set by the inflating code (equal weights across the week), not here.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:gravity="center_horizontal"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/text_day_letter"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="@style/TextAppearance.LP.Caption"
+        tools:text="M" />
+
+    <!-- Mono: seven of these sit in a row and must not shuffle sideways between 8 and 28. -->
+    <TextView
+        android:id="@+id/text_day_number"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/lp_space_half"
+        android:textAppearance="@style/TextAppearance.LP.Metric.S"
+        tools:text="18" />
+
+    <TextView
+        android:id="@+id/text_day_fatigue"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/lp_space_1"
+        android:textAppearance="@style/TextAppearance.LP.Metric.M"
+        tools:text="42" />
+
+    <!-- Tinted at bind time from ReadinessPresentation.fatigueColorAttr. -->
+    <View
+        android:id="@+id/view_day_dot"
+        android:layout_width="8dp"
+        android:layout_height="8dp"
+        android:layout_marginTop="@dimen/lp_space_2"
+        android:background="@drawable/lp_dot"
+        android:backgroundTint="?attr/lpHairlineStrong" />
+</LinearLayout>

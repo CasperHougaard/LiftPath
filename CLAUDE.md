@@ -192,10 +192,22 @@ sideloaded integration: **one-way pull, and entirely optional.**
 
 `TriPathConnection.isActive(context)` is the only gate. It is false unless TriPath is installed,
 its provider answered a handshake, *and* the user connected it in Settings. When false, LiftPath
-must behave exactly as it did before this feature existed — no TriPath card on the readiness
-dashboard, no Fuel page in Progress, and a fatigue curve built from Health Connect alone. Any new
-consumer goes through that gate, and through `ExternalLoadProvider` rather than reading storage
-directly.
+must behave exactly as it did before this feature existed — no readiness card on the Workout tab,
+no verdict card on the readiness dashboard, and a fatigue curve built from Health Connect alone.
+Any new consumer goes through that gate, and through `ExternalLoadProvider` rather than reading
+storage directly.
+
+**Readiness is TriPath's verdict, not LiftPath's opinion of it.** TriPath sees every discipline
+plus sleep, fuelling and body composition; LiftPath sees lifting. So both surfaces *render* the
+verdict and neither adjusts it, and the source line on the dashboard card is not optional — an
+athlete must never be silently switched between two models that can disagree. Which token a figure
+wears is shared in `helpers/ReadinessPresentation.kt` for the same reason: a green score on the
+Workout tab that turns amber one tap later is the app disagreeing with itself.
+
+A connected TriPath too old to advertise `CAP_READINESS_V1` sends no verdict. Both cards then fall
+back to the load figures it *did* send (form / fitness / fatigue) in the same card shape, rather
+than to LiftPath's own model — that model still runs, but only behind the dashboard's activity
+grid and fatigue curve, where it is labelled as local.
 
 **The contract is duplicated in two repos** — there is no shared module:
 
@@ -231,8 +243,9 @@ dropped — that load is LiftPath's own, from actual sets and RPE.
 | `helpers/TriPathStorageHelper.kt` | `tripath_data.json` cache (registered in `BackupManager`) |
 | `helpers/TriPathFatigueMapper.kt` | TSS → fatigue, sleep/HRV → recovery factor, TSB → thresholds |
 | `helpers/ExternalLoadProvider.kt` | Single merged, deduplicated source of external load |
-| `helpers/LiftingBurnEstimator.kt` | LiftPath's own kcal estimate, for cross-checking TriPath's |
-| `fragments/ProgressFuelFragment.kt` | Progress > Fuel (conditional page) |
+| `helpers/ReadinessPresentation.kt` | Score/freshness/fatigue → design token, shared by both cards |
+| `fragments/WorkoutFragment.kt` | Workout tab readiness card (conditional) → the dashboard |
+| `activities/ReadinessDashboardActivity.kt` | The verdict card (conditional) + the local model |
 
 ## Circuit Contract
 

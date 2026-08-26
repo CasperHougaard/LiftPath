@@ -23,6 +23,7 @@ import com.liftpath.R
 import com.liftpath.databinding.ActivityStretchCooldownBinding
 import com.liftpath.helpers.BluetoothBeepHelper
 import com.liftpath.helpers.DefaultStretchesHelper
+import com.liftpath.helpers.StretchSettingsManager
 import com.liftpath.models.Laterality
 import com.liftpath.models.StretchItem
 import com.liftpath.models.TargetMuscle
@@ -32,7 +33,9 @@ class StretchCooldownActivity : AppCompatActivity() {
 
     private enum class StretchState { WAITING, COUNTDOWN, STRETCHING }
     private enum class Side { LEFT, RIGHT }
-    private data class StretchStep(val stretch: StretchItem, val side: Side?)
+    /** [holdSeconds] is the stretch's authored duration already scaled by the user's hold
+     *  multiplier. Baked in at build time so the timer maths never has to know about it. */
+    private data class StretchStep(val stretch: StretchItem, val side: Side?, val holdSeconds: Int)
 
     private lateinit var binding: ActivityStretchCooldownBinding
     private var session: TrainingSession? = null
@@ -58,7 +61,16 @@ class StretchCooldownActivity : AppCompatActivity() {
         const val EXTRA_WORKED_MUSCLES   = "extra_worked_muscles"
         /** When true, the screen runs without a session and finishing returns to the caller. */
         const val EXTRA_STANDALONE       = "extra_standalone"
-        private const val READINESS_SECONDS = 5
+        /**
+         * Run the whole catalogue instead of a set-cover of [EXTRA_WORKED_MUSCLES].
+         *
+         * Not expressible by passing every muscle: [DefaultStretchesHelper.getStretchesFor] is a
+         * greedy set-cover, so it would still drop every stretch whose muscles an earlier one
+         * already covers. "Full body" has to mean [DefaultStretchesHelper.ALL_STRETCHES] verbatim.
+         */
+        const val EXTRA_ALL_STRETCHES    = "extra_all_stretches"
+        /** Read by [StretchSetupActivity] to estimate how long a cool-down will take. */
+        const val READINESS_SECONDS = 5
         private const val STRETCH_DONE_CHANNEL_ID = "StretchDoneChannel"
         private const val STRETCH_DONE_NOTIFICATION_ID = 1101
         private const val STRETCH_DONE_AUTO_DISMISS_MS = 2500L
@@ -105,12 +117,21 @@ class StretchCooldownActivity : AppCompatActivity() {
             .mapNotNull { name -> runCatching { TargetMuscle.valueOf(name) }.getOrNull() }
             .toSet()
 
-        val stretches = DefaultStretchesHelper.getStretchesFor(workedMuscles)
+        val stretches = if (intent.getBooleanExtra(EXTRA_ALL_STRETCHES, false)) {
+            DefaultStretchesHelper.ALL_STRETCHES
+        } else {
+            DefaultStretchesHelper.getStretchesFor(workedMuscles)
+        }
+
+        // From prefs rather than an intent extra, so a standalone stretch session launched from
+        // the Workout tab honours the same multiplier without needing to know about it.
+        val holdScale = StretchSettingsManager.holdScale(this)
         steps = stretches.flatMap { stretch ->
+            val hold = StretchSettingsManager.scaledHold(stretch.durationSeconds, holdScale)
             if (stretch.laterality == Laterality.UNILATERAL)
-                listOf(StretchStep(stretch, Side.LEFT), StretchStep(stretch, Side.RIGHT))
+                listOf(StretchStep(stretch, Side.LEFT, hold), StretchStep(stretch, Side.RIGHT, hold))
             else
-                listOf(StretchStep(stretch, null))
+                listOf(StretchStep(stretch, null, hold))
         }
         if (steps.isEmpty()) { finishFlow(); return }
 
@@ -119,8 +140,8 @@ class StretchCooldownActivity : AppCompatActivity() {
         binding.buttonPause.setOnClickListener { togglePause() }
         binding.buttonNext.setOnClickListener {
             when (stretchState) {
-                StretchState.WAITING   -> startActualCountdown(steps[currentIndex].stretch.durationSeconds)
-                StretchState.COUNTDOWN -> startActualCountdown(steps[currentIndex].stretch.durationSeconds)
+                StretchState.WAITING   -> startActualCountdown(steps[currentIndex].holdSeconds)
+                StretchState.COUNTDOWN -> startActualCountdown(steps[currentIndex].holdSeconds)
                 StretchState.STRETCHING -> advanceOrFinish()
             }
         }
@@ -147,7 +168,7 @@ class StretchCooldownActivity : AppCompatActivity() {
             applyState(StretchState.WAITING)
             binding.textButtonNext.text = getString(R.string.stretch_button_ready)
         } else {
-            startReadinessCountdown(stretch.durationSeconds)
+            startReadinessCountdown(step.holdSeconds)
         }
     }
 

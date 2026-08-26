@@ -65,6 +65,17 @@ object DefaultStretchesHelper {
     )
 
     /**
+     * How many holds a stretch amounts to: a unilateral one is done once per side.
+     *
+     * Shared because three places count the same thing — the cool-down's step list, its
+     * "Stretch 3 of 12" label, and the duration estimate on the setup screen — and a summary
+     * that promised 24 holds before a screen that then counted 42 would be worse than no
+     * summary at all.
+     */
+    fun holdCount(stretch: StretchItem): Int =
+        if (stretch.laterality == Laterality.UNILATERAL) 2 else 1
+
+    /**
      * Returns deduplicated stretches covering the given worked muscles.
      * Uses greedy set-cover: a stretch is included only if it covers at least one
      * muscle not yet addressed by an earlier stretch in the list.

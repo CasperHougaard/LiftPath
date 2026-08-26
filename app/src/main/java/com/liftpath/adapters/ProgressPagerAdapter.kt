@@ -12,14 +12,18 @@ import com.liftpath.fragments.*
  * its pages must live in the hub fragment's *child* FragmentManager, or they would be
  * orphaned when the tab is hidden and leak when it is shown again.
  *
- * Two pages are conditional — Body Scan needs Withings data, Fuel needs a connected TriPath — so
- * positions are not fixed. [pages] is the source of truth for what is where; the hub reads it for
- * tab titles rather than assuming an index.
+ * Body Scan is conditional — it needs Withings data — so positions are not fixed. [pages] is the
+ * source of truth for what is where; the hub reads it for tab titles rather than assuming an index.
+ *
+ * There was also a Fuel page here, showing TriPath's energy balance next to LiftPath's own guess at
+ * a lifting burn. It existed because nothing flowed the other way: LiftPath could read TriPath but
+ * TriPath could not see a single set. Now that it can, fuelling is TriPath's to present — it has the
+ * nutrition log, the body scans and every discipline's load — and a second, worse copy here would
+ * only ever disagree with it.
  */
 class ProgressPagerAdapter(
     fragment: Fragment,
-    val hasWithingsData: Boolean = false,
-    val hasTriPathData: Boolean = false
+    val hasWithingsData: Boolean = false
 ) : FragmentStateAdapter(fragment) {
 
     enum class Page(val titleRes: Int) {
@@ -28,8 +32,7 @@ class ProgressPagerAdapter(
         MUSCLES(R.string.tab_muscles),
         SESSIONS(R.string.tab_sessions),
         PRS(R.string.tab_prs),
-        BODY_SCAN(R.string.tab_body_scan),
-        FUEL(R.string.tab_fuel)
+        BODY_SCAN(R.string.tab_body_scan)
     }
 
     /** The pages actually shown, in order. Conditional ones are simply absent. */
@@ -40,7 +43,6 @@ class ProgressPagerAdapter(
         add(Page.SESSIONS)
         add(Page.PRS)
         if (hasWithingsData) add(Page.BODY_SCAN)
-        if (hasTriPathData) add(Page.FUEL)
     }
 
     override fun getItemCount(): Int = pages.size
@@ -52,7 +54,6 @@ class ProgressPagerAdapter(
         Page.SESSIONS -> ProgressSessionsFragment()
         Page.PRS -> ProgressPRsFragment()
         Page.BODY_SCAN -> ProgressWithingsFragment()
-        Page.FUEL -> ProgressFuelFragment()
     }
 
     /** Position of [page], or null when it is not currently shown. */

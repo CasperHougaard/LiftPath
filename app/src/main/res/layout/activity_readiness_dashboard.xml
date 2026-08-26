@@ -1,4 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Readiness dashboard. Reached from the Workout tab's readiness card (when TriPath is connected)
+  and from Settings > Training.
+
+  Read top to bottom, it answers one question and then shows its working:
+
+    1. what does today's verdict say?  → the verdict card. TriPath's, when connected — it sees every
+                                         discipline, sleep and fuelling where LiftPath sees lifting.
+                                         Gone entirely when TriPath is not connected, per the
+                                         TriPath Integration Contract.
+    2. can I do this specific thing?    → the four activity cards
+    3. why?                             → last workout's cost, and the 7-day fatigue strip
+    4. where is this coming from?       → data sources
+
+  Restyled from a layout that predated the design system in three ways worth naming, because each
+  was invisible in one palette and loud in another:
+    · the activity cards had their background recoloured in code per status, on top of a coloured
+      status label. A coloured panel plus a coloured label is the same signal twice; the panel is
+      gone and a dot carries it.
+    · the calendar cells and the fatigue list were assembled in Kotlin at raw textSize / BOLD, so
+      they sat off the type scale. They are item_readiness_day / item_readiness_fatigue_row now.
+    · the two action buttons were cards with an emoji baked into the string. They are Widget.LP.Row
+      list rows in a Data sources card, matching Settings.
+-->
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -32,7 +56,8 @@
             android:orientation="vertical"
             android:padding="@dimen/lp_gutter">
 
-            <!-- HEADER -->
+            <!-- ==================== HEADER ==================== -->
+
             <LinearLayout
                 android:id="@+id/header_container"
                 android:layout_width="match_parent"
@@ -99,15 +124,20 @@
                 </com.google.android.material.card.MaterialCardView>
             </LinearLayout>
 
-            <!-- LAST WORKOUT SUMMARY CARD -->
+            <!-- ==================== VERDICT ====================
+                 TriPath's readiness verdict, promoted to the top of the page: when it is present it
+                 IS the answer, and everything below it is the working. GONE unless the integration
+                 is connected (TriPathConnection.isActive) — with TriPath absent this page behaves
+                 exactly as it did before the integration existed. -->
+
             <com.google.android.material.card.MaterialCardView
-                android:id="@+id/card_last_workout"
+                android:id="@+id/card_tripath"
                 style="@style/Widget.LP.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/lp_space_6"
-                android:clickable="false"
-                android:focusable="false">
+                android:visibility="gone"
+                tools:visibility="visible">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -118,372 +148,585 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/readiness_last_workout_summary_title"
+                        android:text="@string/tripath_card_title"
+                        android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+                    <!-- Score and band on one baseline: the number is the headline, the band is
+                         what it means, and splitting them across two lines makes the reader do the
+                         joining. Recoloured in code from ReadinessPresentation.scoreColorAttr. -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/lp_space_2"
+                        android:baselineAligned="true"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/text_tripath_score"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/placeholder_dash"
+                            android:textAppearance="@style/TextAppearance.LP.Metric.L"
+                            tools:text="72" />
+
+                        <TextView
+                            android:id="@+id/text_tripath_band"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="@dimen/lp_space_3"
+                            android:layout_weight="1"
+                            android:textAppearance="@style/TextAppearance.LP.Heading"
+                            tools:text="Ready" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/text_tripath_guidance"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/lp_space_2"
+                        android:textAppearance="@style/TextAppearance.LP.Body"
+                        android:textColor="?attr/lpInk"
+                        tools:text="Go — legs are clear and systemic load is where it should be." />
+
+                    <!-- Gone along with everything it separates: a verdict with no channels and
+                         no negative drivers would otherwise leave a rule under the guidance line
+                         with nothing beneath it. -->
+                    <View
+                        android:id="@+id/view_tripath_divider"
+                        style="@style/Widget.LP.Divider"
+                        android:layout_marginTop="@dimen/lp_space_4" />
+
+                    <!-- One item_readiness_channel_row per strain channel, filled in code so the
+                         set can change with the contract without touching this layout. -->
+                    <LinearLayout
+                        android:id="@+id/layout_tripath_channels"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/lp_space_2"
+                        android:orientation="vertical" />
+
+                    <!-- Why the score is what it is. Without this it is just another magic
+                         number. Gone when nothing is dragging the score down. -->
+                    <LinearLayout
+                        android:id="@+id/layout_tripath_drivers"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/lp_space_3"
+                        android:orientation="vertical" />
+
+                    <TextView
+                        android:id="@+id/text_tripath_effect"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/lp_space_3"
+                        android:textAppearance="@style/TextAppearance.LP.Caption"
+                        android:visibility="gone"
+                        tools:text="Load this week +12% vs last week (for information only)"
+                        tools:visibility="visible" />
+
+                    <!-- Which model produced the numbers above. Always shown: an athlete must never
+                         be silently switched between TriPath's verdict and LiftPath's own. -->
+                    <TextView
+                        android:id="@+id/text_tripath_source"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/lp_space_2"
+                        android:text="@string/readiness_source_local"
+                        android:textAppearance="@style/TextAppearance.LP.Caption" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ==================== ACTIVITY READINESS ==================== -->
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/lp_section_gap"
+                android:text="@string/readiness_activity_readiness_title"
+                android:textAppearance="@style/TextAppearance.LP.Heading" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/lp_space_3"
+                android:baselineAligned="false"
+                android:orientation="horizontal">
+
+                <!-- Run / cycle -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/card_run_cycle"
+                    style="@style/Widget.LP.Card"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginEnd="@dimen/lp_card_gap"
+                    android:layout_weight="1">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="@dimen/lp_card_padding">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <View
+                                android:id="@+id/dot_run_cycle"
+                                android:layout_width="8dp"
+                                android:layout_height="8dp"
+                                android:layout_marginEnd="@dimen/lp_space_2"
+                                android:background="@drawable/lp_dot"
+                                android:backgroundTint="?attr/lpHairlineStrong" />
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/readiness_run_cycle_title"
+                                android:textAppearance="@style/TextAppearance.LP.Caption" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/text_run_cycle_status"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/lp_space_2"
+                            android:text="@string/placeholder_dash"
+                            android:textAppearance="@style/TextAppearance.LP.Heading" />
+
+                        <TextView
+                            android:id="@+id/text_run_cycle_message"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/lp_space_1"
+                            android:text="@string/placeholder_dash"
+                            android:textAppearance="@style/TextAppearance.LP.Body" />
+
+                        <TextView
+                            android:id="@+id/text_run_cycle_countdown"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/lp_space_2"
+                            android:textAppearance="@style/TextAppearance.LP.Metric.S"
+                            android:visibility="gone"
+                            tools:text="Ready in 6h 20m"
+                            tools:visibility="visible" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Swim -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/card_swim"
+                    style="@style/Widget.LP.Card"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="@dimen/lp_card_padding">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <View
+                                android:id="@+id/dot_swim"
+                                android:layout_width="8dp"
+                                android:layout_height="8dp"
+                                android:layout_marginEnd="@dimen/lp_space_2"
+                                android:background="@drawable/lp_dot"
+                                android:backgroundTint="?attr/lpHairlineStrong" />
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/readiness_swim_title"
+                                android:textAppearance="@style/TextAppearance.LP.Caption" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/text_swim_status"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/lp_space_2"
+                            android:text="@string/placeholder_dash"
+                            android:textAppearance="@style/TextAppearance.LP.Heading" />
+
+                        <TextView
+                            android:id="@+id/text_swim_message"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/lp_space_1"
+                            android:text="@string/placeholder_dash"
+                            android:textAppearance="@style/TextAppearance.LP.Body" />
+
+                        <TextView
+                            android:id="@+id/text_swim_countdown"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/lp_space_2"
+                            android:textAppearance="@style/TextAppearance.LP.Metric.S"
+                            android:visibility="gone"
+                            tools:text="Ready in 40m"
+                            tools:visibility="visible" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/lp_card_gap"
+                android:baselineAligned="false"
+                android:orientation="horizontal">
+
+                <!-- Lower body lift -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/card_lower_lift"
+                    style="@style/Widget.LP.Card"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginEnd="@dimen/lp_card_gap"
+                    android:layout_weight="1">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="@dimen/lp_card_padding">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <View
+                                android:id="@+id/dot_lower_lift"
+                                android:layout_width="8dp"
+                                android:layout_height="8dp"
+                                android:layout_marginEnd="@dimen/lp_space_2"
+                                android:background="@drawable/lp_dot"
+                                android:backgroundTint="?attr/lpHairlineStrong" />
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/readiness_lower_lift_title"
+                                android:textAppearance="@style/TextAppearance.LP.Caption" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/text_lower_lift_status"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/lp_space_2"
+                            android:text="@string/placeholder_dash"
+                            android:textAppearance="@style/TextAppearance.LP.Heading" />
+
+                        <TextView
+                            android:id="@+id/text_lower_lift_message"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/lp_space_1"
+                            android:text="@string/placeholder_dash"
+                            android:textAppearance="@style/TextAppearance.LP.Body" />
+
+                        <TextView
+                            android:id="@+id/text_lower_lift_countdown"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/lp_space_2"
+                            android:textAppearance="@style/TextAppearance.LP.Metric.S"
+                            android:visibility="gone"
+                            tools:text="Ready in 1d"
+                            tools:visibility="visible" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Upper body lift -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/card_upper_lift"
+                    style="@style/Widget.LP.Card"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="@dimen/lp_card_padding">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <View
+                                android:id="@+id/dot_upper_lift"
+                                android:layout_width="8dp"
+                                android:layout_height="8dp"
+                                android:layout_marginEnd="@dimen/lp_space_2"
+                                android:background="@drawable/lp_dot"
+                                android:backgroundTint="?attr/lpHairlineStrong" />
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/readiness_upper_lift_title"
+                                android:textAppearance="@style/TextAppearance.LP.Caption" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/text_upper_lift_status"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/lp_space_2"
+                            android:text="@string/placeholder_dash"
+                            android:textAppearance="@style/TextAppearance.LP.Heading" />
+
+                        <TextView
+                            android:id="@+id/text_upper_lift_message"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/lp_space_1"
+                            android:text="@string/placeholder_dash"
+                            android:textAppearance="@style/TextAppearance.LP.Body" />
+
+                        <TextView
+                            android:id="@+id/text_upper_lift_countdown"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/lp_space_2"
+                            android:textAppearance="@style/TextAppearance.LP.Metric.S"
+                            android:visibility="gone"
+                            tools:text="Ready now"
+                            tools:visibility="visible" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
+
+            <!-- Empty state. Replaces the four cards above rather than sitting under them, so a
+                 fresh install is not four dashes and a shrug. -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_empty_state"
+                style="@style/Widget.LP.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/lp_space_3"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/lp_card_padding">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/readiness_empty_state_title"
                         android:textAppearance="@style/TextAppearance.LP.Heading" />
 
                     <TextView
-                        android:id="@+id/text_workout_date"
-                        android:layout_width="wrap_content"
+                        android:id="@+id/text_empty_state"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="@dimen/lp_space_2"
-                        android:text="@string/readiness_workout_date_placeholder"
+                        android:text="@string/readiness_empty_state"
                         android:textAppearance="@style/TextAppearance.LP.Body" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ==================== LAST WORKOUT ====================
+                 What the last session is still costing, after decay. Three metrics, one scale. -->
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_last_workout"
+                style="@style/Widget.LP.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/lp_section_gap">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/lp_card_padding">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/readiness_last_workout_summary_title"
+                            android:textAppearance="@style/TextAppearance.LP.Heading" />
+
+                        <TextView
+                            android:id="@+id/text_workout_date"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="@dimen/lp_space_2"
+                            android:text="@string/readiness_workout_date_placeholder"
+                            android:textAppearance="@style/TextAppearance.LP.Caption"
+                            tools:text="2026/08/24" />
+                    </LinearLayout>
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="@dimen/lp_space_4"
+                        android:baselineAligned="false"
                         android:orientation="horizontal">
 
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
+                            android:gravity="center"
                             android:orientation="vertical">
-
-                            <TextView
-                                style="@style/Widget.LP.Eyebrow"
-                                android:text="@string/readiness_lower_fatigue_label" />
 
                             <TextView
                                 android:id="@+id/text_lower_fatigue"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="@dimen/lp_space_1"
                                 android:text="@string/placeholder_dash"
-                                android:textAppearance="@style/TextAppearance.LP.Metric.M" />
+                                android:textAppearance="@style/TextAppearance.LP.Metric.L"
+                                tools:text="24.6" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/lp_space_half"
+                                android:text="@string/readiness_lower_fatigue_label"
+                                android:textAppearance="@style/TextAppearance.LP.Caption" />
                         </LinearLayout>
 
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
+                            android:gravity="center"
                             android:orientation="vertical">
-
-                            <TextView
-                                style="@style/Widget.LP.Eyebrow"
-                                android:text="@string/readiness_upper_fatigue_label" />
 
                             <TextView
                                 android:id="@+id/text_upper_fatigue"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="@dimen/lp_space_1"
                                 android:text="@string/placeholder_dash"
-                                android:textAppearance="@style/TextAppearance.LP.Metric.M" />
+                                android:textAppearance="@style/TextAppearance.LP.Metric.L"
+                                tools:text="11.2" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/lp_space_half"
+                                android:text="@string/readiness_upper_fatigue_label"
+                                android:textAppearance="@style/TextAppearance.LP.Caption" />
                         </LinearLayout>
 
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
+                            android:gravity="center"
                             android:orientation="vertical">
-
-                            <TextView
-                                style="@style/Widget.LP.Eyebrow"
-                                android:text="@string/readiness_systemic_fatigue_label" />
 
                             <TextView
                                 android:id="@+id/text_systemic_fatigue"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="@dimen/lp_space_1"
                                 android:text="@string/placeholder_dash"
-                                android:textAppearance="@style/TextAppearance.LP.Metric.M" />
+                                android:textAppearance="@style/TextAppearance.LP.Metric.L"
+                                tools:text="31.9" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/lp_space_half"
+                                android:text="@string/readiness_systemic_fatigue_label"
+                                android:textAppearance="@style/TextAppearance.LP.Caption" />
                         </LinearLayout>
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- READINESS MATRIX GRID -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/lp_space_6"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
+            <!-- ==================== 7-DAY FATIGUE ====================
+                 Tap the strip to expand the day-by-day breakdown and the decay curve. -->
 
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/readiness_activity_readiness_title"
-                    android:textAppearance="@style/TextAppearance.LP.Heading" />
-
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginEnd="@dimen/lp_space_2"
-                        android:text="@string/readiness_use_health_connect_label"
-                        android:textAppearance="@style/TextAppearance.LP.Label"
-                        android:textColor="?attr/lpInkSecondary" />
-
-                    <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/switch_use_health_connect"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        app:showText="false" />
-                </LinearLayout>
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/lp_space_4"
-                android:orientation="vertical">
-
-                <!-- Row 1: Run/Cycle and Swim -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal">
-
-                    <!-- Run / Cycle Card -->
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/card_run_cycle"
-                        style="@style/Widget.LP.Card"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginEnd="@dimen/lp_card_gap"
-                        android:layout_weight="1"
-                        android:clickable="false"
-                        android:focusable="false">
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            android:padding="@dimen/lp_card_padding">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/readiness_run_cycle_title"
-                                android:textAppearance="@style/TextAppearance.LP.Heading" />
-
-                            <TextView
-                                android:id="@+id/text_run_cycle_status"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="@dimen/lp_space_2"
-                                android:text="@string/placeholder_dash"
-                                android:textAppearance="@style/TextAppearance.LP.Heading" />
-
-                            <TextView
-                                android:id="@+id/text_run_cycle_message"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="@dimen/lp_space_1"
-                                android:text="@string/placeholder_dash"
-                                android:textAppearance="@style/TextAppearance.LP.Label" />
-
-                            <TextView
-                                android:id="@+id/text_run_cycle_countdown"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="@dimen/lp_space_2"
-                                android:textAppearance="@style/TextAppearance.LP.Label"
-                                android:visibility="gone" />
-                        </LinearLayout>
-                    </com.google.android.material.card.MaterialCardView>
-
-                    <!-- Swim Card -->
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/card_swim"
-                        style="@style/Widget.LP.Card"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="@dimen/lp_card_gap"
-                        android:layout_weight="1"
-                        android:clickable="false"
-                        android:focusable="false">
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            android:padding="@dimen/lp_card_padding">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/readiness_swim_title"
-                                android:textAppearance="@style/TextAppearance.LP.Heading" />
-
-                            <TextView
-                                android:id="@+id/text_swim_status"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="@dimen/lp_space_2"
-                                android:text="@string/placeholder_dash"
-                                android:textAppearance="@style/TextAppearance.LP.Heading" />
-
-                            <TextView
-                                android:id="@+id/text_swim_message"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="@dimen/lp_space_1"
-                                android:text="@string/placeholder_dash"
-                                android:textAppearance="@style/TextAppearance.LP.Label" />
-
-                            <TextView
-                                android:id="@+id/text_swim_countdown"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="@dimen/lp_space_2"
-                                android:textAppearance="@style/TextAppearance.LP.Label"
-                                android:visibility="gone" />
-                        </LinearLayout>
-                    </com.google.android.material.card.MaterialCardView>
-                </LinearLayout>
-
-                <!-- Row 2: Lower Body Lift and Upper Body Lift -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/lp_space_3"
-                    android:orientation="horizontal">
-
-                    <!-- Lower Body Lift Card -->
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/card_lower_lift"
-                        style="@style/Widget.LP.Card"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginEnd="@dimen/lp_card_gap"
-                        android:layout_weight="1"
-                        android:clickable="false"
-                        android:focusable="false">
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            android:padding="@dimen/lp_card_padding">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/readiness_lower_lift_title"
-                                android:textAppearance="@style/TextAppearance.LP.Heading" />
-
-                            <TextView
-                                android:id="@+id/text_lower_lift_status"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="@dimen/lp_space_2"
-                                android:text="@string/placeholder_dash"
-                                android:textAppearance="@style/TextAppearance.LP.Heading" />
-
-                            <TextView
-                                android:id="@+id/text_lower_lift_message"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="@dimen/lp_space_1"
-                                android:text="@string/placeholder_dash"
-                                android:textAppearance="@style/TextAppearance.LP.Label" />
-
-                            <TextView
-                                android:id="@+id/text_lower_lift_countdown"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="@dimen/lp_space_2"
-                                android:textAppearance="@style/TextAppearance.LP.Label"
-                                android:visibility="gone" />
-                        </LinearLayout>
-                    </com.google.android.material.card.MaterialCardView>
-
-                    <!-- Upper Body Lift Card -->
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/card_upper_lift"
-                        style="@style/Widget.LP.Card"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="@dimen/lp_card_gap"
-                        android:layout_weight="1"
-                        android:clickable="false"
-                        android:focusable="false">
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            android:padding="@dimen/lp_card_padding">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/readiness_upper_lift_title"
-                                android:textAppearance="@style/TextAppearance.LP.Heading" />
-
-                            <TextView
-                                android:id="@+id/text_upper_lift_status"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="@dimen/lp_space_2"
-                                android:text="@string/placeholder_dash"
-                                android:textAppearance="@style/TextAppearance.LP.Heading" />
-
-                            <TextView
-                                android:id="@+id/text_upper_lift_message"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="@dimen/lp_space_1"
-                                android:text="@string/placeholder_dash"
-                                android:textAppearance="@style/TextAppearance.LP.Label" />
-
-                            <TextView
-                                android:id="@+id/text_upper_lift_countdown"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="@dimen/lp_space_2"
-                                android:textAppearance="@style/TextAppearance.LP.Label"
-                                android:visibility="gone" />
-                        </LinearLayout>
-                    </com.google.android.material.card.MaterialCardView>
-                </LinearLayout>
-            </LinearLayout>
-
-            <!-- 7-DAY CALENDAR VIEW -->
+            <!-- Gone until the timeline has been built. It used to ship visible, which meant a
+                 fresh install showed a titled card with an empty week inside it — the timeline is
+                 never calculated when there are no workouts to calculate it from. -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/card_calendar"
                 style="@style/Widget.LP.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/lp_space_6"
-                android:clickable="false"
-                android:focusable="false">
+                android:layout_marginTop="@dimen/lp_card_gap"
+                android:visibility="gone"
+                tools:visibility="visible">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:animateLayoutChanges="true"
                     android:orientation="vertical"
-                    android:padding="@dimen/lp_card_padding"
-                    android:animateLayoutChanges="true">
+                    android:padding="@dimen/lp_card_padding">
 
-                    <TextView
-                        android:layout_width="wrap_content"
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="@string/readiness_calendar_title"
-                        android:textAppearance="@style/TextAppearance.LP.Heading" />
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
 
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/readiness_calendar_title"
+                            android:textAppearance="@style/TextAppearance.LP.Heading" />
+
+                        <TextView
+                            android:id="@+id/text_calendar_hint"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="@dimen/lp_space_2"
+                            android:text="@string/readiness_calendar_hint"
+                            android:textAppearance="@style/TextAppearance.LP.Caption" />
+                    </LinearLayout>
+
+                    <!-- item_readiness_day cells, added by ReadinessDashboardActivity. -->
                     <LinearLayout
                         android:id="@+id/layout_calendar_days"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="@dimen/lp_space_3"
                         android:background="?attr/selectableItemBackground"
+                        android:baselineAligned="false"
                         android:clickable="true"
                         android:focusable="true"
+                        android:gravity="center_vertical"
                         android:orientation="horizontal"
-                        android:gravity="center_vertical">
-                    </LinearLayout>
+                        android:paddingVertical="@dimen/lp_space_2" />
 
                     <LinearLayout
                         android:id="@+id/layout_chart_expanded"
@@ -491,16 +734,19 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="@dimen/lp_space_4"
                         android:orientation="vertical"
-                        android:visibility="gone">
+                        android:visibility="gone"
+                        tools:visibility="visible">
+
+                        <View style="@style/Widget.LP.Divider" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/lp_space_4"
                             android:text="@string/readiness_current_fatigue_decay_label"
-                            android:textAppearance="@style/TextAppearance.LP.Label"
-                            android:textColor="?attr/lpInkSecondary" />
+                            android:textAppearance="@style/TextAppearance.LP.Caption" />
 
-                        <!-- Fatigue Values List -->
+                        <!-- item_readiness_fatigue_row rows, added by the activity. -->
                         <LinearLayout
                             android:id="@+id/layout_fatigue_list"
                             android:layout_width="match_parent"
@@ -512,119 +758,92 @@
                             android:id="@+id/chart_fatigue"
                             android:layout_width="match_parent"
                             android:layout_height="200dp"
-                            android:minHeight="200dp"
-                            android:layout_marginTop="@dimen/lp_space_2" />
+                            android:layout_marginTop="@dimen/lp_space_4"
+                            android:minHeight="200dp" />
 
-                        <com.google.android.material.card.MaterialCardView
+                        <com.google.android.material.button.MaterialButton
                             android:id="@+id/button_export_fatigue_data"
-                            style="@style/Widget.LP.Card.Dense"
+                            style="@style/Widget.LP.Button.Outlined"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="@dimen/lp_space_4">
-
-                            <LinearLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:gravity="center"
-                                android:orientation="horizontal"
-                                android:padding="@dimen/lp_space_3">
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="@string/readiness_export_fatigue_data"
-                                    android:textAppearance="@style/TextAppearance.LP.Heading" />
-                            </LinearLayout>
-                        </com.google.android.material.card.MaterialCardView>
+                            android:layout_marginTop="@dimen/lp_space_4"
+                            android:text="@string/readiness_export_fatigue_data" />
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!--
-                TriPath contribution. Gone unless the integration is connected — see
-                TriPathConnection.isActive.
-            -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/card_tripath"
-                style="@style/Widget.LP.Card.Dense"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/lp_space_4"
-                android:visibility="gone">
+            <!-- ==================== DATA SOURCES ====================
+                 Same hairline-divided row language as Settings, because this is the same kind of
+                 thing: wiring, not training data. -->
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="@dimen/lp_space_3">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/tripath_card_title"
-                        android:textAppearance="@style/TextAppearance.LP.Label"
-                        android:textColor="?attr/lpInkSecondary" />
-
-                    <TextView
-                        android:id="@+id/text_tripath_form"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/lp_space_1"
-                        android:text="@string/placeholder_dash"
-                        android:textAppearance="@style/TextAppearance.LP.Heading" />
-
-                    <TextView
-                        android:id="@+id/text_tripath_recovery"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/lp_space_1"
-                        android:text="@string/placeholder_dash"
-                        android:textAppearance="@style/TextAppearance.LP.Body" />
-
-                    <TextView
-                        android:id="@+id/text_tripath_effect"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/lp_space_1"
-                        android:text="@string/placeholder_dash"
-                        android:textAppearance="@style/TextAppearance.LP.Label"
-                        android:textColor="?attr/lpInkSecondary" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Health Connect Sync Button -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/button_health_connect"
-                style="@style/Widget.LP.Card.Dense"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/lp_space_4">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center"
-                    android:orientation="horizontal"
-                    android:padding="@dimen/lp_space_3">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/readiness_sync_health_connect"
-                        android:textAppearance="@style/TextAppearance.LP.Heading" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Empty State Message -->
             <TextView
-                android:id="@+id/text_empty_state"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:layout_marginTop="@dimen/lp_space_10"
-                android:text="@string/readiness_empty_state"
-                android:textAppearance="@style/TextAppearance.LP.Body"
-                android:visibility="gone" />
+                android:layout_marginTop="@dimen/lp_section_gap"
+                android:text="@string/readiness_data_sources_title"
+                android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.LP.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/lp_space_2">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:id="@+id/row_use_health_connect"
+                        style="@style/Widget.LP.Row"
+                        android:gravity="center_vertical">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/readiness_use_health_connect_label"
+                            android:textAppearance="@style/TextAppearance.LP.Label" />
+
+                        <com.google.android.material.materialswitch.MaterialSwitch
+                            android:id="@+id/switch_use_health_connect"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            app:showText="false" />
+                    </LinearLayout>
+
+                    <View style="@style/Widget.LP.Divider" />
+
+                    <LinearLayout
+                        android:id="@+id/button_health_connect"
+                        style="@style/Widget.LP.Row"
+                        android:gravity="center_vertical">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_link_24"
+                            app:tint="?attr/lpAccent" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="@dimen/lp_space_3"
+                            android:layout_weight="1"
+                            android:text="@string/readiness_sync_health_connect"
+                            android:textAppearance="@style/TextAppearance.LP.Label" />
+
+                        <ImageView
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:contentDescription="@string/cd_open_screen"
+                            android:src="@drawable/ic_arrow_forward_24"
+                            app:tint="?attr/lpInkTertiary" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>

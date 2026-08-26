@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  One day in the expanded fatigue breakdown under the 7-day strip: what the day *added* (raw) and
+  what was still on the clock when it ended (end-of-day, after decay).
+
+  Both numbers are mono because both move; the date is prose and stays Archivo.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:baselineAligned="false"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingVertical="@dimen/lp_space_1">
+
+    <TextView
+        android:id="@+id/text_row_date"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textAppearance="@style/TextAppearance.LP.Label"
+        tools:text="08/18 (Mon)" />
+
+    <TextView
+        android:id="@+id/text_row_raw"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:gravity="end"
+        android:textAppearance="@style/TextAppearance.LP.Metric.S"
+        tools:text="Raw 38" />
+
+    <TextView
+        android:id="@+id/text_row_end"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:gravity="end"
+        android:textAppearance="@style/TextAppearance.LP.Metric.S"
+        android:textColor="?attr/lpInk"
+        tools:text="End 24.6" />
+</LinearLayout>

@@ -7,21 +7,26 @@
   redundant, plus a stack of analytics cards. Those analytics moved to Progress > Overview,
   which is where a user goes to *look* at numbers; this screen exists to get a session started.
 
-  Top to bottom, it answers four questions in the order they get asked:
+  Top to bottom, it answers five questions in the order they get asked:
     1. what am I doing now?      → the hero (resume / next in rotation / start), + mode tiles
-    2. what has this been hitting? → the body status figure, a muscle map tinted by effort over
-                                   the last two weeks (WorkoutFragment.updateBodyStatus). Readiness
-                                   (fatigue/recovery) moved to Settings — see SettingsActivity's
-                                   Training section for the ReadinessDashboardActivity entry point.
-    3. what's in today's session? → the up-next plan preview
-    4. how has it been going?    → last session + a 21-day dot strip
+    2. should I go hard today?    → the readiness card. Present ONLY when TriPath is connected
+                                   (TriPathConnection.isActive) — LiftPath's own fatigue model is
+                                   not confident enough to earn a slot here, and it still lives on
+                                   the dashboard. Tapping opens ReadinessDashboardActivity, which
+                                   is this screen's only route to it besides Settings.
+    3. what has this been hitting? → the body status figure, a muscle map tinted by effort over
+                                   the last two weeks (WorkoutFragment.updateBodyStatus)
+    4. what's in today's session? → the up-next plan preview
+    5. how has it been going?    → last session + a 21-day dot strip
 
   Insets are the host's job (MainActivity.applyWindowInsets), so no fitsSystemWindows here, and
   the ambient background lives in the host layout so it bleeds behind every tab.
 
   Accent budget: ?attr/lpAccent appears exactly twice as a flat fill — the hero glow and the
-  "See plan" link — plus one variable use, the body status figure's per-muscle effort tint.
-  That restraint is the point; adding another flat use costs the other two their emphasis.
+  "See plan" link. Everything else that can reach for it is a VARIABLE, state-carrying use that
+  spends it only some of the time: the body status figure's per-muscle effort tint, the last
+  session's recency recolour, and the readiness score, which is accent only in the caution band.
+  That restraint is the point; adding another flat use costs the first two their emphasis.
 -->
 <androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -292,12 +297,128 @@
             </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
 
+        <!-- ==================== READINESS ====================
+             TriPath's verdict, summarised: the score, what it means, and the four strain channels
+             behind it. GONE unless TriPath is connected — see the TriPath Integration Contract in
+             CLAUDE.md. With it absent this screen is byte-for-byte what it was before.
+
+             A summary rather than the whole dashboard, and Interactive rather than static, because
+             the job here is "can I go hard today, yes or no". The reasons — drivers, clear-by
+             times, the fatigue curve — are one tap away in ReadinessDashboardActivity, and putting
+             them on the tab the app opens on would turn a decision into a report. -->
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_readiness"
+            style="@style/Widget.LP.Card.Interactive"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/lp_card_gap"
+            android:visibility="gone"
+            app:layout_constraintTop_toBottomOf="@id/layout_modes"
+            tools:visibility="visible">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="@dimen/lp_card_padding">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <!-- Tinted at bind time from ReadinessPresentation.scoreColorAttr, the same
+                         call the dashboard's verdict card uses — a green score here that turns
+                         amber one tap later would be the app disagreeing with itself. -->
+                    <View
+                        android:id="@+id/dot_readiness"
+                        android:layout_width="8dp"
+                        android:layout_height="8dp"
+                        android:layout_marginEnd="@dimen/lp_space_2"
+                        android:background="@drawable/lp_dot"
+                        android:backgroundTint="?attr/lpHairlineStrong" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/readiness_home_eyebrow"
+                        android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+                    <!-- Tertiary, not accent: the whole card is the tap target, so this is a
+                         wayfinder rather than a link, and the accent budget is already spent. -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/readiness_home_hint"
+                        android:textAppearance="@style/TextAppearance.LP.Caption" />
+
+                    <ImageView
+                        android:layout_width="14dp"
+                        android:layout_height="14dp"
+                        android:layout_marginStart="@dimen/lp_space_1"
+                        android:contentDescription="@string/cd_readiness_open_dashboard"
+                        android:src="@drawable/ic_arrow_forward_24"
+                        app:tint="?attr/lpInkTertiary" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/lp_space_2"
+                    android:baselineAligned="true"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/text_readiness_score"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/placeholder_dash"
+                        android:textAppearance="@style/TextAppearance.LP.Metric.L"
+                        tools:text="72" />
+
+                    <TextView
+                        android:id="@+id/text_readiness_band"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/lp_space_3"
+                        android:layout_weight="1"
+                        android:textAppearance="@style/TextAppearance.LP.Heading"
+                        tools:text="Ready" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/text_readiness_summary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/lp_space_1"
+                    android:ellipsize="end"
+                    android:maxLines="2"
+                    android:textAppearance="@style/TextAppearance.LP.Body"
+                    tools:text="Go — legs are clear and systemic load is where it should be." />
+
+                <!-- item_readiness_channel_tile tiles, added by WorkoutFragment. GONE when TriPath
+                     reported no per-channel detail, which an older build will not. -->
+                <LinearLayout
+                    android:id="@+id/layout_readiness_channels"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/lp_space_4"
+                    android:baselineAligned="false"
+                    android:orientation="horizontal"
+                    android:visibility="gone"
+                    tools:visibility="visible" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
         <!-- ==================== BODY STATUS ====================
              The illustrated muscle map (MuscleMapRenderer), tinted per muscle by effort over the
              last two weeks (WorkoutFragment.updateBodyStatus / ProgressAnalysisHelper.
              getRecentMuscleEffort) rather than the upper/lower readiness verdict this card used
-             to show — readiness moved to Settings. Hidden when there is no recent training so a
-             fresh install does not show a blank silhouette. -->
+             to show. Hidden when there is no recent training so a fresh install does not show a
+             blank silhouette. -->
 
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_body_status"
@@ -306,7 +427,8 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/lp_card_gap"
             android:visibility="gone"
-            app:layout_constraintTop_toBottomOf="@id/layout_modes"
+            app:layout_constraintTop_toBottomOf="@id/card_readiness"
+            app:layout_goneMarginTop="@dimen/lp_card_gap"
             tools:visibility="visible">
 
             <LinearLayout

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  One strain channel as a compact tile, for the Workout tab's readiness card.
+
+  The dashboard's row (item_readiness_channel_row) carries a clears-at time as well; this one
+  deliberately does not. The home card answers "how hard can I go today", and four "~14h to clear"
+  lines on the tab you open the app on is a report, not an answer — the dashboard is one tap away
+  for that.
+
+  layout_width is set by the inflating code (equal weights across the strip), not here.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:gravity="center_horizontal"
+    android:orientation="vertical">
+
+    <!-- Tinted at bind time from ReadinessPresentation.freshnessColorAttr. -->
+    <TextView
+        android:id="@+id/text_tile_value"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="@style/TextAppearance.LP.Metric.M"
+        tools:text="72%" />
+
+    <!-- Exactly two lines, always. Three of the four channel names wrap at this column width and
+         the fourth ("Systemic") does not, so without a reserved second line the strip's baseline
+         steps up and down across the row. -->
+    <TextView
+        android:id="@+id/text_tile_label"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/lp_space_half"
+        android:gravity="center_horizontal"
+        android:maxLines="2"
+        android:minLines="2"
+        android:textAppearance="@style/TextAppearance.LP.Caption"
+        tools:text="Legs impact" />
+</LinearLayout>

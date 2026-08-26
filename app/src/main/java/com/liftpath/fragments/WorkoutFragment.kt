@@ -15,12 +15,14 @@ import androidx.lifecycle.lifecycleScope
 import com.liftpath.R
 import com.liftpath.activities.ActiveTrainingActivity
 import com.liftpath.activities.MainActivity
+import com.liftpath.activities.ReadinessDashboardActivity
 import com.liftpath.activities.SettingsActivity
 import com.liftpath.activities.StretchCooldownActivity
 import com.liftpath.activities.TrainingDetailActivity
 import com.liftpath.adapters.ProgressPagerAdapter
 import com.liftpath.components.SelectWorkoutModeBottomSheet
 import com.liftpath.databinding.FragmentWorkoutBinding
+import com.liftpath.databinding.ItemReadinessChannelTileBinding
 import com.liftpath.databinding.ItemUpNextSlotBinding
 import com.liftpath.helpers.ActiveWorkoutDraftManager
 import com.liftpath.helpers.BackupScheduler
@@ -37,8 +39,13 @@ import com.liftpath.helpers.MuscleMapColorResolver
 import com.liftpath.helpers.MuscleMapRenderer
 import com.liftpath.helpers.PlanRotationHelper
 import com.liftpath.helpers.ProgressAnalysisHelper
+import com.liftpath.helpers.ReadinessPresentation
 import com.liftpath.helpers.SetMetrics
 import com.liftpath.helpers.TriPathConnection
+import com.liftpath.helpers.TriPathDay
+import com.liftpath.helpers.TriPathReadiness
+import com.liftpath.helpers.TriPathStorage
+import com.liftpath.helpers.TriPathStorageHelper
 import com.liftpath.helpers.TriPathSyncHelper
 import com.liftpath.helpers.WithingsHealthConnectHelper
 import com.liftpath.helpers.lpColor
@@ -204,9 +211,10 @@ class WorkoutFragment : Fragment() {
             listOf(binding.textWorkoutDate, binding.textWorkoutTitle, binding.cardSettings),
             listOf(binding.cardStartWorkout),
             listOf(binding.layoutModes),
-            // Holds its slot whether or not it ends up visible. Springing a GONE view is a
-            // no-op that costs nothing, and it means the card does not need a second code
+            // These two hold their slots whether or not they end up visible. Springing a GONE
+            // view is a no-op that costs nothing, and it means neither card needs a second code
             // path to arrive with everyone else.
+            listOf(binding.cardReadiness),
             listOf(binding.cardBodyStatus),
             listOf(binding.cardUpNext),
             listOf(binding.cardLastSession),
@@ -295,6 +303,13 @@ class WorkoutFragment : Fragment() {
             host()?.openProgress(ProgressPagerAdapter.TAB_OVERVIEW)
         }
 
+        // The readiness card summarises TriPath's verdict; the dashboard behind it carries the
+        // drivers, the clear-by times and the fatigue curve.
+        binding.cardReadiness.setOnClickListener { view ->
+            view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
+            startActivity(Intent(requireContext(), ReadinessDashboardActivity::class.java))
+        }
+
         // Scale-down-on-touch for everything tappable. Registered after the click listeners
         // above; the touch listener never consumes the event, so both fire.
         Motion.applyPressResponse(
@@ -302,6 +317,7 @@ class WorkoutFragment : Fragment() {
             binding.tileManual,
             binding.tilePlan,
             binding.tileStretch,
+            binding.cardReadiness,
             binding.cardLastSession,
             binding.cardMomentum,
             binding.cardSettings
@@ -317,6 +333,7 @@ class WorkoutFragment : Fragment() {
             .format(Calendar.getInstance().time)
 
         updateHero(trainingData)
+        updateReadiness()
         updateLastSession(trainingData)
         updateMomentum(trainingData)
         updateBodyStatus(trainingData)
@@ -563,6 +580,140 @@ class WorkoutFragment : Fragment() {
         }
     }
 
+    // ---------------------------------------------------------------- readiness
+
+    /**
+     * TriPath's readiness verdict, summarised.
+     *
+     * [TriPathConnection.isActive] is the only gate, per the TriPath Integration Contract: with the
+     * integration absent, disabled or unreachable this card is GONE and the tab is exactly what it
+     * was before it existed. LiftPath's own fatigue model deliberately does NOT fill the gap here —
+     * it sees lifting only, and a home-screen verdict built from a third of the picture would be
+     * more confident than it has any right to be. It still runs, on the dashboard.
+     *
+     * Reads the cached file rather than the provider: a binder call on every tab visit is exactly
+     * what [TriPathStorageHelper] exists to avoid.
+     */
+    private fun updateReadiness() {
+        if (!TriPathConnection.isActive(requireContext())) {
+            binding.cardReadiness.visibility = View.GONE
+            return
+        }
+
+        val appContext = requireContext().applicationContext
+        viewLifecycleOwner.lifecycleScope.launch {
+            val storage = withContext(Dispatchers.IO) { TriPathStorageHelper(appContext).read() }
+            if (_binding == null) return@launch
+
+            val readiness = storage.readiness
+            if (readiness != null) bindReadinessVerdict(readiness) else bindReadinessDay(storage)
+        }
+    }
+
+    private fun bindReadinessVerdict(readiness: TriPathReadiness) {
+        val context = requireContext()
+        val scoreColor = context.lpColor(ReadinessPresentation.bandColorAttr(readiness.band))
+
+        binding.textReadinessScore.text = readiness.score.toString()
+        binding.textReadinessScore.setTextColor(scoreColor)
+        binding.dotReadiness.backgroundTintList = ColorStateList.valueOf(scoreColor)
+        binding.textReadinessBand.text = ReadinessPresentation.humanise(readiness.band)
+        binding.textReadinessSummary.text =
+            readiness.guidance ?: ReadinessPresentation.humanise(readiness.action)
+
+        binding.layoutReadinessChannels.removeAllViews()
+        ReadinessPresentation.CHANNELS.forEach { channel ->
+            val freshness = channel.freshness(readiness) ?: return@forEach
+            addReadinessTile(
+                label = getString(channel.labelRes),
+                value = getString(R.string.readiness_percent, freshness),
+                colorAttr = ReadinessPresentation.freshnessColorAttr(freshness)
+            )
+        }
+        showReadinessChannelsIfAny()
+        revealLateCard(binding.cardReadiness)
+    }
+
+    /**
+     * A connected TriPath that has not sent a verdict — an older build, or a first sync that has
+     * not landed. Show the load figures it did send rather than an empty card, and put form in the
+     * headline slot so the card keeps its shape between the two modes.
+     */
+    private fun bindReadinessDay(storage: TriPathStorage) {
+        val day: TriPathDay? = storage.days.maxByOrNull { it.date }
+        if (day == null) {
+            binding.cardReadiness.visibility = View.GONE
+            return
+        }
+
+        val context = requireContext()
+        binding.textReadinessScore.text = String.format(Locale.getDefault(), "%+.0f", day.tsb)
+        binding.textReadinessScore.setTextColor(context.lpColor(R.attr.lpInk))
+        binding.dotReadiness.backgroundTintList =
+            ColorStateList.valueOf(context.lpColor(R.attr.lpHairlineStrong))
+        binding.textReadinessBand.setText(R.string.readiness_form_label)
+        binding.textReadinessSummary.text = recoverySummary(day)
+
+        binding.layoutReadinessChannels.removeAllViews()
+        addReadinessTile(
+            label = getString(R.string.readiness_fitness_label),
+            value = String.format(Locale.getDefault(), "%.0f", day.ctl),
+            colorAttr = R.attr.lpInk
+        )
+        addReadinessTile(
+            label = getString(R.string.readiness_fatigue_label),
+            value = String.format(Locale.getDefault(), "%.0f", day.atl),
+            colorAttr = R.attr.lpInk
+        )
+        showReadinessChannelsIfAny()
+        revealLateCard(binding.cardReadiness)
+    }
+
+    /** "Sleep 82 · HRV 46 · Soreness 3/10" — whichever of the three TriPath actually has. */
+    private fun recoverySummary(day: TriPathDay): String = buildList {
+        day.sleepScore?.let { add(getString(R.string.readiness_sleep_score, it)) }
+            ?: day.sleepMinutes?.let {
+                add(getString(R.string.readiness_sleep_duration, it / 60, it % 60))
+            }
+        day.hrvRmssd?.let { add(getString(R.string.readiness_hrv, it)) }
+        day.soreness?.let { add(getString(R.string.readiness_soreness, it)) }
+    }.joinToString(DETAIL_SEPARATOR).ifEmpty { getString(R.string.readiness_no_recovery_data) }
+
+    /** Equal weights, so two tiles and four tiles both fill the card rather than bunching left. */
+    private fun addReadinessTile(label: String, value: String, colorAttr: Int) {
+        val tile = ItemReadinessChannelTileBinding.inflate(
+            layoutInflater, binding.layoutReadinessChannels, false
+        )
+        tile.root.layoutParams = LinearLayout.LayoutParams(
+            0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f
+        )
+        tile.textTileValue.text = value
+        tile.textTileValue.setTextColor(requireContext().lpColor(colorAttr))
+        tile.textTileLabel.text = label
+        binding.layoutReadinessChannels.addView(tile.root)
+    }
+
+    /** The strip carries a top margin, so an empty one leaves a gap that reads as a missing row. */
+    private fun showReadinessChannelsIfAny() {
+        binding.layoutReadinessChannels.visibility =
+            if (binding.layoutReadinessChannels.childCount == 0) View.GONE else View.VISIBLE
+    }
+
+    /**
+     * Shows a card whose content resolved off the main thread, after the entrance may already have
+     * played. Joins the cascade if it is still pending; otherwise arrives alone with the same
+     * spring, so it at least matches how the rest of the screen arrived.
+     */
+    private fun revealLateCard(card: View) {
+        if (card.visibility == View.VISIBLE) return
+        card.visibility = View.VISIBLE
+        if (pendingWaves == null) {
+            Motion.prepareEntrance(card)
+            Motion.springIn(card)
+        }
+        // Otherwise it is hidden and holding its slot in a cascade that has yet to run.
+    }
+
     private fun openSessionDetail(session: TrainingSession) {
         startActivity(
             Intent(requireContext(), TrainingDetailActivity::class.java).apply {
@@ -688,18 +839,9 @@ class WorkoutFragment : Fragment() {
             binding.textBodyStatusSummary.text =
                 getString(R.string.workout_body_status_summary, topMuscles)
 
-            if (binding.cardBodyStatus.visibility != View.VISIBLE) {
-                binding.cardBodyStatus.visibility = View.VISIBLE
-                if (pendingWaves == null) {
-                    // The cascade has already gone — either this is a later refresh, or the
-                    // render blew past BODY_STATUS_WAIT_CAP_MS. Arrive alone, with the same
-                    // spring, so it at least matches how the others arrived.
-                    Motion.prepareEntrance(binding.cardBodyStatus)
-                    Motion.springIn(binding.cardBodyStatus)
-                }
-                // Otherwise it is already hidden and holding its slot in the cascade, which
-                // is about to run now that this resolved.
-            }
+            // If the cascade has already gone — a later refresh, or a render that blew past
+            // BODY_STATUS_WAIT_CAP_MS — this card arrives on its own instead.
+            revealLateCard(binding.cardBodyStatus)
             onBodyStatusResolved()
         }
     }
@@ -842,14 +984,18 @@ class WorkoutFragment : Fragment() {
     }
 
     /**
-     * Refreshes TriPath's cardio load and recovery data. Fire-and-forget: readiness and the Fuel
-     * page read the cached file, so a failed pull just leaves them on yesterday's numbers.
+     * Refreshes TriPath's load, recovery and readiness figures, then redraws the readiness card.
+     *
+     * A failed pull is silent and leaves the card on yesterday's numbers — TriPath being absent,
+     * disabled or mid-update is the normal case, not an error worth a toast.
      */
     private fun autoSyncTriPath() {
         if (!TriPathConnection.isEnabled(requireContext())) return
 
         viewLifecycleOwner.lifecycleScope.launch {
-            TriPathSyncHelper.autoSync(requireContext().applicationContext)
+            TriPathSyncHelper.autoSync(requireContext().applicationContext).onSuccess {
+                if (_binding != null) updateReadiness()
+            }
         }
     }
 
